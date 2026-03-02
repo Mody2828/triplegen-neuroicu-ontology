@@ -1,0 +1,174 @@
+============================================================
+RUN SUMMARY  —  TripleGen Ontology Engineering Framework
+============================================================
+
+--- Metadata ---
+Run ID:          20260302-220848-8cd12a5e
+Timestamp (UTC): 2026-03-02T22:11:55.718411
+Method:          One-Shot (MMR-1)
+Pipeline mode:   Schema-Completed
+LLM provider:    openai gpt-4o-mini
+Improvements:    Schema-guided completion, Rule-based Reasoning Layer (optional)
+Eval settings:   Scope filter (clinical-only chunks), Gold-vocabulary-only evaluation, Medical NER anchor (experimental)
+
+--- Input paper(s) ---
+  • The BrainIT group concept and core dataset definition.txt
+  • Trusting-Intensive-Care-Unit-.txt
+
+--- Improvement counts (for ablation / fairness) ---
+  Schema-guided completion: classes_added=15, relations_added=8, hierarchy_added=19
+  Built-in cleanup (always active): classes_removed_dedupe=2, relations_removed_dedupe=0, hierarchy_removed_dedupe=0, out_of_scope_classes_removed=1, abstract_data_classes_removed=1, broad_contextual_classes_removed=0, classes_removed_evidence=1, hierarchy_pruned_dangling=35, relations_pruned=2, relations_removed_evidence=0, hierarchy_fragments_removed=0, hierarchy_removed_axiom=0, relations_removed_axiom=0, hierarchy_added=0, orphans_removed=0
+  Rule-based Reasoning Layer (optional): hierarchy_added=35, orphans_removed=15
+
+
+--- Metrics summary (final ontology) ---
+  Coverage:        86.11%
+  Precision:       100.00%
+  Recall:          86.11%
+  Errors:          hallucinations=0, schema_violations=0, omissions=0
+  Structural:      hierarchy_edges=47, hierarchy_coverage=0.89, relation_domain_range_rate=1.00
+  Clinical-only:   coverage=86.11%, precision=100.00%, recall=86.11%
+  Relations:       precision=100.00%, recall=37.50%, n_generated=6, n_gold=16
+  Hierarchy:       precision=97.87%, recall=80.70%, matched=46, n_generated=47, n_gold=57
+
+--- Metrics at extraction only (pre-improvement baseline) ---
+  Coverage:        70.83%
+  Precision:       76.12%
+  Recall:          70.83%
+  Structural:      hierarchy_edges=28, hierarchy_coverage=0.54, relation_domain_range_rate=0.00
+  Relations:       precision=0.00%, recall=0.00%, n_generated=0
+
+--- Per-stage ablation (pipeline progression) ---
+  Stage                   Classes   Rels   Hier   Coverage  Precision     Recall
+  --------------------------------------------------------------------------
+  Extraction                   67      0     28     70.83%     76.12%     70.83%
+  + Schema-Guided              82      8     47     88.89%     80.49%     88.89%
+  + Cleanup                    77      6     12     86.11%     80.52%     86.11%
+  + Rule-based                 62      6     47     86.11%    100.00%     86.11%
+  = Gold-filtered              62      6     47     86.11%    100.00%     86.11%
+
+--- Concept counts (final ontology) ---
+  Classes:         62
+  Relations:       6
+  Hierarchy edges: 47
+
+--- Classes ---
+  • Patient
+  • Monitoring Data
+  • Outcome
+  • Cerebral Perfusion Pressure (CPP)
+  • Intracranial Pressure (ICP)
+  • Intensive Care Management
+  • Secondary Insult
+  • Secondary Insult Treatment
+  • Ventilation
+  • Sedation
+  • CVP
+  • Arterial Hypotension
+  • Core Monitoring Parameter
+  • GCS Assessment
+  • CT Scan Assessment
+  • Heart Rate
+  • Respiration Rate
+  • Mean Arterial Pressure (MAP)
+  • SaO2
+  • Temperature
+  • EtCO2
+  • SjO2
+  • TCD
+  • PbrO2
+  • Brain Temperature
+  • Microdialysis
+  • Baseline Therapy
+  • Pupil Assessment
+  • Fluids
+  • Vasopressors
+  • Haematology
+  • Biochemistry
+  • Systemic Hypotension
+  • Intracranial Hypertension
+  • Acute Respiratory Distress Syndrome
+  • Condition
+  • Hypotension
+  • Sepsis
+  • Data Quality Assessment
+  • Session
+  • Timepoint
+  • Parameter
+  • Observation
+  • Sensor
+  • Possible Error
+  • Probable Error
+  • Hypertension
+  • Noradrenaline
+  • Adrenaline
+  • Optional Monitoring Parameter
+  • Derived Parameter
+  • Secondary Insult Therapy
+  • Arterial Pressors
+  • Jugular Venous Desaturation
+  • Clinical Assessment
+  • Laboratory Values
+  • White Blood Cell Count
+  • Nursing Intervention
+  • Routine Nursing Care
+  • Physiotherapy
+  • Bedside Intervention
+  • Patient Transport
+
+--- Relations ---
+  • has clinical assessment(Patient → Clinical Assessment)
+  • has laboratory value(Patient → Laboratory Values)
+  • has nursing intervention(Patient → Nursing Intervention)
+  • measures parameter(Observation → Parameter)
+  • has quality assessment(Observation → Data Quality Assessment)
+  • associated with condition(Data Quality Assessment → Condition)
+
+--- Hierarchy (subclass → superclass) ---
+  • Monitoring Data ⊑ Intensive Care Management
+  • Intracranial Hypertension ⊑ Secondary Insult
+  • Physiotherapy ⊑ Nursing Intervention
+  • Arterial Pressors ⊑ Secondary Insult Therapy
+  • Jugular Venous Desaturation ⊑ Secondary Insult
+  • White Blood Cell Count ⊑ Haematology
+  • Routine Nursing Care ⊑ Nursing Intervention
+  • Bedside Intervention ⊑ Nursing Intervention
+  • Patient Transport ⊑ Nursing Intervention
+  • Derived Parameter ⊑ Monitoring Data
+  • Intracranial Pressure (ICP) ⊑ Core Monitoring Parameter
+  • Cerebral Perfusion Pressure (CPP) ⊑ Derived Parameter
+  • Arterial Hypotension ⊑ Systemic Hypotension
+  • Microdialysis ⊑ Optional Monitoring Parameter
+  • CT Scan Assessment ⊑ Clinical Assessment
+  • Haematology ⊑ Laboratory Values
+  • Hypotension ⊑ Condition
+  • SjO2 ⊑ Optional Monitoring Parameter
+  • Sedation ⊑ Baseline Therapy
+  • Systemic Hypotension ⊑ Secondary Insult
+  • CVP ⊑ Optional Monitoring Parameter
+  • Temperature ⊑ Core Monitoring Parameter
+  • Acute Respiratory Distress Syndrome ⊑ Secondary Insult
+  • Optional Monitoring Parameter ⊑ Monitoring Data
+  • EtCO2 ⊑ Optional Monitoring Parameter
+  • Respiration Rate ⊑ Core Monitoring Parameter
+  • Probable Error ⊑ Data Quality Assessment
+  • Fluids ⊑ Baseline Therapy
+  • TCD ⊑ Optional Monitoring Parameter
+  • Vasopressors ⊑ Baseline Therapy
+  • Heart Rate ⊑ Core Monitoring Parameter
+  • Secondary Insult Treatment ⊑ Secondary Insult Therapy
+  • Pupil Assessment ⊑ Clinical Assessment
+  • SaO2 ⊑ Core Monitoring Parameter
+  • Core Monitoring Parameter ⊑ Monitoring Data
+  • PbrO2 ⊑ Optional Monitoring Parameter
+  • Noradrenaline ⊑ Vasopressors
+  • Biochemistry ⊑ Laboratory Values
+  • Ventilation ⊑ Baseline Therapy
+  • Adrenaline ⊑ Vasopressors
+  • Secondary Insult ⊑ Condition
+  • Mean Arterial Pressure (MAP) ⊑ Core Monitoring Parameter
+  • Hypertension ⊑ Condition
+  • Brain Temperature ⊑ Optional Monitoring Parameter
+  • Sepsis ⊑ Condition
+  • GCS Assessment ⊑ Clinical Assessment
+  • Possible Error ⊑ Data Quality Assessment

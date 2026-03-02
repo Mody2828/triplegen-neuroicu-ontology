@@ -1,0 +1,240 @@
+Use ONLY the following class labels:
+Acute Respiratory Distress Syndrome; Adrenaline; Antibiotics; Arterial Hypotension; Arterial Pressors; Baseline Therapy; Bedside Intervention; Biochemistry; Blood Gases; Brain Temperature; CT Scan Assessment; CVP; Cerebral Perfusion Pressure (CPP); Clinical Assessment; Condition; Core Monitoring Parameter; Data Quality Assessment; Derived Parameter; EtCO2; Fluids; GCS Assessment; GOSe Outcome; Glucose; Haematocrit; Haematology; Haemoglobin; Heart Rate; Hypertension; Hypotension; Intensive Care Management; Intracranial Hypertension; Intracranial Pressure (ICP); Jugular Venous Desaturation; Laboratory Values; Mean Arterial Pressure (MAP); Microdialysis; Monitoring Data; Noradrenaline; Nursing Intervention; Nutrition; Observation; Optional Monitoring Parameter; Outcome; Parameter; Patient; Patient Transport; PbrO2; Physiotherapy; Possible Error; Potassium; Probable Error; Pupil Assessment; Respiration Rate; Routine Nursing Care; SaO2; Secondary Insult; Secondary Insult Therapy; Secondary Insult Treatment; Sedation; Sensor; Sepsis; Session; SjO2; Sodium; Systemic Hypotension; TCD; Temperature; Therapy; Timepoint; Vasopressors; Ventilation; White Blood Cell Count
+Relations (use exact labels + domain/range):
+affected by treatment(Data Quality Assessment->Therapy); associated with condition(Data Quality Assessment->Condition); has clinical assessment(Patient->Clinical Assessment); has laboratory value(Patient->Laboratory Values); has monitoring data(Patient->Monitoring Data); has nursing intervention(Patient->Nursing Intervention); has observation(Timepoint->Observation); has outcome(Patient->Outcome); has quality assessment(Observation->Data Quality Assessment); has session(Patient->Session); has timepoint(Session->Timepoint); has_source; has_target; includes; is_a; measures parameter(Observation->Parameter); monitoring indicates condition(Monitoring Data->Condition); produced by sensor(Observation->Sensor); receives therapy(Patient->Therapy); secondary_to; targets condition(Therapy->Condition); treats
+If an item is not in the list, omit it.
+
+LEAF-FIRST RULE (important):
+- Prefer the most specific class labels mentioned in the text (e.g., ICP/CPP/MAP, Ventilation/Sedation/Fluids/Nutrition).
+- Avoid outputting only broad container classes (e.g., Monitoring Data, Therapy, Condition) if the text names specific items.
+- You may include container classes when needed as endpoints for allowed relations, but do not stop at containers when leaf items are present.
+- If the text clearly mentions multiple distinct allowed leaf items, extract several of them (each with evidence) rather than stopping early.
+- Do NOT treat research methods/algorithms/guideline-adherence calculations as Therapy or Monitoring Data.
+
+Phase 1: Extract candidate classes only. Output JSON with keys classes, relations, hierarchy. Set relations and hierarchy to empty arrays.
+
+### SYSTEM ROLE
+You are a highly precise medical ontology extraction engine. You specialize in Neuro-ICU and BrainIT clinical literature.
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided above, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+2. **Evidence Anchor:** EVERY class and relation extracted MUST be accompanied by an `evidence` field containing the EXACT, verbatim sentence fragment from the text.
+3. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+4. **Scope Limitation:**
+   - IGNORE all metadata, authors, affiliations, journal names, DOI/ISBN, and semantic web/technical boilerplate (RDF, URI, etc).
+   - Do NOT extract organisational, membership, database, or publication concepts (e.g. steering group, data validation staff, common database).
+   - FOCUS ONLY on clinical/physiological concepts, treatments, parameters, and outcomes.
+5. **Reject rule:** When in doubt, omit. Prefer under-generation to over-generation.
+
+**Default priority: classes first, then relations.** Extract relations only when the wording is explicit and stable. If uncertain, return no relations. If a phase instruction above overrides this priority, follow the phase instruction.
+
+Use the retrieved examples below as **style guidance only**. Apply the same OUTPUT FORMAT and evidence rules. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+---
+Retrieved examples:
+--- Retrieved examples (3) ---
+
+Text: This is the minimum minute by minute monitoring data required for inclusion in the BrainIT Database and include: Heart Rate (specifying source: ECG or Pulse Oximetry), Respiration Rate (sources: impedance plethmography or ventilator), Mean Arterial Pressure, mean ICP, Pulse Oximetry (SaO2) and Temperature (sources: rectal=oesophageal= bladder=skin.) However, additional variables: Central Venous Pressure (CVP), EtCO2, SjO2, TCD, PbrO2, Brain Temperature, Microdialysis. . . will also be included in the database if they are monitored, in a given patient, as part of their usual clinical management.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate (specifying source: ECG or Pulse Oximetry)"
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate (sources: impedance plethmography or ventilator)"
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "Mean Arterial Pressure"
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "mean ICP"
+    },
+    {
+      "label": "SaO2",
+      "evidence": "Pulse Oximetry (SaO2)"
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature (sources: rectal=oesophageal= bladder=skin.)"
+    },
+    {
+      "label": "CVP",
+      "evidence": "Central Venous Pressure (CVP)"
+    },
+    {
+      "label": "EtCO2",
+      "evidence": "EtCO2"
+    },
+    {
+      "label": "SjO2",
+      "evidence": "SjO2"
+    },
+    {
+      "label": "TCD",
+      "evidence": "TCD"
+    },
+    {
+      "label": "PbrO2",
+      "evidence": "PbrO2"
+    },
+    {
+      "label": "Brain Temperature",
+      "evidence": "Brain Temperature"
+    },
+    {
+      "label": "Microdialysis",
+      "evidence": "Microdialysis"
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+
+Text: The aim was to define a minimum or core dataset to be collected from all head injured patients which would be common to all future research projects. To facilitate discussion, the core dataset was sub-divided into four logical groups: a) Demographic and Clinical Information b) Minute by Minute monitoring information c) Intensive care management information d) Secondary insult treatment information.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Patient",
+      "evidence": "collected from all head injured patients"
+    },
+    {
+      "label": "Monitoring Data",
+      "evidence": "Minute by Minute monitoring information"
+    },
+    {
+      "label": "Intensive Care Management",
+      "evidence": "Intensive care management information"
+    },
+    {
+      "label": "Secondary Insult Treatment",
+      "evidence": "Secondary insult treatment information"
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+
+Text: Demographic and clinical data. This group contains data elements which are only collected once per patient and as such are not considered time-series data. Examples being the age and sex of the patient. Medical history is focused upon identifying previous neurological injury, substance abuse and associated injuries. Data elements are then collected describing the clinical status of the patient (e.g.: GCS scores). Both eyes are recorded individually and responsiveness classed as reacting or un-reacting. Pupil size is recorded as small, normal or large.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Patient",
+      "evidence": "data elements which are only collected once per patient"
+    },
+    {
+      "label": "Clinical Assessment",
+      "evidence": "describing the clinical status of the patient"
+    },
+    {
+      "label": "GCS Assessment",
+      "evidence": "GCS scores"
+    },
+    {
+      "label": "Pupil Assessment",
+      "evidence": "Pupil size is recorded as small, normal or large"
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+TEXT TO ANALYZE:
+Acta Neurochir (2003) 145: 615-629
+DOI 10.1007/s00701-003-0066-6
+
+Clinical Article
+I. Piper, G. Citerio, I. Chambers, C. Contant, P. Enblad, H. Fiddes, T. Howells, K. Kiening,
+Published online July 23, 2003
+# Springer-Verlag 2003
+
+Summary
+
+Kiening,
+Published online July 23, 2003
+# Springer-Verlag 2003
+
+Introduction. An open collaborative international network has been
+established which aims to improve inter-centre standards for collection
+of high-resolution, neurointensive care data on patients with traumatic
+brain injury. The group is also working towards the creation of an open
+meetings funded by the EEC that allowed us to define a ''Core Dataset''
+and we present the results of a feasibility exercise for collection of this
+core dataset.
+Methods. Four group meetings funded by the EEC have enabled
+of specific project aim. A paper based pilot collection of data was
+conducted to determine the feasibility for collection of the core dataset.
+Specially designed forms to collect the core dataset demographic and
+clinical information as well as sample the time-series data elements were
+deadline of two months was set to receive completed forms back from
+monitoring data was also performed.
+Findings. A core-dataset was defined and can be downloaded from the
+BrainIT web-site (go to ''Core dataset'' link at: www.brainit.org).
+Overall the feasibility for collection of the core data elements was high
+with only 10 of the 64 questions (16%) showing missing data. Of those
+has been designed and is being tested. Software tools for collection of
+the core dataset have been developed. Ethics approval has been granted
+for collection of multi-centre data as part of a pilot data collection
+study.
+Interpretation. The BrainIT network provides a more standardised and
+higher resolution data collection mechanism for research groups, organisations and the device industry to conduct multi-centre trials of new
+health care technology in patients with traumatic brain injury.
+
+Head injury has devastating economic and social consequences both to the victim and to the society that supports the victim [1]. The incidence of serious head injury
+is estimated at 1500 per 100,000 population per annum.
+On a European dimension this translates into over a
+million hospital admissions with a head injury per year.
+Head injury is a leading cause of death in young males
+and survivors have serious and long term morbidity. The
+loss of employment to the victim and the stress and
+increased burden of care to family members have significant social and economic effects upon Europe.
+When assessing head injured patients' outcome from
+new therapies or the application of new monitoring
+devices, a large number of patients are required [23].
+reduce the time to assess new therapy and monitoring.
+However, despite the existence of guidelines for the management of severely head injured patients [3, 9, 13, 18, 24]
+this group of patients is subject to considerable variability
+in care [8, 11, 17]. As a first step towards improving management standards in this population, both the inter and
+intra-centre variability in the management and treatment of
+these patients needs to be assessed on a multi-national
+basis, and to do so requires a more standardised and higher
+resolution methodology for acquiring patient management
+and monitoring information.
+One consequence of the variability in management
+manage patients with TBI (traumatic brain injury), is its
+confounding influence upon trials of therapy. There have
+
+Keywords: Head injury; multi-centre network; health technology
+assessment.
+
+616
+---

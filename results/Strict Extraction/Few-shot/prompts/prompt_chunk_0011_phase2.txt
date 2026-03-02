@@ -1,0 +1,306 @@
+Use ONLY the following class labels:
+Acute Respiratory Distress Syndrome; Adrenaline; Antibiotics; Arterial Hypotension; Arterial Pressors; Baseline Therapy; Bedside Intervention; Biochemistry; Blood Gases; Brain Temperature; CT Scan Assessment; CVP; Cerebral Perfusion Pressure (CPP); Clinical Assessment; Condition; Core Monitoring Parameter; Data Quality Assessment; Derived Parameter; EtCO2; Fluids; GCS Assessment; GOSe Outcome; Glucose; Haematocrit; Haematology; Haemoglobin; Heart Rate; Hypertension; Hypotension; Intensive Care Management; Intracranial Hypertension; Intracranial Pressure (ICP); Jugular Venous Desaturation; Laboratory Values; Mean Arterial Pressure (MAP); Microdialysis; Monitoring Data; Noradrenaline; Nursing Intervention; Nutrition; Observation; Optional Monitoring Parameter; Outcome; Parameter; Patient; Patient Transport; PbrO2; Physiotherapy; Possible Error; Potassium; Probable Error; Pupil Assessment; Respiration Rate; Routine Nursing Care; SaO2; Secondary Insult; Secondary Insult Therapy; Secondary Insult Treatment; Sedation; Sensor; Sepsis; Session; SjO2; Sodium; Systemic Hypotension; TCD; Temperature; Therapy; Timepoint; Vasopressors; Ventilation; White Blood Cell Count
+Relations (use exact labels + domain/range):
+affected by treatment(Data Quality Assessment->Therapy); associated with condition(Data Quality Assessment->Condition); has clinical assessment(Patient->Clinical Assessment); has laboratory value(Patient->Laboratory Values); has monitoring data(Patient->Monitoring Data); has nursing intervention(Patient->Nursing Intervention); has observation(Timepoint->Observation); has outcome(Patient->Outcome); has quality assessment(Observation->Data Quality Assessment); has session(Patient->Session); has timepoint(Session->Timepoint); has_source; has_target; includes; is_a; measures parameter(Observation->Parameter); monitoring indicates condition(Monitoring Data->Condition); produced by sensor(Observation->Sensor); receives therapy(Patient->Therapy); secondary_to; targets condition(Therapy->Condition); treats
+If an item is not in the list, omit it.
+
+LEAF-FIRST RULE (important):
+- Prefer the most specific class labels mentioned in the text (e.g., ICP/CPP/MAP, Ventilation/Sedation/Fluids/Nutrition).
+- Avoid outputting only broad container classes (e.g., Monitoring Data, Therapy, Condition) if the text names specific items.
+- You may include container classes when needed as endpoints for allowed relations, but do not stop at containers when leaf items are present.
+- If the text clearly mentions multiple distinct allowed leaf items, extract several of them (each with evidence) rather than stopping early.
+- Do NOT treat research methods/algorithms/guideline-adherence calculations as Therapy or Monitoring Data.
+
+Phase 2: Classes were already extracted in Phase 1. Now extract relations only (hierarchy will be extracted in Phase 3). Output JSON with keys classes, relations, hierarchy. Set classes and hierarchy to empty arrays unless a new class is needed as domain/range for a relation.
+
+### SYSTEM ROLE
+You are a highly precise medical ontology extraction engine. You specialize in Neuro-ICU and BrainIT clinical literature.
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided above, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+2. **Evidence Anchor:** EVERY class and relation extracted MUST be accompanied by an `evidence` field containing the EXACT, verbatim sentence fragment from the text.
+3. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+4. **Scope Limitation:**
+   - IGNORE all metadata, authors, affiliations, journal names, DOI/ISBN, and semantic web/technical boilerplate (RDF, URI, etc).
+   - Do NOT extract organisational, membership, database, or publication concepts (e.g. steering group, data validation staff, common database).
+   - FOCUS ONLY on clinical/physiological concepts, treatments, parameters, and outcomes.
+5. **Reject rule:** When in doubt, omit. Prefer under-generation to over-generation.
+
+**Default priority: classes first, then relations.** Extract relations only when the wording is explicit and stable. If uncertain, return no relations. If a phase instruction above overrides this priority, follow the phase instruction.
+
+Use the retrieved examples below as **style guidance only**. Apply the same OUTPUT FORMAT and evidence rules. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+---
+Retrieved examples:
+--- Retrieved examples (3) ---
+
+Text: The minimum minute by minute monitoring data required for inclusion in the BrainIT Database include: Heart Rate, Respiration Rate, Mean Arterial Pressure, ICP, SaO2 and Temperature. Data is collected from patients every minute.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Patient",
+      "evidence": "patients"
+    },
+    {
+      "label": "Monitoring Data",
+      "evidence": "monitoring data"
+    },
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate"
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate"
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature"
+    }
+  ],
+  "relations": [
+    {
+      "label": "has monitoring data",
+      "domain": "Patient",
+      "range": "Monitoring Data",
+      "evidence": "Data is collected from patients every minute"
+    },
+    {
+      "label": "includes",
+      "domain": "Monitoring Data",
+      "range": "Heart Rate",
+      "evidence": "monitoring data include: Heart Rate"
+    },
+    {
+      "label": "includes",
+      "domain": "Monitoring Data",
+      "range": "Temperature",
+      "evidence": "monitoring data include: Heart Rate, Respiration Rate, Mean Arterial Pressure, ICP, SaO2 and Temperature"
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+
+Text: ICU management data covers nursing interventions: routine nursing care (eye/mouth care, ET tube suction), physiotherapy, bedside interventions (line insertion, transducer calibration), and patient transport to Theatre or CT-Scan. These are annotated in the management time-series.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Patient",
+      "evidence": "management data covers nursing interventions"
+    },
+    {
+      "label": "Nursing Intervention",
+      "evidence": "nursing interventions"
+    },
+    {
+      "label": "Routine Nursing Care",
+      "evidence": "routine nursing care (eye/mouth care, ET tube suction)"
+    },
+    {
+      "label": "Physiotherapy",
+      "evidence": "physiotherapy"
+    },
+    {
+      "label": "Patient Transport",
+      "evidence": "patient transport to Theatre or CT-Scan"
+    }
+  ],
+  "relations": [
+    {
+      "label": "has nursing intervention",
+      "domain": "Patient",
+      "range": "Nursing Intervention",
+      "evidence": "ICU management data covers nursing interventions...annotated in the management time-series"
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+
+Text: Each patient has monitoring sessions. Each timepoint in a monitoring session is associated with observations produced by sensors. Each observation measures a physiological parameter and is evaluated by a data quality assessment resulting in either a Possible Error (PoE) or Probable Error (PrE) classification. A reading outside range may be contextualised by a medical disorder (e.g. sepsis, hypertension) or recent treatment (e.g. noradrenaline), reclassifying a PrE as PoE.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Patient",
+      "evidence": "Each patient has monitoring sessions"
+    },
+    {
+      "label": "Session",
+      "evidence": "monitoring sessions"
+    },
+    {
+      "label": "Timepoint",
+      "evidence": "Each timepoint in a monitoring session"
+    },
+    {
+      "label": "Observation",
+      "evidence": "associated with observations"
+    },
+    {
+      "label": "Sensor",
+      "evidence": "observations produced by sensors"
+    },
+    {
+      "label": "Parameter",
+      "evidence": "measures a physiological parameter"
+    },
+    {
+      "label": "Data Quality Assessment",
+      "evidence": "data quality assessment"
+    },
+    {
+      "label": "Possible Error",
+      "evidence": "Possible Error (PoE)"
+    },
+    {
+      "label": "Probable Error",
+      "evidence": "Probable Error (PrE)"
+    },
+    {
+      "label": "Condition",
+      "evidence": "contextualised by a medical disorder (e.g. sepsis, hypertension)"
+    },
+    {
+      "label": "Sepsis",
+      "evidence": "medical disorder (e.g. sepsis)"
+    },
+    {
+      "label": "Hypertension",
+      "evidence": "hypertension"
+    },
+    {
+      "label": "Noradrenaline",
+      "evidence": "recent treatment (e.g. noradrenaline)"
+    },
+    {
+      "label": "Therapy",
+      "evidence": "recent treatment (e.g. noradrenaline)"
+    }
+  ],
+  "relations": [
+    {
+      "label": "has session",
+      "domain": "Patient",
+      "range": "Session",
+      "evidence": "Each patient has monitoring sessions"
+    },
+    {
+      "label": "has timepoint",
+      "domain": "Session",
+      "range": "Timepoint",
+      "evidence": "Each timepoint in a monitoring session"
+    },
+    {
+      "label": "has observation",
+      "domain": "Timepoint",
+      "range": "Observation",
+      "evidence": "Each timepoint in a monitoring session is associated with observations"
+    },
+    {
+      "label": "produced by sensor",
+      "domain": "Observation",
+      "range": "Sensor",
+      "evidence": "observations produced by sensors"
+    },
+    {
+      "label": "measures parameter",
+      "domain": "Observation",
+      "range": "Parameter",
+      "evidence": "Each observation measures a physiological parameter"
+    },
+    {
+      "label": "has quality assessment",
+      "domain": "Observation",
+      "range": "Data Quality Assessment",
+      "evidence": "evaluated by a data quality assessment resulting in Possible Error or Probable Error"
+    },
+    {
+      "label": "associated with condition",
+      "domain": "Data Quality Assessment",
+      "range": "Condition",
+      "evidence": "contextualised by a medical disorder (e.g. sepsis, hypertension)"
+    },
+    {
+      "label": "affected by treatment",
+      "domain": "Data Quality Assessment",
+      "range": "Therapy",
+      "evidence": "contextualised by...recent treatment (e.g. noradrenaline), reclassifying a PrE as PoE"
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+TEXT TO ANALYZE:
+The creation of an open
+Collectively working towards raising data collection
+and analysis standards is a critical aim of the BrainIT
+group and the current work towards defining minimum
+data validation standards and developing a mechanism
+for checking the validity of data against original documentation using regionally hired ''data validation'' staff
+will provide an infrastructure supporting data quality
+control for trials of management or monitoring similar
+conduct of trials of new drugs.
+
+BrainIT Centre & Country
+Newcastle General Hospital, Newcastle, UK
+Ospedale San Gerardo di Monza, Monza, Italy
+Neurosurgery, Queen Elizabeth Hospital, Birmingham, UK
+Neurosurgery, Addenbrookes Hospital, Cambridge, UK
+University Hospital, Rotterdam, Netherlands
+Cattedra di Anestesiologica Novara, Novara, Italy.
+Southern General Hospital, Glasgow, UK
+University Hospital, Uppsala, Sweden
+Southampton General Hospital, Southampton, UK
+Neurosurgery, University Hospital Brno, Brno, Czech Republic.
+Neurosurgery, Rigshospitalet, Copenhagen, Denmark
+Gasthuisberg Hospital, Leuven, Belgium
+Neurosurgery, SF Treime Hospital, Iasi, Romania.
+Neurosurgery, Vilnius University Hospital, Vilnius, Lithuania
+Universitatskliniken des Saarlandes, Homburg, Germany
+Ruprecht-Karls-Universit€at-Heidelberg, Germany
+Neurosurgery, H^opital Gabriel Montpied, Clermont-Ferrand, France
+Neurosurgery, Hospital 12 Octubre, Madrid, Spain
+Ospedale Molinette, Torino, Italy.
+
+628
+
+I. Piper et al.
+
+Appendix A (continued)
+Mixenburger, Jurgen
+Nordstrom Carl-Erick
+Ragauskas, Arminas
+Rydenhag, Bertil
+Sahuquillo, Juan
+Stochetti, Nino
+Stocker, Reto
+Vajkoczy, Peter
+Watkins, Lawrence
+Whittle, Ian
+Zavala, Elizabeth
+---

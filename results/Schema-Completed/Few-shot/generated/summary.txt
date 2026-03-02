@@ -1,0 +1,108 @@
+============================================================
+RUN SUMMARY  —  TripleGen Ontology Engineering Framework
+============================================================
+
+--- Metadata ---
+Run ID:          20260302-221155-1879d3bd
+Timestamp (UTC): 2026-03-02T22:16:15.243473
+Method:          Few-Shot III
+Pipeline mode:   Schema-Completed
+LLM provider:    openai gpt-4o-mini
+Improvements:    Schema-guided completion, Rule-based Reasoning Layer (optional)
+Eval settings:   Scope filter (clinical-only chunks), Gold-vocabulary-only evaluation, Medical NER anchor (experimental)
+
+--- Input paper(s) ---
+  • The BrainIT group concept and core dataset definition.txt
+  • Trusting-Intensive-Care-Unit-.txt
+
+--- Improvement counts (for ablation / fairness) ---
+  Schema-guided completion: classes_added=0, relations_added=0, hierarchy_added=0
+  Built-in cleanup (always active): classes_removed_dedupe=0, relations_removed_dedupe=0, hierarchy_removed_dedupe=0, out_of_scope_classes_removed=0, abstract_data_classes_removed=0, broad_contextual_classes_removed=0, classes_removed_evidence=0, hierarchy_pruned_dangling=32, relations_pruned=2, relations_removed_evidence=0, hierarchy_fragments_removed=0, hierarchy_removed_axiom=0, relations_removed_axiom=0, hierarchy_added=0, orphans_removed=0
+  Rule-based Reasoning Layer (optional): hierarchy_added=8, orphans_removed=0
+
+
+--- Metrics summary (final ontology) ---
+  Coverage:        45.83%
+  Precision:       100.00%
+  Recall:          45.83%
+  Errors:          hallucinations=0, schema_violations=0, omissions=0
+  Structural:      hierarchy_edges=11, hierarchy_coverage=0.42, relation_domain_range_rate=1.00
+  Clinical-only:   coverage=45.83%, precision=100.00%, recall=45.83%
+  Relations:       precision=100.00%, recall=25.00%, n_generated=5, n_gold=16
+  Hierarchy:       precision=81.82%, recall=15.79%, matched=9, n_generated=11, n_gold=57
+
+--- Metrics at extraction only (pre-improvement baseline) ---
+  Coverage:        45.83%
+  Precision:       100.00%
+  Recall:          45.83%
+  Structural:      hierarchy_edges=35, hierarchy_coverage=1.24, relation_domain_range_rate=1.00
+  Relations:       precision=100.00%, recall=37.50%, n_generated=7
+
+--- Per-stage ablation (pipeline progression) ---
+  Stage                   Classes   Rels   Hier   Coverage  Precision     Recall
+  --------------------------------------------------------------------------
+  Extraction                   33      7     35     45.83%    100.00%     45.83%
+  + Schema-Guided              33      7     35     45.83%    100.00%     45.83%
+  + Cleanup                    33      5      3     45.83%    100.00%     45.83%
+  + Rule-based                 33      5     11     45.83%    100.00%     45.83%
+  = Gold-filtered              33      5     11     45.83%    100.00%     45.83%
+
+--- Concept counts (final ontology) ---
+  Classes:         33
+  Relations:       5
+  Hierarchy edges: 11
+
+--- Classes ---
+  • Patient
+  • Monitoring Data
+  • Outcome
+  • Cerebral Perfusion Pressure (CPP)
+  • Intracranial Pressure (ICP)
+  • Secondary Insult
+  • Intensive Care Management
+  • Secondary Insult Treatment
+  • Ventilation
+  • Heart Rate
+  • SaO2
+  • CVP
+  • Brain Temperature
+  • Microdialysis
+  • Sedation
+  • Vasopressors
+  • Laboratory Values
+  • Blood Gases
+  • Biochemistry
+  • Haematology
+  • Therapy
+  • Systemic Hypotension
+  • Arterial Pressors
+  • Intracranial Hypertension
+  • Arterial Hypotension
+  • Acute Respiratory Distress Syndrome
+  • Sepsis
+  • Timepoint
+  • Observation
+  • Parameter
+  • Hypertension
+  • Noradrenaline
+  • Adrenaline
+
+--- Relations ---
+  • has monitoring data(Patient → Heart Rate)
+  • targets condition(Therapy → Secondary Insult)
+  • targets condition(Vasopressors → Secondary Insult)
+  • has laboratory value(Patient → Laboratory Values)
+  • has observation(Timepoint → Observation)
+
+--- Hierarchy (subclass → superclass) ---
+  • Cerebral Perfusion Pressure (CPP) ⊑ Monitoring Data
+  • Intracranial Hypertension ⊑ Secondary Insult
+  • Arterial Hypotension ⊑ Secondary Insult
+  • Arterial Hypotension ⊑ Systemic Hypotension
+  • Haematology ⊑ Laboratory Values
+  • Blood Gases ⊑ Laboratory Values
+  • Systemic Hypotension ⊑ Secondary Insult
+  • Acute Respiratory Distress Syndrome ⊑ Secondary Insult
+  • Noradrenaline ⊑ Vasopressors
+  • Biochemistry ⊑ Laboratory Values
+  • Adrenaline ⊑ Vasopressors

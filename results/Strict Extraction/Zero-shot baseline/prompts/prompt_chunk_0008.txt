@@ -1,0 +1,198 @@
+Use ONLY the following class labels:
+Acute Respiratory Distress Syndrome; Adrenaline; Antibiotics; Arterial Hypotension; Arterial Pressors; Baseline Therapy; Bedside Intervention; Biochemistry; Blood Gases; Brain Temperature; CT Scan Assessment; CVP; Cerebral Perfusion Pressure (CPP); Clinical Assessment; Condition; Core Monitoring Parameter; Data Quality Assessment; Derived Parameter; EtCO2; Fluids; GCS Assessment; GOSe Outcome; Glucose; Haematocrit; Haematology; Haemoglobin; Heart Rate; Hypertension; Hypotension; Intensive Care Management; Intracranial Hypertension; Intracranial Pressure (ICP); Jugular Venous Desaturation; Laboratory Values; Mean Arterial Pressure (MAP); Microdialysis; Monitoring Data; Noradrenaline; Nursing Intervention; Nutrition; Observation; Optional Monitoring Parameter; Outcome; Parameter; Patient; Patient Transport; PbrO2; Physiotherapy; Possible Error; Potassium; Probable Error; Pupil Assessment; Respiration Rate; Routine Nursing Care; SaO2; Secondary Insult; Secondary Insult Therapy; Secondary Insult Treatment; Sedation; Sensor; Sepsis; Session; SjO2; Sodium; Systemic Hypotension; TCD; Temperature; Therapy; Timepoint; Vasopressors; Ventilation; White Blood Cell Count
+Relations (use exact labels + domain/range):
+affected by treatment(Data Quality Assessment->Therapy); associated with condition(Data Quality Assessment->Condition); has clinical assessment(Patient->Clinical Assessment); has laboratory value(Patient->Laboratory Values); has monitoring data(Patient->Monitoring Data); has nursing intervention(Patient->Nursing Intervention); has observation(Timepoint->Observation); has outcome(Patient->Outcome); has quality assessment(Observation->Data Quality Assessment); has session(Patient->Session); has timepoint(Session->Timepoint); has_source; has_target; includes; is_a; measures parameter(Observation->Parameter); monitoring indicates condition(Monitoring Data->Condition); produced by sensor(Observation->Sensor); receives therapy(Patient->Therapy); secondary_to; targets condition(Therapy->Condition); treats
+If an item is not in the list, omit it.
+
+LEAF-FIRST RULE (important):
+- Prefer the most specific class labels mentioned in the text (e.g., ICP/CPP/MAP, Ventilation/Sedation/Fluids/Nutrition).
+- Avoid outputting only broad container classes (e.g., Monitoring Data, Therapy, Condition) if the text names specific items.
+- You may include container classes when needed as endpoints for allowed relations, but do not stop at containers when leaf items are present.
+- If the text clearly mentions multiple distinct allowed leaf items, extract several of them (each with evidence) rather than stopping early.
+- Do NOT treat research methods/algorithms/guideline-adherence calculations as Therapy or Monitoring Data.
+
+### SYSTEM ROLE
+You are a highly precise medical ontology extraction engine for a strict evaluation benchmark in Neuro-ICU / BrainIT literature.
+
+### PRIMARY GOAL
+Extract a SMALL, HIGH-PRECISION ontology from the text.
+Prioritise source fidelity over completeness.
+If unsure, omit.
+
+### HARD RULES
+1. SOURCE FIDELITY
+- Extract ONLY concepts and relations explicitly stated in the text.
+- DO NOT infer, guess, normalise into abstract ontology labels, or use external medical knowledge.
+- If a concept is not explicitly named in the text, omit it.
+- Use short noun-phrase labels only.
+- Do NOT output sentence fragments, clauses, or paraphrases as class labels.
+
+2. EVIDENCE FIRST
+- EVERY class, relation, and hierarchy edge MUST include an `evidence` field.
+- `evidence` must be an EXACT verbatim fragment copied from the text.
+- If exact evidence is not available, omit the item.
+
+3. STRICT SCOPE
+Extract ONLY:
+- clinical conditions
+- physiological parameters
+- monitoring variables
+- treatments / therapies / interventions
+- outcomes
+- directly named clinical dataset groups only when explicitly stated in the text
+
+DO NOT extract:
+- organisations, groups, committees, memberships, centres, investigators
+- meetings, projects, funding, EEC, collaborations, publications
+- databases, software, forms, websites, infrastructure, validation workflows
+- ethics, confidentiality, ownership, accessibility, legal / administrative concepts
+- generic research-process concepts such as trials, study design, feasibility exercise, data collection workflow
+
+IMPORTANT:
+If a sentence or paragraph is mainly about governance, organisation, validation, infrastructure, publication, centres, membership, or database access, IGNORE that sentence or paragraph completely.
+
+4. CLASS RULES
+- Prefer concrete clinical labels from the text.
+- Prefer specific labels over abstract ones (e.g. prefer 'Heart Rate' over 'Monitoring Data' when both are mentioned). If an allowed class list is provided, you may use those labels; otherwise avoid abstract categories unless the text explicitly names them.
+- Keep labels close to the wording in the text.
+- Do not invent CamelCase labels.
+
+5. RELATION RULES
+- Classes are the priority.
+- Extract relations ONLY when the text explicitly states a stable relation between two extracted class labels.
+- If uncertain, omit the relation.
+- Domain and range must both be extracted class labels from the same text.
+- Prefer concise, domain-appropriate relation labels from the text (e.g. includes, treats, targets condition, has monitoring data).
+- If an allowed relation list was provided, use those labels. Otherwise, prefer labels that reflect the text's wording.
+- Do NOT invent arbitrary relation labels.
+
+6. HIERARCHY RULES
+- Extract hierarchy ONLY when the text explicitly uses one of these lexical cues:
+  - "is a"
+  - "type of"
+  - "kind of"
+  - "such as"
+  - "include:"
+  - "includes:"
+- For enumeration cues (such as, include:, includes:), extract ONLY the short noun phrases listed after the cue.
+- NEVER output long clauses, verb phrases, or sentence fragments as subclass or superclass.
+- If either side is not a clean noun phrase, omit the hierarchy edge.
+
+7. ZERO-SHOT BEHAVIOUR
+- This is a strict baseline: prefer under-generation to over-generation.
+- It is better to return fewer high-confidence items than many weak items.
+- If the text is mixed clinical + governance, keep ONLY the clinical part.
+
+### OUTPUT FORMAT (JSON ONLY)
+Return ONLY valid JSON.
+Do not include markdown, explanations, headings, or commentary.
+
+Use exactly this structure:
+{
+  "classes": [
+    {"label": "string", "evidence": "string"}
+  ],
+  "relations": [
+    {"label": "string", "domain": "string", "range": "string", "evidence": "string"}
+  ],
+  "hierarchy": [
+    {"subClass": "string", "superClass": "string", "evidence": "string"}
+  ]
+}
+
+### FINAL CHECK BEFORE OUTPUT
+Before producing JSON, remove any item that:
+- is organisational, infrastructural, database-related, publication-related, or governance-related
+- lacks exact evidence
+- uses a label not explicitly present in the text
+- uses a long clause instead of a noun phrase
+- uses a relation label outside the allowed set
+
+---
+TEXT TO ANALYZE:
+626
+
+testing the efficacy of maintaining patient confidentiality
+will be implemented and tested. Such a network, once
+tested, will be a valuable resource, not only for academic
+medicine and the medical device industry, but also for
+I=II trials of new pharmacological therapy. In this
+regard, of particular relevance to trials of therapy, will
+be the advantage of using the BrainIT ''therapy targets''
+(See Figure 3) instead of giving fixed criteria for adverse
+events and indications for treatment. Some advantages
+of this approach are: a) There is no need to come to an
+b) Delivers an increased possibility to study the effects
+of different treatment thresholds and a wider spectrum of
+treatments.
+The case for raising standards
+Although most trial designs incorporate data collection methods for quantifying and controlling for secondary insults that may occur during the trial period, these
+measures will at best identify only major adverse events
+discernible from the nurses hourly chart records. More
+frequent shorter duration secondary insults are often
+missed if sampling periods greater than 1 minute is used
+[6]. Apart from data sampling rate there is also still
+uncertainty amongst investigators as to the optimal
+methodology for identification and definition of these
+adverse events. In particular the duration and critical
+threshold that should be used to define a specific type
+of secondary insult remains unclear. A good example is
+cerebral perfusion pressure insults. Over the last few
+years an interest in CPP targeted therapy for head
+injured patients has developed with a number of observational studies indicating that a CPP of 70 mmHg
+appears to be a critical value [2, 5, 14-16, 21]. Publication of the American Guidelines for the management of
+severe head injury by the Brain Trauma Foundation,
+state that there is not sufficient evidence to establish
+either a standard or guideline for the management of
+CPP, although they indicate management of CPP greater
+than 70 mmHg as a management option. However, as
+yet, there are no published randomised multi-centre
+trials demonstrating a benefit in patient outcome if
+CPP is maintained at or beyond this threshold. Conversely, a recently published study from a single-centre
+randomised CPP management trial has shown that
+aggressive management of CPP > 70 mmHg, although
+reducing the incidence of jugular venous desaturations
+
+I. Piper et al.
+
+< 50%, increased the incidence of acute respiratory
+distress syndrome and worsened neurological outcome
+[20, 21].
+Whether it is possible to define if the optimal CPP
+threshold should be set at 60 mmHg, 70 mmHg or higher
+is further complicated by a number of technical issues.
+on the site of ICP monitoring (intraventricular vs intraparenchymal vs subdural) and the technology used
+(catheter-tip vs fluid-filled catheter-transducer systems).
+Most arterial pressure measurement is based on fluidfilled catheter-transducer systems where the degree of
+system ''damping'' is an important factor. Altering the
+damping of such a system over typical limits can cause
+up to a 7 mmHg bias in recorded arterial pressure [7]. In
+terms of arterial pressure recording such a bias may not
+be significant, but for CPP measurement, a 7 mmHg
+error will make the difference to calculated CPP being
+above or below a treatment threshold. Another important
+source of error is the inter-centre differences in location
+of the ''zero'' pressure reference site for the BP transducer. This issue alone can account for up 13 mmHg
+variance in calculated CPP when combined with the
+effect of hydrostatic fluid columns which depend upon
+the degree of angle of head up tilt of the patient [10].
+Before we can define thresholds for secondary insults, in
+physiological monitoring is needed.
+Apart from optimising the methods for measuring
+adverse events, data sampling rate is also important.
+There are now a number of microcomputer based dataacquisition software systems that can be used to acquire
+patient physiological data on a frequent basis (<1/4 1
+sample=minute). These packages provide the means
+for quantifying, with greater resolution, the degree of
+secondary injury occurring in head injured patients over
+specific periods of monitoring [4, 6]. As a result, secondary insults such as intracranial hypertension, and
+arterial hypotension have been found to occur, in head
+injured patients, more frequently than previously realised with more than 90 percent of patients exhibiting
+one or more insults during their management in intensive care [12]. To accurately detect and quantify these
+events, specialised computer based sampling techniques
+are required and studies have shown that taking data
+from the nursing charts alone often miss and frequently
+underestimate the actual incidence of these events [6].
+This is particularly relevant as, to date, all previous
+clinical drug trials have used paper based clinical
+---

@@ -1,0 +1,261 @@
+You are the LLM Reasoning Layer (VERIFY step / critic).
+Your job is to output a FINAL patch that is strictly valid.
+
+Hard rules:
+1) Keep ONLY add_hierarchy edges where (sub_idx, super_idx) appears in CANDIDATE_EDGE_INDEX_PAIRS.
+2) Remove any duplicates.
+3) Do NOT include edges already present in EXISTING_HIERARCHY.
+4) Do NOT add classes/relations. Leave those arrays empty.
+5) If confidence is missing, set it to 0.7 (minimum).
+6) Return valid JSON only.
+
+CURRENT_CLASSES:
+0: Head injury
+1: Traumatic Brain Injury
+2: Outcome
+3: Monitoring
+4: Cerebral Perfusion Pressure (CPP)
+5: Intracranial Pressure (ICP)
+6: Secondary Insult
+7: Brain Injury
+8: Intensive Care Management
+9: CVP
+10: Ventilation
+11: Sedation
+12: Secondary Insult Treatment
+13: Arterial Hypotension
+14: Monitoring Data
+15: CT Scan Assessment
+16: GOSe Outcome
+17: Heart Rate
+18: Respiration Rate
+19: Mean Arterial Pressure (MAP)
+20: SaO2
+21: Temperature
+22: Brain Temperature
+23: Microdialysis
+24: GCS Assessment
+25: Pupil Assessment
+26: Fluids
+27: Vasopressors
+28: Biochemistry
+29: Haematology
+30: Arterial Pressors
+31: Systemic Hypotension
+32: Associated Major Injuries
+33: Motor score
+34: Hypoxia
+35: Patient
+36: Intracranial Hypertension
+37: Acute Respiratory Distress Syndrome
+38: Data Quality Assessment
+39: Hypotension
+40: Sepsis
+41: Timepoint
+42: Readings
+43: Parameter
+44: Observation
+45: Possible Error
+46: Probable Error
+47: Hypertension
+48: Noradrenaline
+49: Adrenaline
+50: Medical Disorders
+51: Session
+52: Core Monitoring Parameter
+53: Optional Monitoring Parameter
+54: Derived Parameter
+55: Baseline Therapy
+56: Secondary Insult Therapy
+57: Antibiotics
+58: Jugular Venous Desaturation
+59: Clinical Assessment
+60: Laboratory Values
+61: Blood Gases
+62: Haemoglobin
+63: White Blood Cell Count
+64: Haematocrit
+65: Nursing Intervention
+66: Routine Nursing Care
+67: Physiotherapy
+68: Bedside Intervention
+69: Patient Transport
+
+CANDIDATE_EDGE_INDEX_PAIRS:
+- (31 -> 6)
+- (67 -> 65)
+- (36 -> 6)
+- (57 -> 55)
+- (15 -> 59)
+- (12 -> 56)
+- (9 -> 53)
+- (45 -> 38)
+- (17 -> 52)
+- (18 -> 52)
+- (27 -> 55)
+- (37 -> 6)
+- (62 -> 29)
+- (63 -> 29)
+- (24 -> 59)
+- (28 -> 60)
+- (49 -> 27)
+- (69 -> 65)
+- (23 -> 53)
+- (46 -> 38)
+- (21 -> 52)
+- (66 -> 65)
+- (5 -> 52)
+- (30 -> 56)
+- (25 -> 59)
+- (68 -> 65)
+- (29 -> 60)
+- (13 -> 31)
+- (54 -> 14)
+- (16 -> 2)
+- (20 -> 52)
+- (19 -> 52)
+- (61 -> 60)
+- (52 -> 14)
+- (11 -> 55)
+- (4 -> 54)
+- (64 -> 29)
+- (58 -> 6)
+- (22 -> 53)
+- (10 -> 55)
+- (26 -> 55)
+- (48 -> 27)
+- (53 -> 14)
+
+EXISTING_HIERARCHY:
+- Intracranial Hypertension ⊑ Secondary Insult
+- Physiotherapy ⊑ Nursing Intervention
+- Antibiotics ⊑ Baseline Therapy
+- Intracranial Pressure (ICP) ⊑ Core Monitoring Parameter
+- Cerebral Perfusion Pressure (CPP) ⊑ Derived Parameter
+- Blood Gases ⊑ Laboratory Values
+- Haemoglobin ⊑ Haematology
+- White Blood Cell Count ⊑ Haematology
+- Haematocrit ⊑ Haematology
+
+PROPOSED_PATCH:
+{
+  "edits": {
+    "add_hierarchy": [
+      {
+        "sub_idx": 1,
+        "super_idx": 7,
+        "justification": "Traumatic Brain Injury is a specific type of Brain Injury.",
+        "confidence": 0.9
+      },
+      {
+        "sub_idx": 6,
+        "super_idx": 1,
+        "justification": "Secondary Insult is a consequence of Traumatic Brain Injury.",
+        "confidence": 0.8
+      },
+      {
+        "sub_idx": 12,
+        "super_idx": 6,
+        "justification": "Secondary Insult Treatment is a specific treatment for Secondary Insult.",
+        "confidence": 0.8
+      },
+      {
+        "sub_idx": 37,
+        "super_idx": 6,
+        "justification": "Acute Respiratory Distress Syndrome can be a Secondary Insult.",
+        "confidence": 0.7
+      },
+      {
+        "sub_idx": 58,
+        "super_idx": 6,
+        "justification": "Jugular Venous Desaturation is a type of Secondary Insult.",
+        "confidence": 0.7
+      },
+      {
+        "sub_idx": 31,
+        "super_idx": 6,
+        "justification": "Systemic Hypotension is a type of Secondary Insult.",
+        "confidence": 0.7
+      },
+      {
+        "sub_idx": 13,
+        "super_idx": 31,
+        "justification": "Arterial Hypotension is a specific case of Systemic Hypotension.",
+        "confidence": 0.8
+      },
+      {
+        "sub_idx": 10,
+        "super_idx": 55,
+        "justification": "Ventilation is a type of Baseline Therapy.",
+        "confidence": 0.9
+      },
+      {
+        "sub_idx": 11,
+        "super_idx": 55,
+        "justification": "Sedation is a type of Baseline Therapy.",
+        "confidence": 0.9
+      },
+      {
+        "sub_idx": 26,
+        "super_idx": 55,
+        "justification": "Fluids are a type of Baseline Therapy.",
+        "confidence": 0.9
+      },
+      {
+        "sub_idx": 27,
+        "super_idx": 55,
+        "justification": "Vasopressors are a type of Baseline Therapy.",
+        "confidence": 0.9
+      },
+      {
+        "sub_idx": 57,
+        "super_idx": 55,
+        "justification": "Antibiotics are a type of Baseline Therapy.",
+        "confidence": 0.9
+      },
+      {
+        "sub_idx": 4,
+        "super_idx": 54,
+        "justification": "Cerebral Perfusion Pressure (CPP) is a Derived Parameter.",
+        "confidence": 0.8
+      },
+      {
+        "sub_idx": 23,
+        "super_idx": 53,
+        "justification": "Microdialysis is an Optional Monitoring Parameter.",
+        "confidence": 0.8
+      },
+      {
+        "sub_idx": 22,
+        "super_idx": 53,
+        "justification": "Brain Temperature is an Optional Monitoring Parameter.",
+        "confidence": 0.8
+      }
+    ],
+    "remove_hierarchy": [],
+    "rename_classes": [],
+    "merge_classes": [],
+    "add_classes": [],
+    "remove_classes": [],
+    "add_relations": [],
+    "remove_relations": []
+  },
+  "flags": [],
+  "notes": []
+}
+
+Output JSON format (same as PROPOSE, using sub_idx/super_idx):
+{
+  "edits": {
+    "add_hierarchy": [{"sub_idx": 0, "super_idx": 1, "justification": "brief", "confidence": 0.0}],
+    "remove_hierarchy": [],
+    "rename_classes": [],
+    "merge_classes": [],
+    "add_classes": [],
+    "remove_classes": [],
+    "add_relations": [],
+    "remove_relations": []
+  },
+  "flags": [],
+  "notes": []
+}

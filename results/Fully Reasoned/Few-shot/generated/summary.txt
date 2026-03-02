@@ -1,0 +1,183 @@
+============================================================
+RUN SUMMARY  —  TripleGen Ontology Engineering Framework
+============================================================
+
+--- Metadata ---
+Run ID:          20260302-223118-3b6e8d85
+Timestamp (UTC): 2026-03-02T22:37:31.259969
+Method:          Few-Shot III
+Pipeline mode:   Fully Reasoned
+LLM provider:    openai gpt-4o-mini
+Improvements:    Schema-guided completion, LLM Reasoning Layer [schema-only, no corpus], Rule-based Reasoning Layer (optional)
+Eval settings:   Scope filter (clinical-only chunks), Gold-vocabulary-only evaluation, Medical NER anchor (experimental)
+
+--- Input paper(s) ---
+  • The BrainIT group concept and core dataset definition.txt
+  • Trusting-Intensive-Care-Unit-.txt
+
+--- Improvement counts (for ablation / fairness) ---
+  Schema-guided completion: classes_added=29, relations_added=10, hierarchy_added=15
+  LLM Reasoning Layer [schema-only, no corpus]: classes_inferred=0, relations_inferred=0, hierarchy_inferred=0
+  Built-in cleanup (always active): classes_removed_dedupe=1, relations_removed_dedupe=0, hierarchy_removed_dedupe=0, out_of_scope_classes_removed=0, abstract_data_classes_removed=0, broad_contextual_classes_removed=0, classes_removed_evidence=0, hierarchy_pruned_dangling=33, relations_pruned=4, relations_removed_evidence=0, hierarchy_fragments_removed=0, hierarchy_removed_axiom=0, relations_removed_axiom=0, hierarchy_added=0, orphans_removed=0
+  Rule-based Reasoning Layer (optional): hierarchy_added=24, orphans_removed=0
+
+
+--- Metrics summary (final ontology) ---
+  Coverage:        87.50%
+  Precision:       100.00%
+  Recall:          87.50%
+  Errors:          hallucinations=0, schema_violations=0, omissions=0
+  Structural:      hierarchy_edges=47, hierarchy_coverage=0.86, relation_domain_range_rate=1.00
+  Clinical-only:   coverage=87.50%, precision=100.00%, recall=87.50%
+  Relations:       precision=100.00%, recall=68.75%, n_generated=12, n_gold=16
+  Hierarchy:       precision=97.87%, recall=80.70%, matched=46, n_generated=47, n_gold=57
+
+--- Metrics at extraction only (pre-improvement baseline) ---
+  Coverage:        48.61%
+  Precision:       100.00%
+  Recall:          48.61%
+  Structural:      hierarchy_edges=41, hierarchy_coverage=1.23, relation_domain_range_rate=1.00
+  Relations:       precision=100.00%, recall=37.50%, n_generated=6
+
+--- Per-stage ablation (pipeline progression) ---
+  Stage                   Classes   Rels   Hier   Coverage  Precision     Recall
+  --------------------------------------------------------------------------
+  Extraction                   35      6     41     48.61%    100.00%     48.61%
+  + Schema-Guided              64     16     56     87.50%    100.00%     87.50%
+  + Cleanup                    63     12     23     87.50%    100.00%     87.50%
+  + LLM Reasoning              63     12     23     87.50%    100.00%     87.50%
+  + Rule-based                 63     12     47     87.50%    100.00%     87.50%
+  = Gold-filtered              63     12     47     87.50%    100.00%     87.50%
+
+--- Concept counts (final ontology) ---
+  Classes:         63
+  Relations:       12
+  Hierarchy edges: 47
+
+--- Classes ---
+  • Patient
+  • Monitoring Data
+  • Outcome
+  • Cerebral Perfusion Pressure (CPP)
+  • Intracranial Pressure (ICP)
+  • Secondary Insult
+  • Intensive Care Management
+  • Secondary Insult Treatment
+  • Heart Rate
+  • SaO2
+  • CVP
+  • Brain Temperature
+  • Microdialysis
+  • Ventilation
+  • Sedation
+  • Vasopressors
+  • Laboratory Values
+  • Blood Gases
+  • Biochemistry
+  • Haematology
+  • Therapy
+  • Systemic Hypotension
+  • Arterial Pressors
+  • Intracranial Hypertension
+  • Arterial Hypotension
+  • Acute Respiratory Distress Syndrome
+  • Sepsis
+  • Sensor
+  • Possible Error
+  • Timepoint
+  • Observation
+  • Parameter
+  • Hypertension
+  • Noradrenaline
+  • Adrenaline
+  • Core Monitoring Parameter
+  • Optional Monitoring Parameter
+  • Derived Parameter
+  • Respiration Rate
+  • Mean Arterial Pressure (MAP)
+  • Temperature
+  • Baseline Therapy
+  • Secondary Insult Therapy
+  • Fluids
+  • Jugular Venous Desaturation
+  • Hypotension
+  • Clinical Assessment
+  • Pupil Assessment
+  • CT Scan Assessment
+  • GOSe Outcome
+  • Sodium
+  • Potassium
+  • Glucose
+  • Haemoglobin
+  • White Blood Cell Count
+  • Haematocrit
+  • Nursing Intervention
+  • Routine Nursing Care
+  • Physiotherapy
+  • Bedside Intervention
+  • Patient Transport
+  • Data Quality Assessment
+  • Probable Error
+
+--- Relations ---
+  • has monitoring data(Patient → Monitoring Data)
+  • has outcome(Patient → Outcome)
+  • receives therapy(Patient → Baseline Therapy)
+  • targets condition(Arterial Pressors → Systemic Hypotension)
+  • has laboratory value(Patient → Laboratory Values)
+  • has observation(Timepoint → Observation)
+  • receives therapy(Patient → Therapy)
+  • has clinical assessment(Patient → Clinical Assessment)
+  • has nursing intervention(Patient → Nursing Intervention)
+  • measures parameter(Observation → Parameter)
+  • has quality assessment(Observation → Data Quality Assessment)
+  • affected by treatment(Data Quality Assessment → Therapy)
+
+--- Hierarchy (subclass → superclass) ---
+  • Heart Rate ⊑ Core Monitoring Parameter
+  • Respiration Rate ⊑ Core Monitoring Parameter
+  • Mean Arterial Pressure (MAP) ⊑ Core Monitoring Parameter
+  • Intracranial Pressure (ICP) ⊑ Core Monitoring Parameter
+  • SaO2 ⊑ Core Monitoring Parameter
+  • Temperature ⊑ Core Monitoring Parameter
+  • Ventilation ⊑ Baseline Therapy
+  • Sedation ⊑ Baseline Therapy
+  • Fluids ⊑ Baseline Therapy
+  • Vasopressors ⊑ Baseline Therapy
+  • Intracranial Hypertension ⊑ Secondary Insult
+  • Arterial Hypotension ⊑ Secondary Insult
+  • Physiotherapy ⊑ Nursing Intervention
+  • CT Scan Assessment ⊑ Clinical Assessment
+  • Baseline Therapy ⊑ Therapy
+  • Secondary Insult Therapy ⊑ Therapy
+  • Cerebral Perfusion Pressure (CPP) ⊑ Derived Parameter
+  • Sodium ⊑ Biochemistry
+  • Potassium ⊑ Biochemistry
+  • Glucose ⊑ Biochemistry
+  • Haemoglobin ⊑ Haematology
+  • White Blood Cell Count ⊑ Haematology
+  • Haematocrit ⊑ Haematology
+  • Arterial Hypotension ⊑ Systemic Hypotension
+  • Microdialysis ⊑ Optional Monitoring Parameter
+  • Haematology ⊑ Laboratory Values
+  • Routine Nursing Care ⊑ Nursing Intervention
+  • Blood Gases ⊑ Laboratory Values
+  • Patient Transport ⊑ Nursing Intervention
+  • Systemic Hypotension ⊑ Secondary Insult
+  • Bedside Intervention ⊑ Nursing Intervention
+  • CVP ⊑ Optional Monitoring Parameter
+  • GOSe Outcome ⊑ Outcome
+  • Acute Respiratory Distress Syndrome ⊑ Secondary Insult
+  • Optional Monitoring Parameter ⊑ Monitoring Data
+  • Jugular Venous Desaturation ⊑ Secondary Insult
+  • Probable Error ⊑ Data Quality Assessment
+  • Secondary Insult Treatment ⊑ Secondary Insult Therapy
+  • Arterial Pressors ⊑ Secondary Insult Therapy
+  • Pupil Assessment ⊑ Clinical Assessment
+  • Core Monitoring Parameter ⊑ Monitoring Data
+  • Noradrenaline ⊑ Vasopressors
+  • Biochemistry ⊑ Laboratory Values
+  • Adrenaline ⊑ Vasopressors
+  • Brain Temperature ⊑ Optional Monitoring Parameter
+  • Derived Parameter ⊑ Monitoring Data
+  • Possible Error ⊑ Data Quality Assessment

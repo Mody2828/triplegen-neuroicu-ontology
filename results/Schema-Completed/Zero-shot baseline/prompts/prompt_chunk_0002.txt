@@ -1,0 +1,188 @@
+Candidate terms (optional hints): central venous, cvp, glasgow, icp, monitoring, secondary insult, ventilation, BrainIT, Clinical Information, Individual, Internet Based, Living Resources Programme, Profit External Research
+Organisations, abstract, access, all, also, analyses, any, centre
+
+Use ONLY the following class labels:
+Acute Respiratory Distress Syndrome; Adrenaline; Antibiotics; Arterial Hypotension; Arterial Pressors; Baseline Therapy; Bedside Intervention; Biochemistry; Blood Gases; Brain Temperature; CT Scan Assessment; CVP; Cerebral Perfusion Pressure (CPP); Clinical Assessment; Condition; Core Monitoring Parameter; Data Quality Assessment; Derived Parameter; EtCO2; Fluids; GCS Assessment; GOSe Outcome; Glucose; Haematocrit; Haematology; Haemoglobin; Heart Rate; Hypertension; Hypotension; Intensive Care Management; Intracranial Hypertension; Intracranial Pressure (ICP); Jugular Venous Desaturation; Laboratory Values; Mean Arterial Pressure (MAP); Microdialysis; Monitoring Data; Noradrenaline; Nursing Intervention; Nutrition; Observation; Optional Monitoring Parameter; Outcome; Parameter; Patient; Patient Transport; PbrO2; Physiotherapy; Possible Error; Potassium; Probable Error; Pupil Assessment; Respiration Rate; Routine Nursing Care; SaO2; Secondary Insult; Secondary Insult Therapy; Secondary Insult Treatment; Sedation; Sensor; Sepsis; Session; SjO2; Sodium; Systemic Hypotension; TCD; Temperature; Therapy; Timepoint; Vasopressors; Ventilation; White Blood Cell Count
+Relations (use exact labels + domain/range):
+affected by treatment(Data Quality Assessment->Therapy); associated with condition(Data Quality Assessment->Condition); has clinical assessment(Patient->Clinical Assessment); has laboratory value(Patient->Laboratory Values); has monitoring data(Patient->Monitoring Data); has nursing intervention(Patient->Nursing Intervention); has observation(Timepoint->Observation); has outcome(Patient->Outcome); has quality assessment(Observation->Data Quality Assessment); has session(Patient->Session); has timepoint(Session->Timepoint); has_source; has_target; includes; is_a; measures parameter(Observation->Parameter); monitoring indicates condition(Monitoring Data->Condition); produced by sensor(Observation->Sensor); receives therapy(Patient->Therapy); secondary_to; targets condition(Therapy->Condition); treats
+If an item is not in the list, omit it.
+
+LEAF-FIRST RULE (important):
+- Prefer the most specific class labels mentioned in the text (e.g., ICP/CPP/MAP, Ventilation/Sedation/Fluids/Nutrition).
+- Avoid outputting only broad container classes (e.g., Monitoring Data, Therapy, Condition) if the text names specific items.
+- You may include container classes when needed as endpoints for allowed relations, but do not stop at containers when leaf items are present.
+- If the text clearly mentions multiple distinct allowed leaf items, extract several of them (each with evidence) rather than stopping early.
+- Do NOT treat research methods/algorithms/guideline-adherence calculations as Therapy or Monitoring Data.
+
+### SYSTEM ROLE
+You are a highly precise medical ontology extraction engine for a strict evaluation benchmark in Neuro-ICU / BrainIT literature.
+
+### PRIMARY GOAL
+Extract a SMALL, HIGH-PRECISION ontology from the text.
+Prioritise source fidelity over completeness.
+If unsure, omit.
+
+### HARD RULES
+1. SOURCE FIDELITY
+- Extract ONLY concepts and relations explicitly stated in the text.
+- DO NOT infer, guess, normalise into abstract ontology labels, or use external medical knowledge.
+- If a concept is not explicitly named in the text, omit it.
+- Use short noun-phrase labels only.
+- Do NOT output sentence fragments, clauses, or paraphrases as class labels.
+
+2. EVIDENCE FIRST
+- EVERY class, relation, and hierarchy edge MUST include an `evidence` field.
+- `evidence` must be an EXACT verbatim fragment copied from the text.
+- If exact evidence is not available, omit the item.
+
+3. STRICT SCOPE
+Extract ONLY:
+- clinical conditions
+- physiological parameters
+- monitoring variables
+- treatments / therapies / interventions
+- outcomes
+- directly named clinical dataset groups only when explicitly stated in the text
+
+DO NOT extract:
+- organisations, groups, committees, memberships, centres, investigators
+- meetings, projects, funding, EEC, collaborations, publications
+- databases, software, forms, websites, infrastructure, validation workflows
+- ethics, confidentiality, ownership, accessibility, legal / administrative concepts
+- generic research-process concepts such as trials, study design, feasibility exercise, data collection workflow
+
+IMPORTANT:
+If a sentence or paragraph is mainly about governance, organisation, validation, infrastructure, publication, centres, membership, or database access, IGNORE that sentence or paragraph completely.
+
+4. CLASS RULES
+- Prefer concrete clinical labels from the text.
+- Prefer specific labels over abstract ones (e.g. prefer 'Heart Rate' over 'Monitoring Data' when both are mentioned). If an allowed class list is provided, you may use those labels; otherwise avoid abstract categories unless the text explicitly names them.
+- Keep labels close to the wording in the text.
+- Do not invent CamelCase labels.
+
+5. RELATION RULES
+- Classes are the priority.
+- Extract relations ONLY when the text explicitly states a stable relation between two extracted class labels.
+- If uncertain, omit the relation.
+- Domain and range must both be extracted class labels from the same text.
+- Prefer concise, domain-appropriate relation labels from the text (e.g. includes, treats, targets condition, has monitoring data).
+- If an allowed relation list was provided, use those labels. Otherwise, prefer labels that reflect the text's wording.
+- Do NOT invent arbitrary relation labels.
+
+6. HIERARCHY RULES
+- Extract hierarchy ONLY when the text explicitly uses one of these lexical cues:
+  - "is a"
+  - "type of"
+  - "kind of"
+  - "such as"
+  - "include:"
+  - "includes:"
+- For enumeration cues (such as, include:, includes:), extract ONLY the short noun phrases listed after the cue.
+- NEVER output long clauses, verb phrases, or sentence fragments as subclass or superclass.
+- If either side is not a clean noun phrase, omit the hierarchy edge.
+
+7. ZERO-SHOT BEHAVIOUR
+- This is a strict baseline: prefer under-generation to over-generation.
+- It is better to return fewer high-confidence items than many weak items.
+- If the text is mixed clinical + governance, keep ONLY the clinical part.
+
+### OUTPUT FORMAT (JSON ONLY)
+Return ONLY valid JSON.
+Do not include markdown, explanations, headings, or commentary.
+
+Use exactly this structure:
+{
+  "classes": [
+    {"label": "string", "evidence": "string"}
+  ],
+  "relations": [
+    {"label": "string", "domain": "string", "range": "string", "evidence": "string"}
+  ],
+  "hierarchy": [
+    {"subClass": "string", "superClass": "string", "evidence": "string"}
+  ]
+}
+
+### FINAL CHECK BEFORE OUTPUT
+Before producing JSON, remove any item that:
+- is organisational, infrastructural, database-related, publication-related, or governance-related
+- lacks exact evidence
+- uses a label not explicitly present in the text
+- uses a long clause instead of a noun phrase
+- uses a relation label outside the allowed set
+
+---
+TEXT TO ANALYZE:
+1. They (the non-profit external research organisation)
+
+Piper et al.
+
+Guidelines for Non-Profit External Research
+Organisations or Individual members
+wishing to Access the BrainIT Database
+
+Non profit making external research organisations or
+they may gain in-direct access through collaborating
+with a centre PI provided:
+
+Group funding
+
+members AND:
+2. They (the non-profit external research organisation)
+have also agreed and signed to the same Database
+access criteria (Internet Based) presented to the
+centre PI with whom they are collaborating.
+In such a collaboration, the centre PI remains responsible for access to the database and for tracking any analyses resulting from the collaboration with Non profit
+making external research organisations or individuals
+In the event of any conflict between a centre PI and
+whether the database can be accessed and whether the
+intended analyses can be performed.
+Joint authorship guidelines
+A. If any data from the joint database was used in the
+analyses which subsequently formed part of a
+published abstract or manuscript - reference to the
+B. As part of the normal BrainIT review process, all
+invited to both review and to contribute towards
+any abstract or manuscript produced prior to submission to a meeting or for publication. Those members
+who made a significant contribution to the design,
+analysis or writing of the abstract=manuscript will
+also be named co-authors on the abstract or manuscript. Where there is uncertainty over whether a
+significant contribution was made by a given data
+contributor - a final decision will be made by the
+Attempts at publishing analyses of data from the database without adhering to all the above criteria will result
+
+These staff are currently grant funded. Grant funding
+will, for the most part, remain the predominate source
+of support, however, other sources of support are being
+considered including by industry and public donation.
+As the group expands and more project groups form
+and bring in their own funding, it may be possible to
+fixed percentage of project funding.
+Part B: core data set definition
+Defining a core dataset
+research infrastructure support under the Quality of Life
+and Management of Living Resources Programme. This
+support enabled the group to meet to discuss the definition of a core dataset and to define and implement a
+mechanism for determining the feasibility for collection
+A meeting was held in Glasgow and 25 participants
+from 9 countries attended. Representatives were also
+The aim was to define a minimum or core dataset to
+be collected from all head injured patients which would
+be common to all future research projects. Individual
+projects would then either draw from the core-dataset
+or append new data elements to the core dataset on a
+project-by-project basis. To facilitate discussion, the
+core dataset was sub-divided into four logical groups:
+a) Demographic and Clinical Information b) Minute by
+Minute monitoring information c) Intensive care management information d) Secondary insult treatment
+information. The meeting participants assigned themselves to one of these four groups and each group was
+assigned a chairperson responsible for guiding discussion towards a consensus. Each group was given a draft
+list of data elements which could potentially be included
+in the core-dataset. At the completion of discussions, the
+
+621
+
+Fig. 2. Paper based - pilot data collection form. The form shows the data for patient 1, starting at 22:00 on the evening of January 12, 2001. This
+patient was on ventilation from 22:40 to end of the time period, was sedated from 22:00 to 03:50, and again from 04:10 to the end of the period. The
+patient was suctioned every hour at 5 minutes past the hour. Time of BP, ICP and central venous pressure (CVP) monitoring is also indicated
+---

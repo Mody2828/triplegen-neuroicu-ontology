@@ -1,0 +1,273 @@
+Use ONLY the following class labels:
+Acute Respiratory Distress Syndrome; Adrenaline; Antibiotics; Arterial Hypotension; Arterial Pressors; Baseline Therapy; Bedside Intervention; Biochemistry; Blood Gases; Brain Temperature; CT Scan Assessment; CVP; Cerebral Perfusion Pressure (CPP); Clinical Assessment; Condition; Core Monitoring Parameter; Data Quality Assessment; Derived Parameter; EtCO2; Fluids; GCS Assessment; GOSe Outcome; Glucose; Haematocrit; Haematology; Haemoglobin; Heart Rate; Hypertension; Hypotension; Intensive Care Management; Intracranial Hypertension; Intracranial Pressure (ICP); Jugular Venous Desaturation; Laboratory Values; Mean Arterial Pressure (MAP); Microdialysis; Monitoring Data; Noradrenaline; Nursing Intervention; Nutrition; Observation; Optional Monitoring Parameter; Outcome; Parameter; Patient; Patient Transport; PbrO2; Physiotherapy; Possible Error; Potassium; Probable Error; Pupil Assessment; Respiration Rate; Routine Nursing Care; SaO2; Secondary Insult; Secondary Insult Therapy; Secondary Insult Treatment; Sedation; Sensor; Sepsis; Session; SjO2; Sodium; Systemic Hypotension; TCD; Temperature; Therapy; Timepoint; Vasopressors; Ventilation; White Blood Cell Count
+Relations (use exact labels + domain/range):
+affected by treatment(Data Quality Assessment->Therapy); associated with condition(Data Quality Assessment->Condition); has clinical assessment(Patient->Clinical Assessment); has laboratory value(Patient->Laboratory Values); has monitoring data(Patient->Monitoring Data); has nursing intervention(Patient->Nursing Intervention); has observation(Timepoint->Observation); has outcome(Patient->Outcome); has quality assessment(Observation->Data Quality Assessment); has session(Patient->Session); has timepoint(Session->Timepoint); has_source; has_target; includes; is_a; measures parameter(Observation->Parameter); monitoring indicates condition(Monitoring Data->Condition); produced by sensor(Observation->Sensor); receives therapy(Patient->Therapy); secondary_to; targets condition(Therapy->Condition); treats
+If an item is not in the list, omit it.
+
+LEAF-FIRST RULE (important):
+- Prefer the most specific class labels mentioned in the text (e.g., ICP/CPP/MAP, Ventilation/Sedation/Fluids/Nutrition).
+- Avoid outputting only broad container classes (e.g., Monitoring Data, Therapy, Condition) if the text names specific items.
+- You may include container classes when needed as endpoints for allowed relations, but do not stop at containers when leaf items are present.
+- If the text clearly mentions multiple distinct allowed leaf items, extract several of them (each with evidence) rather than stopping early.
+- Do NOT treat research methods/algorithms/guideline-adherence calculations as Therapy or Monitoring Data.
+
+Phase 1: Extract candidate classes only. Output JSON with keys classes, relations, hierarchy. Set relations and hierarchy to empty arrays.
+
+### SYSTEM ROLE
+You are a highly precise medical ontology extraction engine. You specialize in Neuro-ICU and BrainIT clinical literature.
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided above, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+2. **Evidence Anchor:** EVERY class and relation extracted MUST be accompanied by an `evidence` field containing the EXACT, verbatim sentence fragment from the text.
+3. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+4. **Scope Limitation:**
+   - IGNORE all metadata, authors, affiliations, journal names, DOI/ISBN, and semantic web/technical boilerplate (RDF, URI, etc).
+   - Do NOT extract organisational, membership, database, or publication concepts (e.g. steering group, data validation staff, common database).
+   - FOCUS ONLY on clinical/physiological concepts, treatments, parameters, and outcomes.
+5. **Reject rule:** When in doubt, omit. Prefer under-generation to over-generation.
+
+**Default priority: classes first, then relations.** Extract relations only when the wording is explicit and stable. If uncertain, return no relations. If a phase instruction above overrides this priority, follow the phase instruction.
+
+Use the retrieved examples below as **style guidance only**. Apply the same OUTPUT FORMAT and evidence rules. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+---
+Retrieved examples:
+--- Retrieved examples (3) ---
+
+Text: This is the minimum minute by minute monitoring data required for inclusion in the BrainIT Database and include: Heart Rate (specifying source: ECG or Pulse Oximetry), Respiration Rate (sources: impedance plethmography or ventilator), Mean Arterial Pressure, mean ICP, Pulse Oximetry (SaO2) and Temperature (sources: rectal=oesophageal= bladder=skin.) However, additional variables: Central Venous Pressure (CVP), EtCO2, SjO2, TCD, PbrO2, Brain Temperature, Microdialysis. . . will also be included in the database if they are monitored, in a given patient, as part of their usual clinical management.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate (specifying source: ECG or Pulse Oximetry)"
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate (sources: impedance plethmography or ventilator)"
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "Mean Arterial Pressure"
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "mean ICP"
+    },
+    {
+      "label": "SaO2",
+      "evidence": "Pulse Oximetry (SaO2)"
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature (sources: rectal=oesophageal= bladder=skin.)"
+    },
+    {
+      "label": "CVP",
+      "evidence": "Central Venous Pressure (CVP)"
+    },
+    {
+      "label": "EtCO2",
+      "evidence": "EtCO2"
+    },
+    {
+      "label": "SjO2",
+      "evidence": "SjO2"
+    },
+    {
+      "label": "TCD",
+      "evidence": "TCD"
+    },
+    {
+      "label": "PbrO2",
+      "evidence": "PbrO2"
+    },
+    {
+      "label": "Brain Temperature",
+      "evidence": "Brain Temperature"
+    },
+    {
+      "label": "Microdialysis",
+      "evidence": "Microdialysis"
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+
+Text: Demographic and clinical data. This group contains data elements which are only collected once per patient and as such are not considered time-series data. Examples being the age and sex of the patient. Medical history is focused upon identifying previous neurological injury, substance abuse and associated injuries. Data elements are then collected describing the clinical status of the patient (e.g.: GCS scores). Both eyes are recorded individually and responsiveness classed as reacting or un-reacting. Pupil size is recorded as small, normal or large.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Patient",
+      "evidence": "data elements which are only collected once per patient"
+    },
+    {
+      "label": "Clinical Assessment",
+      "evidence": "describing the clinical status of the patient"
+    },
+    {
+      "label": "GCS Assessment",
+      "evidence": "GCS scores"
+    },
+    {
+      "label": "Pupil Assessment",
+      "evidence": "Pupil size is recorded as small, normal or large"
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+
+Text: The aim was to define a minimum or core dataset to be collected from all head injured patients which would be common to all future research projects. To facilitate discussion, the core dataset was sub-divided into four logical groups: a) Demographic and Clinical Information b) Minute by Minute monitoring information c) Intensive care management information d) Secondary insult treatment information.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Patient",
+      "evidence": "collected from all head injured patients"
+    },
+    {
+      "label": "Monitoring Data",
+      "evidence": "Minute by Minute monitoring information"
+    },
+    {
+      "label": "Intensive Care Management",
+      "evidence": "Intensive care management information"
+    },
+    {
+      "label": "Secondary Insult Treatment",
+      "evidence": "Secondary insult treatment information"
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+TEXT TO ANALYZE:
+Paper based feasibility exercise
+Having met and defined a core dataset, the group next performed a
+paper based feasibility exercise. The intention being to determine if the
+
+623
+
+was high with only 10 of the 64 questions (16%) showed missing
+data. Of those 10 fields with missing data, the average number of
+6%. The maximum percentage of missing data was associated with the
+question on ''Associated Major Injuries'' with a missing error rate of
+33%. However, from the group discussion of the data pilot results, it
+became clear that the question wording was not optimal and a field for
+responding ''none'' was omitted. So it was not clear if the field was
+left blank due to missing data, or there were NO associated major
+injuries.
+
+624
+
+I. Piper et al.
+System type
+
+Use networked Use RS232=AD Need
+Total
+solution
+solution
+interface
+
+Phillips medical
+Marquette
+Siemens
+Datex
+Spacelabs
+Hellege
+
+3
+2
+1
+1
+1
+1
+
+4
+3
+0
+2
+1
+0
+
+1
+1
+1
+0
+0
+0
+
+8
+6
+2
+3
+2
+1
+
+Totals
+
+9
+
+10
+
+3
+
+22
+
+As an example of the type of responses achieved, the bar chart in Fig. 4
+gives the distribution of centre responses for two questions: a) Motor
+score on arrival at the neurosurgical hospital b) Evidence of hypoxia at
+the accident scene.
+Group members were also invited to make comments on the form on
+data elements which they felt the instructions either needed clarification
+or the categories required modification. The comments were summarised
+and any necessary changes to the data elements definition file discussed
+at a BrainIT group meeting. In particular, it was decided that all questions should have fields for ''not testable'' and ''unknown''.
+
+Monitoring based feasibility exercise
+
+Fig. 4. Paper based Data Collection Results. Plot giving example
+inter-centre responses for two questions from the pilot data collection
+exercise
+
+Fig. 5. Monitoring Pilot Collection results. Plot showing which types of monitoring data were collected as part of the feasibility exercise. Data is
+summarised in terms of frequency of channel types
+
+In particular, it was decided that all questions should have fields for ''not testable'' and ''unknown''. Monitoring based feasibility exercise
+
+625
+
+their bedside monitoring and require assistance with developing a suitable interface. The BrainIT group is collaborating with three medical
+device companies (Philips Medical, CMA Microdialysis and Licox) to
+question was to determine that ''minute by minute'' data is collectable
+representative of the full range of monitoring which will be collected in
+future. This can only be determined from a prospective data collection
+period with multiple patients data collected per centre.
+---

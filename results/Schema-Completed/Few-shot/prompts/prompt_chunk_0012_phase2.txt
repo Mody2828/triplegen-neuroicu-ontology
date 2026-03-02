@@ -1,0 +1,314 @@
+Use ONLY the following class labels:
+Acute Respiratory Distress Syndrome; Adrenaline; Antibiotics; Arterial Hypotension; Arterial Pressors; Baseline Therapy; Bedside Intervention; Biochemistry; Blood Gases; Brain Temperature; CT Scan Assessment; CVP; Cerebral Perfusion Pressure (CPP); Clinical Assessment; Condition; Core Monitoring Parameter; Data Quality Assessment; Derived Parameter; EtCO2; Fluids; GCS Assessment; GOSe Outcome; Glucose; Haematocrit; Haematology; Haemoglobin; Heart Rate; Hypertension; Hypotension; Intensive Care Management; Intracranial Hypertension; Intracranial Pressure (ICP); Jugular Venous Desaturation; Laboratory Values; Mean Arterial Pressure (MAP); Microdialysis; Monitoring Data; Noradrenaline; Nursing Intervention; Nutrition; Observation; Optional Monitoring Parameter; Outcome; Parameter; Patient; Patient Transport; PbrO2; Physiotherapy; Possible Error; Potassium; Probable Error; Pupil Assessment; Respiration Rate; Routine Nursing Care; SaO2; Secondary Insult; Secondary Insult Therapy; Secondary Insult Treatment; Sedation; Sensor; Sepsis; Session; SjO2; Sodium; Systemic Hypotension; TCD; Temperature; Therapy; Timepoint; Vasopressors; Ventilation; White Blood Cell Count
+Relations (use exact labels + domain/range):
+affected by treatment(Data Quality Assessment->Therapy); associated with condition(Data Quality Assessment->Condition); has clinical assessment(Patient->Clinical Assessment); has laboratory value(Patient->Laboratory Values); has monitoring data(Patient->Monitoring Data); has nursing intervention(Patient->Nursing Intervention); has observation(Timepoint->Observation); has outcome(Patient->Outcome); has quality assessment(Observation->Data Quality Assessment); has session(Patient->Session); has timepoint(Session->Timepoint); has_source; has_target; includes; is_a; measures parameter(Observation->Parameter); monitoring indicates condition(Monitoring Data->Condition); produced by sensor(Observation->Sensor); receives therapy(Patient->Therapy); secondary_to; targets condition(Therapy->Condition); treats
+If an item is not in the list, omit it.
+
+LEAF-FIRST RULE (important):
+- Prefer the most specific class labels mentioned in the text (e.g., ICP/CPP/MAP, Ventilation/Sedation/Fluids/Nutrition).
+- Avoid outputting only broad container classes (e.g., Monitoring Data, Therapy, Condition) if the text names specific items.
+- You may include container classes when needed as endpoints for allowed relations, but do not stop at containers when leaf items are present.
+- If the text clearly mentions multiple distinct allowed leaf items, extract several of them (each with evidence) rather than stopping early.
+- Do NOT treat research methods/algorithms/guideline-adherence calculations as Therapy or Monitoring Data.
+
+Phase 2: Classes were already extracted in Phase 1. Now extract relations only (hierarchy will be extracted in Phase 3). Output JSON with keys classes, relations, hierarchy. Set classes and hierarchy to empty arrays unless a new class is needed as domain/range for a relation.
+
+Known classes (use only these labels): Intracranial Pressure (ICP); Cerebral Perfusion Pressure (CPP); Secondary Insult
+
+Candidate terms (optional hints): pressure, cerebral perfusion pressure, cpp, hypotension, icp, intracranial pressure, monitoring, secondary insult, outcome, secondary, secondary insults, Anderson, Barcelona, Dearden, Dearden NM, Dearden NM Miller, Germany
+Neurosurgery, Hospital, Jones, Lithuania
+University Hospital
+
+### SYSTEM ROLE
+You are a highly precise medical ontology extraction engine. You specialize in Neuro-ICU and BrainIT clinical literature.
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided above, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+2. **Evidence Anchor:** EVERY class and relation extracted MUST be accompanied by an `evidence` field containing the EXACT, verbatim sentence fragment from the text.
+3. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+4. **Scope Limitation:**
+   - IGNORE all metadata, authors, affiliations, journal names, DOI/ISBN, and semantic web/technical boilerplate (RDF, URI, etc).
+   - Do NOT extract organisational, membership, database, or publication concepts (e.g. steering group, data validation staff, common database).
+   - FOCUS ONLY on clinical/physiological concepts, treatments, parameters, and outcomes.
+5. **Reject rule:** When in doubt, omit. Prefer under-generation to over-generation.
+
+**Default priority: classes first, then relations.** Extract relations only when the wording is explicit and stable. If uncertain, return no relations. If a phase instruction above overrides this priority, follow the phase instruction.
+
+Use the retrieved examples below as **style guidance only**. Apply the same OUTPUT FORMAT and evidence rules. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+---
+Retrieved examples:
+--- Retrieved examples (3) ---
+
+Text: The minimum minute by minute monitoring data required for inclusion in the BrainIT Database include: Heart Rate, Respiration Rate, Mean Arterial Pressure, ICP, SaO2 and Temperature. Data is collected from patients every minute.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Patient",
+      "evidence": "patients"
+    },
+    {
+      "label": "Monitoring Data",
+      "evidence": "monitoring data"
+    },
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate"
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate"
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature"
+    }
+  ],
+  "relations": [
+    {
+      "label": "has monitoring data",
+      "domain": "Patient",
+      "range": "Monitoring Data",
+      "evidence": "Data is collected from patients every minute"
+    },
+    {
+      "label": "includes",
+      "domain": "Monitoring Data",
+      "range": "Heart Rate",
+      "evidence": "monitoring data include: Heart Rate"
+    },
+    {
+      "label": "includes",
+      "domain": "Monitoring Data",
+      "range": "Temperature",
+      "evidence": "monitoring data include: Heart Rate, Respiration Rate, Mean Arterial Pressure, ICP, SaO2 and Temperature"
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+
+Text: Secondary insults such as intracranial hypertension and arterial hypotension have been found to occur frequently in head injured patients. The minute by minute monitoring data allows clinicians to detect these conditions. Each Therapy must be assigned a target Condition from a drop down list.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Monitoring Data",
+      "evidence": "minute by minute monitoring data"
+    },
+    {
+      "label": "Condition",
+      "evidence": "secondary insults such as intracranial hypertension and arterial hypotension"
+    },
+    {
+      "label": "Secondary Insult",
+      "evidence": "Secondary insults such as intracranial hypertension"
+    },
+    {
+      "label": "Therapy",
+      "evidence": "Each Therapy must be assigned a target Condition"
+    },
+    {
+      "label": "Intracranial Hypertension",
+      "evidence": "intracranial hypertension"
+    },
+    {
+      "label": "Arterial Hypotension",
+      "evidence": "arterial hypotension"
+    }
+  ],
+  "relations": [
+    {
+      "label": "monitoring indicates condition",
+      "domain": "Monitoring Data",
+      "range": "Condition",
+      "evidence": "minute by minute monitoring data allows clinicians to detect these conditions"
+    },
+    {
+      "label": "targets condition",
+      "domain": "Therapy",
+      "range": "Condition",
+      "evidence": "Each Therapy must be assigned a target Condition"
+    }
+  ],
+  "hierarchy": [
+    {
+      "subClass": "Intracranial Hypertension",
+      "superClass": "Secondary Insult",
+      "evidence": "secondary insults such as intracranial hypertension"
+    },
+    {
+      "subClass": "Arterial Hypotension",
+      "superClass": "Secondary Insult",
+      "evidence": "secondary insults such as intracranial hypertension and arterial hypotension"
+    }
+  ]
+}
+
+---
+
+Text: Intensive care management delivered to all patients includes ventilation settings, sedation levels, fluid input and output, nutrition, use of vasopressors, antibiotics. Each patient receives baseline therapy as part of routine ICU management.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Patient",
+      "evidence": "delivered to all patients"
+    },
+    {
+      "label": "Baseline Therapy",
+      "evidence": "baseline therapy as part of routine ICU management"
+    },
+    {
+      "label": "Intensive Care Management",
+      "evidence": "Intensive care management"
+    },
+    {
+      "label": "Ventilation",
+      "evidence": "ventilation settings"
+    },
+    {
+      "label": "Sedation",
+      "evidence": "sedation levels"
+    },
+    {
+      "label": "Vasopressors",
+      "evidence": "use of vasopressors"
+    }
+  ],
+  "relations": [
+    {
+      "label": "receives therapy",
+      "domain": "Patient",
+      "range": "Baseline Therapy",
+      "evidence": "Each patient receives baseline therapy as part of routine ICU management"
+    },
+    {
+      "label": "includes",
+      "domain": "Intensive Care Management",
+      "range": "Ventilation",
+      "evidence": "Intensive care management includes ventilation settings"
+    },
+    {
+      "label": "includes",
+      "domain": "Intensive Care Management",
+      "range": "Sedation",
+      "evidence": "Intensive care management includes sedation levels"
+    },
+    {
+      "label": "includes",
+      "domain": "Intensive Care Management",
+      "range": "Vasopressors",
+      "evidence": "Intensive care management includes use of vasopressors"
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+TEXT TO ANALYZE:
+628
+
+I. Piper et al.
+
+Neurosurgery, University Hospital Leipzig, Leipzig, Germany
+Neurosurgery, University Hospital Lund, Lund, Sweden
+Kaunas Medical University Hospital, Kaunas, Lithuania
+University Hospital, Gothenburg, Sweden
+Vall d'Hebron University Hospitals Barcelona, Barcelona, Spain
+Terapia Intensiva Neuroscienze, Milan, Italy
+Universitatsspital Zurich, Zurich, Switzerland
+University Hospital Mannheim, Manheim, Germany
+Neurosurgery, National Hospital, Queen Square, London, UK
+Clinical Neurosciences, Western General Hospital, Edinburgh, UK
+UCI Quirurgica, Hospital Clinic Barcelona, Barcelona, Spain
+
+1. Berkowitz M (1993) Assessing the socioeconomic impact of
+improved treatment of head and spinal cord injuries. J Emer
+Med 11: 63-67
+2. Bouma GJ, Muizelaar (1990) JP Relationship between cardiac
+output and cerebral blood flow in patients with intact and with
+impaired autoregulation. J Neurosurg 73: 368-374
+3. American Association of Neurological Surgeons, BrainTrauma Foundation - Guidelines for the management of
+head injury (1995) Chicago, http==:www.Ohsu.edu=som-surgery=
+Neurosurgery=guidelines
+4. Chambers IR, Treadwell L, Mendelow AD (2000) The cause and
+incidence of secondary insults in severely head-injured adults and
+children. Brit J Neurosurg 14(5): 424-431
+5. Clifton GL, Allen S, Barrodale P et al (1993) A phase II study of
+moderate hypothermia in severe brain injury. J Neurotrauma 10:
+263-271
+6. Corrie J, Piper IR, Housley A, Tocher JL, Jones PA, Anderson SI,
+Midgley S, Dearden NM, Miller JD (1993) Microcomputer based
+data recording improves identification of secondary insults during
+acute management of head injured patients. Br J Intensive Care 3:
+225-233
+7. Gabe IT (1972) Cardiovascular fluid dynamics. Acta Physiol Scand
+19: 306-322
+8. Ghajar et al (1995) Survey of critical care management of comatose
+head injured patients in the United States. Crit Care Med 23:
+560-567
+9. Guidelines for the initial triage and management of head injuries
+(1998) Recommendations from the society of British Neurological
+Surgeons. B J Neurosurg 14(4)
+10. Hydrostatic Fluid Columns, Influence upon calculated CPP.
+www.brainit.org=brainit=hydrostatic.htm
+11. Jeevaratnam DR, Menon DK (1996) Survey of intensive care of
+severely head injured patients in the United Kingdom. BMJ 312:
+944-947
+12. Jones PA, Andrews PJD, Midgley S, Anderson SI, Piper IR,
+Tocher JL, Housley AM, Corrie JA, Slattery J, Dearden NM, Miller
+JD (1994) Measuring the burden of secondary insults in head
+injured patients during intensive care. J Neurosurg Anaesth 6(1):
+4-14
+13. Maas AI, Dearden M, Teasdale GM et al (1997) EBIC guidelines
+for management of severe head injury in adults. European Brain
+14. Marmarou A, Anderson RL, Ward JD et al (1991) Impact of ICP
+instability and hypotension on outcome in patients with severe head
+trauma. J Neurosurg 75: S59-S66
+
+15. Marshall LF, Smith RW, Shapiro HM (1979) The outcome with
+aggressive treatment in severe head injuries. I. The significance of
+intracranial pressure monitoring. J Neurosurg 50: 20-25
+16. McGraw CP (1989) A cerebral perfusion pressure greater than
+80 mmHg is more beneficial. In Hoff JT, Betz AL (eds) Intracranial
+pressure VII. Springer Berlin Heidelberg New York Tokyo,
+pp 839-841
+17. McKeating EG (1998) The intensive care of severe head injury: a
+Neurosurg 12(1): 7-14
+19. Piper IR, Lawson A, Dearden NM, Miller JD (1991) A microcomputer based research data collection system in head injury
+intensive care. Brit J Inten Care 1(2): 73-78
+20. Robertson CS, Valadka AB, Gopinath SP et al (1997) Prevention of
+secondary insults after head injury. In proceedings of the 10th
+International Symposium on Intracranial Pressure. In: Marmarou
+A et al (eds) Williamsburg, pp 03-13
+21. Robertson CS, Contant CF, Narayan RK et al (1992) Cerebral blood
+flow, AVDO2, and neurologic outcome in head-injured patients. J
+Neurotrauma 9: S349-S358
+22. Rosner MJ, Daughton S (1990) Cerebral perfusion pressure management in head injury. J Trauma 30: 933-941
+23. Signorini DF, Andrews PJD, Jones A et al (1999) Predicting
+survival using simple clinical variables: a case study in traumatic
+brain injury. J Neurol Neurosurg Psychiat 66: 20-31
+solus satis sapit: nobody knows enough alone. Acta Neurochir
+(Wien) 139: 797-803
+---

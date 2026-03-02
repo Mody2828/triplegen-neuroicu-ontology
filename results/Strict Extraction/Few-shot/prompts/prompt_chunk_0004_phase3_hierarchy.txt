@@ -1,0 +1,268 @@
+Use ONLY the following class labels:
+Acute Respiratory Distress Syndrome; Adrenaline; Antibiotics; Arterial Hypotension; Arterial Pressors; Baseline Therapy; Bedside Intervention; Biochemistry; Blood Gases; Brain Temperature; CT Scan Assessment; CVP; Cerebral Perfusion Pressure (CPP); Clinical Assessment; Condition; Core Monitoring Parameter; Data Quality Assessment; Derived Parameter; EtCO2; Fluids; GCS Assessment; GOSe Outcome; Glucose; Haematocrit; Haematology; Haemoglobin; Heart Rate; Hypertension; Hypotension; Intensive Care Management; Intracranial Hypertension; Intracranial Pressure (ICP); Jugular Venous Desaturation; Laboratory Values; Mean Arterial Pressure (MAP); Microdialysis; Monitoring Data; Noradrenaline; Nursing Intervention; Nutrition; Observation; Optional Monitoring Parameter; Outcome; Parameter; Patient; Patient Transport; PbrO2; Physiotherapy; Possible Error; Potassium; Probable Error; Pupil Assessment; Respiration Rate; Routine Nursing Care; SaO2; Secondary Insult; Secondary Insult Therapy; Secondary Insult Treatment; Sedation; Sensor; Sepsis; Session; SjO2; Sodium; Systemic Hypotension; TCD; Temperature; Therapy; Timepoint; Vasopressors; Ventilation; White Blood Cell Count
+Relations (use exact labels + domain/range):
+affected by treatment(Data Quality Assessment->Therapy); associated with condition(Data Quality Assessment->Condition); has clinical assessment(Patient->Clinical Assessment); has laboratory value(Patient->Laboratory Values); has monitoring data(Patient->Monitoring Data); has nursing intervention(Patient->Nursing Intervention); has observation(Timepoint->Observation); has outcome(Patient->Outcome); has quality assessment(Observation->Data Quality Assessment); has session(Patient->Session); has timepoint(Session->Timepoint); has_source; has_target; includes; is_a; measures parameter(Observation->Parameter); monitoring indicates condition(Monitoring Data->Condition); produced by sensor(Observation->Sensor); receives therapy(Patient->Therapy); secondary_to; targets condition(Therapy->Condition); treats
+If an item is not in the list, omit it.
+
+LEAF-FIRST RULE (important):
+- Prefer the most specific class labels mentioned in the text (e.g., ICP/CPP/MAP, Ventilation/Sedation/Fluids/Nutrition).
+- Avoid outputting only broad container classes (e.g., Monitoring Data, Therapy, Condition) if the text names specific items.
+- You may include container classes when needed as endpoints for allowed relations, but do not stop at containers when leaf items are present.
+- If the text clearly mentions multiple distinct allowed leaf items, extract several of them (each with evidence) rather than stopping early.
+- Do NOT treat research methods/algorithms/guideline-adherence calculations as Therapy or Monitoring Data.
+
+Phase 3: Extract hierarchy ONLY where the text contains explicit lexical cues: "such as", "is a", "type of", "kind of", "include:", "includes:". Output JSON with keys classes, relations, hierarchy. Set classes and relations to empty arrays. For each hierarchy edge, evidence MUST contain one of these phrases. Do not infer hierarchy.
+
+Known classes (use only these for subclass/superclass): Baseline Therapy; Therapy; Patient; Heart Rate; Respiration Rate; Mean Arterial Pressure (MAP); SaO2; Temperature; CVP; Brain Temperature; Microdialysis
+
+### SYSTEM ROLE
+You are a highly precise medical ontology extraction engine. You specialize in Neuro-ICU and BrainIT clinical literature.
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided above, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+2. **Evidence Anchor:** EVERY class and relation extracted MUST be accompanied by an `evidence` field containing the EXACT, verbatim sentence fragment from the text.
+3. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+4. **Scope Limitation:**
+   - IGNORE all metadata, authors, affiliations, journal names, DOI/ISBN, and semantic web/technical boilerplate (RDF, URI, etc).
+   - Do NOT extract organisational, membership, database, or publication concepts (e.g. steering group, data validation staff, common database).
+   - FOCUS ONLY on clinical/physiological concepts, treatments, parameters, and outcomes.
+5. **Reject rule:** When in doubt, omit. Prefer under-generation to over-generation.
+
+**Default priority: classes first, then relations.** Extract relations only when the wording is explicit and stable. If uncertain, return no relations. If a phase instruction above overrides this priority, follow the phase instruction.
+
+Use the retrieved examples below as **style guidance only**. Apply the same OUTPUT FORMAT and evidence rules. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+---
+Retrieved examples:
+--- Retrieved examples (3) ---
+
+Text: This is the minimum minute by minute monitoring data required for inclusion in the BrainIT Database and include: Heart Rate, Respiration Rate, Mean Arterial Pressure, mean ICP, SaO2 and Temperature.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Monitoring Data",
+      "evidence": "minute by minute monitoring data"
+    },
+    {
+      "label": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required"
+    },
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate"
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate"
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "Mean Arterial Pressure"
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "mean ICP"
+    },
+    {
+      "label": "SaO2",
+      "evidence": "SaO2"
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature"
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Heart Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required...include: Heart Rate"
+    },
+    {
+      "subClass": "Respiration Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required...include: Heart Rate, Respiration Rate"
+    },
+    {
+      "subClass": "Mean Arterial Pressure (MAP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Heart Rate, Respiration Rate, Mean Arterial Pressure"
+    },
+    {
+      "subClass": "Intracranial Pressure (ICP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Heart Rate, Respiration Rate, Mean Arterial Pressure, mean ICP"
+    },
+    {
+      "subClass": "SaO2",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Heart Rate, Respiration Rate, Mean Arterial Pressure, mean ICP, SaO2"
+    },
+    {
+      "subClass": "Temperature",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Heart Rate, Respiration Rate, Mean Arterial Pressure, mean ICP, SaO2 and Temperature"
+    }
+  ]
+}
+
+---
+
+Text: Patient outcome is assessed using the Extended Glasgow Outcome Scale (GOSe) at 6 months post-discharge from the neurosurgical centre. GOSe outcome is collected by structured interview with the patient, a relative, or a GP.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Outcome",
+      "evidence": "Patient outcome is assessed"
+    },
+    {
+      "label": "GOSe Outcome",
+      "evidence": "Extended Glasgow Outcome Scale (GOSe) at 6 months post-discharge"
+    },
+    {
+      "label": "Patient",
+      "evidence": "Patient outcome"
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "GOSe Outcome",
+      "superClass": "Outcome",
+      "evidence": "Patient outcome is assessed using the Extended Glasgow Outcome Scale (GOSe)"
+    }
+  ]
+}
+
+---
+
+Text: Demographic and clinical data include clinical status assessments. GCS scores are collected at pre-neurosurgical admission and neurosurgical admission. Both eyes are recorded individually: pupil size (small, normal, large) and responsiveness (reacting or un-reacting). CT scan classification uses TCDB nomenclature.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Clinical Assessment",
+      "evidence": "clinical status assessments"
+    },
+    {
+      "label": "GCS Assessment",
+      "evidence": "GCS scores are collected at pre-neurosurgical admission"
+    },
+    {
+      "label": "Pupil Assessment",
+      "evidence": "pupil size (small, normal, large) and responsiveness (reacting or un-reacting)"
+    },
+    {
+      "label": "CT Scan Assessment",
+      "evidence": "CT scan classification uses TCDB nomenclature"
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "GCS Assessment",
+      "superClass": "Clinical Assessment",
+      "evidence": "clinical status assessments: GCS scores are collected"
+    },
+    {
+      "subClass": "Pupil Assessment",
+      "superClass": "Clinical Assessment",
+      "evidence": "clinical status assessments...pupil size (small, normal, large)"
+    },
+    {
+      "subClass": "CT Scan Assessment",
+      "superClass": "Clinical Assessment",
+      "evidence": "clinical status assessments...CT scan classification uses TCDB nomenclature"
+    }
+  ]
+}
+
+---
+TEXT TO ANALYZE:
+622
+international guidelines on patient data anonymity, we chose to record
+and transfer a patients age as an absolute decimal number: e.g.: 53.4
+years. This number is calculated by software from the patient's date of
+birth and knowing the date of injury.
+The usual description of injury variables are collected with users
+offered a choice from fixed categories. Medical history is focused upon
+identifying previous neurological injury, substance abuse and associated
+injuries.
+Data elements are then collected describing the clinical status of the
+patient (e.g.: GCS scores) at both pre-neurosurgical hospital admission
+and at admission to the hospital with Neurosurgery. Pre-neurosurgical
+hospital admission encompasses the sources of data from the Emergency
+Medical Services and the Emergency=Casualty Center of the admitting
+hospital (if not the hospital with neurosurgery). If data is available from
+more than one source for the pre-hospital care, the data most indicative
+of the patient's post-resuscitation=pre-intubation condition at the place
+of injury is chosen for the pre-neurosurgical hospital admission data.
+Group discussion lead to a simplification of the scoring system for
+recording pupil size and responsiveness. Both eyes are recorded individually and responsiveness classed as reacting or un-reacting. Pupil size
+is recorded as small, normal or large.
+CT-Scan data:
+In common with many existing data collection methods, both the first
+and worst CT-Scan information is collected. Classification is based upon
+the Traumatic Coma Databank (TCDB) nomenclature. A selection
+between a ''Main Lesion'' (none, subdural, extradural, intraparenchymal) is made and using the normal in-house methods an estimate is
+made as to whether the main lesion (largest hyper-intense lesion) is
+greater than or less than 25 ml in volume. Cistern state (present, compressed, absent) is also noted. The usual TCDB classification is applied
+but to avoid interpretation difficulties in the ''Evacuated=Non Evacuated
+Mass lesion'' categories - a consensus to record the worst CT abnormality as only a ''Mass Lesion of mixed or high density of > 25 ml.
+Although, by definition not part of the core-dataset, an option exists
+on a project-by-project basis for collection of copies of the main CT scan
+images for central reading.
+Discharge status:
+Consensus was achieved to collect from all patients the Extended 8point Glasgow Outcome Scale (GOSe) at 6 months post discharge from
+the neurosurgical centre.
+A structured questionnaire (downloadable from the Web site: http:==
+www.brainit.org) is used for scoring the GOSe.
+Information will also be obtained on the interview method used: in
+order of preference:
+1. Direct (face to face) or telephone interview with patient.
+2. Direct (face to face) or telephone interview with relative.
+3. Postal questionnaire to Patient=Relative - if no phone number
+known
+4. Telephone interview with GP.
+We also will collect information on who was the ''respondent'' to the
+interview: patient, relative=carer, patient þ relative=carer. Also an indication of what the ''most important factor in the patients outcome is due to'':
+a) head injury, b) illness or injury to other parts of body, c) a mixture of
+both.
+
+Minute by minute monitoring data
+This is the minimum minute by minute monitoring data required for
+inclusion in the BrainIT Database and include: Heart Rate (specifying
+source: ECG or Pulse Oximetry), Respiration Rate (sources: impedance
+plethmography or ventilator), Mean Arterial Pressure, mean ICP, Pulse
+Oximetry (SaO2) and Temperature (sources: rectal=oesophageal= bladder=skin.)
+
+I. Piper et al.
+However, additional variables: Central Venous Pressure (CVP),
+EtCO2, SjO2, TCD, PbrO2, Brain Temperature, Microdialysis. . . will
+also be included in the database if they are monitored, in a given patient,
+as part of their usual clinical management.
+Thus the emphasis is to not exclude data which is part of any given
+centre's normal monitoring practice and in so doing build a rich and
+varied database for post-hoc analysis.
+---

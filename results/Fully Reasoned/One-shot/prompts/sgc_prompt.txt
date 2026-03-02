@@ -1,0 +1,1223 @@
+## EXAMPLE (do not copy — for format guidance only):
+Missing classes: Fluids, Nutrition, Sedation
+Corpus snippet: "...ventilation settings, sedation levels, fluid input and output, nutrition..."
+Correct output:
+{
+  "classes": [
+    {"label": "Fluids", "evidence": "fluid input and output"},
+    {"label": "Nutrition", "evidence": "nutrition"},
+    {"label": "Sedation", "evidence": "sedation levels"}
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+Note: even a brief mention (1-3 words) is sufficient evidence — do NOT require full sentences.
+
+You are performing schema-guided completion. The current ontology was merged from extraction; the missing items below are gold schema items NOT yet in the ontology.
+
+Task: From the corpus evidence below, which of these missing items are SUPPORTED by the text?
+1. Consider ONLY the missing classes, relations, and hierarchy edges listed.
+2. For each class or relation you output, provide an evidence span: an exact quote or phrase from the corpus.
+3. A brief mention (even 1-3 words) in the corpus IS sufficient evidence. Do not require a full sentence.
+4. You MUST output as many matching items as the corpus supports — do not leave known classes out.
+5. Use exact labels from the gold schema (same spelling and capitalisation).
+6. For relations, domain and range must be gold class labels or already in the ontology.
+7. For hierarchy edges, output only edges where the text implies an is-a relationship (e.g. 'X such as Y', 'types of X include Y', 'Y is a form of X'). Both subClass and superClass must be classes in the current ontology or in your classes output.
+
+Output valid JSON only with keys: classes, relations, hierarchy.
+
+## Missing from current ontology (in gold schema but not yet predicted):
+
+### Missing classes:
+- Session (A continuous monitoring session for a patient in the ICU, comprising an ordered sequence of timepoints. [P2])
+- Optional Monitoring Parameter (Extended monitoring parameters included in the BrainIT Database whenever monitored as part of a centre's routine clinical management. [P1])
+- Derived Parameter (Monitoring parameter computed from other measured parameters (e.g. CPP = MAP − ICP). [P1])
+- Intracranial Pressure (ICP) (Core BrainIT parameter. Monitoring site: intraventricular, intraparenchymal, or subdural. Technology: catheter-tip or fluid-filled catheter-transducer. [P1])
+- EtCO2 (End-tidal CO2. Optional BrainIT parameter. [P1])
+- SjO2 (Jugular venous oxygen saturation. Optional BrainIT parameter. [P1])
+- TCD (Transcranial Doppler. Optional BrainIT parameter. [P1])
+- PbrO2 (Brain tissue oxygen partial pressure. Optional BrainIT parameter. [P1])
+- Cerebral Perfusion Pressure (CPP) (Derived: CPP = MAP − ICP. Critical threshold ~70 mmHg. CPP-targeted therapy is a key BrainIT secondary-insult management concept. [P1])
+- Secondary Insult Therapy (Non-surgical medical management specifically given to treat secondary insults. Each therapy must be assigned a therapy target from a standardised drop-down list. [P1])
+- Nutrition (Nutritional support. Baseline therapy. [P1])
+- Antibiotics (Antibiotic therapy. Baseline therapy. [P1])
+- Arterial Pressors (Arterial pressure agents used in secondary insult therapy. Therapy target: systemic hypotension OR reduced CPP secondary to raised ICP. [P1])
+- Jugular Venous Desaturation (SjO2 < 50%. A secondary insult associated with aggressive CPP management (>70 mmHg). [P1])
+- Clinical Assessment (Structured clinical evaluation performed at admission and during the ICU stay. Abstract superclass. [P1])
+- Laboratory Values (Routine laboratory tests performed during ICU management. Includes blood gases, biochemistry, and haematology. Recorded daily alongside minute-by-minute monitoring. [P1])
+- Blood Gases (Arterial blood gas analysis. Recorded routinely in ICU management data. [P1])
+- Sodium (Serum sodium (Na). Daily biochemistry value. [P1])
+- Potassium (Serum potassium (K+). Daily biochemistry value. [P1])
+- Glucose (Blood glucose. Daily biochemistry value. [P1])
+- Haemoglobin (Haemoglobin concentration. Daily haematology value. [P1])
+- White Blood Cell Count (White cell count (WBC). Daily haematology value. [P1])
+- Haematocrit (Packed cell volume. Daily haematology value. [P1])
+- Nursing Intervention (Routine nursing care, physiotherapy, or bedside clinical activities annotated in the ICU management time-series. [P1])
+- Routine Nursing Care (Eye/mouth care, ET tube suction, bed care. Coded and annotated in ICU management data. [P1])
+- Physiotherapy (Physiotherapy sessions annotated in ICU management data. [P1])
+- Patient Transport (Transport to and from Theatre or CT-Scan. Annotated in ICU management data. [P1])
+
+### Missing relations:
+- has monitoring data(Patient -> Monitoring Data)
+- receives therapy(Patient -> Therapy)
+- targets condition(Therapy -> Condition)
+- monitoring indicates condition(Monitoring Data -> Condition)
+- has clinical assessment(Patient -> Clinical Assessment)
+- has outcome(Patient -> Outcome)
+- has laboratory value(Patient -> Laboratory Values)
+- has nursing intervention(Patient -> Nursing Intervention)
+- has session(Patient -> Session)
+- has timepoint(Session -> Timepoint)
+- has observation(Timepoint -> Observation)
+- measures parameter(Observation -> Parameter)
+- produced by sensor(Observation -> Sensor)
+- has quality assessment(Observation -> Data Quality Assessment)
+- associated with condition(Data Quality Assessment -> Condition)
+- affected by treatment(Data Quality Assessment -> Therapy)
+
+### Missing hierarchy edges (subClass -> superClass):
+- Systemic Hypotension -> Secondary Insult
+- Physiotherapy -> Nursing Intervention
+- Antibiotics -> Baseline Therapy
+- CT Scan Assessment -> Clinical Assessment
+- Secondary Insult Treatment -> Secondary Insult Therapy
+- SjO2 -> Optional Monitoring Parameter
+- CVP -> Optional Monitoring Parameter
+- Baseline Therapy -> Therapy
+- Glucose -> Biochemistry
+- Possible Error -> Data Quality Assessment
+- Heart Rate -> Core Monitoring Parameter
+- Respiration Rate -> Core Monitoring Parameter
+- Vasopressors -> Baseline Therapy
+- Acute Respiratory Distress Syndrome -> Secondary Insult
+- Haemoglobin -> Haematology
+- White Blood Cell Count -> Haematology
+- GCS Assessment -> Clinical Assessment
+- Biochemistry -> Laboratory Values
+- Secondary Insult Therapy -> Therapy
+- Adrenaline -> Vasopressors
+- Patient Transport -> Nursing Intervention
+- Microdialysis -> Optional Monitoring Parameter
+- Probable Error -> Data Quality Assessment
+- Temperature -> Core Monitoring Parameter
+- Hypertension -> Condition
+- Sepsis -> Condition
+- Routine Nursing Care -> Nursing Intervention
+- Intracranial Pressure (ICP) -> Core Monitoring Parameter
+- Nutrition -> Baseline Therapy
+- Arterial Pressors -> Secondary Insult Therapy
+- Sodium -> Biochemistry
+- Potassium -> Biochemistry
+- Pupil Assessment -> Clinical Assessment
+- Bedside Intervention -> Nursing Intervention
+- Haematology -> Laboratory Values
+- Arterial Hypotension -> Systemic Hypotension
+- EtCO2 -> Optional Monitoring Parameter
+- Derived Parameter -> Monitoring Data
+- GOSe Outcome -> Outcome
+- SaO2 -> Core Monitoring Parameter
+- Mean Arterial Pressure (MAP) -> Core Monitoring Parameter
+- Hypotension -> Condition
+- Blood Gases -> Laboratory Values
+- Core Monitoring Parameter -> Monitoring Data
+- Sedation -> Baseline Therapy
+- PbrO2 -> Optional Monitoring Parameter
+- Cerebral Perfusion Pressure (CPP) -> Derived Parameter
+- Haematocrit -> Haematology
+- Jugular Venous Desaturation -> Secondary Insult
+- Secondary Insult -> Condition
+- TCD -> Optional Monitoring Parameter
+- Brain Temperature -> Optional Monitoring Parameter
+- Ventilation -> Baseline Therapy
+- Fluids -> Baseline Therapy
+- Noradrenaline -> Vasopressors
+- Optional Monitoring Parameter -> Monitoring Data
+
+## Corpus (evidence source):
+
+Acta Neurochir (2003) 145: 615-629
+DOI 10.1007/s00701-003-0066-6
+
+Clinical Article
+I. Piper, G. Citerio, I. Chambers, C. Contant, P. Enblad, H. Fiddes, T. Howells, K. Kiening,
+Published online July 23, 2003
+# Springer-Verlag 2003
+
+Summary
+
+Kiening,
+Published online July 23, 2003
+# Springer-Verlag 2003
+
+Introduction. An open collaborative international network has been
+established which aims to improve inter-centre standards for collection
+of high-resolution, neurointensive care data on patients with traumatic
+brain injury. The group is also working towards the creation of an open
+meetings funded by the EEC that allowed us to define a ''Core Dataset''
+and we present the results of a feasibility exercise for collection of this
+core dataset.
+Methods. Four group meetings funded by the EEC have enabled
+of specific project aim. A paper based pilot collection of data was
+conducted to determine the feasibility for collection of the core dataset.
+Specially designed forms to collect the core dataset demographic and
+clinical information as well as sample the time-series data elements were
+deadline of two months was set to receive completed forms back from
+monitoring data was also performed.
+Findings. A core-dataset was defined and can be downloaded from the
+BrainIT web-site (go to ''Core dataset'' link at: www.brainit.org).
+Overall the feasibility for collection of the core data elements was high
+with only 10 of the 64 questions (16%) showing missing data. Of those
+has been designed and is being tested. Software tools for collection of
+the core dataset have been developed. Ethics approval has been granted
+for collection of multi-centre data as part of a pilot data collection
+study.
+Interpretation. The BrainIT network provides a more standardised and
+higher resolution data collection mechanism for research groups, organisations and the device industry to conduct multi-centre trials of new
+health care technology in patients with traumatic brain injury.
+
+Head injury has devastating economic and social consequences both to the victim and to the society that supports the victim [1]. The incidence of serious head injury
+is estimated at 1500 per 100,000 population per annum.
+On a European dimension this translates into over a
+million hospital admissions with a head injury per year.
+Head injury is a leading cause of death in young males
+and survivors have serious and long term morbidity. The
+loss of employment to the victim and the stress and
+increased burden of care to family members have significant social and economic effects upon Europe.
+When assessing head injured patients' outcome from
+new therapies or the application of new monitoring
+devices, a large number of patients are required [23].
+reduce the time to assess new therapy and monitoring.
+However, despite the existence of guidelines for the management of severely head injured patients [3, 9, 13, 18, 24]
+this group of patients is subject to considerable variability
+in care [8, 11, 17]. As a first step towards improving management standards in this population, both the inter and
+intra-centre variability in the management and treatment of
+these patients needs to be assessed on a multi-national
+basis, and to do so requires a more standardised and higher
+resolution methodology for acquiring patient management
+and monitoring information.
+One consequence of the variability in management
+manage patients with TBI (traumatic brain injury), is its
+confounding influence upon trials of therapy. There have
+
+Keywords: Head injury; multi-centre network; health technology
+assessment.
+
+616
+
+been in the last few years several multi-centre clinical
+trials of potential neuroprotective drugs targeted at
+patients with brain trauma. However, despite promising
+pre-clinical results, all have failed to show efficacy in the
+head-injured population. A number of reasons have been
+proposed for these failures which include: poor study
+design, insufficient dose of drug penetrating the blood
+brain barrier and inter-species differences in brain injury
+mechanisms.
+Another possibility, not as yet systematically examined, is the occurrence of secondary insults which are
+missed through use of inappropriate monitoring methods. Even in large scale randomised trials, an efficient
+stratification design cannot be made without a knowledge of the incidence of relevant confounding factors.
+Improving the standards and resolution for multicentre data collection will also impact upon the assessment of new medical technology of relevance to the
+medical device industry. The majority of companies that
+develop or support devices used to monitor brain injured
+device companies lack the resources to independently
+assess their devices in multi-centre studies. This severely
+limits the provision of quality evidence demonstrating
+the clinical utility of their products.
+What is required is an open, collaborative network of
+more standardised methods for collection of monitoring
+and management data from patients with traumatic brain
+injury. Such an infrastructure will provide a more efficient means for assessing new and developing health
+care technology, whether it is new drugs, management
+approaches or new monitoring devices.
+The idea for the Brain Monitoring with Information
+Technology (BrainIT) group came from discussions arising during the 10th International Symposium on Raised
+Intracranial Pressure and Neuromonitoring in Brain
+Injury held in Williamsburg, USA in May 1997. A few
+participants at this meeting, with a specific interest in
+neuro-monitoring, agreed that a more open and collaborative approach to the assessment of new monitoring
+technology would be a more efficient approach then
+continuing our current practice of conducting small
+scale, single centre studies.
+Collection of minute-by-minute physiological monitoring is now common in many neuro-intensive care
+
+I. Piper et al.
+
+units. However, there are no agreed standards for
+defining the collection, summary and analysis of monitoring data, particularly pertaining to data collected
+from head injured patients. Cerebral perfusion pressure
+(CPP 1/4 BP-ICP) monitoring is a good example. When
+we report CPP values, how do we correct for differing
+transducer is zeroed? Tracking changes in bed tilt
+(which affects the size of hydrostatic pressure gradients
+between the head and heart) is also a significant technical issue without defined standards. As a result of these
+factors, it is often difficult to compare even the most
+common forms of monitoring when data are presented
+at meetings. Development of standards and guidelines in
+this area is an important step for the future design and
+conduct of trials of new intensive care monitoring and
+treatment methods.
+From those initial meetings in Williamsburg, a web
+site was setup (www.brainit.org) and from the interest
+generated, it became clear that many were interested in
+the concept of an open collaborative approach to developing standards in this area. Currently there are over 150
+members from 35 countries who have registered interest
+in the group via the website. It is possible to summarise
+the interests of the group into three main aims.
+The main aims of the group are:
+1. To develop and disseminate improved standards for the
+collection, analysis and reporting of intensive care
+monitoring data collected from brain injured patients.
+2. To provide an efficient multi-centre infra-structure for
+generating quality evidence on the utility of new forms
+of intensive care monitoring and methods for improving the care and outcome of brain-injured patients.
+3. To develop and use a standardised database as a tool
+for post hoc hypothesis testing, hypothesis generation
+and the development, testing and validation of new
+data analysis methodologies.
+This paper describes the collaborative approach being
+taken by the group and why we believe it will lead to
+a more systematic and efficient approach to health care
+technology assessment in the management of brain
+In the second part, we describe a set of meetings funded
+by the EEC which allowed the group to define a ''Core
+Dataset'' and in this paper we present the results of a
+pilot feasibility exercise for collection of this core
+dataset.
+
+1. They (the non-profit external research organisation)
+
+Piper et al.
+
+Guidelines for Non-Profit External Research
+Organisations or Individual members
+wishing to Access the BrainIT Database
+
+Non profit making external research organisations or
+they may gain in-direct access through collaborating
+with a centre PI provided:
+
+Group funding
+
+members AND:
+2. They (the non-profit external research organisation)
+have also agreed and signed to the same Database
+access criteria (Internet Based) presented to the
+centre PI with whom they are collaborating.
+In such a collaboration, the centre PI remains responsible for access to the database and for tracking any analyses resulting from the collaboration with Non profit
+making external research organisations or individuals
+In the event of any conflict between a centre PI and
+whether the database can be accessed and whether the
+intended analyses can be performed.
+Joint authorship guidelines
+A. If any data from the joint database was used in the
+analyses which subsequently formed part of a
+published abstract or manuscript - reference to the
+B. As part of the normal BrainIT review process, all
+invited to both review and to contribute towards
+any abstract or manuscript produced prior to submission to a meeting or for publication. Those members
+who made a significant contribution to the design,
+analysis or writing of the abstract=manuscript will
+also be named co-authors on the abstract or manuscript. Where there is uncertainty over whether a
+significant contribution was made by a given data
+contributor - a final decision will be made by the
+Attempts at publishing analyses of data from the database without adhering to all the above criteria will result
+
+These staff are currently grant funded. Grant funding
+will, for the most part, remain the predominate source
+of support, however, other sources of support are being
+considered including by industry and public donation.
+As the group expands and more project groups form
+and bring in their own funding, it may be possible to
+fixed percentage of project funding.
+Part B: core data set definition
+Defining a core dataset
+research infrastructure support under the Quality of Life
+and Management of Living Resources Programme. This
+support enabled the group to meet to discuss the definition of a core dataset and to define and implement a
+mechanism for determining the feasibility for collection
+A meeting was held in Glasgow and 25 participants
+from 9 countries attended. Representatives were also
+The aim was to define a minimum or core dataset to
+be collected from all head injured patients which would
+be common to all future research projects. Individual
+projects would then either draw from the core-dataset
+or append new data elements to the core dataset on a
+project-by-project basis. To facilitate discussion, the
+core dataset was sub-divided into four logical groups:
+a) Demographic and Clinical Information b) Minute by
+Minute monitoring information c) Intensive care management information d) Secondary insult treatment
+information. The meeting participants assigned themselves to one of these four groups and each group was
+assigned a chairperson responsible for guiding discussion towards a consensus. Each group was given a draft
+list of data elements which could potentially be included
+in the core-dataset. At the completion of discussions, the
+
+621
+
+Fig. 2. Paper based - pilot data collection form. The form shows the data for patient 1, starting at 22:00 on the evening of January 12, 2001. This
+patient was on ventilation from 22:40 to end of the time period, was sedated from 22:00 to 03:50, and again from 04:10 to the end of the period. The
+patient was suctioned every hour at 5 minutes past the hour. Time of BP, ICP and central venous pressure (CVP) monitoring is also indicated
+
+The meeting participants assigned themselves to one of these four groups and each group was
+assigned a chairperson responsible for guiding discussion towards a consensus. Each group was given a draft
+list of data elements which could potentially be included
+in the core-dataset. At the completion of discussions, the
+
+621
+
+chairperson presented the results of their group's consensus on the data elements to be included in the core
+dataset. The meeting chairman led general discussion
+towards a consensus on any data element which raised
+questions as to whether it should be included in the core
+dataset.
+Testing the feasibility of collecting
+the core dataset
+A paper form was designed to test the feasibility for
+contents of a core dataset was agreed at a BrainIT
+meeting, it is important to test whether those data can be
+collect a given data element - there is little point in
+collecting that data as a core data component.
+one head injured patient with at least arterial blood
+pressure (BP) and intracranial pressure monitoring in
+place for 8 hours or more. As this exercise was to test
+the feasibility for collecting the core data, rather than
+determining the accuracy of data collection, for the more
+time consuming minute by minute data collection we
+designed a graphical form which bed side nursing staff
+could indicate, by a simple tick, once every 15 minutes,
+whether the physiological channels were still being
+monitored. Figure 2 shows an example chart indicating
+the time-series collection of monitoring data from one
+centre.
+
+Testing the feasibility of collecting the PC
+based monitoring data
+The collection of the bedside minute-by-minute physiological monitoring data is the most challenging. This is
+due in part to the large variation in hardware monitoring
+to collect, anonymise and transfer to the BrainIT coordinating centre in Glasgow a short sample (at least 10 minutes of minute by minute data) of the typical range of
+bedside physiological monitoring that is performed in
+their typical head injured patient. This data was collected
+and summarised in terms of frequency of channel types.
+Results
+Core dataset definition
+The full core dataset definition is attached as an appendix and can also
+be downloaded from the BrainIT website (go to core dataset link at:
+www.brainit.org).
+For the core dataset, the emphasis was upon collection of data which
+would normally be collected as part of routine patient management. In
+the following text, we highlight, within each data collection category,
+specific examples which either prompted group discussion or we felt
+required further explanation.
+
+Demographic and clinical data
+This group contains data elements which are only collected once per
+patient and as such are not considered time-series data. Examples being
+the age and sex of the patient. To ease adherence to national and
+
+622
+international guidelines on patient data anonymity, we chose to record
+and transfer a patients age as an absolute decimal number: e.g.: 53.4
+years. This number is calculated by software from the patient's date of
+birth and knowing the date of injury.
+The usual description of injury variables are collected with users
+offered a choice from fixed categories. Medical history is focused upon
+identifying previous neurological injury, substance abuse and associated
+injuries.
+Data elements are then collected describing the clinical status of the
+patient (e.g.: GCS scores) at both pre-neurosurgical hospital admission
+and at admission to the hospital with Neurosurgery. Pre-neurosurgical
+hospital admission encompasses the sources of data from the Emergency
+Medical Services and the Emergency=Casualty Center of the admitting
+hospital (if not the hospital with neurosurgery). If data is available from
+more than one source for the pre-hospital care, the data most indicative
+of the patient's post-resuscitation=pre-intubation condition at the place
+of injury is chosen for the pre-neurosurgical hospital admission data.
+Group discussion lead to a simplification of the scoring system for
+recording pupil size and responsiveness. Both eyes are recorded individually and responsiveness classed as reacting or un-reacting. Pupil size
+is recorded as small, normal or large.
+CT-Scan data:
+In common with many existing data collection methods, both the first
+and worst CT-Scan information is collected. Classification is based upon
+the Traumatic Coma Databank (TCDB) nomenclature. A selection
+between a ''Main Lesion'' (none, subdural, extradural, intraparenchymal) is made and using the normal in-house methods an estimate is
+made as to whether the main lesion (largest hyper-intense lesion) is
+greater than or less than 25 ml in volume. Cistern state (present, compressed, absent) is also noted. The usual TCDB classification is applied
+but to avoid interpretation difficulties in the ''Evacuated=Non Evacuated
+Mass lesion'' categories - a consensus to record the worst CT abnormality as only a ''Mass Lesion of mixed or high density of > 25 ml.
+Although, by definition not part of the core-dataset, an option exists
+on a project-by-project basis for collection of copies of the main CT scan
+images for central reading.
+Discharge status:
+Consensus was achieved to collect from all patients the Extended 8point Glasgow Outcome Scale (GOSe) at 6 months post discharge from
+the neurosurgical centre.
+A structured questionnaire (downloadable from the Web site: http:==
+www.brainit.org) is used for scoring the GOSe.
+Information will also be obtained on the interview method used: in
+order of preference:
+1. Direct (face to face) or telephone interview with patient.
+2. Direct (face to face) or telephone interview with relative.
+3. Postal questionnaire to Patient=Relative - if no phone number
+known
+4. Telephone interview with GP.
+We also will collect information on who was the ''respondent'' to the
+interview: patient, relative=carer, patient þ relative=carer. Also an indication of what the ''most important factor in the patients outcome is due to'':
+a) head injury, b) illness or injury to other parts of body, c) a mixture of
+both.
+
+Minute by minute monitoring data
+This is the minimum minute by minute monitoring data required for
+inclusion in the BrainIT Database and include: Heart Rate (specifying
+source: ECG or Pulse Oximetry), Respiration Rate (sources: impedance
+plethmography or ventilator), Mean Arterial Pressure, mean ICP, Pulse
+Oximetry (SaO2) and Temperature (sources: rectal=oesophageal= bladder=skin.)
+
+I. Piper et al.
+However, additional variables: Central Venous Pressure (CVP),
+EtCO2, SjO2, TCD, PbrO2, Brain Temperature, Microdialysis. . . will
+also be included in the database if they are monitored, in a given patient,
+as part of their usual clinical management.
+Thus the emphasis is to not exclude data which is part of any given
+centre's normal monitoring practice and in so doing build a rich and
+varied database for post-hoc analysis.
+
+Intensive care management information
+This section focuses on the baseline medical management and
+monitoring of clinical status that occurs to patients more than once in
+their stay in ITU. Our intention is to collect this time-series information
+with a greater frequency and accuracy than has been previously
+attempted.
+To acquire the information with the required frequency, data here will
+typically be collected by menu driven PC software or in some cases by
+direct links to hardware (e.g.: infusion pump links). Start times and end
+Types of data include: GCS scores, pupil scores, ventilation settings,
+sedation levels, fluid input and output, nutrition, use of vasopressors,
+antibiotics.
+Coded fields will annotate routine nursing (eye=mouth care, ET tube
+suction, bed care.), physiotherapy and bedside interventions= investigations (line insertion=renewal, transducer calibration, x-ray.) and patient
+transport (to and from Theatre=CT-Scan.).
+Routine blood gases and daily laboratory values will also be recorded -
+Biochemistry (Na, K þ , Glucose), Haematology (Haemaglobin, White
+Cell Count, Haematocrit).
+Further detail can be obtained by viewing the core dataset definition
+or by downloading it from the BrainIT web-site (go to core dataset link
+at: www.brainit.org).
+
+Secondary insult management data
+This is medical management=therapy given to patients specifically to
+treat secondary insults which occur to patients despite their baseline
+intensive care medical management.
+To distinguish therapy given to patients to treat secondary insults from
+those of baseline intensive care, we have devised a coding system which
+allows specific categories of therapy to be assigned a ''therapy target''.
+For example, arterial pressors may be given to treat systemic hypotension or to treat reduced cerebral perfusion pressure (CPP) secondary to
+raised ICP. By choosing an appropriate target for each secondary
+insult therapy will enhance the usefulness of the database on medical
+therapy.
+Data here will typically be collected by menu driven PC software. It is
+to be limited to non-surgical management. Start and end times must be
+given.
+Each Therapy must be assigned a ''Target'' chosen from a drop down
+list. If drugs are given then one can indicate continuous infusion if drugs
+are delivered by a continuous infusion pump or one can indicate boluses
+if it is delivered non-continuously.
+Figure 3 summarise the minimum choice of therapy categories and
+associated targets for the BrainIT core dataset.
+
+Paper based feasibility exercise
+Having met and defined a core dataset, the group next performed a
+paper based feasibility exercise. The intention being to determine if the
+
+623
+
+Fig. 3. Tracking Therapies and Targets. Lists BrainIT core dataset definition therapies and therapy targets. This therapy tracking model has been
+designed to be easily implemented in software
+
+Paper based feasibility exercise
+Having met and defined a core dataset, the group next performed a
+paper based feasibility exercise. The intention being to determine if the
+
+623
+
+was high with only 10 of the 64 questions (16%) showed missing
+data. Of those 10 fields with missing data, the average number of
+6%. The maximum percentage of missing data was associated with the
+question on ''Associated Major Injuries'' with a missing error rate of
+33%. However, from the group discussion of the data pilot results, it
+became clear that the question wording was not optimal and a field for
+responding ''none'' was omitted. So it was not clear if the field was
+left blank due to missing data, or there were NO associated major
+injuries.
+
+624
+
+I. Piper et al.
+System type
+
+Use networked Use RS232=AD Need
+Total
+solution
+solution
+interface
+
+Phillips medical
+Marquette
+Siemens
+Datex
+Spacelabs
+Hellege
+
+3
+2
+1
+1
+1
+1
+
+4
+3
+0
+2
+1
+0
+
+1
+1
+1
+0
+0
+0
+
+8
+6
+2
+3
+2
+1
+
+Totals
+
+9
+
+10
+
+3
+
+22
+
+As an example of the type of responses achieved, the bar chart in Fig. 4
+gives the distribution of centre responses for two questions: a) Motor
+score on arrival at the neurosurgical hospital b) Evidence of hypoxia at
+the accident scene.
+Group members were also invited to make comments on the form on
+data elements which they felt the instructions either needed clarification
+or the categories required modification. The comments were summarised
+and any necessary changes to the data elements definition file discussed
+at a BrainIT group meeting. In particular, it was decided that all questions should have fields for ''not testable'' and ''unknown''.
+
+Monitoring based feasibility exercise
+
+Fig. 4. Paper based Data Collection Results. Plot giving example
+inter-centre responses for two questions from the pilot data collection
+exercise
+
+Fig. 5. Monitoring Pilot Collection results. Plot showing which types of monitoring data were collected as part of the feasibility exercise. Data is
+summarised in terms of frequency of channel types
+
+In particular, it was decided that all questions should have fields for ''not testable'' and ''unknown''. Monitoring based feasibility exercise
+
+625
+
+their bedside monitoring and require assistance with developing a suitable interface. The BrainIT group is collaborating with three medical
+device companies (Philips Medical, CMA Microdialysis and Licox) to
+question was to determine that ''minute by minute'' data is collectable
+representative of the full range of monitoring which will be collected in
+future. This can only be determined from a prospective data collection
+period with multiple patients data collected per centre.
+
+Discussion
+
+This can only be determined from a prospective data collection
+period with multiple patients data collected per centre.
+
+This paper has outlined the concept underlying the
+the groups efforts to define and test the feasibility for
+collection of a core-dataset.
+
+collaboration towards raising standards for collection
+and analysis of data from patients with traumatic brain
+injury. Data generated as a result of the work of the
+model used differs from previous collaborative groups
+working within the field of traumatic brain injury in that
+data collected as part of individual projects is openly
+accessible by all who contribute data to the database.
+Data collection tools used in projects collect, as a minimum, a ''Core Dataset'' which once collected and anonymised is added to a common database. The common
+database will be openly accessible, through the Internet,
+able to be queried over the Internet and datasets of interest can be downloaded to any member who has also
+contributed data to the database.
+The underlying hope is that such openness will lead
+to a more diverse and innovative range of analysis
+approaches than would be otherwise possible by any
+fixed group of investigators with a limited range of
+prevent duplication and may stimulate inter group
+collaboration. The strength of post-hoc analyses of such
+a database is in the generation of new hypotheses which
+can be prospectively tested.
+The success of this approach will depend upon the
+correct balance between openness and control. The concept of an open access database would not have worked
+in previous years, due to the difficulty of managing and
+protecting such a resource. However today, the pervasive
+
+nature of the Internet and the power and ease of use of
+discussion forums and remotely administrable and auditable databases makes the implementation of such an
+approach feasible. However, any such open database
+can only work if it is based, to some extent, on trust.
+Criteria have been set and must be met by contributors to
+the database. Those accessing and analysing data will be
+audited and those who fail to follow group guidelines
+will be prevented from future access to the database.
+will depend upon if the generation and publication of
+standards, new findings and analyses outweigh any
+abuse of the open access approach.
+
+Core dataset definition
+requirements are uniquely detailed and require as a
+minimum some form of PC based collection of patient
+monitoring data at a collection frequency of no less than
+1 sample per minute. The technical aims of the group are
+to collect both monitoring and non-monitoring core
+that end, in this paper, we have outlined the groups
+efforts towards defining a uniquely detailed core dataset.
+A feasibility exercise was successfully carried out
+demonstrating that the core dataset is collectable across
+data.
+However, it is not enough to just set up procedures for
+collection of multi-centre data - the procedures must be
+shown to work and estimates of inter and intra centre
+missing data and data error rates need to be determined.
+To do so requires a prospective trial of the effectiveness
+of the BrainIT procedures. EEC funding has recently
+on a region-by-region basis to conduct a prospective
+between 5 and 10 patients per centre need be recruited
+approval has been obtained. The successful completion
+of this ''proof of concept'' phase will create a network of
+with TBI. The results of the data validation study will
+provide a baseline measure of inter-centre missing data
+and data field error rates. In addition, a mechanism for
+
+626
+
+testing the efficacy of maintaining patient confidentiality
+will be implemented and tested. Such a network, once
+tested, will be a valuable resource, not only for academic
+medicine and the medical device industry, but also for
+I=II trials of new pharmacological therapy. In this
+regard, of particular relevance to trials of therapy, will
+be the advantage of using the BrainIT ''therapy targets''
+(See Figure 3) instead of giving fixed criteria for adverse
+events and indications for treatment. Some advantages
+of this approach are: a) There is no need to come to an
+b) Delivers an increased possibility to study the effects
+of different treatment thresholds and a wider spectrum of
+treatments.
+The case for raising standards
+Although most trial designs incorporate data collection methods for quantifying and controlling for secondary insults that may occur during the trial period, these
+measures will at best identify only major adverse events
+discernible from the nurses hourly chart records. More
+frequent shorter duration secondary insults are often
+missed if sampling periods greater than 1 minute is used
+[6]. Apart from data sampling rate there is also still
+uncertainty amongst investigators as to the optimal
+methodology for identification and definition of these
+adverse events. In particular the duration and critical
+threshold that should be used to define a specific type
+of secondary insult remains unclear. A good example is
+cerebral perfusion pressure insults. Over the last few
+years an interest in CPP targeted therapy for head
+injured patients has developed with a number of observational studies indicating that a CPP of 70 mmHg
+appears to be a critical value [2, 5, 14-16, 21]. Publication of the American Guidelines for the management of
+severe head injury by the Brain Trauma Foundation,
+state that there is not sufficient evidence to establish
+either a standard or guideline for the management of
+CPP, although they indicate management of CPP greater
+than 70 mmHg as a management option. However, as
+yet, there are no published randomised multi-centre
+trials demonstrating a benefit in patient outcome if
+CPP is maintained at or beyond this threshold. Conversely, a recently published study from a single-centre
+randomised CPP management trial has shown that
+aggressive management of CPP > 70 mmHg, although
+reducing the incidence of jugular venous desaturations
+
+I. Piper et al.
+
+< 50%, increased the incidence of acute respiratory
+distress syndrome and worsened neurological outcome
+[20, 21].
+Whether it is possible to define if the optimal CPP
+threshold should be set at 60 mmHg, 70 mmHg or higher
+is further complicated by a number of technical issues.
+on the site of ICP monitoring (intraventricular vs intraparenchymal vs subdural) and the technology used
+(catheter-tip vs fluid-filled catheter-transducer systems).
+Most arterial pressure measurement is based on fluidfilled catheter-transducer systems where the degree of
+system ''damping'' is an important factor. Altering the
+damping of such a system over typical limits can cause
+up to a 7 mmHg bias in recorded arterial pressure [7]. In
+terms of arterial pressure recording such a bias may not
+be significant, but for CPP measurement, a 7 mmHg
+error will make the difference to calculated CPP being
+above or below a treatment threshold. Another important
+source of error is the inter-centre differences in location
+of the ''zero'' pressure reference site for the BP transducer. This issue alone can account for up 13 mmHg
+variance in calculated CPP when combined with the
+effect of hydrostatic fluid columns which depend upon
+the degree of angle of head up tilt of the patient [10].
+Before we can define thresholds for secondary insults, in
+physiological monitoring is needed.
+Apart from optimising the methods for measuring
+adverse events, data sampling rate is also important.
+There are now a number of microcomputer based dataacquisition software systems that can be used to acquire
+patient physiological data on a frequent basis (<1/4 1
+sample=minute). These packages provide the means
+for quantifying, with greater resolution, the degree of
+secondary injury occurring in head injured patients over
+specific periods of monitoring [4, 6]. As a result, secondary insults such as intracranial hypertension, and
+arterial hypotension have been found to occur, in head
+injured patients, more frequently than previously realised with more than 90 percent of patients exhibiting
+one or more insults during their management in intensive care [12]. To accurately detect and quantify these
+events, specialised computer based sampling techniques
+are required and studies have shown that taking data
+from the nursing charts alone often miss and frequently
+underestimate the actual incidence of these events [6].
+This is particularly relevant as, to date, all previous
+clinical drug trials have used paper based clinical
+
+627
+
+research forms (CRF) for recording data on adverse
+events with a sampling rate similar to the bedside nurses
+chart.
+For the above mentioned reasons, it is conceivable that
+large numbers of secondary insults could be missed in a
+trial. It is also possible that many of these missed events
+detect short acting secondary insults may vary between
+employed. It is also still unknown to what degree the
+intensity of patient management and any intra=inter centre management variation influences the incidence of
+short acting secondary insults. An investigator's choice
+past recruitment rate rather than providing a representative sample of these other factors. For these reasons, it is
+feasible that missed secondary insults could potentially
+adversely influence outcome by as much or greater than a
+potential neuroprotective drug, management or monitoring approach might improve outcome.
+By not using appropriate high resolution standardised
+data collection methods to detect these events, drug
+companies or research groups cannot control for these
+factors in their design and analysis and thus the power
+for detecting an effect of a trial drug or a new management or monitoring approach could be significantly
+reduced.
+
+Summary
+
+By not using appropriate high resolution standardised
+data collection methods to detect these events, drug
+companies or research groups cannot control for these
+factors in their design and analysis and thus the power
+for detecting an effect of a trial drug or a new management or monitoring approach could be significantly
+reduced.
+
+The BrainIT group is developing a multi-centre transnational network of intensive care units using standardised computer based methods capable of more
+detailed collection of admission, monitoring, treatment
+and outcome data from patients with brain injury. This
+network will provide a unique mechanism for research
+groups, pharmaceutical organisations and the medical
+device industry to more effectively conduct multi-centre
+trials of new health care technology in the management
+of patients with brain injury. In future, this network may
+also aid health authorities to monitor, maintain and raise
+intra and trans-national standards in the management of
+patients with brain injury. The creation of an open
+Collectively working towards raising data collection
+and analysis standards is a critical aim of the BrainIT
+group and the current work towards defining minimum
+data validation standards and developing a mechanism
+for checking the validity of data against original documentation using regionally hired ''data validation'' staff
+will provide an infrastructure supporting data quality
+control for trials of management or monitoring similar
+conduct of trials of new drugs.
+
+Appendix A
+the new EEC Project in Italics. Note, this list is only a subset of the BrainIT members registered on the Website, not all of which are eligible for
+participating in EEC funded projects
+Centre Investigator
+Chambers, Iain
+Citerio, Guiseppe
+Cruickshank, Garth
+Czosnyka, Marek
+De Jong, Dirk
+Della Corte, Francesco
+Dunn, Laurence
+Enblad, Per
+Eynon, Andrew
+Fadrus, Pavel
+Gjerris, Flemming
+Goffin, Jan
+Iencean, Stefan
+Jarzemaskas, Egidijus
+Kiefer, Michael
+Kiening, Karl
+Lemaire, Jean-Jacques
+Lobato, Ramiro
+Mascia, Luciana
+
+The creation of an open
+Collectively working towards raising data collection
+and analysis standards is a critical aim of the BrainIT
+group and the current work towards defining minimum
+data validation standards and developing a mechanism
+for checking the validity of data against original documentation using regionally hired ''data validation'' staff
+will provide an infrastructure supporting data quality
+control for trials of management or monitoring similar
+conduct of trials of new drugs.
+
+BrainIT Centre & Country
+Newcastle General Hospital, Newcastle, UK
+Ospedale San Gerardo di Monza, Monza, Italy
+Neurosurgery, Queen Elizabeth Hospital, Birmingham, UK
+Neurosurgery, Addenbrookes Hospital, Cambridge, UK
+University Hospital, Rotterdam, Netherlands
+Cattedra di Anestesiologica Novara, Novara, Italy.
+Southern General Hospital, Glasgow, UK
+University Hospital, Uppsala, Sweden
+Southampton General Hospital, Southampton, UK
+Neurosurgery, University Hospital Brno, Brno, Czech Republic.
+Neurosurgery, Rigshospitalet, Copenhagen, Denmark
+Gasthuisberg Hospital, Leuven, Belgium
+Neurosurgery, SF Treime Hospital, Iasi, Romania.
+Neurosurgery, Vilnius University Hospital, Vilnius, Lithuania
+Universitatskliniken des Saarlandes, Homburg, Germany
+Ruprecht-Karls-Universit€at-Heidelberg, Germany
+Neurosurgery, H^opital Gabriel Montpied, Clermont-Ferrand, France
+Neurosurgery, Hospital 12 Octubre, Madrid, Spain
+Ospedale Molinette, Torino, Italy.
+
+628
+
+I. Piper et al.
+
+Appendix A (continued)
+Mixenburger, Jurgen
+Nordstrom Carl-Erick
+Ragauskas, Arminas
+Rydenhag, Bertil
+Sahuquillo, Juan
+Stochetti, Nino
+Stocker, Reto
+Vajkoczy, Peter
+Watkins, Lawrence
+Whittle, Ian
+Zavala, Elizabeth
+
+628
+
+I. Piper et al.
+
+Neurosurgery, University Hospital Leipzig, Leipzig, Germany
+Neurosurgery, University Hospital Lund, Lund, Sweden
+Kaunas Medical University Hospital, Kaunas, Lithuania
+University Hospital, Gothenburg, Sweden
+Vall d'Hebron University Hospitals Barcelona, Barcelona, Spain
+Terapia Intensiva Neuroscienze, Milan, Italy
+Universitatsspital Zurich, Zurich, Switzerland
+University Hospital Mannheim, Manheim, Germany
+Neurosurgery, National Hospital, Queen Square, London, UK
+Clinical Neurosciences, Western General Hospital, Edinburgh, UK
+UCI Quirurgica, Hospital Clinic Barcelona, Barcelona, Spain
+
+1. Berkowitz M (1993) Assessing the socioeconomic impact of
+improved treatment of head and spinal cord injuries. J Emer
+Med 11: 63-67
+2. Bouma GJ, Muizelaar (1990) JP Relationship between cardiac
+output and cerebral blood flow in patients with intact and with
+impaired autoregulation. J Neurosurg 73: 368-374
+3. American Association of Neurological Surgeons, BrainTrauma Foundation - Guidelines for the management of
+head injury (1995) Chicago, http==:www.Ohsu.edu=som-surgery=
+Neurosurgery=guidelines
+4. Chambers IR, Treadwell L, Mendelow AD (2000) The cause and
+incidence of secondary insults in severely head-injured adults and
+children. Brit J Neurosurg 14(5): 424-431
+5. Clifton GL, Allen S, Barrodale P et al (1993) A phase II study of
+moderate hypothermia in severe brain injury. J Neurotrauma 10:
+263-271
+6. Corrie J, Piper IR, Housley A, Tocher JL, Jones PA, Anderson SI,
+Midgley S, Dearden NM, Miller JD (1993) Microcomputer based
+data recording improves identification of secondary insults during
+acute management of head injured patients. Br J Intensive Care 3:
+225-233
+7. Gabe IT (1972) Cardiovascular fluid dynamics. Acta Physiol Scand
+19: 306-322
+8. Ghajar et al (1995) Survey of critical care management of comatose
+head injured patients in the United States. Crit Care Med 23:
+560-567
+9. Guidelines for the initial triage and management of head injuries
+(1998) Recommendations from the society of British Neurological
+Surgeons. B J Neurosurg 14(4)
+10. Hydrostatic Fluid Columns, Influence upon calculated CPP.
+www.brainit.org=brainit=hydrostatic.htm
+11. Jeevaratnam DR, Menon DK (1996) Survey of intensive care of
+severely head injured patients in the United Kingdom. BMJ 312:
+944-947
+12. Jones PA, Andrews PJD, Midgley S, Anderson SI, Piper IR,
+Tocher JL, Housley AM, Corrie JA, Slattery J, Dearden NM, Miller
+JD (1994) Measuring the burden of secondary insults in head
+injured patients during intensive care. J Neurosurg Anaesth 6(1):
+4-14
+13. Maas AI, Dearden M, Teasdale GM et al (1997) EBIC guidelines
+for management of severe head injury in adults. European Brain
+14. Marmarou A, Anderson RL, Ward JD et al (1991) Impact of ICP
+instability and hypotension on outcome in patients with severe head
+trauma. J Neurosurg 75: S59-S66
+
+15. Marshall LF, Smith RW, Shapiro HM (1979) The outcome with
+aggressive treatment in severe head injuries. I. The significance of
+intracranial pressure monitoring. J Neurosurg 50: 20-25
+16. McGraw CP (1989) A cerebral perfusion pressure greater than
+80 mmHg is more beneficial. In Hoff JT, Betz AL (eds) Intracranial
+pressure VII. Springer Berlin Heidelberg New York Tokyo,
+pp 839-841
+17. McKeating EG (1998) The intensive care of severe head injury: a
+Neurosurg 12(1): 7-14
+19. Piper IR, Lawson A, Dearden NM, Miller JD (1991) A microcomputer based research data collection system in head injury
+intensive care. Brit J Inten Care 1(2): 73-78
+20. Robertson CS, Valadka AB, Gopinath SP et al (1997) Prevention of
+secondary insults after head injury. In proceedings of the 10th
+International Symposium on Intracranial Pressure. In: Marmarou
+A et al (eds) Williamsburg, pp 03-13
+21. Robertson CS, Contant CF, Narayan RK et al (1992) Cerebral blood
+flow, AVDO2, and neurologic outcome in head-injured patients. J
+Neurotrauma 9: S349-S358
+22. Rosner MJ, Daughton S (1990) Cerebral perfusion pressure management in head injury. J Trauma 30: 933-941
+23. Signorini DF, Andrews PJD, Jones A et al (1999) Predicting
+survival using simple clinical variables: a case study in traumatic
+brain injury. J Neurol Neurosurg Psychiat 66: 20-31
+solus satis sapit: nobody knows enough alone. Acta Neurochir
+(Wien) 139: 797-803
+
+Trusting Intensive Care Unit (ICU) Medical
+Data: A Semantic Web Approach
+
+Laura Moss1,2,3 , David Corsar1, Ian Piper3 , and John Kinsella2
+1
+Department of Computing Science, University of Aberdeen, Aberdeen, AB24 3FX
+2
+School of Medicine, University of Glasgow, Glasgow, G12 8QQ
+3
+Department of Clinical Physics, University of Glasgow, Glasgow, G12 8QQ
+
+Abstract. The Intensive Care Unit (ICU) domain generates large vol-
+umes of patient data which can be used in medical research. However,
+inaccuracies often exist in this data and due to the data's size and do-
+main complexity, automated approaches are required to associate a level
+of quality and trust with the data. We describe a computational frame-
+work to perform such assessments based on semantic web technologies.
+Linked data enables integration with other datasets, which can be used
+along with details of the data's provenance and medical domain knowl-
+edge from appropriate ontologies. We have successfully applied the frame-
+work to two types of ICUs: general medical and traumatic brain injury.
+
+Keywords: Data Quality, Semantic Web, Ontologies, Critical Care.
+
+1 Introduction
+Increasing use of patient monitoring equipment in medicine is generating large
+repositories of patient data, which are recorded manually and/or automatically.
+Trusting this data is important: along with being used for medical decision making, the data is often stored for offline analysis. However, error rates of between
+2.3% and 26.9% are common [5]. Various methods have been proposed to improve the quality of medical data (e.g.[6]), which may help avoid certain errors
+(e.g. physiologically impossible values). However, detailed domain knowledge and
+human judgement is often required to identify other, more subtle errors, e.g. a
+recorded heart rate of 120 may be identified as an error by a simple threshold
+based rule, but if the patient was suffering from sepsis at the same time, then
+the value may actually be a symptom of that disorder.
+Recently, interlinked datasets have been made openly available on the Web
+of Linked Data. These datasets are described by ontologies, published according
+to a set of principles, and linked through the use of technologies such as URIs,
+HTTP, and RDF. This enables provision of contextual information about any
+piece of data, along with enabling machines to access, browse, and reason with
+it1 . Most existing approaches to assessing the quality of linked data focus on
+the application of simple rules or policies; e.g. the WIQA framework, which
+1
+http://www.w3.org/DesignIssues/LinkedData.html
+
+N. Peek, R. Marı́n Morales, and M. Peleg (Eds.): AIME 2013, LNAI 7885, pp. 68-72, 2013.
+
+c Springer-Verlag Berlin Heidelberg 2013
+
+Trusting Intensive Care Unit (ICU) Medical Data 69
+
+adopts the "fitness for use" perspective to data quality, applies a set of policies
+to filter RDF data that does not meet requirements [1]. In contrast, the SWIQA
+framework adopts the "free of defects" perspective, using a series of rules to
+perform common data quality checks on RDF datasets including: completeness
+(e.g. provision of mandatory values), syntactic and semantic accuracy, timeliness,
+and uniqueness [3]. However, we argue these assessments do not consider the
+complexities of real world datasets and need to be extended to include context
+dependent assessments.
+In this paper, Section 2 describes our novel approach and framework that
+applies Semantic Web technologies to assess the quality of medical datasets, by
+considering the data, its provenance, and relevant clinical knowledge; Section
+3 describes the application of our framework to two different medical domains;
+and Section 4 concludes by discussing our findings and future work plans.
+
+2 Approach
+
+Our approach consists of three stages: converting the medical data into RDF;
+optionally annotating the data with provenance information; and finally, assessing the data (Figure 1). Ideally, all of the datasets we describe below would be
+reused from the Web of Linked Data or open data repositories. However, some
+of the required information is not available; in these cases we have created our
+own datasets, which we intend to contribute to the Linked Open Data cloud.
+
+Fig. 1. Overview of the approach to medical data assessment
+
+Ideally, all of the datasets we describe below would be
+reused from the Web of Linked Data or open data repositories. However, some
+of the required information is not available; in these cases we have created our
+own datasets, which we intend to contribute to the Linked Open Data cloud.
+
+Data Conversion. In this stage an RDF version of the medical data, expressed
+against the Patient Data and Medical Observations ontologies is created. For
+the two case studies described in this paper, we have developed a program that
+generates a series of SPARQL update statements to produce the desired RDF
+dataset; RDB2RDF was considered but was not appropriate for how a case study
+dataset was represented (as a spreadsheet). The Patient Data (pd) ontology [2]
+
+70 L. Moss et al.
+
+provides classes for representing Patients, Sessions, and Timepoints. Each Timepoint is associated with a set of Readings which refer to the Parameter being
+observed and its value. The Medical Observations ontology defines a series of
+axioms that integrate our patient ontology with the W3C Semantic Sensor Network (ssn) Incubator Group's sensor ontology [4] and allows the pd:Readings to
+be linked to the machines/sensors that produced them. We define pd:Reading
+as a subclass of ssn:ObservationValue (which represents the value produced by
+some sensing process); pd:Parameter (representing things that were recorded) as
+a subclass of ssn:Property; and pd:Patient as a ssn:FeatureOfInterest. To represent a pd:Timepoint as a set of observations, we use the Observation Collection
+pattern [4], defining pd:Timepoint as a subclass of mo:ObservationCollection,
+which has an associated set of ssn:Observations.
+Provenance Annotation. This optional, semi-automatic stage involves annotating the patient observations with provenance, considered as "a description
+of the entities and processes involved in producing ... that resource" [4]. Providing provenance information increases the available types of assessments compared to solely using the observations. In this framework, we capture details
+of the sensors that were responsible for producing the pd:Readings. Our Medical Machine/Sensor ontology (mms), extends the SSN ontology with classes
+and individuals representing the machines used in our medical evaluation. We
+have defined mms:Machine as a subclass of ssn:Platform, and various subclasses of ssn:Sensor for the different types of sensors on the machine. Each
+sensor is then described in terms of the ssn:Sensing process that is implements, the ssn:Property it observes, and its ssn:MeasurementCapability. The
+machine recording settings annotate the observations with knowledge about
+how the sensors were configured to record the data; this knowledge is provided
+by the Configuration ontology (c). For example, the specification of the sampling rate is described using the c:MachineConfiguration class, which references
+a set of c:RecordingConfigurations, which, in turn, describe the mms:Machine
+or ssn:Sensor used to record a parameter between two timepoints in a session.
+Data Checking. This component evaluates the medical data using the available information and assessment rules represented as SPARQL queries (Table
+1). For each patient, a single temporary assessment dataset is created consisting of the patient observations RDF dataset, the medical domain ontology, the
+SSN ontology, and provenance annotations. A program then loads and executes
+each assessment query, storing the results in a separate file which is used later
+to generate a summary of the analysis. If a value is identified as an error it is
+annotated with 'Possible Error' (PoE) or a 'Probable Error' (PrE); where PrE
+is more likely to be an error than PoE. Definitions of acceptable values, sensor accuracies, and medical conditions & treatments are provided by ontologies,
+enabling reuse of existing knowledge and as the rules are expressed at the ontological level, their reuse across multiple domains without modification; whereas
+other approaches e.g. complex event processing and rule engines do not easily
+allow for this. RDF also provides a common representational formalism, allowing
+data to be provided in a proprietary format, e.g. database or spreadsheet.
+
+Trusting Intensive Care Unit (ICU) Medical Data 71
+
+Table 1. Example assessments
+
+Trusting Intensive Care Unit (ICU) Medical Data 71
+
+Name Details of Rule Conclusion
+Missing If, for every sequential pair of readings, the time period PrE
+Data 3 between them does not equal the sampling rate
+Acceptable If the recorded value is less than the min. acceptable value PrE
+Range 1
+Acceptable If the recorded value is greater than the max. acceptable PrE
+Range 2 value
+Acceptable If an accuracy value (defining a +/- value or %) is PoE
+Range 3 associated with the sensor AND the recorded value minus
+accuracy value is below the min. acceptable value
+Acceptable If an accuracy value (defining a +/- value or %) is No longer an
+Range 4 associated with the sensor AND the recorded value plus the error
+accuracy value is above the min. acceptable value
+Acceptable If an accuracy value (defining a +/- value or %) is PoE
+Range 5 associated with the sensor AND the recorded value plus the
+accuracy value is above the max. acceptable value
+Medical If the recorded value is outwith its acceptable range AND Reclassify
+Disorders is associated with a symptom of a disorder, AND at the from PrE to
+Rule 1 same time other symptoms associated with the disorder PoE
+Treatments If the recorded value is outwith its acceptable range AND Reclassify
+Rule 1 is associated with an effect of a treatment AND that from PrE to
+treatment was administered previous to that value PoE
+
+3 Evaluation
+
+We have applied our framework to data taken from two types of ICUs: general
+medical and traumatic brain injury (TBI)2 . In both cases, time series physiological data was collected from patient monitoring equipment, but the machines
+used, parameters recorded, and frequency of data collection differs. We were able
+to reuse the same clinical domain ontology for both evaluations. For the Medical
+Disorders rule, we created specific queries for hypotension and hypertension; and
+for the Treatments rule, queries for effects of noradrenaline and adrenaline.
+For the TBI domain, we used data consisting of 37 patients, 595,439 distinct
+timepoints, 4,467,949 observations for 14 parameters, and the resulting RDF
+consists of 52,093,104 triples. Glasgow Royal Infirmary's (GRI) general medical
+ICU dataset consisted of 209 patients, 68,142 distinct timepoints, 687,393 observations for 14 parameters, and the resulting RDF consists of 41,819,163 triples.
+In both domains, data is collected every minute, exported every minute in the
+TBI domain, and exported hourly in the GRI domain; the machine recording
+and export configuration tools were set accordingly.
+Missing Data Rule 3 found 27,002 (≥0.6%) and 64,307 (≥9.4%) sequences
+of missing data points for the TBI and GRI datasets respectively. In the TBI
+dataset, 376,389 (9.4%) values were found to be less than the min. acceptable for
+a parameter, and 1,386,262 (31%) were found to be higher than the max.; when
+2
+Further evaluation results are available at: http://www.abdn.ac.uk/~ csc316
+
+72 L. Moss et al.
+
+sensor accuracies were considered 18,839 additional errors were found and 19,604
+of the original errors removed. In the GRI dataset, 129,716 (18.9%) values were
+found to be less than the min. acceptable for a parameter, and 189,601 (27.6%)
+were found to be higher than the max.; when sensor accuracies were considered
+272,357 additional errors were found and 159,219 of the original errors removed.
+In the GRI dataset, a number of readings identified by Acceptable Range Rules
+1 & 2 may have been affected by hypertension (91%), hypotension (85.6%),
+noradrenaline (24.2%) and adrenaline (6.7%)3 . A number of TBI values may
+also be affected by hypertension (92.1%) and hypotension (80.5%).
+
+4 Discussion and Future Work
+We have shown that our approach can be successfully applied to assess medical
+data and illustrates the benefit of additional contextual information provided by
+linking data. Using a simple approach, a large number of acceptable range errors
+are identified; however, when the context of the data is considered, many are reclassified or new errors are identified. In the future we plan to investigate: further
+context dependent rules; detection of interventions that have been carried out on
+a patient but not recorded; and using High Performance Computing to improve
+performance times, e.g. it took 2 hours 8 mins to apply the Medical Disorders
+rules which clearly would not be practical if used regularly in a clinical setting.
+
+Acknowledgements. The staff and patients of the ICU Unit, GRI. This work
+was an extension of the routine audit process in GRI's ICU; requirements for
+further Ethical Committee Approval have been waved. The authors would like
+
+1. Bizer, C., Cyganiak, R.: Quality-driven information filtering using the WIQA policy
+framework. Journal of Web Semantics 7(1), 1-10 (2009)
+2. Corsar, D., Moss, L., Sleeman, D., Sim, M.: Supporting the Development of Medical
+Ontologies. In: Frontiers in Artificial Intelligence and Applications: Formal Ontolo-
+gies Meet Industry, pp. 114-125 (2009)
+3. Furber, C., Hepp, M.: SWIQA - A Semantic Web Information Quality Assessment
+Framework. In: Proc. of ECIS (2011)
+4. Gil, Y., Cheney, J., Groth, P., Hartig, O., Miles, S., Moreau, L., Pinheiro da Silva, P.
+(eds.): Provenance xg final report. W3C Incubator Group Report (December 2010)
+5. Goldberg, S.I., Niemierko, A., Turchin, A.: Analysis of data errors in clinical research
+databases. In: AMIA Annu. Symp. Proc., vol. 6, pp. 242-246 (2008)
+6. Hogan, W.R., Wagner, M.M.: Accuracy of Data in Computer-based Patient Records.
+J. Am. Med. Inform. Assoc. 4(5), 342-355 (1997)
+
+3
+The rule was not applied to the TBI dataset as it contains sparsely collected treat-
+ment information.
+
+Output JSON format:
+{
+  "classes": [{"label": "...", "evidence": "exact span from corpus"}],
+  "relations": [{"label": "...", "domain": "...", "range": "...", "evidence": "exact span from corpus"}],
+  "hierarchy": [{"subClass": "...", "superClass": "...", "evidence": "span or phrase from corpus that implies the is-a relationship"}]
+}
+
+Include every missing item that has ANY support in the corpus. Your answer:

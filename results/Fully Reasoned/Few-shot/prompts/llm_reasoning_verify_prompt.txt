@@ -1,0 +1,235 @@
+You are the LLM Reasoning Layer (VERIFY step / critic).
+Your job is to output a FINAL patch that is strictly valid.
+
+Hard rules:
+1) Keep ONLY add_hierarchy edges where (sub_idx, super_idx) appears in CANDIDATE_EDGE_INDEX_PAIRS.
+2) Remove any duplicates.
+3) Do NOT include edges already present in EXISTING_HIERARCHY.
+4) Do NOT add classes/relations. Leave those arrays empty.
+5) If confidence is missing, set it to 0.7 (minimum).
+6) Return valid JSON only.
+
+CURRENT_CLASSES:
+0: Patient
+1: Monitoring Data
+2: Outcome
+3: Cerebral Perfusion Pressure (CPP)
+4: Intracranial Pressure (ICP)
+5: Secondary Insult
+6: Intensive Care Management
+7: Secondary Insult Treatment
+8: Heart Rate
+9: SaO2
+10: CVP
+11: Brain Temperature
+12: Microdialysis
+13: Ventilation
+14: Sedation
+15: Vasopressors
+16: Laboratory Values
+17: Blood Gases
+18: Biochemistry
+19: Haematology
+20: Therapy
+21: Systemic Hypotension
+22: Arterial Pressors
+23: Intracranial Hypertension
+24: Arterial Hypotension
+25: Acute Respiratory Distress Syndrome
+26: Sepsis
+27: Sensor
+28: Possible Error
+29: Timepoint
+30: Observation
+31: Parameter
+32: Hypertension
+33: Noradrenaline
+34: Adrenaline
+35: Core Monitoring Parameter
+36: Optional Monitoring Parameter
+37: Derived Parameter
+38: Respiration Rate
+39: Mean Arterial Pressure (MAP)
+40: Temperature
+41: Baseline Therapy
+42: Secondary Insult Therapy
+43: Fluids
+44: Jugular Venous Desaturation
+45: Hypotension
+46: Clinical Assessment
+47: Pupil Assessment
+48: CT Scan Assessment
+49: GOSe Outcome
+50: Sodium
+51: Potassium
+52: Glucose
+53: Haemoglobin
+54: White Blood Cell Count
+55: Haematocrit
+56: Nursing Intervention
+57: Routine Nursing Care
+58: Physiotherapy
+59: Bedside Intervention
+60: Patient Transport
+61: Data Quality Assessment
+62: Probable Error
+
+CANDIDATE_EDGE_INDEX_PAIRS:
+- (21 -> 5)
+- (58 -> 56)
+- (23 -> 5)
+- (48 -> 46)
+- (7 -> 42)
+- (10 -> 36)
+- (41 -> 20)
+- (52 -> 18)
+- (28 -> 61)
+- (8 -> 35)
+- (38 -> 35)
+- (15 -> 41)
+- (25 -> 5)
+- (53 -> 19)
+- (54 -> 19)
+- (18 -> 16)
+- (42 -> 20)
+- (34 -> 15)
+- (60 -> 56)
+- (12 -> 36)
+- (62 -> 61)
+- (40 -> 35)
+- (57 -> 56)
+- (4 -> 35)
+- (22 -> 42)
+- (50 -> 18)
+- (51 -> 18)
+- (47 -> 46)
+- (59 -> 56)
+- (19 -> 16)
+- (24 -> 21)
+- (37 -> 1)
+- (49 -> 2)
+- (9 -> 35)
+- (39 -> 35)
+- (17 -> 16)
+- (35 -> 1)
+- (14 -> 41)
+- (3 -> 37)
+- (55 -> 19)
+- (44 -> 5)
+- (11 -> 36)
+- (13 -> 41)
+- (43 -> 41)
+- (33 -> 15)
+- (36 -> 1)
+
+EXISTING_HIERARCHY:
+- Heart Rate ⊑ Core Monitoring Parameter
+- Respiration Rate ⊑ Core Monitoring Parameter
+- Mean Arterial Pressure (MAP) ⊑ Core Monitoring Parameter
+- Intracranial Pressure (ICP) ⊑ Core Monitoring Parameter
+- SaO2 ⊑ Core Monitoring Parameter
+- Temperature ⊑ Core Monitoring Parameter
+- Ventilation ⊑ Baseline Therapy
+- Sedation ⊑ Baseline Therapy
+- Fluids ⊑ Baseline Therapy
+- Vasopressors ⊑ Baseline Therapy
+- Intracranial Hypertension ⊑ Secondary Insult
+- Arterial Hypotension ⊑ Secondary Insult
+- Physiotherapy ⊑ Nursing Intervention
+- CT Scan Assessment ⊑ Clinical Assessment
+- Baseline Therapy ⊑ Therapy
+- Secondary Insult Therapy ⊑ Therapy
+- Cerebral Perfusion Pressure (CPP) ⊑ Derived Parameter
+- Sodium ⊑ Biochemistry
+- Potassium ⊑ Biochemistry
+- Glucose ⊑ Biochemistry
+- Haemoglobin ⊑ Haematology
+- White Blood Cell Count ⊑ Haematology
+- Haematocrit ⊑ Haematology
+
+PROPOSED_PATCH:
+{
+  "edits": {
+    "add_hierarchy": [
+      {
+        "sub_idx": 1,
+        "super_idx": 0,
+        "justification": "Monitoring Data is a type of Patient data",
+        "confidence": 0.8
+      },
+      {
+        "sub_idx": 20,
+        "super_idx": 1,
+        "justification": "Therapy is a type of Monitoring Data",
+        "confidence": 0.7
+      },
+      {
+        "sub_idx": 42,
+        "super_idx": 20,
+        "justification": "Secondary Insult Therapy is a type of Therapy",
+        "confidence": 0.7
+      },
+      {
+        "sub_idx": 7,
+        "super_idx": 42,
+        "justification": "Secondary Insult Treatment is a type of Secondary Insult Therapy",
+        "confidence": 0.6
+      },
+      {
+        "sub_idx": 5,
+        "super_idx": 2,
+        "justification": "Secondary Insult is an Outcome",
+        "confidence": 0.5
+      },
+      {
+        "sub_idx": 46,
+        "super_idx": 2,
+        "justification": "Clinical Assessment is an Outcome",
+        "confidence": 0.5
+      },
+      {
+        "sub_idx": 56,
+        "super_idx": 1,
+        "justification": "Nursing Intervention is a type of Monitoring Data",
+        "confidence": 0.6
+      },
+      {
+        "sub_idx": 36,
+        "super_idx": 1,
+        "justification": "Optional Monitoring Parameter is a type of Monitoring Data",
+        "confidence": 0.6
+      },
+      {
+        "sub_idx": 1,
+        "super_idx": 16,
+        "justification": "Monitoring Data is a type of Laboratory Values",
+        "confidence": 0.4
+      }
+    ],
+    "remove_hierarchy": [],
+    "rename_classes": [],
+    "merge_classes": [],
+    "add_classes": [],
+    "remove_classes": [],
+    "add_relations": [],
+    "remove_relations": []
+  },
+  "flags": [],
+  "notes": []
+}
+
+Output JSON format (same as PROPOSE, using sub_idx/super_idx):
+{
+  "edits": {
+    "add_hierarchy": [{"sub_idx": 0, "super_idx": 1, "justification": "brief", "confidence": 0.0}],
+    "remove_hierarchy": [],
+    "rename_classes": [],
+    "merge_classes": [],
+    "add_classes": [],
+    "remove_classes": [],
+    "add_relations": [],
+    "remove_relations": []
+  },
+  "flags": [],
+  "notes": []
+}

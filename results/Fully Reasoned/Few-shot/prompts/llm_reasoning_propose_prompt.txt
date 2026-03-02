@@ -1,0 +1,137 @@
+You are the LLM Reasoning Layer (PROPOSE step).
+Closed world: you may ONLY refer to classes by index from CURRENT_CLASSES.
+You may ONLY propose edges that appear in CANDIDATE_EDGES.
+Do NOT add classes or relations. Precision > recall.
+Return valid JSON only.
+
+CURRENT_CLASSES (index: label):
+0: Patient
+1: Monitoring Data
+2: Outcome
+3: Cerebral Perfusion Pressure (CPP)
+4: Intracranial Pressure (ICP)
+5: Secondary Insult
+6: Intensive Care Management
+7: Secondary Insult Treatment
+8: Heart Rate
+9: SaO2
+10: CVP
+11: Brain Temperature
+12: Microdialysis
+13: Ventilation
+14: Sedation
+15: Vasopressors
+16: Laboratory Values
+17: Blood Gases
+18: Biochemistry
+19: Haematology
+20: Therapy
+21: Systemic Hypotension
+22: Arterial Pressors
+23: Intracranial Hypertension
+24: Arterial Hypotension
+25: Acute Respiratory Distress Syndrome
+26: Sepsis
+27: Sensor
+28: Possible Error
+29: Timepoint
+30: Observation
+31: Parameter
+32: Hypertension
+33: Noradrenaline
+34: Adrenaline
+35: Core Monitoring Parameter
+36: Optional Monitoring Parameter
+37: Derived Parameter
+38: Respiration Rate
+39: Mean Arterial Pressure (MAP)
+40: Temperature
+41: Baseline Therapy
+42: Secondary Insult Therapy
+43: Fluids
+44: Jugular Venous Desaturation
+45: Hypotension
+46: Clinical Assessment
+47: Pupil Assessment
+48: CT Scan Assessment
+49: GOSe Outcome
+50: Sodium
+51: Potassium
+52: Glucose
+53: Haemoglobin
+54: White Blood Cell Count
+55: Haematocrit
+56: Nursing Intervention
+57: Routine Nursing Care
+58: Physiotherapy
+59: Bedside Intervention
+60: Patient Transport
+61: Data Quality Assessment
+62: Probable Error
+
+CANDIDATE_EDGES (schema-licensed, endpoints exist):
+- (21 -> 5) Systemic Hypotension ⊑ Secondary Insult
+- (58 -> 56) Physiotherapy ⊑ Nursing Intervention
+- (23 -> 5) Intracranial Hypertension ⊑ Secondary Insult
+- (48 -> 46) CT Scan Assessment ⊑ Clinical Assessment
+- (7 -> 42) Secondary Insult Treatment ⊑ Secondary Insult Therapy
+- (10 -> 36) CVP ⊑ Optional Monitoring Parameter
+- (41 -> 20) Baseline Therapy ⊑ Therapy
+- (52 -> 18) Glucose ⊑ Biochemistry
+- (28 -> 61) Possible Error ⊑ Data Quality Assessment
+- (8 -> 35) Heart Rate ⊑ Core Monitoring Parameter
+- (38 -> 35) Respiration Rate ⊑ Core Monitoring Parameter
+- (15 -> 41) Vasopressors ⊑ Baseline Therapy
+- (25 -> 5) Acute Respiratory Distress Syndrome ⊑ Secondary Insult
+- (53 -> 19) Haemoglobin ⊑ Haematology
+- (54 -> 19) White Blood Cell Count ⊑ Haematology
+- (18 -> 16) Biochemistry ⊑ Laboratory Values
+- (42 -> 20) Secondary Insult Therapy ⊑ Therapy
+- (34 -> 15) Adrenaline ⊑ Vasopressors
+- (60 -> 56) Patient Transport ⊑ Nursing Intervention
+- (12 -> 36) Microdialysis ⊑ Optional Monitoring Parameter
+- (62 -> 61) Probable Error ⊑ Data Quality Assessment
+- (40 -> 35) Temperature ⊑ Core Monitoring Parameter
+- (57 -> 56) Routine Nursing Care ⊑ Nursing Intervention
+- (4 -> 35) Intracranial Pressure (ICP) ⊑ Core Monitoring Parameter
+- (22 -> 42) Arterial Pressors ⊑ Secondary Insult Therapy
+- (50 -> 18) Sodium ⊑ Biochemistry
+- (51 -> 18) Potassium ⊑ Biochemistry
+- (47 -> 46) Pupil Assessment ⊑ Clinical Assessment
+- (59 -> 56) Bedside Intervention ⊑ Nursing Intervention
+- (19 -> 16) Haematology ⊑ Laboratory Values
+- (24 -> 21) Arterial Hypotension ⊑ Systemic Hypotension
+- (37 -> 1) Derived Parameter ⊑ Monitoring Data
+- (49 -> 2) GOSe Outcome ⊑ Outcome
+- (9 -> 35) SaO2 ⊑ Core Monitoring Parameter
+- (39 -> 35) Mean Arterial Pressure (MAP) ⊑ Core Monitoring Parameter
+- (17 -> 16) Blood Gases ⊑ Laboratory Values
+- (35 -> 1) Core Monitoring Parameter ⊑ Monitoring Data
+- (14 -> 41) Sedation ⊑ Baseline Therapy
+- (3 -> 37) Cerebral Perfusion Pressure (CPP) ⊑ Derived Parameter
+- (55 -> 19) Haematocrit ⊑ Haematology
+- (44 -> 5) Jugular Venous Desaturation ⊑ Secondary Insult
+- (11 -> 36) Brain Temperature ⊑ Optional Monitoring Parameter
+- (13 -> 41) Ventilation ⊑ Baseline Therapy
+- (43 -> 41) Fluids ⊑ Baseline Therapy
+- (33 -> 15) Noradrenaline ⊑ Vasopressors
+- (36 -> 1) Optional Monitoring Parameter ⊑ Monitoring Data
+
+Task:
+- Choose up to 30 edges that are missing and improve hierarchy structure.
+
+Output JSON format:
+{
+  "edits": {
+    "add_hierarchy": [{"sub_idx": 0, "super_idx": 1, "justification": "brief", "confidence": 0.0}],
+    "remove_hierarchy": [],
+    "rename_classes": [],
+    "merge_classes": [],
+    "add_classes": [],
+    "remove_classes": [],
+    "add_relations": [],
+    "remove_relations": []
+  },
+  "flags": [],
+  "notes": []
+}

@@ -1,0 +1,181 @@
+Candidate terms (optional hints): central venous, ct scan, cvp, etco2, gcs, glasgow, heart rate, icp, mean arterial pressure, microdialysis, outcome, pupil, respiration rate, sjo2, tcd, monitoring, 4. Telephone interview with GP., Casualty Center, Emergency, Emergency
+Medical Services
+
+Use ONLY the following class labels:
+Acute Respiratory Distress Syndrome; Adrenaline; Antibiotics; Arterial Hypotension; Arterial Pressors; Baseline Therapy; Bedside Intervention; Biochemistry; Blood Gases; Brain Temperature; CT Scan Assessment; CVP; Cerebral Perfusion Pressure (CPP); Clinical Assessment; Condition; Core Monitoring Parameter; Data Quality Assessment; Derived Parameter; EtCO2; Fluids; GCS Assessment; GOSe Outcome; Glucose; Haematocrit; Haematology; Haemoglobin; Heart Rate; Hypertension; Hypotension; Intensive Care Management; Intracranial Hypertension; Intracranial Pressure (ICP); Jugular Venous Desaturation; Laboratory Values; Mean Arterial Pressure (MAP); Microdialysis; Monitoring Data; Noradrenaline; Nursing Intervention; Nutrition; Observation; Optional Monitoring Parameter; Outcome; Parameter; Patient; Patient Transport; PbrO2; Physiotherapy; Possible Error; Potassium; Probable Error; Pupil Assessment; Respiration Rate; Routine Nursing Care; SaO2; Secondary Insult; Secondary Insult Therapy; Secondary Insult Treatment; Sedation; Sensor; Sepsis; Session; SjO2; Sodium; Systemic Hypotension; TCD; Temperature; Therapy; Timepoint; Vasopressors; Ventilation; White Blood Cell Count
+Relations (use exact labels + domain/range):
+affected by treatment(Data Quality Assessment->Therapy); associated with condition(Data Quality Assessment->Condition); has clinical assessment(Patient->Clinical Assessment); has laboratory value(Patient->Laboratory Values); has monitoring data(Patient->Monitoring Data); has nursing intervention(Patient->Nursing Intervention); has observation(Timepoint->Observation); has outcome(Patient->Outcome); has quality assessment(Observation->Data Quality Assessment); has session(Patient->Session); has timepoint(Session->Timepoint); has_source; has_target; includes; is_a; measures parameter(Observation->Parameter); monitoring indicates condition(Monitoring Data->Condition); produced by sensor(Observation->Sensor); receives therapy(Patient->Therapy); secondary_to; targets condition(Therapy->Condition); treats
+If an item is not in the list, omit it.
+
+LEAF-FIRST RULE (important):
+- Prefer the most specific class labels mentioned in the text (e.g., ICP/CPP/MAP, Ventilation/Sedation/Fluids/Nutrition).
+- Avoid outputting only broad container classes (e.g., Monitoring Data, Therapy, Condition) if the text names specific items.
+- You may include container classes when needed as endpoints for allowed relations, but do not stop at containers when leaf items are present.
+- If the text clearly mentions multiple distinct allowed leaf items, extract several of them (each with evidence) rather than stopping early.
+- Do NOT treat research methods/algorithms/guideline-adherence calculations as Therapy or Monitoring Data.
+
+### SYSTEM ROLE
+You are a highly precise medical ontology extraction engine for a strict evaluation benchmark in Neuro-ICU / BrainIT literature.
+
+### PRIMARY GOAL
+Extract a SMALL, HIGH-PRECISION ontology from the text.
+Prioritise source fidelity over completeness.
+If unsure, omit.
+
+### HARD RULES
+1. SOURCE FIDELITY
+- Extract ONLY concepts and relations explicitly stated in the text.
+- DO NOT infer, guess, normalise into abstract ontology labels, or use external medical knowledge.
+- If a concept is not explicitly named in the text, omit it.
+- Use short noun-phrase labels only.
+- Do NOT output sentence fragments, clauses, or paraphrases as class labels.
+
+2. EVIDENCE FIRST
+- EVERY class, relation, and hierarchy edge MUST include an `evidence` field.
+- `evidence` must be an EXACT verbatim fragment copied from the text.
+- If exact evidence is not available, omit the item.
+
+3. STRICT SCOPE
+Extract ONLY:
+- clinical conditions
+- physiological parameters
+- monitoring variables
+- treatments / therapies / interventions
+- outcomes
+- directly named clinical dataset groups only when explicitly stated in the text
+
+DO NOT extract:
+- organisations, groups, committees, memberships, centres, investigators
+- meetings, projects, funding, EEC, collaborations, publications
+- databases, software, forms, websites, infrastructure, validation workflows
+- ethics, confidentiality, ownership, accessibility, legal / administrative concepts
+- generic research-process concepts such as trials, study design, feasibility exercise, data collection workflow
+
+IMPORTANT:
+If a sentence or paragraph is mainly about governance, organisation, validation, infrastructure, publication, centres, membership, or database access, IGNORE that sentence or paragraph completely.
+
+4. CLASS RULES
+- Prefer concrete clinical labels from the text.
+- Prefer specific labels over abstract ones (e.g. prefer 'Heart Rate' over 'Monitoring Data' when both are mentioned). If an allowed class list is provided, you may use those labels; otherwise avoid abstract categories unless the text explicitly names them.
+- Keep labels close to the wording in the text.
+- Do not invent CamelCase labels.
+
+5. RELATION RULES
+- Classes are the priority.
+- Extract relations ONLY when the text explicitly states a stable relation between two extracted class labels.
+- If uncertain, omit the relation.
+- Domain and range must both be extracted class labels from the same text.
+- Prefer concise, domain-appropriate relation labels from the text (e.g. includes, treats, targets condition, has monitoring data).
+- If an allowed relation list was provided, use those labels. Otherwise, prefer labels that reflect the text's wording.
+- Do NOT invent arbitrary relation labels.
+
+6. HIERARCHY RULES
+- Extract hierarchy ONLY when the text explicitly uses one of these lexical cues:
+  - "is a"
+  - "type of"
+  - "kind of"
+  - "such as"
+  - "include:"
+  - "includes:"
+- For enumeration cues (such as, include:, includes:), extract ONLY the short noun phrases listed after the cue.
+- NEVER output long clauses, verb phrases, or sentence fragments as subclass or superclass.
+- If either side is not a clean noun phrase, omit the hierarchy edge.
+
+7. ZERO-SHOT BEHAVIOUR
+- This is a strict baseline: prefer under-generation to over-generation.
+- It is better to return fewer high-confidence items than many weak items.
+- If the text is mixed clinical + governance, keep ONLY the clinical part.
+
+### OUTPUT FORMAT (JSON ONLY)
+Return ONLY valid JSON.
+Do not include markdown, explanations, headings, or commentary.
+
+Use exactly this structure:
+{
+  "classes": [
+    {"label": "string", "evidence": "string"}
+  ],
+  "relations": [
+    {"label": "string", "domain": "string", "range": "string", "evidence": "string"}
+  ],
+  "hierarchy": [
+    {"subClass": "string", "superClass": "string", "evidence": "string"}
+  ]
+}
+
+### FINAL CHECK BEFORE OUTPUT
+Before producing JSON, remove any item that:
+- is organisational, infrastructural, database-related, publication-related, or governance-related
+- lacks exact evidence
+- uses a label not explicitly present in the text
+- uses a long clause instead of a noun phrase
+- uses a relation label outside the allowed set
+
+---
+TEXT TO ANALYZE:
+622
+international guidelines on patient data anonymity, we chose to record
+and transfer a patients age as an absolute decimal number: e.g.: 53.4
+years. This number is calculated by software from the patient's date of
+birth and knowing the date of injury.
+The usual description of injury variables are collected with users
+offered a choice from fixed categories. Medical history is focused upon
+identifying previous neurological injury, substance abuse and associated
+injuries.
+Data elements are then collected describing the clinical status of the
+patient (e.g.: GCS scores) at both pre-neurosurgical hospital admission
+and at admission to the hospital with Neurosurgery. Pre-neurosurgical
+hospital admission encompasses the sources of data from the Emergency
+Medical Services and the Emergency=Casualty Center of the admitting
+hospital (if not the hospital with neurosurgery). If data is available from
+more than one source for the pre-hospital care, the data most indicative
+of the patient's post-resuscitation=pre-intubation condition at the place
+of injury is chosen for the pre-neurosurgical hospital admission data.
+Group discussion lead to a simplification of the scoring system for
+recording pupil size and responsiveness. Both eyes are recorded individually and responsiveness classed as reacting or un-reacting. Pupil size
+is recorded as small, normal or large.
+CT-Scan data:
+In common with many existing data collection methods, both the first
+and worst CT-Scan information is collected. Classification is based upon
+the Traumatic Coma Databank (TCDB) nomenclature. A selection
+between a ''Main Lesion'' (none, subdural, extradural, intraparenchymal) is made and using the normal in-house methods an estimate is
+made as to whether the main lesion (largest hyper-intense lesion) is
+greater than or less than 25 ml in volume. Cistern state (present, compressed, absent) is also noted. The usual TCDB classification is applied
+but to avoid interpretation difficulties in the ''Evacuated=Non Evacuated
+Mass lesion'' categories - a consensus to record the worst CT abnormality as only a ''Mass Lesion of mixed or high density of > 25 ml.
+Although, by definition not part of the core-dataset, an option exists
+on a project-by-project basis for collection of copies of the main CT scan
+images for central reading.
+Discharge status:
+Consensus was achieved to collect from all patients the Extended 8point Glasgow Outcome Scale (GOSe) at 6 months post discharge from
+the neurosurgical centre.
+A structured questionnaire (downloadable from the Web site: http:==
+www.brainit.org) is used for scoring the GOSe.
+Information will also be obtained on the interview method used: in
+order of preference:
+1. Direct (face to face) or telephone interview with patient.
+2. Direct (face to face) or telephone interview with relative.
+3. Postal questionnaire to Patient=Relative - if no phone number
+known
+4. Telephone interview with GP.
+We also will collect information on who was the ''respondent'' to the
+interview: patient, relative=carer, patient þ relative=carer. Also an indication of what the ''most important factor in the patients outcome is due to'':
+a) head injury, b) illness or injury to other parts of body, c) a mixture of
+both.
+
+Minute by minute monitoring data
+This is the minimum minute by minute monitoring data required for
+inclusion in the BrainIT Database and include: Heart Rate (specifying
+source: ECG or Pulse Oximetry), Respiration Rate (sources: impedance
+plethmography or ventilator), Mean Arterial Pressure, mean ICP, Pulse
+Oximetry (SaO2) and Temperature (sources: rectal=oesophageal= bladder=skin.)
+
+I. Piper et al.
+However, additional variables: Central Venous Pressure (CVP),
+EtCO2, SjO2, TCD, PbrO2, Brain Temperature, Microdialysis. . . will
+also be included in the database if they are monitored, in a given patient,
+as part of their usual clinical management.
+Thus the emphasis is to not exclude data which is part of any given
+centre's normal monitoring practice and in so doing build a rich and
+varied database for post-hoc analysis.
+---

@@ -1,0 +1,300 @@
+Use ONLY the following class labels:
+Acute Respiratory Distress Syndrome; Adrenaline; Antibiotics; Arterial Hypotension; Arterial Pressors; Baseline Therapy; Bedside Intervention; Biochemistry; Blood Gases; Brain Temperature; CT Scan Assessment; CVP; Cerebral Perfusion Pressure (CPP); Clinical Assessment; Condition; Core Monitoring Parameter; Data Quality Assessment; Derived Parameter; EtCO2; Fluids; GCS Assessment; GOSe Outcome; Glucose; Haematocrit; Haematology; Haemoglobin; Heart Rate; Hypertension; Hypotension; Intensive Care Management; Intracranial Hypertension; Intracranial Pressure (ICP); Jugular Venous Desaturation; Laboratory Values; Mean Arterial Pressure (MAP); Microdialysis; Monitoring Data; Noradrenaline; Nursing Intervention; Nutrition; Observation; Optional Monitoring Parameter; Outcome; Parameter; Patient; Patient Transport; PbrO2; Physiotherapy; Possible Error; Potassium; Probable Error; Pupil Assessment; Respiration Rate; Routine Nursing Care; SaO2; Secondary Insult; Secondary Insult Therapy; Secondary Insult Treatment; Sedation; Sensor; Sepsis; Session; SjO2; Sodium; Systemic Hypotension; TCD; Temperature; Therapy; Timepoint; Vasopressors; Ventilation; White Blood Cell Count
+Relations (use exact labels + domain/range):
+affected by treatment(Data Quality Assessment->Therapy); associated with condition(Data Quality Assessment->Condition); has clinical assessment(Patient->Clinical Assessment); has laboratory value(Patient->Laboratory Values); has monitoring data(Patient->Monitoring Data); has nursing intervention(Patient->Nursing Intervention); has observation(Timepoint->Observation); has outcome(Patient->Outcome); has quality assessment(Observation->Data Quality Assessment); has session(Patient->Session); has timepoint(Session->Timepoint); has_source; has_target; includes; is_a; measures parameter(Observation->Parameter); monitoring indicates condition(Monitoring Data->Condition); produced by sensor(Observation->Sensor); receives therapy(Patient->Therapy); secondary_to; targets condition(Therapy->Condition); treats
+If an item is not in the list, omit it.
+
+LEAF-FIRST RULE (important):
+- Prefer the most specific class labels mentioned in the text (e.g., ICP/CPP/MAP, Ventilation/Sedation/Fluids/Nutrition).
+- Avoid outputting only broad container classes (e.g., Monitoring Data, Therapy, Condition) if the text names specific items.
+- You may include container classes when needed as endpoints for allowed relations, but do not stop at containers when leaf items are present.
+- If the text clearly mentions multiple distinct allowed leaf items, extract several of them (each with evidence) rather than stopping early.
+- Do NOT treat research methods/algorithms/guideline-adherence calculations as Therapy or Monitoring Data.
+
+Phase 3: Extract hierarchy ONLY where the text contains explicit lexical cues: "such as", "is a", "type of", "kind of", "include:", "includes:". Output JSON with keys classes, relations, hierarchy. Set classes and relations to empty arrays. For each hierarchy edge, evidence MUST contain one of these phrases. Do not infer hierarchy.
+
+Known classes (use only these for subclass/superclass): Baseline Therapy; Intensive Care Management; Ventilation; Sedation; Vasopressors; Laboratory Values; Blood Gases; Biochemistry; Haematology; Secondary Insult; Therapy; Systemic Hypotension; Cerebral Perfusion Pressure (CPP); Arterial Pressors
+
+### SYSTEM ROLE
+You are a highly precise medical ontology extraction engine. You specialize in Neuro-ICU and BrainIT clinical literature.
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided above, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+2. **Evidence Anchor:** EVERY class and relation extracted MUST be accompanied by an `evidence` field containing the EXACT, verbatim sentence fragment from the text.
+3. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+4. **Scope Limitation:**
+   - IGNORE all metadata, authors, affiliations, journal names, DOI/ISBN, and semantic web/technical boilerplate (RDF, URI, etc).
+   - Do NOT extract organisational, membership, database, or publication concepts (e.g. steering group, data validation staff, common database).
+   - FOCUS ONLY on clinical/physiological concepts, treatments, parameters, and outcomes.
+5. **Reject rule:** When in doubt, omit. Prefer under-generation to over-generation.
+
+**Default priority: classes first, then relations.** Extract relations only when the wording is explicit and stable. If uncertain, return no relations. If a phase instruction above overrides this priority, follow the phase instruction.
+
+Use the retrieved examples below as **style guidance only**. Apply the same OUTPUT FORMAT and evidence rules. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+---
+Retrieved examples:
+--- Retrieved examples (3) ---
+
+Text: This is the minimum minute by minute monitoring data required for inclusion in the BrainIT Database and include: Heart Rate, Respiration Rate, Mean Arterial Pressure, mean ICP, SaO2 and Temperature.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Monitoring Data",
+      "evidence": "minute by minute monitoring data"
+    },
+    {
+      "label": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required"
+    },
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate"
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate"
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "Mean Arterial Pressure"
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "mean ICP"
+    },
+    {
+      "label": "SaO2",
+      "evidence": "SaO2"
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature"
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Heart Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required...include: Heart Rate"
+    },
+    {
+      "subClass": "Respiration Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required...include: Heart Rate, Respiration Rate"
+    },
+    {
+      "subClass": "Mean Arterial Pressure (MAP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Heart Rate, Respiration Rate, Mean Arterial Pressure"
+    },
+    {
+      "subClass": "Intracranial Pressure (ICP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Heart Rate, Respiration Rate, Mean Arterial Pressure, mean ICP"
+    },
+    {
+      "subClass": "SaO2",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Heart Rate, Respiration Rate, Mean Arterial Pressure, mean ICP, SaO2"
+    },
+    {
+      "subClass": "Temperature",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Heart Rate, Respiration Rate, Mean Arterial Pressure, mean ICP, SaO2 and Temperature"
+    }
+  ]
+}
+
+---
+
+Text: Therapy data is divided into baseline therapy (routine ICU management: ventilation, sedation, fluids, nutrition, vasopressors, antibiotics) and secondary insult therapy (non-surgical medical management specifically to treat secondary insults, with assigned therapy targets such as arterial pressors targeting systemic hypotension).
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Therapy",
+      "evidence": "Therapy data"
+    },
+    {
+      "label": "Baseline Therapy",
+      "evidence": "baseline therapy (routine ICU management)"
+    },
+    {
+      "label": "Secondary Insult Therapy",
+      "evidence": "secondary insult therapy (non-surgical medical management)"
+    },
+    {
+      "label": "Arterial Pressors",
+      "evidence": "arterial pressors targeting systemic hypotension"
+    },
+    {
+      "label": "Ventilation",
+      "evidence": "ventilation"
+    },
+    {
+      "label": "Sedation",
+      "evidence": "sedation"
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Baseline Therapy",
+      "superClass": "Therapy",
+      "evidence": "Therapy data is divided into baseline therapy (routine ICU management)"
+    },
+    {
+      "subClass": "Secondary Insult Therapy",
+      "superClass": "Therapy",
+      "evidence": "Therapy data is divided into baseline therapy...and secondary insult therapy"
+    },
+    {
+      "subClass": "Ventilation",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy (routine ICU management: ventilation)"
+    },
+    {
+      "subClass": "Sedation",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy (routine ICU management: ventilation, sedation)"
+    },
+    {
+      "subClass": "Fluids",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy (routine ICU management: ventilation, sedation, fluids)"
+    },
+    {
+      "subClass": "Arterial Pressors",
+      "superClass": "Secondary Insult Therapy",
+      "evidence": "secondary insult therapy...arterial pressors targeting systemic hypotension"
+    }
+  ]
+}
+
+---
+
+Text: ICU management data includes nursing activities: routine nursing care (eye/mouth care, ET tube suction, bed care), physiotherapy sessions, bedside interventions (line insertion/renewal, transducer calibration, x-ray), and patient transport (to and from Theatre or CT-Scan).
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Nursing Intervention",
+      "evidence": "nursing activities"
+    },
+    {
+      "label": "Routine Nursing Care",
+      "evidence": "routine nursing care (eye/mouth care, ET tube suction, bed care)"
+    },
+    {
+      "label": "Physiotherapy",
+      "evidence": "physiotherapy sessions"
+    },
+    {
+      "label": "Bedside Intervention",
+      "evidence": "bedside interventions (line insertion/renewal, transducer calibration, x-ray)"
+    },
+    {
+      "label": "Patient Transport",
+      "evidence": "patient transport (to and from Theatre or CT-Scan)"
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Routine Nursing Care",
+      "superClass": "Nursing Intervention",
+      "evidence": "nursing activities: routine nursing care (eye/mouth care, ET tube suction, bed care)"
+    },
+    {
+      "subClass": "Physiotherapy",
+      "superClass": "Nursing Intervention",
+      "evidence": "nursing activities: routine nursing care...physiotherapy sessions"
+    },
+    {
+      "subClass": "Bedside Intervention",
+      "superClass": "Nursing Intervention",
+      "evidence": "nursing activities: routine nursing care...physiotherapy sessions...bedside interventions"
+    },
+    {
+      "subClass": "Patient Transport",
+      "superClass": "Nursing Intervention",
+      "evidence": "nursing activities...patient transport (to and from Theatre or CT-Scan)"
+    }
+  ]
+}
+
+---
+TEXT TO ANALYZE:
+Intensive care management information
+This section focuses on the baseline medical management and
+monitoring of clinical status that occurs to patients more than once in
+their stay in ITU. Our intention is to collect this time-series information
+with a greater frequency and accuracy than has been previously
+attempted.
+To acquire the information with the required frequency, data here will
+typically be collected by menu driven PC software or in some cases by
+direct links to hardware (e.g.: infusion pump links). Start times and end
+Types of data include: GCS scores, pupil scores, ventilation settings,
+sedation levels, fluid input and output, nutrition, use of vasopressors,
+antibiotics.
+Coded fields will annotate routine nursing (eye=mouth care, ET tube
+suction, bed care.), physiotherapy and bedside interventions= investigations (line insertion=renewal, transducer calibration, x-ray.) and patient
+transport (to and from Theatre=CT-Scan.).
+Routine blood gases and daily laboratory values will also be recorded -
+Biochemistry (Na, K þ , Glucose), Haematology (Haemaglobin, White
+Cell Count, Haematocrit).
+Further detail can be obtained by viewing the core dataset definition
+or by downloading it from the BrainIT web-site (go to core dataset link
+at: www.brainit.org).
+
+Secondary insult management data
+This is medical management=therapy given to patients specifically to
+treat secondary insults which occur to patients despite their baseline
+intensive care medical management.
+To distinguish therapy given to patients to treat secondary insults from
+those of baseline intensive care, we have devised a coding system which
+allows specific categories of therapy to be assigned a ''therapy target''.
+For example, arterial pressors may be given to treat systemic hypotension or to treat reduced cerebral perfusion pressure (CPP) secondary to
+raised ICP. By choosing an appropriate target for each secondary
+insult therapy will enhance the usefulness of the database on medical
+therapy.
+Data here will typically be collected by menu driven PC software. It is
+to be limited to non-surgical management. Start and end times must be
+given.
+Each Therapy must be assigned a ''Target'' chosen from a drop down
+list. If drugs are given then one can indicate continuous infusion if drugs
+are delivered by a continuous infusion pump or one can indicate boluses
+if it is delivered non-continuously.
+Figure 3 summarise the minimum choice of therapy categories and
+associated targets for the BrainIT core dataset.
+
+Paper based feasibility exercise
+Having met and defined a core dataset, the group next performed a
+paper based feasibility exercise. The intention being to determine if the
+
+623
+
+Fig. 3. Tracking Therapies and Targets. Lists BrainIT core dataset definition therapies and therapy targets. This therapy tracking model has been
+designed to be easily implemented in software
+---

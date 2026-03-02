@@ -1,0 +1,184 @@
+Candidate terms (optional hints): per, monitoring, can, Core Dataset, Discussion, However, Internet, access, any, can only, centre, collaboration, collected, collection, concept, core, data collected, dataset, determined, efforts
+
+Use ONLY the following class labels:
+Acute Respiratory Distress Syndrome; Adrenaline; Antibiotics; Arterial Hypotension; Arterial Pressors; Baseline Therapy; Bedside Intervention; Biochemistry; Blood Gases; Brain Temperature; CT Scan Assessment; CVP; Cerebral Perfusion Pressure (CPP); Clinical Assessment; Condition; Core Monitoring Parameter; Data Quality Assessment; Derived Parameter; EtCO2; Fluids; GCS Assessment; GOSe Outcome; Glucose; Haematocrit; Haematology; Haemoglobin; Heart Rate; Hypertension; Hypotension; Intensive Care Management; Intracranial Hypertension; Intracranial Pressure (ICP); Jugular Venous Desaturation; Laboratory Values; Mean Arterial Pressure (MAP); Microdialysis; Monitoring Data; Noradrenaline; Nursing Intervention; Nutrition; Observation; Optional Monitoring Parameter; Outcome; Parameter; Patient; Patient Transport; PbrO2; Physiotherapy; Possible Error; Potassium; Probable Error; Pupil Assessment; Respiration Rate; Routine Nursing Care; SaO2; Secondary Insult; Secondary Insult Therapy; Secondary Insult Treatment; Sedation; Sensor; Sepsis; Session; SjO2; Sodium; Systemic Hypotension; TCD; Temperature; Therapy; Timepoint; Vasopressors; Ventilation; White Blood Cell Count
+Relations (use exact labels + domain/range):
+affected by treatment(Data Quality Assessment->Therapy); associated with condition(Data Quality Assessment->Condition); has clinical assessment(Patient->Clinical Assessment); has laboratory value(Patient->Laboratory Values); has monitoring data(Patient->Monitoring Data); has nursing intervention(Patient->Nursing Intervention); has observation(Timepoint->Observation); has outcome(Patient->Outcome); has quality assessment(Observation->Data Quality Assessment); has session(Patient->Session); has timepoint(Session->Timepoint); has_source; has_target; includes; is_a; measures parameter(Observation->Parameter); monitoring indicates condition(Monitoring Data->Condition); produced by sensor(Observation->Sensor); receives therapy(Patient->Therapy); secondary_to; targets condition(Therapy->Condition); treats
+If an item is not in the list, omit it.
+
+LEAF-FIRST RULE (important):
+- Prefer the most specific class labels mentioned in the text (e.g., ICP/CPP/MAP, Ventilation/Sedation/Fluids/Nutrition).
+- Avoid outputting only broad container classes (e.g., Monitoring Data, Therapy, Condition) if the text names specific items.
+- You may include container classes when needed as endpoints for allowed relations, but do not stop at containers when leaf items are present.
+- If the text clearly mentions multiple distinct allowed leaf items, extract several of them (each with evidence) rather than stopping early.
+- Do NOT treat research methods/algorithms/guideline-adherence calculations as Therapy or Monitoring Data.
+
+### SYSTEM ROLE
+You are a highly precise medical ontology extraction engine for a strict evaluation benchmark in Neuro-ICU / BrainIT literature.
+
+### PRIMARY GOAL
+Extract a SMALL, HIGH-PRECISION ontology from the text.
+Prioritise source fidelity over completeness.
+If unsure, omit.
+
+### HARD RULES
+1. SOURCE FIDELITY
+- Extract ONLY concepts and relations explicitly stated in the text.
+- DO NOT infer, guess, normalise into abstract ontology labels, or use external medical knowledge.
+- If a concept is not explicitly named in the text, omit it.
+- Use short noun-phrase labels only.
+- Do NOT output sentence fragments, clauses, or paraphrases as class labels.
+
+2. EVIDENCE FIRST
+- EVERY class, relation, and hierarchy edge MUST include an `evidence` field.
+- `evidence` must be an EXACT verbatim fragment copied from the text.
+- If exact evidence is not available, omit the item.
+
+3. STRICT SCOPE
+Extract ONLY:
+- clinical conditions
+- physiological parameters
+- monitoring variables
+- treatments / therapies / interventions
+- outcomes
+- directly named clinical dataset groups only when explicitly stated in the text
+
+DO NOT extract:
+- organisations, groups, committees, memberships, centres, investigators
+- meetings, projects, funding, EEC, collaborations, publications
+- databases, software, forms, websites, infrastructure, validation workflows
+- ethics, confidentiality, ownership, accessibility, legal / administrative concepts
+- generic research-process concepts such as trials, study design, feasibility exercise, data collection workflow
+
+IMPORTANT:
+If a sentence or paragraph is mainly about governance, organisation, validation, infrastructure, publication, centres, membership, or database access, IGNORE that sentence or paragraph completely.
+
+4. CLASS RULES
+- Prefer concrete clinical labels from the text.
+- Prefer specific labels over abstract ones (e.g. prefer 'Heart Rate' over 'Monitoring Data' when both are mentioned). If an allowed class list is provided, you may use those labels; otherwise avoid abstract categories unless the text explicitly names them.
+- Keep labels close to the wording in the text.
+- Do not invent CamelCase labels.
+
+5. RELATION RULES
+- Classes are the priority.
+- Extract relations ONLY when the text explicitly states a stable relation between two extracted class labels.
+- If uncertain, omit the relation.
+- Domain and range must both be extracted class labels from the same text.
+- Prefer concise, domain-appropriate relation labels from the text (e.g. includes, treats, targets condition, has monitoring data).
+- If an allowed relation list was provided, use those labels. Otherwise, prefer labels that reflect the text's wording.
+- Do NOT invent arbitrary relation labels.
+
+6. HIERARCHY RULES
+- Extract hierarchy ONLY when the text explicitly uses one of these lexical cues:
+  - "is a"
+  - "type of"
+  - "kind of"
+  - "such as"
+  - "include:"
+  - "includes:"
+- For enumeration cues (such as, include:, includes:), extract ONLY the short noun phrases listed after the cue.
+- NEVER output long clauses, verb phrases, or sentence fragments as subclass or superclass.
+- If either side is not a clean noun phrase, omit the hierarchy edge.
+
+7. ZERO-SHOT BEHAVIOUR
+- This is a strict baseline: prefer under-generation to over-generation.
+- It is better to return fewer high-confidence items than many weak items.
+- If the text is mixed clinical + governance, keep ONLY the clinical part.
+
+### OUTPUT FORMAT (JSON ONLY)
+Return ONLY valid JSON.
+Do not include markdown, explanations, headings, or commentary.
+
+Use exactly this structure:
+{
+  "classes": [
+    {"label": "string", "evidence": "string"}
+  ],
+  "relations": [
+    {"label": "string", "domain": "string", "range": "string", "evidence": "string"}
+  ],
+  "hierarchy": [
+    {"subClass": "string", "superClass": "string", "evidence": "string"}
+  ]
+}
+
+### FINAL CHECK BEFORE OUTPUT
+Before producing JSON, remove any item that:
+- is organisational, infrastructural, database-related, publication-related, or governance-related
+- lacks exact evidence
+- uses a label not explicitly present in the text
+- uses a long clause instead of a noun phrase
+- uses a relation label outside the allowed set
+
+---
+TEXT TO ANALYZE:
+Discussion
+
+This can only be determined from a prospective data collection
+period with multiple patients data collected per centre.
+
+This paper has outlined the concept underlying the
+the groups efforts to define and test the feasibility for
+collection of a core-dataset.
+
+collaboration towards raising standards for collection
+and analysis of data from patients with traumatic brain
+injury. Data generated as a result of the work of the
+model used differs from previous collaborative groups
+working within the field of traumatic brain injury in that
+data collected as part of individual projects is openly
+accessible by all who contribute data to the database.
+Data collection tools used in projects collect, as a minimum, a ''Core Dataset'' which once collected and anonymised is added to a common database. The common
+database will be openly accessible, through the Internet,
+able to be queried over the Internet and datasets of interest can be downloaded to any member who has also
+contributed data to the database.
+The underlying hope is that such openness will lead
+to a more diverse and innovative range of analysis
+approaches than would be otherwise possible by any
+fixed group of investigators with a limited range of
+prevent duplication and may stimulate inter group
+collaboration. The strength of post-hoc analyses of such
+a database is in the generation of new hypotheses which
+can be prospectively tested.
+The success of this approach will depend upon the
+correct balance between openness and control. The concept of an open access database would not have worked
+in previous years, due to the difficulty of managing and
+protecting such a resource. However today, the pervasive
+
+nature of the Internet and the power and ease of use of
+discussion forums and remotely administrable and auditable databases makes the implementation of such an
+approach feasible. However, any such open database
+can only work if it is based, to some extent, on trust.
+Criteria have been set and must be met by contributors to
+the database. Those accessing and analysing data will be
+audited and those who fail to follow group guidelines
+will be prevented from future access to the database.
+will depend upon if the generation and publication of
+standards, new findings and analyses outweigh any
+abuse of the open access approach.
+
+Core dataset definition
+requirements are uniquely detailed and require as a
+minimum some form of PC based collection of patient
+monitoring data at a collection frequency of no less than
+1 sample per minute. The technical aims of the group are
+to collect both monitoring and non-monitoring core
+that end, in this paper, we have outlined the groups
+efforts towards defining a uniquely detailed core dataset.
+A feasibility exercise was successfully carried out
+demonstrating that the core dataset is collectable across
+data.
+However, it is not enough to just set up procedures for
+collection of multi-centre data - the procedures must be
+shown to work and estimates of inter and intra centre
+missing data and data error rates need to be determined.
+To do so requires a prospective trial of the effectiveness
+of the BrainIT procedures. EEC funding has recently
+on a region-by-region basis to conduct a prospective
+between 5 and 10 patients per centre need be recruited
+approval has been obtained. The successful completion
+of this ''proof of concept'' phase will create a network of
+with TBI. The results of the data validation study will
+provide a baseline measure of inter-centre missing data
+and data field error rates. In addition, a mechanism for
+---

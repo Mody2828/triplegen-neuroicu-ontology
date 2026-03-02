@@ -1,0 +1,186 @@
+Use ONLY the following class labels:
+Acute Respiratory Distress Syndrome; Adrenaline; Antibiotics; Arterial Hypotension; Arterial Pressors; Baseline Therapy; Bedside Intervention; Biochemistry; Blood Gases; Brain Temperature; CT Scan Assessment; CVP; Cerebral Perfusion Pressure (CPP); Clinical Assessment; Condition; Core Monitoring Parameter; Data Quality Assessment; Derived Parameter; EtCO2; Fluids; GCS Assessment; GOSe Outcome; Glucose; Haematocrit; Haematology; Haemoglobin; Heart Rate; Hypertension; Hypotension; Intensive Care Management; Intracranial Hypertension; Intracranial Pressure (ICP); Jugular Venous Desaturation; Laboratory Values; Mean Arterial Pressure (MAP); Microdialysis; Monitoring Data; Noradrenaline; Nursing Intervention; Nutrition; Observation; Optional Monitoring Parameter; Outcome; Parameter; Patient; Patient Transport; PbrO2; Physiotherapy; Possible Error; Potassium; Probable Error; Pupil Assessment; Respiration Rate; Routine Nursing Care; SaO2; Secondary Insult; Secondary Insult Therapy; Secondary Insult Treatment; Sedation; Sensor; Sepsis; Session; SjO2; Sodium; Systemic Hypotension; TCD; Temperature; Therapy; Timepoint; Vasopressors; Ventilation; White Blood Cell Count
+Relations (use exact labels + domain/range):
+affected by treatment(Data Quality Assessment->Therapy); associated with condition(Data Quality Assessment->Condition); has clinical assessment(Patient->Clinical Assessment); has laboratory value(Patient->Laboratory Values); has monitoring data(Patient->Monitoring Data); has nursing intervention(Patient->Nursing Intervention); has observation(Timepoint->Observation); has outcome(Patient->Outcome); has quality assessment(Observation->Data Quality Assessment); has session(Patient->Session); has timepoint(Session->Timepoint); has_source; has_target; includes; is_a; measures parameter(Observation->Parameter); monitoring indicates condition(Monitoring Data->Condition); produced by sensor(Observation->Sensor); receives therapy(Patient->Therapy); secondary_to; targets condition(Therapy->Condition); treats
+If an item is not in the list, omit it.
+
+LEAF-FIRST RULE (important):
+- Prefer the most specific class labels mentioned in the text (e.g., ICP/CPP/MAP, Ventilation/Sedation/Fluids/Nutrition).
+- Avoid outputting only broad container classes (e.g., Monitoring Data, Therapy, Condition) if the text names specific items.
+- You may include container classes when needed as endpoints for allowed relations, but do not stop at containers when leaf items are present.
+- If the text clearly mentions multiple distinct allowed leaf items, extract several of them (each with evidence) rather than stopping early.
+- Do NOT treat research methods/algorithms/guideline-adherence calculations as Therapy or Monitoring Data.
+
+### SYSTEM ROLE
+You are a highly precise medical ontology extraction engine for a strict evaluation benchmark in Neuro-ICU / BrainIT literature.
+
+### PRIMARY GOAL
+Extract a SMALL, HIGH-PRECISION ontology from the text.
+Prioritise source fidelity over completeness.
+If unsure, omit.
+
+### HARD RULES
+1. SOURCE FIDELITY
+- Extract ONLY concepts and relations explicitly stated in the text.
+- DO NOT infer, guess, normalise into abstract ontology labels, or use external medical knowledge.
+- If a concept is not explicitly named in the text, omit it.
+- Use short noun-phrase labels only.
+- Do NOT output sentence fragments, clauses, or paraphrases as class labels.
+
+2. EVIDENCE FIRST
+- EVERY class, relation, and hierarchy edge MUST include an `evidence` field.
+- `evidence` must be an EXACT verbatim fragment copied from the text.
+- If exact evidence is not available, omit the item.
+
+3. STRICT SCOPE
+Extract ONLY:
+- clinical conditions
+- physiological parameters
+- monitoring variables
+- treatments / therapies / interventions
+- outcomes
+- directly named clinical dataset groups only when explicitly stated in the text
+
+DO NOT extract:
+- organisations, groups, committees, memberships, centres, investigators
+- meetings, projects, funding, EEC, collaborations, publications
+- databases, software, forms, websites, infrastructure, validation workflows
+- ethics, confidentiality, ownership, accessibility, legal / administrative concepts
+- generic research-process concepts such as trials, study design, feasibility exercise, data collection workflow
+
+IMPORTANT:
+If a sentence or paragraph is mainly about governance, organisation, validation, infrastructure, publication, centres, membership, or database access, IGNORE that sentence or paragraph completely.
+
+4. CLASS RULES
+- Prefer concrete clinical labels from the text.
+- Prefer specific labels over abstract ones (e.g. prefer 'Heart Rate' over 'Monitoring Data' when both are mentioned). If an allowed class list is provided, you may use those labels; otherwise avoid abstract categories unless the text explicitly names them.
+- Keep labels close to the wording in the text.
+- Do not invent CamelCase labels.
+
+5. RELATION RULES
+- Classes are the priority.
+- Extract relations ONLY when the text explicitly states a stable relation between two extracted class labels.
+- If uncertain, omit the relation.
+- Domain and range must both be extracted class labels from the same text.
+- Prefer concise, domain-appropriate relation labels from the text (e.g. includes, treats, targets condition, has monitoring data).
+- If an allowed relation list was provided, use those labels. Otherwise, prefer labels that reflect the text's wording.
+- Do NOT invent arbitrary relation labels.
+
+6. HIERARCHY RULES
+- Extract hierarchy ONLY when the text explicitly uses one of these lexical cues:
+  - "is a"
+  - "type of"
+  - "kind of"
+  - "such as"
+  - "include:"
+  - "includes:"
+- For enumeration cues (such as, include:, includes:), extract ONLY the short noun phrases listed after the cue.
+- NEVER output long clauses, verb phrases, or sentence fragments as subclass or superclass.
+- If either side is not a clean noun phrase, omit the hierarchy edge.
+
+7. ZERO-SHOT BEHAVIOUR
+- This is a strict baseline: prefer under-generation to over-generation.
+- It is better to return fewer high-confidence items than many weak items.
+- If the text is mixed clinical + governance, keep ONLY the clinical part.
+
+### OUTPUT FORMAT (JSON ONLY)
+Return ONLY valid JSON.
+Do not include markdown, explanations, headings, or commentary.
+
+Use exactly this structure:
+{
+  "classes": [
+    {"label": "string", "evidence": "string"}
+  ],
+  "relations": [
+    {"label": "string", "domain": "string", "range": "string", "evidence": "string"}
+  ],
+  "hierarchy": [
+    {"subClass": "string", "superClass": "string", "evidence": "string"}
+  ]
+}
+
+### FINAL CHECK BEFORE OUTPUT
+Before producing JSON, remove any item that:
+- is organisational, infrastructural, database-related, publication-related, or governance-related
+- lacks exact evidence
+- uses a label not explicitly present in the text
+- uses a long clause instead of a noun phrase
+- uses a relation label outside the allowed set
+
+---
+TEXT TO ANALYZE:
+Trusting Intensive Care Unit (ICU) Medical
+Data: A Semantic Web Approach
+
+Laura Moss1,2,3 , David Corsar1, Ian Piper3 , and John Kinsella2
+1
+Department of Computing Science, University of Aberdeen, Aberdeen, AB24 3FX
+2
+School of Medicine, University of Glasgow, Glasgow, G12 8QQ
+3
+Department of Clinical Physics, University of Glasgow, Glasgow, G12 8QQ
+
+Abstract. The Intensive Care Unit (ICU) domain generates large vol-
+umes of patient data which can be used in medical research. However,
+inaccuracies often exist in this data and due to the data's size and do-
+main complexity, automated approaches are required to associate a level
+of quality and trust with the data. We describe a computational frame-
+work to perform such assessments based on semantic web technologies.
+Linked data enables integration with other datasets, which can be used
+along with details of the data's provenance and medical domain knowl-
+edge from appropriate ontologies. We have successfully applied the frame-
+work to two types of ICUs: general medical and traumatic brain injury.
+
+Keywords: Data Quality, Semantic Web, Ontologies, Critical Care.
+
+1 Introduction
+Increasing use of patient monitoring equipment in medicine is generating large
+repositories of patient data, which are recorded manually and/or automatically.
+Trusting this data is important: along with being used for medical decision making, the data is often stored for offline analysis. However, error rates of between
+2.3% and 26.9% are common [5]. Various methods have been proposed to improve the quality of medical data (e.g.[6]), which may help avoid certain errors
+(e.g. physiologically impossible values). However, detailed domain knowledge and
+human judgement is often required to identify other, more subtle errors, e.g. a
+recorded heart rate of 120 may be identified as an error by a simple threshold
+based rule, but if the patient was suffering from sepsis at the same time, then
+the value may actually be a symptom of that disorder.
+Recently, interlinked datasets have been made openly available on the Web
+of Linked Data. These datasets are described by ontologies, published according
+to a set of principles, and linked through the use of technologies such as URIs,
+HTTP, and RDF. This enables provision of contextual information about any
+piece of data, along with enabling machines to access, browse, and reason with
+it1 . Most existing approaches to assessing the quality of linked data focus on
+the application of simple rules or policies; e.g. the WIQA framework, which
+1
+http://www.w3.org/DesignIssues/LinkedData.html
+
+N. Peek, R. Marı́n Morales, and M. Peleg (Eds.): AIME 2013, LNAI 7885, pp. 68-72, 2013.
+
+c Springer-Verlag Berlin Heidelberg 2013
+
+Trusting Intensive Care Unit (ICU) Medical Data 69
+
+adopts the "fitness for use" perspective to data quality, applies a set of policies
+to filter RDF data that does not meet requirements [1]. In contrast, the SWIQA
+framework adopts the "free of defects" perspective, using a series of rules to
+perform common data quality checks on RDF datasets including: completeness
+(e.g. provision of mandatory values), syntactic and semantic accuracy, timeliness,
+and uniqueness [3]. However, we argue these assessments do not consider the
+complexities of real world datasets and need to be extended to include context
+dependent assessments.
+In this paper, Section 2 describes our novel approach and framework that
+applies Semantic Web technologies to assess the quality of medical datasets, by
+considering the data, its provenance, and relevant clinical knowledge; Section
+3 describes the application of our framework to two different medical domains;
+and Section 4 concludes by discussing our findings and future work plans.
+
+2 Approach
+
+Our approach consists of three stages: converting the medical data into RDF;
+optionally annotating the data with provenance information; and finally, assessing the data (Figure 1). Ideally, all of the datasets we describe below would be
+reused from the Web of Linked Data or open data repositories. However, some
+of the required information is not available; in these cases we have created our
+own datasets, which we intend to contribute to the Linked Open Data cloud.
+
+Fig. 1. Overview of the approach to medical data assessment
+---
