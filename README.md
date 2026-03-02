@@ -1,51 +1,27 @@
-# Capstone Project: Evaluating LLM-Generated Ontologies in a Low-Resource Clinical Domain
+# Documentation
 
-## CMM303 MSci Capstone Project
-Mohamed Abdellah 2118775 
- 
+This folder holds project documentation for **TripleGen** (LLM-driven ontology engineering for Neuro-ICU).
 
-## Overview
-This project develops and evaluates an LLM-driven ontology engineering framework
-for the neurointensive care (Neuro-ICU) domain. The goal is to assess how well
-LLMs can recreate or align with an expert-designed gold standard (BrainIT
-ontology and schema) in a low-resource clinical setting.
+## Main README
 
-## Research Question
-To what extent can large language models automatically recreate or align with
-high-quality domain ontologies in a low-resource clinical (Neuro-ICU) setting
-when guided by evidence-based prompting and evaluated against an expert-designed
-gold standard?
+For setup, quick start, and repository overview, see the **main project README** at the repo root:
 
-## Objectives
-- Build an LLM-driven ontology extraction pipeline from Neuro-ICU literature.
-- Compare multiple LLMs and prompting strategies (MMR few-shot + baselines).
-- Evaluate alignment vs the BrainIT gold standard using quantitative metrics
-  and qualitative error analysis.
-- Produce dissertation-ready results (tables/figures) and a demo-ready pipeline.
+- **[../README.md](../README.md)** — main README for the Git repo
 
-## Scope (High Level)
-In scope:
+## Docs in this folder
 
-Out of scope:
-- 
+| Document | Description |
+|----------|-------------|
+| [**TripleGen_Walkthrough.md**](TripleGen_Walkthrough.md) | Visual step-by-step walkthrough of the web app with screenshot placeholders. |
+| [**implementation_summary.md**](implementation_summary.md) | Full design and implementation: pipeline, prompting strategies, pipeline modes, post-processing, evaluation, gold standard. |
+| [**UI_user_guide.md**](UI_user_guide.md) | Web UI reference guide: every option, setting, and artifact explained. |
+| [**updated-scope.md**](updated-scope.md) | Project scope (in-scope / out-of-scope). |
+| [**task_pool_wiring.md**](task_pool_wiring.md) | Few-shot example pools and wiring for each strategy. |
 
-## Status
-- Repo created and initial structure in progress.
-- Literature review and domain analysis in progress.
+## Project at a glance
 
-## Repository Structure (planned)
-- `specs/` Design documents, contracts, and plans
-- `src/`   Core pipeline (retrieval, prompting, ontology, evaluation)
-- `docs/`  Run and data handling notes
-- `runs/`  Generated outputs 
+- **Aim**: Design, implement, and evaluate an LLM-driven ontology engineering framework for Neuro-ICU using BrainIT literature and gold standard.
+- **Research question**: How well can LLMs reconstruct a high-quality domain ontology in a low-resource clinical setting?
+- **Deliverables**: Reproducible pipeline, multi-LLM and multi-strategy comparison, evaluation metrics and per-stage ablation, web UI and interactive ontology graph.
 
-## Setup 
-Will be added 
-
-## Usage 
-Quickstart steps and demo commands will be documented here.
-
-## Ethics and Data Handling
-- 
-
-
+For details, start with [implementation_summary.md](implementation_summary.md).
