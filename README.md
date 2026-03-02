@@ -2,9 +2,6 @@
 
 This folder holds project documentation for **TripleGen** (LLM-driven ontology engineering for Neuro-ICU).
 
-## Main README
-
-
 ## Docs in this folder
 
 | Document | Description |
