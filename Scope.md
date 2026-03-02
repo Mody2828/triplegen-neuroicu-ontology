@@ -1,10 +1,10 @@
-# Project Scope (Delivered)
+# Project Scope
 
 ## Project Aim & Context
 
 This project designed, implemented, and evaluated an LLM-driven ontology engineering framework for the neurointensive care (Neuro-ICU) domain. Using BrainIT consortium publications and related Neuro-ICU literature, the framework investigates the extent to which large language models (LLMs) can reconstruct and align with an expert-designed domain ontology under controlled prompting and evaluation conditions.
 
-Generated ontologies are evaluated against a BrainIT gold standard (ontology and schema in `resources/brainit_core_2003.ttl`), enabling rigorous analysis of alignment quality, failure modes, and mitigation strategies in a low-resource, safety-critical clinical domain. The gold standard (v2.0) is derived from the BrainIT core dataset paper and ICU management literature (combined ontology).
+Generated ontologies are evaluated against a BrainIT gold standard, enabling rigorous analysis of alignment quality, failure modes, and mitigation strategies in a low-resource, safety-critical clinical domain.
 
 ## Literature-Driven Motivation
 
@@ -83,7 +83,7 @@ Pipeline order: **Raw merge → [vocab filter] → SGC → Cleanup → LLM Reaso
 
 ### 6. Evaluation
 
-Evaluation compares the generated ontology against the BrainIT gold standard (v2.0):
+Evaluation compares the generated ontology against the BrainIT gold standard:
 
 **Quantitative metrics (classes):**
 - Coverage, precision, recall (overall, clinical-only, by stratum: core/governance/provenance).
