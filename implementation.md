@@ -13,7 +13,7 @@ The project aims to **design, implement, and evaluate** an LLM-driven ontology e
 ### Objectives
 
 * **End-to-end pipeline:** Build a reproducible pipeline from raw text input (paste or upload) to a generated ontology and evaluation report.
-* **Multiple LLM providers:** Support and compare extraction across several APIs (OpenAI, Anthropic, Google, Groq, Hugging Face, DeepSeek), بحيث يمكن تغيير المنهجية والمزوّد بشكل مستقل.
+* **Multiple LLM providers:** Support and compare extraction across several APIs (OpenAI (GPT‑4o‑mini), Anthropic (Claude Haiku 4.5), Google (Gemini 2.5 Flash), Groq (Llama 3.1 8B), Hugging Face (Mistral 7B), DeepSeek (deepseek-chat)).
 * **Several prompting methods:** Compare zero-shot (baseline), one-shot, few-shot (phased 2-step), and few-shot III (phased 3-step) extraction to assess the impact of examples and task decomposition.
 * **Progressive pipeline modes:** Provide four clearly named modes (Strict → Guided → Schema-Completed → Fully Reasoned) that group optional post-processing features into meaningful experimental conditions for ablation.
 * **Enhancement strategies:** Implement and evaluate optional post-processing improvements—schema-guided completion, an LLM reasoning layer, and a rule-based reasoning layer—as orthogonal toggles for ablation.
