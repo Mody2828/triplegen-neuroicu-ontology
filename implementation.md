@@ -59,7 +59,7 @@ Corpus (paste/upload) → Load (strip control chars → normalize → [scope fil
 
 Stage snapshots are written to `metrics["by_stage"]` in `metrics.json` and displayed in the **per-stage ablation table** in `summary.txt`.
 
-![Home Dashboard](screenshots/1.jpg)
+![Pipline](screenshots/1.jpg)
 
 ---
 
@@ -95,8 +95,7 @@ Stage snapshots are written to `metrics["by_stage"]` in `metrics.json` and displ
 |----------------------|-------------------|-------------|
 | `baseline` | Zero-Shot | No examples; model extracts classes, relations, and hierarchy from text only. |
 | `one_shot` | One-Shot (MMR-1) | **One** best concept example per chunk from `pool_strict_concepts.json` (MMR k=1). Optional hierarchy phase runs **only when** the chunk contains hierarchy cues and has ≥2 class labels from the **allowed clinical vocabulary**. |
-| `phased_2step` | **Few-Shot** (primary) | **Phase 1:** 3 concept examples → extract classes. **Phase 2:** 3 relation examples → extract relations/hierarchy (Phase 2 output is now vocabulary-filtered before merge). Two LLM calls, then merge. Optional hierarchy sub-call when chunk has hierarchy cues and ≥2 allowed classes. |
-| `phased_3step` | **Few-Shot III** | **Phase 1:** 3 concept examples → extract classes. **Phase 2:** 3 relation examples → extract relations only (hierarchy deferred to Phase 3). **Phase 3:** 3 hierarchy examples → extract hierarchy only where lexical cues exist. Three LLM calls, then merge. Phase 2 and Phase 3 outputs are vocabulary-filtered before merge. |
+| `phased_3step` | **Few-Shot** | **Phase 1:** 3 concept examples → extract classes. **Phase 2:** 3 relation examples → extract relations only (hierarchy deferred to Phase 3). **Phase 3:** 3 hierarchy examples → extract hierarchy only where lexical cues exist. Three LLM calls, then merge. Phase 2 and Phase 3 outputs are vocabulary-filtered before merge. |
 
 **Legacy strategies (hidden, backward-compatible):**
 
