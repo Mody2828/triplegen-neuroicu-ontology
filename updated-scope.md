@@ -1,4 +1,4 @@
-# Project Scope (Delivered)
+# Project Scope
 
 ## Project Aim & Context
 
