@@ -52,7 +52,6 @@ The framework implements a modular, reproducible pipeline with the following sta
 | Few-Shot | `phased_2step` | Phase 1: 3 concept examples → classes. Phase 2: 3 relation examples → relations/hierarchy (vocabulary-filtered before merge). Two LLM calls per chunk. |
 | Few-Shot III | `phased_3step` | Phase 1: 3 concept examples → classes. Phase 2: 3 relation examples → relations only. Phase 3: 3 hierarchy examples → hierarchy only (where lexical cues exist). Phase 2 and Phase 3 outputs vocabulary-filtered before merge. Three LLM calls per chunk. |
 
-**Legacy (hidden):** `simple_fewshot` (Few-Shot I) is retained for backward compatibility with old run data but is hidden from the UI.
 
 Task-specific example pools: `pool_strict_concepts.json`, `pool_strict_relations.json`, `pool_strict_hierarchy.json`. See `docs/task_pool_wiring.md` for wiring.
 

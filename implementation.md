@@ -287,108 +287,6 @@ Run label generation is consistent across Python (`web/app.py: _format_run_label
 
 ---
 
-### 2.11 CLI
-
-Config-driven runs via `run_experiments` and JSON config:
-
-```
-python -m src.experiments.run_experiments --config src/experiments/configs/demo.json
-```
-
-- `demo.json` includes all benchmark-required keys: `scope_filter: true`, `clinical_only_routing: true`, `require_label_in_evidence: true`, `gold_standard_path`, all active strategies.
-- `benchmark_template.json` provides a reusable template with all mandatory fields documented.
-- If `scope_filter` is absent from config when a gold standard is loaded, a `ValueError` is raised immediately.
-
----
-
-### 2.12 Technical notes
-
-- **Control characters (pipeline-wide):** `src/corpus/clean_chars.py` provides `strip_control_chars_for_prompt()`. Used after reading raw text (ingest), during normalization, before chunking, before prompting, and before JSON parsing.
-- **Parsing:** LLM responses parsed as JSON (with fallbacks) in `src/prompting/parse.py`. Input sanitized before `json.loads`. Items without evidence or with evidence shorter than configured minimum are dropped.
-- **Schema and filtering:** `src/prompting/schema.py` provides `filter_parsed_to_vocabulary`. A dedicated regex pass `extract_hierarchy_from_text()` extracts hierarchy from trigger phrases and merges with LLM-derived hierarchy. All hierarchy edges are filtered by `filter_hierarchy_to_lexical_cues` at the end of each chunk's processing.
-  - **`HIERARCHY_LEXICAL_TRIGGERS`** now includes `"include:"` and `"includes:"` in addition to the original `"such as"`, `"is a"`, `"type of"`, `"kind of"`. This captures the dominant enumeration pattern in the BrainIT paper (*"monitoring data...include: Heart Rate, Respiration Rate, MAP..."*; *"Types of data include: ventilation settings, sedation levels..."*) which was previously invisible to both the LLM trigger filter and the regex fallback.
-  - **`extract_hierarchy_from_text()`** now includes a dedicated `"include:"` handler. It strips trailing sentence-glue connectors (`"... Database and include:"`), strips leading articles and trailing verb/preposition clauses (e.g. "required for...", "collected during..."), caps the super-class candidate to the leading 5 words (the noun phrase head), correctly preserves compound sub-class names (`"fluid input and output"` stays intact), and strips leading `"use of "` prefixes (so `"use of vasopressors"` → `"vasopressors"`).
-- **Canonical normalization (`src/ontology/canonical.py`):** `CANONICAL_ALIAS_MAP` maps common variants to canonical labels (TBI, CVP, ICP, CPP, GCS, GOSE, MAP). Extended with **20 new aliases** covering `Fluids` (fluid input and output, fluid management, fluid balance), `Nutrition` (nutritional support), `Sedation` (sedation levels), and `Condition` (clinical condition, medical condition). `resolve_to_canonical_label()` is alias-aware and used in both build and LLM Reasoning Layer matching. `canonical_key()` normalizes for dedupe.
-- **Evaluation synonyms (`src/evaluation/synonyms.py`):** `DOMAIN_SYNONYMS` extended with evaluation-level synonyms for `Fluids`, `Nutrition`, `Sedation`, and `Condition` (including `"systemic hypotension"`, `"intracranial hypertension"`, `"arterial hypotension"` mapping to `"Condition"`). This ensures the TF-IDF semantic matcher and exact matcher correctly credit these classes even when the LLM uses the verbose paper phrase rather than the gold canonical label.
-- **Config and strategies:** `StrategyConfig` dataclass in `src/experiments/config.py` carries all per-run parameters. A single run is fully specified and reproducible from `metadata.json`.
-
----
-
-### 2.13 Improvements history (consolidated)
-
-#### Original improvements (system design phase)
-
-1. **Dual-score chunk routing** — `chunk_scores()` returns (admin_score, clinical_score). Drop chunks with high admin and low clinical; always keep chunks from clinical dataset sections. Governance section blacklist; governance dominance detection; chunk reordering (clinical first).
-2. **Broad contextual label pruning** — built-in cleanup step removes generic labels unless in allowlist.
-3. **Canonical alias merge** — `CANONICAL_ALIAS_MAP` for TBI, CVP, ICP, CPP, GCS, GOSE, MAP variants. Singular/plural merge. `resolve_to_canonical_label()` before add.
-4. **Schema-guided / LLM metrics breakdown** — `extraction_only` metrics (before improvements) for ablation. `clinical_only` metrics. `by_stratum` metrics (core/governance/provenance).
-5. **Stratum on entities** — chunk routing assigns stratum; stored on classes, relations, hierarchy for per-stratum reporting.
-
-#### Audit-driven fixes (Phase 8)
-
-6. **Narrowed out-of-scope class patterns** — compound phrases only. Prevents false positives on legitimate clinical labels.
-7. **Narrowed out-of-scope evidence patterns** — compound phrases only (e.g. `\bdata collection form\b`, `\bsoftware tool\b`).
-8. **Fixed `Monitoring Data` pruning** — `\bdata\b` removed from `_ABSTRACT_DATA_LABEL_PATTERNS`. Added `Monitoring Data`, `Demographic Data` to allowlist.
-9. **Fixed `Secondary Insult Treatment` pruning** — `\btreatment\b` and `\btherapies?\b` removed from `_BROAD_CONTEXT_LABEL_PATTERNS`. Extended allowlist.
-10. **Extended relation whitelist** — `_ALLOWED_RELATION_LABELS_GLOBAL` extended with camelCase gold schema labels in normalised form.
-11. **Narrowed scope filter blacklist** — compound phrases only. Prevents destruction of legitimate clinical text.
-12. **"monitoring" promoted to strong clinical term** — 1.0 weight. Additional BrainIT terms (ventilation, nutrition, fluids, antibiotics, laboratory values, SaO2) promoted to strong.
-13. **Vocab guardrails inject paper-wording relations only** — `EXTRACTION_RELATION_LABELS` only, no camelCase gold labels in prompts.
-14. **Hierarchy sub-prompt class label filtering** — `known_classes` filtered to allowed clinical vocabulary before hierarchy sub-calls.
-15. **Therapy guaranteed in Phase 3** — `phased_3step` Phase 3 prepends `Therapy` to `phase3_known` for clinical chunks.
-16. **Pool example evidence corrections** — `Patient` evidence corrected to source-text quote; all hierarchy evidences contain valid lexical triggers.
-17. **Relation recall evaluation** — `compute_relation_metrics()` added. Per-relation boolean `per_gold_relation`. Results in `metrics["relations"]` and `metrics["extraction_only"]["relations"]`.
-18. **scope_filter config validation** — raises `ValueError` if `scope_filter` absent from config when gold standard is loaded.
-
-#### Phase 9: UI redesign, pipeline modes, and summary improvements
-
-19. **4-mode pipeline abstraction (UI)** — Run experiment and Run comparison forms now expose four pipeline mode cards (Strict / Guided / Schema-Completed / Fully Reasoned). Hidden inputs sync the underlying feature flags. Schema-Completed is the default.
-20. **Simplified strategy selector** — UI reduced from 5 to 3 active strategies. `simple_fewshot` and `phased_3step` moved to legacy (hidden, backward-compatible). `phased_2step` renamed "Few-Shot" as the primary few-shot strategy.
-21. **Reasoning LLM configurable** — Separate LLM for improvement steps. Default: OpenAI. Alternative: DeepSeek Reasoner (R1). Exposed in Advanced section.
-22. **Medical NER in Advanced section** — Moved from main UI to collapsible Advanced/Experimental with a prominent warning about potential recall degradation.
-23. **5-part standardised run label** — Format: `Strategy - PipelineMode - LLM - EvalSettings - Advanced`. Consistent across Python backend (`_format_run_label` in `app.py`) and JavaScript (`formatRunName` in `comparison_dashboard.html`, `comparison_progress.html`).
-24. **Run comparison panel redesign** — Mirrors Run experiment form. 5-column table (Strategy, Pipeline mode, LLM, Eval settings, Advanced). Three pre-configured comparison groups.
-25. **Per-stage ablation table (`by_stage`)** — `_capture_stage_metrics()` snapshots ontology state (n_classes, n_relations, n_hierarchy, coverage, precision, recall, relation metrics) after each pipeline stage. Written to `metrics["by_stage"]`. Rendered as a formatted table in `summary.txt`.
-26. **LLM Reasoning Layer canonical matching fix** — `run_llm_reasoning_layer_patch` now uses `canonical_key(resolve_to_canonical_label(...))` for matching gold hierarchy endpoints to ontology labels, correctly handling abbreviations (e.g. "ICP" → "Intracranial Pressure (ICP)").
-27. **`extraction_only_relations` capture fix** — Moved capture of `extraction_only` relation metrics to immediately after initial ontology building (before any improvements), ensuring they reflect raw extraction only.
-28. **Enhanced `summary.txt`** — Now includes: timestamp, pipeline mode, evaluation settings, input paper names, extraction-only baseline comparison, per-stage ablation table, clinical-only and relation sub-metrics.
-29. **`input_papers` in `metadata.json`** — `build_metadata()` now accepts `docs` and writes an `input_papers` list with filename, stem, and path for full corpus traceability.
-
-#### Phase 10: Gap-analysis-driven fixes (class recall, hierarchy evaluation, canonical coverage)
-
-Targeted fixes derived from a systematic gap analysis comparing pipeline output (best run: Few-Shot Schema-Completed, 85.71% class recall, 50% relation recall, 0% hierarchy coverage) against a manually-produced expert ontology extraction from the BrainIT paper:
-
-30. **`"include:"` hierarchy trigger** — `HIERARCHY_LEXICAL_TRIGGERS` extended with `"include:"` and `"includes:"`. The BrainIT paper uses this pattern as its dominant enumeration form, which the pipeline was completely blind to. Now accepted by `filter_hierarchy_to_lexical_cues` and handled by `extract_hierarchy_from_text()` with compound-noun preservation and "use of" prefix stripping.
-31. **Fix hierarchy evaluation bug (symbolic reasoner evidence)** — `_complete_hierarchy_from_schema` now adds a synthetic evidence string (`"Schema-inferred: X is a subclass of Y."`) to every schema-derived hierarchy edge. Previously, these edges had no `evidence` field and were silently dropped by `filter_parsed_to_vocabulary(require_evidence=True)` during `eval_restrict_to_gold`, causing `hierarchy_coverage=0.00` across all 12 runs despite correct edges being present internally.
-32. **Evidence pruning exemption whitelist** — `_EVIDENCE_PRUNING_EXEMPTIONS` frozenset added to `reasoner.py` protecting `Condition`, `Fluids`, `Nutrition`, and `Sedation` from evidence-based class pruning. Root cause: gold-schema abstract/therapeutic class labels do not appear literally in their corpus evidence (e.g. paper says `"fluid input and output"` for gold class `"Fluids"`; `"secondary insults"` for gold class `"Condition"`).
-33. **Extended canonical alias map** — 20 new entries in `CANONICAL_ALIAS_MAP` (`canonical.py`): `Fluids` (fluid input and output, fluid management, fluid balance, fluid input, fluid output), `Nutrition` (nutritional support, nutritional intake), `Sedation` (sedation levels, sedation level), `Condition` (condition, clinical condition, medical condition). Ensures LLM output using verbose paper phrases merges to the gold canonical label during deduplication.
-34. **Extended evaluation synonyms** — `DOMAIN_SYNONYMS` in `synonyms.py` extended with evaluation-time synonyms for `Fluids`, `Nutrition`, `Sedation`, and `Condition` (including specific condition types `"systemic hypotension"`, `"intracranial hypertension"`, `"arterial hypotension"` → `"Condition"`). Ensures the TF-IDF semantic matcher credits these classes at evaluation time.
-35. **New hierarchy pool examples with `"include:"` evidence** — Two new entries in `pool_strict_hierarchy.json` using verbatim BrainIT paper sentences: (a) monitoring parameters ⊑ Monitoring Data (6 edges), (b) ICU management types ⊑ Intensive Care Management (6 edges). Evidence strings all contain `"include:"` so they pass `filter_hierarchy_to_lexical_cues`. These are the primary driver for LLM few-shot hierarchy extraction.
-36. **New `monitoring indicates condition` pool example** — New entry in `pool_strict_relations.json` (`brainit_monitoring_indicates_condition`) teaching the LLM to extract: `monitoring indicates condition` (Monitoring Data → Condition) and `targets condition` (Therapy → Condition). Also includes hierarchy edges linking `Intracranial Pressure (ICP)` and `Mean Arterial Pressure (MAP)` to `Condition` via the "secondary insults such as" text pattern.
-37. **Fluids/nutrition/condition promoted in scope filter** — `"fluids"`, `"fluid input"`, `"fluid input and output"`, `"nutrition"`, `"nutritional"`, `"condition"`, `"clinical condition"`, and `"sedation levels"` added to `_CLINICAL_TERMS_STRONG` and `_CLINICAL_VARIABLE_KEYWORDS_STRONG` in `scope_filter.py`, preventing chunks that contain only these brief terms from being filtered before reaching the LLM.
-
-**Observed results (2 post-fix runs):** Condition ✅ captured in both runs; Sedation ✅ in both runs; `targets condition` relation ✅ in both runs (50% → 75% relation recall); `Fluids` ✅ in Schema-Completed run; hierarchy_edges=7 and hierarchy_coverage=0.36 ✅ in Schema-Completed evaluation (was 0.00 across all 12 previous runs). Hierarchy still 0 in Fully Reasoned — see fix 38 below.
-
-38. **Synthetic evidence for LLM Reasoning Layer hierarchy edges** — The same `eval_restrict_to_gold` evidence-dropping bug (fixed for the Rule-based Reasoning Layer in fix 31) also affected the LLM Reasoning Layer. In Fully Reasoned mode, the LLM Reasoning Layer adds schema-licensed hierarchy edges before the Rule-based layer runs; the Rule-based then adds 0 new edges (already present), so no synthetic-evidence edges were created. Fixed by applying the same `"evidence": f"Schema-inferred: {sub} is a subclass of {sup}."` treatment at all three hierarchy-append sites in `ontology_completion.py`: Schema-Guided Completion (`stratum="schema_guided"`), LLM Reasoning Layer patch (`stratum="llm_reasoning"`, `"llm_reasoning_layer_patch"` provenance), and the secondary schema-guided path. All three sources' edges now carry evidence that satisfies `require_evidence=True` and contains `"is a"` (a `HIERARCHY_LEXICAL_TRIGGER`). Verified: all 7 gold-matched hierarchy edges from all three sources pass `filter_parsed_to_vocabulary` in a unit test.
-
-#### Phase 11: Strict/Guided mode audit + end-to-end pipeline check
-
-Comprehensive audit of Mode 1 (Strict Extraction) and Mode 2 (Guided Extraction) pipelines, followed by an end-to-end trace of all pipeline stages.
-
-39. **`phased_3step` Phase 2 instruction fix** — Phase 2 in `phased_3step` was incorrectly instructed to "extract relations and hierarchy only," but hierarchy extraction is Phase 3's job. Now uses `hierarchy_in_separate_phase=True` parameter so the instruction says "extract relations only (hierarchy will be extracted in Phase 3)." Phase 2 in `phased_2step` retains the original "relations and hierarchy" instruction since it has no dedicated Phase 3.
-
-40. **Phase 2 output vocabulary filtering** — Phase 2 output in both `phased_2step` and `phased_3step` was merged with Phase 1 without vocabulary filtering, allowing non-gold classes and relations to enter the ontology. Now Phase 2 output is filtered through `filter_parsed_to_vocabulary()` with the same parameters as Phase 1 (gold classes, relations, evidence requirements) before merge. Reduces noise in extraction-only metrics.
-
-41. **Provenance routing gated by `clinical_only_routing`** — `use_provenance` was not gated by `clinical_only_routing`, so chunks containing provenance keywords ("sensor", "data quality") were misrouted even when scope_filter was enabled. Now gated identically to `use_governance`: when `clinical_only_routing=True` (scope_filter on), all chunks route to core.
-
-42. **Dead parameter cleanup in `build_phase_prompt`** — Removed unused `use_provenance` and `use_governance` parameters from `build_phase_prompt()`. Replaced `used_core_vocab`/`used_governance_vocab` dead variables with direct use of `use_core`/`use_governance`.
-
-43. **Regex hierarchy `super_candidate` extraction fix** — `extract_hierarchy_from_text()`'s "include:" handler previously applied a 5-word cap taking the **last** 5 words, producing garbage superClass labels (e.g. "required for new therapeutic approaches"). Now: (a) strips leading articles ("The"), (b) strips trailing verb/preposition clauses ("required for...", "collected during..."), (c) caps to first 5 words (the noun phrase head). Result: "The minute by minute monitoring data required for new therapeutic approaches" → "minute by minute monitoring data" (correct).
-
-44. **`ALLOWED_CLASSES_CORE` expanded to v2.0** — Stale fallback vocabulary (`ALLOWED_CLASSES_CORE` in `vocabulary.py`) updated from 7 v1.0 classes to all 72 v2.0 gold classes. Ensures correct class coverage when running without a gold standard loaded.
-
----
-
 ## 3. Summary table (implemented functionality)
 
 | Area | Implemented |
@@ -420,6 +318,5 @@ Comprehensive audit of Mode 1 (Strict Extraction) and Mode 2 (Guided Extraction)
 | **UI** | Flask app: Run experiment (3-strategy + 4-mode + advanced); progress (with cancel); results; Run comparison (mirrors experiment form, 5-part run label, 5-column table); pipeline view; run list. |
 | **CLI** | Config-driven runs; `scope_filter` must be explicit when gold is loaded. |
 
-This implementation delivers a **modular, hybrid ontology engineering framework** with four prompting strategies (including 3-phase extraction), multiple LLM providers, a four-mode progressive pipeline abstraction (Strict → Guided → Schema-Completed → Fully Reasoned), complete evaluation against the BrainIT v2.0 gold standard (72 classes, 16 relations, 57 hierarchy edges) including **relation recall**, **hierarchy precision/recall**, and **per-stage ablation**, and reproducible, validated configuration for benchmark runs.
+This implementation delivers a **modular, hybrid ontology engineering framework** with three prompting strategies, multiple LLM providers, a four-mode progressive pipeline abstraction (Strict → Guided → Schema-Completed → Fully Reasoned), complete evaluation against the BrainIT gold standard  including **relation recall**, **hierarchy precision/recall**, and **per-stage ablation**, and reproducible, validated configuration for benchmark runs.
 
-**Doc maintenance:** Keep this summary in sync with the current backend (`reasoner.py`, `run_experiments.py`, `artifacts.py`, `metadata.py`, `canonical.py`, `scope_filter.py`, `schema.py`, `synonyms.py`, `ontology_completion.py`, `neuro_axioms.py`, `run.py`, `vocabulary.py`) and frontend (`web/app.py`, `comparison_dashboard.html`, `comparison_progress.html`, `index.html`). When changing pipeline behaviour, scope filter, evidence rules, hierarchy triggers, canonical aliases, evaluation synonyms, pool examples, build dedupe, config flags, UI options, or evaluation metrics, update §2.1 pipeline diagram and the relevant sections.

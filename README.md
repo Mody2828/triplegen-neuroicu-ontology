@@ -4,19 +4,14 @@ This folder holds project documentation for **TripleGen** (LLM-driven ontology e
 
 ## Main README
 
-For setup, quick start, and repository overview, see the **main project README** at the repo root:
-
-- **[../README.md](../README.md)** — main README for the Git repo
 
 ## Docs in this folder
 
 | Document | Description |
 |----------|-------------|
-| [**TripleGen_Walkthrough.md**](TripleGen_Walkthrough.md) | Visual step-by-step walkthrough of the web app with screenshot placeholders. |
-| [**implementation_summary.md**](implementation_summary.md) | Full design and implementation: pipeline, prompting strategies, pipeline modes, post-processing, evaluation, gold standard. |
-| [**UI_user_guide.md**](UI_user_guide.md) | Web UI reference guide: every option, setting, and artifact explained. |
-| [**updated-scope.md**](updated-scope.md) | Project scope (in-scope / out-of-scope). |
-| [**task_pool_wiring.md**](task_pool_wiring.md) | Few-shot example pools and wiring for each strategy. |
+| [**TripleGen_WepApp.md**](TripleGen_Walkthrough.md) | Visual step-by-step walkthrough of the web app with screenshot placeholders. |
+| [**implementation.md**](implementation_summary.md) | Full design and implementation: pipeline, prompting strategies, pipeline modes, post-processing, evaluation, gold standard. |
+| [**Scope.md**](updated-scope.md) | Project scope (in-scope / out-of-scope). |
 
 ## Project at a glance
 
@@ -24,4 +19,4 @@ For setup, quick start, and repository overview, see the **main project README**
 - **Research question**: How well can LLMs reconstruct a high-quality domain ontology in a low-resource clinical setting?
 - **Deliverables**: Reproducible pipeline, multi-LLM and multi-strategy comparison, evaluation metrics and per-stage ablation, web UI and interactive ontology graph.
 
-For details, start with [implementation_summary.md](implementation_summary.md).
+For details, start with [implementation.md](implementation.md).
