@@ -59,6 +59,8 @@ Corpus (paste/upload) → Load (strip control chars → normalize → [scope fil
 
 Stage snapshots are written to `metrics["by_stage"]` in `metrics.json` and displayed in the **per-stage ablation table** in `summary.txt`.
 
+![Home Dashboard](screenshots/1.jpg)
+
 ---
 
 ### 2.2 Corpus input, normalization, scope filter, and chunking
