@@ -389,38 +389,6 @@ This label appears in the comparison table, run list, batch progress, summary fi
 
 ---
 
-## 10. Tips and best practices
-
-### Which configuration should I start with?
-
-| Goal | Recommended |
-|------|-------------|
-| Quick baseline — see what the raw LLM produces | Zero-Shot, Mode 1 (Strict) |
-| Best balance of quality and speed | **Few-Shot, Mode 3 (Schema-Completed)** ← app default |
-| Maximum ontology completeness | Few-Shot, Mode 4 (Fully Reasoned) |
-| Study the effect of 3-phase extraction | Few-Shot III, Mode 3 or 4 |
-| Full ablation study | Add all 4 modes for Few-Shot via the comparison page |
-| Compare LLM providers | Add the same mode across all 6 providers |
-
-### Uploading multiple papers
-
-When you upload two or more files, the pipeline builds a multi-document corpus and extracts from all of them. This typically produces a richer ontology because more clinical text is available. The input paper names are recorded in `metadata.json` and `summary.txt`.
-
-### Interpreting precision = 1.0
-
-If **Gold-vocabulary-only** is enabled (the default), precision will always be 1.0 because non-gold items are filtered before evaluation. This is by design — it isolates **recall** as the key metric. To see true precision (including hallucinations), uncheck Gold-vocabulary-only.
-
-### Dealing with LLM non-determinism
-
-The same configuration may produce different results on repeated runs because LLM outputs are inherently non-deterministic. Use the **per-config Analysis** button (📊) to view all past runs for a configuration and compare their metrics.
-
-### API errors and troubleshooting
-
-- Verify your API keys in `.env`.
-- Check provider rate limits (especially Groq and HuggingFace free tiers).
-- If a run shows zero recall, ensure the gold standard file exists at `resources/brainit_core_2003.ttl`.
-- For slow runs: Mode 4 (Fully Reasoned) makes the most LLM calls. Start with Mode 3 for faster iteration.
-
 ### Where are my run files?
 
 All outputs are saved under `runs/<run_id>/`:
