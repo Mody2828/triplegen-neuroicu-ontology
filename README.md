@@ -6,9 +6,9 @@ This folder holds project documentation for **TripleGen** (LLM-driven ontology e
 
 | Document | Description |
 |----------|-------------|
-| [**TripleGen_WepApp.md**](TripleGen_Walkthrough.md) | Visual step-by-step walkthrough of the web app with screenshot placeholders. |
+| [**tripleGen_WepApp.md**](TripleGen_Walkthrough.md) | Visual step-by-step walkthrough of the web app with screenshot placeholders. |
 | [**implementation.md**](implementation_summary.md) | Full design and implementation: pipeline, prompting strategies, pipeline modes, post-processing, evaluation, gold standard. |
-| [**Scope.md**](Scope.md) | Project scope (in-scope / out-of-scope). |
+| [**scope.md**](Scope.md) | Project scope (in-scope / out-of-scope). |
 
 ## Project at a glance
 
