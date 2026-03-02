@@ -97,13 +97,8 @@ Stage snapshots are written to `metrics["by_stage"]` in `metrics.json` and displ
 | `one_shot` | One-Shot (MMR-1) | **One** best concept example per chunk from `pool_strict_concepts.json` (MMR k=1). Optional hierarchy phase runs **only when** the chunk contains hierarchy cues and has ≥2 class labels from the **allowed clinical vocabulary**. |
 | `phased_3step` | **Few-Shot** | **Phase 1:** 3 concept examples → extract classes. **Phase 2:** 3 relation examples → extract relations only (hierarchy deferred to Phase 3). **Phase 3:** 3 hierarchy examples → extract hierarchy only where lexical cues exist. Three LLM calls, then merge. Phase 2 and Phase 3 outputs are vocabulary-filtered before merge. |
 
-**Legacy strategies (hidden, backward-compatible):**
 
-| Strategy (config id) | Legacy display name | Status |
-|----------------------|---------------------|--------|
-| `simple_fewshot` | Few-Shot I (legacy) | Dominated by `phased_2step`; hidden from UI. |
-
-**Task-specific example pools** (see `docs/task_pool_wiring.md` for the full wiring map):
+**Task-specific example pools**:
 
 - **`pool_strict_concepts.json`** — 6 class-first examples from BrainIT core dataset; all labels gold-schema aligned. All `Patient` evidences use direct source-text quotes.
 - **`pool_strict_relations.json`** — 6 strong, source-faithful relation examples with gold class labels for domain/range. Includes `brainit_monitoring_indicates_condition` — a dedicated example teaching the LLM to extract the `monitoring indicates condition` relation (Monitoring Data → Condition) and the `targets condition` relation (Therapy → Condition).
@@ -165,8 +160,6 @@ Pipeline mode is reported in the run label (format: `Strategy - Mode - LLM - Eva
 The collapsible **Advanced** section of the UI provides:
 
 - **Reasoning LLM override**: Selects the LLM for improvement steps (see §2.4). Defaults to OpenAI; DeepSeek Reasoner is the alternative. When DeepSeek Reasoner is used, `DSR` appears in the run label.
-
-**Medical NER anchor** (`medical_ner_anchor`) is now a **built-in component of Guided Extraction mode** (Mode 2) and cascades to Modes 3 and 4. It injects biomedical entities extracted by ScispaCy (`en_ner_bc5cdr_md`) into the prompt as "Suggested concepts," anchoring the LLM's extraction on verified clinical entities. It is no longer exposed as a separate Advanced toggle.
 
 ---
 
