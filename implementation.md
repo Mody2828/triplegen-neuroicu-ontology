@@ -42,26 +42,62 @@ The system is organised into **four conceptual layers**:
 4. **Evaluation**
    The ontology is aligned to the gold standard, metrics are computed, per-stage snapshots are recorded, and the run summary is produced.
 
-### Pipeline order
+### Pipeline Order
 
-```text
-Corpus (paste/upload) → Load (strip control chars → normalize → [scope filter if enabled])
-    → Chunking (control chars stripped per chunk; candidates with section context)
-    → Extraction (per chunk, by strategy; evidence required; Phase 2 output filtered)
-    → Merge (build_ontology: evidence required; canonical alias map + singular/plural; dedupe by canonical key / (label, domain, range); stratum on entities; duplicate merge of provenance/synonyms/aliases)
-    → [Vocabulary filter if filter_to_gold_vocabulary enabled]
-    ──── STAGE SNAPSHOT: extraction ────
-    → [Schema-guided completion]
-    ──── STAGE SNAPSHOT: after_sgc ────
-    → [Built-in cleanup]
-    ──── STAGE SNAPSHOT: after_cleanup ────
-    → [LLM Reasoning Layer (on clean ontology)]
-    ──── STAGE SNAPSHOT: after_llm_reasoning ────
-    → [Rule-based Reasoning Layer (optional: schema completion + orphan pruning)]
-    ──── STAGE SNAPSHOT: after_rule_based ────
-    → [Gold-vocab filter if eval_restrict_to_gold]
-    ──── STAGE SNAPSHOT: after_gold_filter ────
-    → Validation → Evaluation (class + relation + hierarchy metrics) → Artifacts & summary
+The pipeline follows these steps:
+
+1. **Corpus Input**
+   - Paste or upload text (e.g., `.txt` or `.pdf` files).
+   - Load and preprocess the text:
+     - Strip control characters.
+     - Normalize text.
+     - Apply scope filter (if enabled).
+
+2. **Chunking**
+   - Split text into chunks.
+   - Retain section context for each chunk.
+
+3. **Extraction**
+   - Extract ontology elements per chunk using the selected strategy.
+   - Apply evidence requirements.
+   - Filter Phase 2 output.
+
+4. **Merge and Vocabulary Filtering**
+   - Merge extracted chunks into a single ontology.
+   - Apply canonical alias mapping, singular/plural normalization, and deduplication.
+   - Optionally filter vocabulary to match the gold standard.
+
+   **Stage Snapshot:** Extraction
+
+5. **Schema-Guided Completion**
+   - Apply schema-guided completion to enhance the ontology.
+
+   **Stage Snapshot:** After Schema-Guided Completion (SGC)
+
+6. **Built-in Cleanup**
+   - Perform cleanup operations on the ontology.
+
+   **Stage Snapshot:** After Cleanup
+
+7. **LLM Reasoning Layer**
+   - Apply reasoning to the cleaned ontology.
+
+   **Stage Snapshot:** After LLM Reasoning
+
+8. **Rule-Based Reasoning Layer** (Optional)
+   - Apply schema completion and orphan pruning.
+
+   **Stage Snapshot:** After Rule-Based Reasoning
+
+9. **Gold Vocabulary Filtering** (Optional)
+   - Filter ontology to match the gold vocabulary if evaluation restriction is enabled.
+
+   **Stage Snapshot:** After Gold Filter
+
+10. **Validation and Evaluation**
+    - Validate the ontology.
+    - Evaluate metrics (class, relation, hierarchy).
+    - Generate artifacts and summary.
 
 ---
 
