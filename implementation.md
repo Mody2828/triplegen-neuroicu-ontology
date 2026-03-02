@@ -62,11 +62,12 @@ Corpus (paste/upload) → Load (strip control chars → normalize → [scope fil
     → [Gold-vocab filter if eval_restrict_to_gold]
     ──── STAGE SNAPSHOT: after_gold_filter ────
     → Validation → Evaluation (class + relation + hierarchy metrics) → Artifacts & summary
-```
 
-Stage snapshots are written to `metrics["by_stage"]` in `metrics.json` and displayed in the **per-stage ablation table** in `summary.txt`.
+---
 
-![Pipline](screenshots/1.jpg)
+**Refer to the pipeline graph below for a visual representation of the methodology:**
+
+![Pipeline](screenshots/1.jpg)
 
 ---
 
