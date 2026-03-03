@@ -18,12 +18,13 @@ The project evaluates LLM-driven ontology engineering in a low-resource clinical
 
 ## 3.4 Research Objectives
 
-Four objectives guided the project:
+Five objectives guided the project:
 
-1. **Assess LLM capability** — can LLMs reconstruct BrainIT ontology concepts, relations, and hierarchy from domain literature?
-2. **Compare prompting strategies** — how do zero-shot, one-shot, and few-shot (with three-phase decomposition) approaches compare across multiple LLM providers?
-3. **Analyse failure modes** — what are the common problems: hallucinations, scope drift, structural inconsistencies?
-4. **Evaluate pipeline components** — how do ontology constraints, phased extraction, and progressive post-processing improvements affect alignment in a low-resource domain?
+1. **Assess LLM capability** — determine whether LLMs can reconstruct BrainIT ontology concepts, relations, and hierarchy from Neuro-ICU literature.
+2. **Compare prompting strategies** — evaluate how Zero-Shot, One-Shot, and Few-Shot approaches, including phased decomposition and anti-anchoring design, perform across multiple LLM providers.
+3. **Compare source-document effects** — investigate how differences between input papers influence ontology extraction quality, including concept coverage, relation recovery, hierarchy reconstruction, and error patterns.
+4. **Analyse failure modes** — identify common errors such as hallucinations, scope drift, anchoring bias, and structural inconsistencies.
+5. **Evaluate pipeline components** — assess how vocabulary guardrails, Medical NER, schema-guided completion, and LLM reasoning layers influence alignment with the gold standard.
 
 ## 3.5 Delivered Methodology Pipeline
 
