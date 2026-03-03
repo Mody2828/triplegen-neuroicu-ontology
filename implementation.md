@@ -1,693 +1,296 @@
-# Implementation Summary: LLM-Driven Ontology Engineering for Neuro-ICU
+# Chapter 3: Implementation of the LLM-Driven Ontology Engineering Framework for Neuro-ICU
 
-This document presents a concise summary of the **project aim and objectives** together with a detailed overview of the **implemented design and functionality** of the framework.
-
----
-
-## 1. Project aim and objectives
-
-### Aim
-
-The project aims to **design, implement, and evaluate** an LLM-driven ontology engineering framework for the **Neuro-ICU / neuro-intensive care domain**, using **BrainIT literature** as the primary input. The central question is how well language models can reconstruct a high-quality domain ontology in a **low-resource clinical setting**, and which factors—prompting, constraints, post-processing, and choice of LLM—improve or degrade that outcome.
-
-### Objectives
-
-* **End-to-end pipeline:** Build a reproducible pipeline from raw text input (paste or upload) to a generated ontology and evaluation report.
-* **Multiple LLM providers:** Support and compare extraction across several APIs (OpenAI (GPT‑4o‑mini), Anthropic (Claude Haiku 4.5), Google (Gemini 2.5 Flash), Groq (Llama 3.1 8B), Hugging Face (Mistral 7B), DeepSeek (deepseek-chat)).
-* **Several prompting methods:** Compare zero-shot (baseline), one-shot, few-shot (phased 2-step), and few-shot III (phased 3-step) extraction to assess the impact of examples and task decomposition.
-* **Progressive pipeline modes:** Provide four clearly named modes (Strict → Guided → Schema-Completed → Fully Reasoned) that group optional post-processing features into meaningful experimental conditions for ablation.
-* **Enhancement strategies:** Implement and evaluate optional post-processing improvements—schema-guided completion, an LLM reasoning layer, and a rule-based reasoning layer—as orthogonal toggles for ablation.
-* **Evaluation against gold:** Evaluate generated ontologies against the **BrainIT gold standard** (ontology/schema) using coverage, precision, recall, **relation recall**, structural metrics, error taxonomy, and a **per-stage ablation table**.
-* **Usability and reproducibility:** Provide a web-based UI for running experiments, saving artifacts per run, and comparing runs side-by-side.
-
-The framework is positioned as a **modular hybrid ontology engineering system** (prompt strategies plus optional LLM and symbolic layers), rather than only a set of prompt experiments.
+This chapter walks through how the framework was built, explaining each part of the pipeline, why certain design choices were made, and how everything fits together. It covers the architecture, prompting strategies, post-processing layers, evaluation, and the web interface.
 
 ---
 
-## 2. Implemented design and functionality
+## 3.1 Project aim and objectives
 
-### 2.1 High-level architecture
+### 3.1.1 Aim
 
-The system is organised into **four conceptual layers**:
+The goal of this project is to build and evaluate an LLM-driven ontology engineering framework for the Neuro-ICU domain, using BrainIT clinical literature as input. The key question is: how well can language models reconstruct a domain ontology in a low-resource clinical setting, and what factors — prompting style, constraints, post-processing, and choice of LLM — help or hurt the result?
 
-1. **Prompt strategy (extraction)**
-   Defines how the LLM extracts ontology elements from text, including the choice of prompting method and, where applicable, the retrieval of examples.
+### 3.1.2 Objectives
 
-2. **Merge and optional vocabulary filter**
-   Chunk-level extractions are merged into a single ontology. When evaluation controls are enabled, the result can optionally be restricted to a gold vocabulary.
+The first objective is to build a complete, reproducible pipeline that goes from raw text (pasted or uploaded) all the way to a generated ontology with an evaluation report. The second is to support multiple LLM providers — OpenAI (GPT-4o-mini), Anthropic (Claude Haiku 4.5), Google (Gemini 2.5 Flash), Groq (Llama 3.1 8B), Hugging Face (Mistral 7B), and DeepSeek (deepseek-chat) — so the extraction method and model can be swapped independently.
 
-3. **Post-processing**
-   Built-in cleanup is applied when gold is available, followed by optional improvements in fixed order: Schema-guided completion, LLM Reasoning Layer, and Rule-based Reasoning Layer.
+Another objective is to compare different prompting approaches: zero-shot (no examples), one-shot (one example), and few-shot with a three-phase decomposition, to see how examples and task decomposition affect extraction quality. The framework also provides four progressive pipeline modes — Strict, Guided, Schema-Completed, and Fully Reasoned — that bundle post-processing features into named experimental conditions for clean ablation studies. The idea is that each mode is a superset of the previous one, so you can see exactly what each added component contributes.
 
-4. **Evaluation**
-   The ontology is aligned to the gold standard, metrics are computed, per-stage snapshots are recorded, and the run summary is produced.
+On top of that, the framework supports optional enhancement layers — schema-guided completion, an LLM reasoning layer, and a rule-based reasoning layer — that can be toggled independently. Evaluation is done against the BrainIT gold standard using coverage, precision, recall, relation recall, hierarchy precision/recall, structural metrics, error taxonomy, and a per-stage ablation table. Finally, there's a web UI for running experiments, saving artifacts, and comparing results side by side.
 
-### Pipeline Order
-
-The pipeline follows these steps:
-
-1. **Corpus Input**
-   - Paste or upload text (e.g., `.txt` or `.pdf` files).
-   - Load and preprocess the text:
-     - Strip control characters.
-     - Normalize text.
-     - Apply scope filter (if enabled).
-
-2. **Chunking**
-   - Split text into chunks.
-   - Retain section context for each chunk.
-
-3. **Extraction**
-   - Extract ontology elements per chunk using the selected strategy.
-   - Apply evidence requirements.
-   - Filter Phase 2 output.
-
-4. **Merge and Vocabulary Filtering**
-   - Merge extracted chunks into a single ontology.
-   - Apply canonical alias mapping, singular/plural normalization, and deduplication.
-   - Optionally filter vocabulary to match the gold standard.
-
-   **Stage Snapshot:** Extraction
-
-5. **Schema-Guided Completion**
-   - Apply schema-guided completion to enhance the ontology.
-
-   **Stage Snapshot:** After Schema-Guided Completion (SGC)
-
-6. **Built-in Cleanup**
-   - Perform cleanup operations on the ontology.
-
-   **Stage Snapshot:** After Cleanup
-
-7. **LLM Reasoning Layer**
-   - Apply reasoning to the cleaned ontology.
-
-   **Stage Snapshot:** After LLM Reasoning
-
-8. **Rule-Based Reasoning Layer** (Optional)
-   - Apply schema completion and orphan pruning.
-
-   **Stage Snapshot:** After Rule-Based Reasoning
-
-9. **Gold Vocabulary Filtering** (Optional)
-   - Filter ontology to match the gold vocabulary if evaluation restriction is enabled.
-
-   **Stage Snapshot:** After Gold Filter
-
-10. **Validation and Evaluation**
-    - Validate the ontology.
-    - Evaluate metrics (class, relation, hierarchy).
-    - Generate artifacts and summary.
+The overall positioning is as a modular hybrid ontology engineering system that combines prompting strategies with optional LLM and symbolic reasoning layers — not just a set of prompt experiments.
 
 ---
 
-**Refer to the pipeline graph below for a visual representation of the methodology:**
+## 3.2 Implemented design and functionality
+
+### 3.2.1 High-level architecture
+
+The system has four conceptual layers:
+
+1. **Extraction layer** — how the LLM pulls ontology elements from text: the prompting method, and where applicable, retrieving few-shot examples using MMR (Maximal Marginal Relevance).
+2. **Merge and vocabulary filter** — chunk-level extractions are combined into one ontology and optionally restricted to the gold vocabulary for evaluation.
+3. **Post-processing** — built-in cleanup (always runs when gold is available), then optional improvements in order: schema-guided completion → LLM reasoning → rule-based reasoning.
+4. **Evaluation** — alignment to the gold standard, metrics computation, per-stage snapshots, and summary generation.
+
+### 3.2.2 Pipeline order
+
+The pipeline flows like this:
+
+1. **Corpus input** — text is pasted or uploaded (`.txt` / `.pdf`).
+2. **Preprocessing** — control character stripping, normalisation, and optional scope filtering.
+3. **Chunking** — the corpus is split into semantic chunks with section context preserved.
+4. **Extraction** — each chunk is processed by the selected prompting strategy. Evidence requirements are enforced and Phase 2 output is vocabulary-filtered before merge.
+5. **Merge** — chunk outputs are combined using canonical alias mapping, singular/plural normalisation, and deduplication. If evaluation controls are on, a gold vocabulary filter is applied. This is the **extraction stage snapshot**.
+6. **Schema-guided completion** → snapshot.
+7. **Built-in cleanup** → snapshot.
+8. **LLM Reasoning Layer** (if enabled) → snapshot.
+9. **Rule-based Reasoning** (if enabled) → snapshot.
+10. **Gold-vocab filter** (if enabled) → snapshot.
+11. **Validation and evaluation** — metrics computed, artifacts and summary generated.
+
+Each snapshot captures class/relation/hierarchy counts and all evaluation metrics, written to `metrics["by_stage"]` in `metrics.json` and displayed as an ablation table in `summary.txt`.
+
+The pipeline is illustrated in the methodology graph shown below.
 
 ![Pipeline](screenshots/1.jpg)
 
----
-
-### 2.2 Corpus input, normalization, scope filter, and chunking
+### 3.2.3 Corpus input, normalisation, scope filtering, and chunking
 
 #### Input
 
-Users can either **paste text** directly or **upload one or more files** (`.txt` or `.pdf`). Multiple uploaded files are saved to `data/corpus_ui` and loaded as a multi-document corpus. The **Use default paper** option allows a run to use a built-in default corpus when no text is pasted or uploaded.
+The framework accepts text in three ways: paste directly, upload one or more `.txt`/`.pdf` files, or use the built-in **default paper** option. Multiple uploaded files are loaded as a multi-document corpus. When a single file is used (default paper or pasted text), the corpus path points directly to that file to make sure only the intended document gets processed.
 
-#### Load pipeline (`src/corpus/ingest.py`)
+#### Load pipeline
 
-For each document, the load sequence is:
+For each document, the load sequence is: raw text → strip control characters → normalise → optionally apply scope filter → store as `doc["text"]`. PDF documents also get `doc["pages"]` for page-level segments (useful for header/footer detection).
 
-* **raw text**
-* **strip control chars** (`clean_chars`)
-* **normalize**
-* **[scope filter if enabled]**
+#### Normalisation
 
-The resulting cleaned text is stored as `doc["text"]`.
+Normalisation handles the messy stuff that comes with real-world text: fixing broken hyphenation across line breaks (e.g. `intra-\ncranial` → `intracranial`), normalising Unicode symbols like fancy dashes and curly quotes, removing repeated headers/footers, and stripping control characters.
 
-Optional fields include:
+#### Scope filter
 
-* `doc["raw_text"]` when `keep_raw_text` is enabled in config
-* `doc["pages"]` for PDFs, providing page-level segments for provenance and header/footer detection
+The scope filter is one of the more important preprocessing steps. BrainIT papers contain a lot of governance, organisational, and administrative content (steering groups, ethics committees, database access policies, etc.) that has nothing to do with clinical ontology. Without filtering, the LLM wastes extraction effort on this irrelevant material.
 
-#### Normalization (`src/corpus/normalize.py`)
+The filter works at two levels. At the document level, it removes paragraphs and lines that are heavily administrative. At the chunk level, it uses a dual-score router: each chunk gets an `(admin_score, clinical_score)` pair, and chunks with high admin scores but low clinical scores get dropped. Governance sections (Part A, group formation, database access, ethics approval) are always dropped. Clinical sections are always kept and reordered to appear first.
 
-Normalization performs the following operations:
+The blacklist only contains compound phrases like `steering group`, `ethics committee`, `data validation staff`, and `publication criteria` — single generic words are deliberately excluded to avoid accidentally removing clinical content.
 
-* fixes broken hyphenation across line breaks
-  *(e.g. `intra-\ncranial` → `intracranial`)*
-* normalises symbols such as Unicode fractions, fancy dashes, curly quotes, and OCR repeats
-* removes repeated header/footer lines across pages or blocks
-* strips form-feed and other control characters
+Clinical scoring uses weighted terms. Strong terms (weight 1.0) include `heart rate`, `ICP`, `GCS`, `sedation`, `ventilation`, `monitoring`, `CPP`, `MAP`, `fluids`, `nutrition`, and `condition`. Broad terms like `core dataset` and `outcome` get 0.5. Terms like `fluids`, `nutrition`, `condition`, and `sedation levels` were specifically promoted to strong because they represent legitimate clinical concepts that happen to appear in brief mentions — without promotion, chunks containing only these terms would get filtered out before reaching the LLM.
 
-#### Scope filter (optional)
-
-When enabled, the scope filter runs **inside `load_corpus` after normalization**.
-
-It operates at two levels:
-
-##### 1. Document-level filtering
-
-* paragraph-level filtering drops whole paragraphs if they are admin-heavy
-* line-level filtering removes administrative headings, phrases, and blacklist terms
-
-##### 2. Chunk-level filtering
-
-After chunking, `filter_chunks_to_clinical` applies a **dual-score router**:
-
-* `chunk_scores()` returns `(admin_score, clinical_score)`
-
-Chunks are handled as follows:
-
-* **Drop** if:
-
-  * the section matches governance sections
-    *(e.g. Part A, group formation, database access, ethics approval, etc.)*
-  * `governance_dominance ≥ 2` and `clinical_score ≤ 1`
-  * `admin_score ≥ 2` and `clinical_score ≤ 1`
-
-* **Keep** if:
-
-  * `clinical_score ≥ 3`
-  * the section matches clinical dataset sections
-
-* **Reorder**:
-
-  * clinical dataset sections are ordered first
-
-##### Blacklist terms (`_SCOPE_BLACKLIST_TERMS`)
-
-Only compound phrases are blacklisted:
-
-* `membership`
-* `centres`
-* `centers`
-* `quality control`
-* `steering group`
-* `ethics committee`
-* `consortium`
-* `data validation staff`
-* `validation workflow`
-* `publication criteria`
-
-Single generic words are intentionally excluded from the blacklist to avoid removing legitimate clinical content.
-
-##### Clinical scoring
-
-Clinical scoring assigns weights as follows:
-
-* **Strong terms (1.0)** include:
-  `heart rate`, `ICP`, `GCS`, `sedation`, `sedation levels`, `ventilation`, `monitoring`, `CPP`, `MAP`, `fluids`, `fluid input and output`, `nutrition`, `condition`, etc.
-* **Broad terms (0.5)** include:
-  `core dataset`, `outcome`
-
-The following were explicitly promoted to strong terms:
-
-* `monitoring`
-* `fluids`
-* `nutrition`
-* `condition`
-* `sedation levels`
-
-This was done to avoid filtering out chunks that contain only brief but clinically relevant therapy-type terms before they reach the LLM.
-
-#### Scope filter config validation
-
-When a gold standard is loaded in benchmark mode, `scope_filter` **must be explicitly set** in the config. If the key is missing, `run_experiments.run_one()` raises a `ValueError` immediately. This ensures that UI runs (`scope_filter=True` by default) and CLI runs remain comparable.
+When a gold standard is loaded, the `scope_filter` setting must be explicitly defined in the config. If it's missing, the pipeline raises an error to prevent accidentally running with different filter settings.
 
 #### Chunking
 
-Documents are split into **semantic chunks** so that each chunk:
+Documents are split into semantic chunks that stay coherent while fitting within prompt limits. Each chunk gets control characters stripped again, and candidate terms are extracted from noun phrases and stored alongside the text for optional prompt injection.
 
-* remains coherent
-* fits within prompt limits
+### 3.2.4 Prompting methods
 
-Chunk text is passed through **strip control chars** again before candidate extraction and storage.
+Three prompting strategies are available in the UI. Two legacy strategies remain for backward compatibility but are hidden.
 
----
+#### Zero-Shot
 
-### 2.3 Prompting methods (extraction strategies)
+No examples at all — the model extracts classes, relations, and hierarchy directly from text using only its instructions. It uses a detailed baseline prompt with strict scope rules, evidence requirements, and hierarchy constraints. This serves as the control condition for comparison.
 
-**Four active** prompting strategies are exposed in the UI. One legacy strategy is retained for backward compatibility but hidden. Strategy order and IDs are defined in `src/prompting/strategy_order.py`.
+#### One-Shot (MMR-1)
 
-| Strategy (config id) | Display name (UI) | Description                                                                                                                                                                                                                                                                                                                       |
-| -------------------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `baseline`           | Zero-Shot         | No examples; model extracts classes, relations, and hierarchy from text only.                                                                                                                                                                                                                                                     |
-| `one_shot`           | One-Shot (MMR-1)  | **One** best concept example per chunk from `pool_strict_concepts.json` (MMR k=1). Optional hierarchy phase runs **only when** the chunk contains hierarchy cues and has ≥2 class labels from the **allowed clinical vocabulary**.                                                                                                |
-| `phased_3step`       | **Few-Shot**      | **Phase 1:** 3 concept examples → extract classes. **Phase 2:** 3 relation examples → extract relations only (hierarchy deferred to Phase 3). **Phase 3:** 3 hierarchy examples → extract hierarchy only where lexical cues exist. Three LLM calls, then merge. Phase 2 and Phase 3 outputs are vocabulary-filtered before merge. |
+Retrieves one best concept example per chunk from the concept pool using MMR with `k=1`. There's also an optional hierarchy sub-phase that runs when the chunk text has hierarchy cues and at least one extracted class.
+
+#### Few-Shot (three-phase, primary strategy)
+
+This is the main strategy. It breaks the extraction task into three separate LLM calls, each focused on a different ontological concern. The idea behind this decomposition is that extracting classes, relations, and hierarchy edges are fundamentally different tasks that benefit from separate focus and phase-specific examples. Trying to do everything at once in a single prompt often leads to the model prioritising one task over others.
+
+**Phase 1 — Class extraction.** Three concept examples (selected via MMR) prompt the LLM to extract classes. The Phase 1 instruction is deliberately comprehensive — it lists eight specific concept types to look for:
+
+- Clinical conditions and secondary insults (e.g. Hypotension)
+- Physiological parameters and monitoring variables (e.g. Heart Rate, ICP, Temperature)
+- Treatments, therapies, and interventions (e.g. Sedation, Ventilation, Fluids)
+- Clinical assessments and outcomes (e.g. GCS Assessment, GOSe Outcome)
+- Laboratory values and biochemistry (e.g. Sodium, Glucose, Haemoglobin)
+- Nursing interventions and bedside activities (e.g. Physiotherapy, Patient Transport)
+- Data quality and sensor concepts (e.g. Sensor, Data Quality Assessment)
+- Abstract category classes when explicitly named (e.g. Monitoring Data, Therapy, Observation)
+
+The instruction also includes a "breadth over caution" directive: if the text mentions 15 concepts, extract all 15. Don't stop early. This was added because earlier testing showed that few-shot examples were anchoring the model too narrowly — if the examples only showed monitoring parameters, the model would only extract monitoring parameters and skip therapies, assessments, lab values, etc.
+
+**Phase 2 — Relation extraction.** Three relation examples prompt the LLM for relations. The instruction also explicitly allows the LLM to extract supplementary classes that Phase 1 might have missed — for instance, a concept needed as domain or range for a relation. Hierarchy is deferred to Phase 3. Output is vocabulary-filtered before merge.
+
+**Phase 3 — Hierarchy extraction.** Three hierarchy examples prompt the LLM to extract subclass/superclass edges, but only where the text contains explicit cues like "such as", "is a", "type of", "kind of", "include:", or "includes:". The prompt shows concrete examples of how enumeration cues map to edges (e.g. "parameters such as Heart Rate" → `Heart Rate subClassOf Parameter`).
+
+Phase 3 only runs when: (a) at least one class has been extracted, (b) the chunk text contains at least one hierarchy trigger phrase, and (c) hierarchy examples are available. When fewer than five classes have been extracted, gold vocabulary labels are injected as valid endpoint labels so the LLM can still form useful hierarchy edges even when earlier phases were conservative. Output is filtered through `filter_hierarchy_to_lexical_cues` before merge.
+
+#### Anti-anchoring
+
+A key design element in the few-shot template. When you give an LLM a few examples, it tends to anchor on the surface features of those examples — if all three examples show monitoring parameters, the model assumes it should only extract monitoring parameters. This is a well-known problem in in-context learning.
+
+To counter this, the prompt includes an explicit anti-anchoring instruction: "The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type."
+
+The traditional "Reject rule: when in doubt, omit" was also replaced with a more balanced "Confidence rule: if a clinical concept is clearly named in the text (even briefly), include it." The original reject rule was too conservative for few-shot mode and was causing the model to under-extract compared to zero-shot.
+
+#### MMR for example selection
+
+For all few-shot strategies, examples are selected from task pools using Maximal Marginal Relevance (MMR). The reason for using MMR rather than just picking the top-k most similar examples is that simple top-k selection tends to pick redundant examples that all cover similar content, wasting prompt space. MMR balances two things: how relevant each example is to the current chunk, and how different it is from the examples already selected.
+
+Concretely, the score for each candidate is:
+
+`MMR(d) = λ · sim(d, query) − (1−λ) · max_sim(d, already_selected)`
+
+with `λ = 0.7` (favouring relevance over diversity). The first example picked is the most similar to the chunk text; subsequent picks maximise the MMR score. Similarity is cosine similarity on TF-IDF vectors.
+
+There's also a `gold_first` option that ensures the first (gold-standard-aligned) example in each pool is always included, providing a reliable format anchor while letting MMR choose the rest for relevance and diversity.
 
 #### Task-specific example pools
 
-* **`pool_strict_concepts.json`**
-  6 class-first examples from the BrainIT core dataset; all labels are gold-schema aligned. All `Patient` evidences use direct source-text quotes.
+Three pools provide the examples:
 
-* **`pool_strict_relations.json`**
-  6 strong, source-faithful relation examples with gold class labels for domain/range. Includes `brainit_monitoring_indicates_condition`, a dedicated example teaching the model to extract:
+- **`pool_strict_concepts.json`** — six class-first examples from the BrainIT core dataset, all aligned to gold-schema labels with direct source-text quotations.
+- **`pool_strict_relations.json`** — six relation examples with gold class labels for domain/range, including one that teaches `monitoring indicates condition` and `targets condition`.
+- **`pool_strict_hierarchy.json`** — five hierarchy examples, including two using verbatim BrainIT paper sentences with the `"include:"` enumeration pattern (monitoring parameters as subclasses of Monitoring Data; ICU management types as subclasses of Intensive Care Management).
 
-  * the `monitoring indicates condition` relation (Monitoring Data → Condition)
-  * the `targets condition` relation (Therapy → Condition)
+#### Vocabulary guardrails
 
-* **`pool_strict_hierarchy.json`**
-  5 gold-aligned hierarchy examples. Includes two examples using **verbatim BrainIT paper sentences** with the `"include:"` enumeration pattern:
+When enabled, the prompt injects gold class labels and paper-wording relation labels (not CamelCase gold relation labels, which would cause the LLM to echo labels that fail the post-extraction whitelist). A "leaf-first rule" tells the model to prefer specific labels (ICP, CPP, MAP) over broad containers (Monitoring Data, Therapy) when both appear in the text.
 
-  * one for monitoring parameters
-    *(Heart Rate, Respiration Rate, MAP, ICP, SaO2, Temperature ⊑ Monitoring Data)*
-  * one for ICU management types
-    *(Ventilation, Sedation, Fluids, Nutrition, Vasopressors, Antibiotics ⊑ Intensive Care Management)*
+### 3.2.5 Medical NER anchor
 
-All hierarchy-edge evidences contain valid lexical triggers that pass `filter_hierarchy_to_lexical_cues`.
+The framework uses biomedical Named Entity Recognition to pre-identify clinical entities before LLM extraction. The idea is simple: run a specialised NER model over the text first, then inject the found entities into the prompt as "Suggested concepts." This gives the LLM a head start — it already knows which clinical terms are present and is less likely to miss or hallucinate them.
 
-#### Hierarchy phase class label filtering
+The NER component tries to load models in this order:
 
-For both `one_shot` and `phased_2step` hierarchy sub-calls, the `known_classes` list is filtered to the allowed clinical vocabulary before being passed to the prompt.
+1. **ScispaCy** models — preferring `en_ner_bc5cdr_md` (trained on the BioCreative V Chemical Disease Relation corpus, recognises diseases and chemicals), then `en_ner_jnlpba_md` (biomedical named entities), then the generic scientific models.
+2. **Med-spaCy** models — clinical NLP pipelines as a fallback.
 
-#### Vocabulary and filtering
+ScispaCy provides spaCy-compatible models trained specifically on biomedical text. The preferred BC5CDR model is a good fit for Neuro-ICU because it picks up diseases and chemicals, which map closely to clinical conditions, therapies, and parameters in our domain.
 
-When **Prompt vocab guardrails** is enabled, the prompt injects:
+The function processes up to 500,000 characters, extracts unique entity spans (min 2 chars, deduplicated), and returns up to 150 suggested concepts. If no NER model can be loaded (e.g. spaCy isn't installed), extraction simply continues without NER — the system degrades gracefully.
 
-* class labels from the gold vocabulary
-* only paper-wording relation labels (`EXTRACTION_RELATION_LABELS`)
+Medical NER is built into Guided mode (Mode 2) and cascades automatically into Schema-Completed and Fully Reasoned modes. It's not a separate toggle — it's always on when you use Guided or above.
 
-CamelCase gold relation labels are **not** injected.
+### 3.2.6 LLM providers
 
-`RELATION_ALIASES_CORE` maps paper-wording output to gold labels during post-extraction filtering.
+The framework supports six extraction providers: OpenAI GPT-4o-mini (default), Anthropic Claude Haiku 4.5, Google Gemini 2.5 Flash, Groq Llama 3.1 8B (free tier), Hugging Face Mistral 7B (Router API), and DeepSeek deepseek-chat. An abstraction layer normalises the API differences and supports configurable `max_tokens`.
 
----
+For improvement stages (SGC, LLM Reasoning), a separate reasoning LLM can be configured. Default is OpenAI GPT-4o-mini; the alternative is DeepSeek Reasoner (R1), which is stronger at reasoning but slower. This separation means you can use a fast model for extraction and a stronger one for reasoning, or use the same for both — either way it's reported in the summary and run label.
 
-### 2.4 LLM providers
+### 3.2.7 Pipeline modes
 
-#### Extraction LLM
+The UI has four progressive pipeline modes. Each one adds features on top of the previous mode, making it easy to see what each component contributes. This layered approach is standard in NLP evaluation — you want to isolate the effect of each component rather than testing everything at once.
 
-The following providers are available for the **extraction LLM**:
+| Mode | What it adds | Config flags |
+|------|-------------|--------------|
+| **Strict** | Extraction with gold vocab guardrails, nothing else | `prompt_vocab_guardrails`, `eval_restrict_to_gold` |
+| **Guided** | + Medical NER anchor + candidate term injection | + `medical_ner_anchor`, `candidate_terms` |
+| **Schema-Completed** | + LLM schema gap filling + rule-based hierarchy completion | + `schema_guided_completion`, `symbolic_reasoner` |
+| **Fully Reasoned** | + LLM Reasoning Layer (PROPOSE/VERIFY) | + `llm_reasoning` |
 
-| Provider             | Model                            |
-| -------------------- | -------------------------------- |
-| **OpenAI** (default) | GPT-4o-mini                      |
-| **Anthropic**        | Claude Haiku 4.5                 |
-| **Google**           | Gemini 2.5 Flash                 |
-| **Groq**             | Llama 3.1 8B (free tier)         |
-| **Hugging Face**     | Mistral 7B via Router API (free) |
-| **DeepSeek**         | deepseek-chat                    |
+Schema-Completed is the default because it balances capability and speed. The mode is always reported in the run label (`Strategy - Mode - LLM - EvalSettings - Advanced`) and in the summary.
 
-#### Reasoning LLM (Advanced)
+### 3.2.8 Advanced features
 
-When Schema-Guided Completion or the LLM Reasoning Layer is enabled, a separate **Reasoning LLM** is used for those improvement steps.
+The Advanced section provides a reasoning LLM override — you can pick a different LLM for improvement stages. Default is OpenAI; the alternative is DeepSeek Reasoner (shows as `DSR` in the run label).
 
-Available options:
+### 3.2.9 Post-processing improvements
 
-| Option                | Model                                               |
-| --------------------- | --------------------------------------------------- |
-| **OpenAI** (default)  | GPT-4o-mini (same as extraction)                    |
-| **DeepSeek Reasoner** | deepseek-reasoner (R1) — stronger reasoning, slower |
+Post-processing runs after merge in a fixed order: SGC → Cleanup → LLM Reasoning → Rule-based. The ordering matters: SGC fills gaps first, cleanup removes noise, and then the reasoning layers work on a clean ontology.
 
-This separation allows the extraction and reasoning steps to be varied independently for ablation. The selected Reasoning LLM is reported in `summary.txt` and the run label.
+#### Schema-guided completion (SGC)
 
----
+SGC looks at what's in the gold schema but not yet in the generated ontology, then asks the LLM: "Which of these missing items are actually mentioned in the corpus?" It only adds items that are (a) in the schema, (b) have corpus evidence, and (c) for relations, have valid domain/range. Matching uses canonical-aware normalisation so abbreviations like "ICP" match "Intracranial Pressure (ICP)."
 
-### 2.5 Pipeline modes
+A few important implementation details:
 
-The UI presents **four progressive pipeline modes** that group post-processing feature flags into clearly named experimental conditions. Each mode is a superset of the previous one.
+- **Evidence quality instruction** — The prompt explicitly tells the LLM that evidence must be actual text copied from the corpus, not ontology URIs (like `pd:Session`) or just the label repeated. This was added after investigation showed the LLM producing fake evidence that failed downstream validation.
+- **Lenient evidence threshold** — SGC parses responses with `min_evidence_length=1` instead of the default 12 characters. Short clinical terms like "EtCO2" (5 chars), "TCD" (3 chars), and "nutrition" (9 chars) are perfectly legitimate — the 12-character threshold is appropriate for regular extraction but too aggressive for SGC where the LLM is specifically asked about known gold items.
+- **Large token budget** — `max_tokens=8192` to accommodate the full v2.0 gold schema (72 classes, 16 relations, 57 hierarchy edges). Previous runs with 4096 tokens were getting truncated.
+- **Truncated JSON recovery** — When the response gets cut off mid-JSON, a recovery function strips trailing commas and tries multiple closing sequences to salvage whatever classes, relations, and hierarchy entries were generated.
+- **Diagnostic logging** — A `sgc_diagnostic.json` file records counts at each filter stage for debugging without full re-runs.
 
-| Mode                 | Config flags enabled                                     | Use case                                                          |
-| -------------------- | -------------------------------------------------------- | ----------------------------------------------------------------- |
-| **Strict**           | `prompt_vocab_guardrails`, `eval_restrict_to_gold`       | Extraction with gold vocab guardrails; no NER, no post-processing |
-| **Guided**           | Strict + `medical_ner_anchor`, `candidate_terms`         | Adds Medical NER anchor and candidate term injection              |
-| **Schema-Completed** | Guided + `schema_guided_completion`, `symbolic_reasoner` | Adds LLM schema gap-filling + rule-based hierarchy completion     |
-| **Fully Reasoned**   | Schema-Completed + `llm_reasoning`                       | Adds LLM Reasoning Layer (PROPOSE/VERIFY hierarchy inference)     |
+#### Built-in cleanup
 
-`Schema-Completed` is the **default** mode in the UI, chosen as a balance between capability and speed.
+Always runs when gold is available. It cleans up the merged ontology before reasoning layers touch it. The cleanup runs in a fixed order:
 
-Pipeline mode is reported in the run label using the format:
+1. **Deduplication** — classes, relations, hierarchy via canonical keys; merges provenance and aliases.
+2. **Out-of-scope pruning** — removes governance labels (compound patterns like `steering group`, `committee`).
+3. **Abstract data label pruning** — removes `raw data`, `core data`, `dataset` etc., but keeps `Monitoring Data`.
+4. **Broad label pruning** — removes generic labels like `patients`, but keeps gold-aligned ones like `Patient`, `Therapy`.
+5. **Evidence pruning** — removes classes without evidence, except for 30+ protected gold-schema anchors (`Condition`, `Fluids`, `Nutrition`, `Sedation`, `Session`, `Timepoint`, `Observation`, `Parameter`, etc.).
+6. **Dangling hierarchy pruning** — removes hierarchy edges whose endpoints were pruned.
+7. **Relation domain/range pruning** — removes relations pointing to pruned classes.
+8. **Relation evidence pruning** — labels must be in the allowed relation whitelist.
+9. **Hierarchy fragment pruning** — removes edges with verb forms or clause fragments.
+10. **Axiom constraints** — removes structures violating physiological/semantic type constraints (17 forbidden hierarchy pairs, 8 allowed relation types).
 
-`Strategy - Mode - LLM - EvalSettings - Advanced`
+#### LLM Reasoning Layer
 
-and is also shown in `summary.txt`.
+Used in Fully Reasoned mode. Two LLM calls — PROPOSE then VERIFY — that infer missing hierarchy edges from the clean ontology and gold schema. No corpus text is used; only schema-licensed edges are applied. The two-step approach reduces incorrect inferences by having the model first propose edges and then independently verify them.
 
----
+Matching uses canonical-aware alias resolution so "ICP" correctly matches "Intracranial Pressure (ICP)" in the gold hierarchy.
 
-### 2.6 Advanced / Experimental features
+#### Rule-based Reasoning Layer
 
-The collapsible **Advanced** section of the UI currently provides:
+Acts as a deterministic fallback after LLM reasoning. It adds hierarchy edges from the gold schema whenever both endpoint classes exist in the ontology, each with a synthetic evidence string (`"Schema-inferred: X is a subclass of Y."` — this contains `"is a"`, which is a valid hierarchy trigger). It also prunes orphan classes that aren't connected to anything, while always preserving gold-aligned classes.
 
-* **Reasoning LLM override**
-  Selects the LLM used for improvement steps (see §2.4). OpenAI is the default; DeepSeek Reasoner is the alternative. When DeepSeek Reasoner is used, `DSR` appears in the run label.
-
----
-
-### 2.7 Post-processing improvements
-
-Post-processing improvements run **after merge**, in the fixed order:
-
-**Schema-guided completion → Cleanup → LLM Reasoning → Rule-based reasoning**
-
-#### 2.7.1 Schema-guided completion
-
-* **Purpose:** Compares the merged ontology to the **gold schema**, identifies **missing** classes, relations, and hierarchy edges, and asks the LLM which of these missing items are supported by the **corpus**.
-* **Addition criteria:** Only items that:
-
-  1. are present in the schema,
-  2. have corpus evidence,
-  3. and have valid domain/range for relations
-     are added.
-* **Matching:** Uses canonical-aware matching (`_canonical_norm`) for validating classes and relations.
-* **Recorded counts:** `classes_added`, `relations_added`, `hierarchy_added`
-* **Debugging artifacts:**
-  `prompts/sgc_prompt.txt`, `prompts/sgc_response.txt`
-
-#### 2.7.2 Built-in cleanup (always on when gold is available)
-
-`apply_builtin_cleanup()` is defined in `src/ontology/reasoner.py`. It runs **before** the LLM Reasoning Layer so that the LLM operates on a clean, deduplicated ontology.
-
-The cleanup order is:
-
-1. **Dedupe**
-   Classes, relations, and hierarchy are deduplicated using canonical keys and gold labels. Provenance and aliases are merged when duplicates are collapsed.
-
-2. **Out-of-scope class pruning**
-   Removes labels matching compound governance patterns only
-   *(e.g. `steering group`, `committee`, `database`)*
-   Compound patterns are used to avoid false positives on legitimate clinical labels.
-
-3. **Abstract data label pruning**
-   Removes labels matching specific patterns such as `raw data`, `core data`, `dataset`.
-   The allowlist includes `Monitoring Data` and `Demographic Data`.
-
-4. **Broad contextual label pruning**
-   Removes generic labels such as `patients`, `therapy targets`, etc.
-   The allowlist includes `Patient`, `Therapy`, `Secondary Insult Treatment`, `Intensive Care Management`, and `Secondary Insults`.
-
-5. **Class evidence pruning**
-   Retains only classes whose label is supported by evidence.
-   **Exception:** `_EVIDENCE_PRUNING_EXEMPTIONS` contains a protected set of 30+ gold-schema structural anchors, including `Condition`, `Fluids`, `Nutrition`, `Sedation`, `Session`, `Timepoint`, `Observation`, `Parameter`, `Data Quality Assessment`, and all abstract category classes. These are always preserved.
-
-6. **Hierarchy dangling endpoint pruning**
-   Removes hierarchy edges whose subclass or superclass no longer exists after class pruning.
-
-7. **Relation domain/range pruning**
-   Removes relations whose domain or range is not present in the surviving class set.
-
-8. **Relation evidence pruning**
-   Relation labels must be in `_ALLOWED_RELATION_LABELS_GLOBAL` (paper-wording labels plus camelCase gold schema labels, normalised). Gold-schema-licensed relations are exempt from strict domain/range substring evidence checks.
-
-9. **Hierarchy fragment pruning**
-   Removes hierarchy edges whose subclass or superclass contains bad tokens such as verb forms or clause fragments.
-
-10. **Axiom constraints**
-    Removes hierarchy and relation structures that violate physiological or semantic type constraints defined in `neuro_axioms.py`.
-    This was expanded in v2.0 to include:
-
-    * 17 forbidden hierarchy pairs
-    * 8 allowed relation type restrictions
-
-    Violations are written to `evaluation/axiom_violations.json`.
-
-#### 2.7.3 LLM Reasoning Layer (optional, Fully Reasoned mode)
-
-* **Purpose:** Uses two LLM calls (PROPOSE → VERIFY) to infer missing structure, mainly superclass relations, from the **current clean ontology and gold schema only**.
-* **Important:** This stage does **not** use corpus text.
-* **Application rule:** Only schema-licensed edges are applied.
-* **Matching:** Uses `canonical_key(resolve_to_canonical_label(...))` for alias-aware matching between ontology labels and gold hierarchy endpoints.
-* **Recorded counts:** `classes_inferred`, `relations_inferred`, `hierarchy_inferred`
-* **Debugging artifacts:**
-  `prompts/llm_reasoning_propose_prompt.txt`
-  `prompts/llm_reasoning_propose_response.txt`
-  `prompts/llm_reasoning_verify_prompt.txt`
-  `prompts/llm_reasoning_verify_response.txt`
-  `evaluation/llm_reasoning_patch.json`
-  `evaluation/llm_reasoning_patch_proposed.json`
-  `evaluation/llm_reasoning_patch_verified.json`
-
-#### 2.7.4 Rule-based Reasoning Layer (optional, UI toggle)
-
-This acts as a **fallback after LLM Reasoning** and fills remaining hierarchy gaps exhaustively.
-
-It performs two operations:
-
-1. **Schema completion**
-   Adds hierarchy edges from the gold ontology when both endpoint classes exist in the ontology.
-   Each added edge carries a synthetic evidence string of the form:
-
-   `"Schema-inferred: X is a subclass of Y."`
-
-   This satisfies `require_evidence=True` and includes `"is a"`, which is a recognised `HIERARCHY_LEXICAL_TRIGGER`.
-
-2. **Orphan pruning**
-   Removes classes not referenced by any relation or hierarchy edge. Gold-aligned classes are always preserved even if isolated.
-
----
-
-### 2.8 Gold standard and evaluation
+### 3.2.10 Gold standard and evaluation
 
 #### Gold standard
 
-The BrainIT ontology/schema is loaded from a configurable path.
+The BrainIT ontology is loaded from a `.ttl` (Turtle) file using RDFLib. The loader handles multi-parent hierarchies (classes with multiple `rdfs:subClassOf` statements). Three modes: **public** (surrogate gold), **restricted** (use provided gold for alignment), **isolated** (generate gold from separate corpus).
 
-Supported modes:
+#### Class alignment
 
-* **public** — surrogate gold
-* **restricted** — provided gold used for alignment
-* **isolated** — gold generated from a separate corpus
+Generated classes are aligned to gold using: exact matching, semantic TF-IDF matching (threshold 0.55, one-to-one assignment), and synonym expansion via `DOMAIN_SYNONYMS`.
 
-#### Alignment (classes)
+#### Metrics
 
-Generated classes are aligned to gold using:
+- **Class metrics** — coverage, precision, recall, plus extraction-only (before improvements), clinical-only (excluding governance classes), by-stratum (core/governance/provenance), and error categories (hallucinations, schema violations, omissions).
+- **Relation metrics** — label-level precision and recall via `RELATION_ALIASES_CORE`, with per-gold-relation breakdown.
+- **Hierarchy metrics** — edge-level precision and recall using normalised `(subClass, superClass)` key matching.
+- **Per-stage ablation** — snapshots after each pipeline stage (extraction, after_sgc, after_cleanup, after_llm_reasoning, after_rule_based, after_gold_filter), written to `metrics["by_stage"]` and rendered as a table in `summary.txt`. This lets you see exactly where each metric changed and which component caused it.
 
-* exact matching
-* semantic TF-IDF matching with threshold 0.55
-* synonym expansion
+Evaluation outputs: `metrics.json`, `table.csv`, `hallucinated_classes.json`, `improvement_counts.json`.
 
-#### Metrics (classes)
+### 3.2.11 Run artifacts and summary
 
-The framework reports:
+Each run gets a unique ID (timestamp + short hash) and a directory with:
 
-* **Coverage, Precision, Recall**
-* **Extraction-only** metrics, measured before improvement stages
-* **Clinical-only** metrics, excluding governance-vocabulary classes
-* **By stratum** metrics, grouped by chunk type (`core`, `governance`, `provenance`)
-* **Errors** such as hallucinations, schema violations, and omissions
-* **Structural metrics** including:
+- **Config/corpus** — `corpus_manifest.json`, `metadata.json` (with `input_papers`, config, environment).
+- **Prompts** — saved prompts for each chunk and phase (when enabled).
+- **Generated ontology** — `ontology.json`, `ontology_raw.json`, `summary.txt`.
+- **Evaluation** — `metrics.json` (with `by_stage`), `table.csv`, `hallucinated_classes.json`, `improvement_counts.json`, `axiom_violations.json`, LLM reasoning patch files, `sgc_diagnostic.json`.
+- **Logs** — `run.log`, `warnings.txt`.
 
-  * `relation_domain_range_rate`
-  * `hierarchy_edges`
-  * `hierarchy_coverage`
+The `summary.txt` is designed as a single human-readable file with everything: run metadata, input papers, improvement counts, final metrics, extraction-only baseline comparison, per-stage ablation table, and complete listings of classes, relations, and hierarchy.
 
-#### Relation metrics
+### 3.2.12 Ontology graph visualisation
 
-`compute_relation_metrics()` computes label-level precision and recall for relations against gold via `RELATION_ALIASES_CORE`.
+The framework includes an interactive graph visualisation that renders the generated ontology as a node-link diagram using Cytoscape.js. Classes appear as nodes, relations as directed edges, and hierarchy edges as dashed lines. Multiple layouts are available (force-directed/CoSE, breadth-first, circular, grid). Users can click nodes and edges for details, zoom/pan, and export to PNG. Accessible from the results page via "Show Ontology Graph."
 
-It reports:
+### 3.2.13 Web UI
 
-* `per_gold_relation`
-* `matched_generated`
-* `unmatched_generated`
+The Flask web app provides:
 
-These are stored in:
+- **Run experiment** — three strategy toggles (Zero-Shot, One-Shot, Few-Shot), four pipeline mode cards, LLM provider selector, evaluation settings, and Advanced section. Few-Shot + Schema-Completed are selected by default.
+- **Progress page** — live progress bar with cancel support, per-chunk progress.
+- **Results page** — metrics, ablation table, ontology listing, improvement counts, ontology graph.
+- **Run comparison** — mirrors the experiment form. Runs get five-part labels (`Strategy - Mode - LLM - EvalSettings - Advanced`), displayed in a five-column table. Three pre-configured comparison groups: Cross-LLM, Pipeline Modes, and Reasoning LLM.
+- **Run list** — browse previous runs, access results and analysis.
+- **Pipeline view** — visual diagram of the current pipeline.
 
-* `metrics["relations"]`
-* `metrics["extraction_only"]["relations"]`
-
-#### Hierarchy metrics
-
-`compute_hierarchy_metrics()` computes precision and recall for hierarchy edges using normalised `(subClass, superClass)` key matching.
-
-These are stored in:
-
-* `metrics["hierarchy"]`
-
-#### Per-stage ablation (`by_stage`)
-
-Compact metric snapshots are captured after each major pipeline stage. Each snapshot includes:
-
-* `n_classes`
-* `n_relations`
-* `n_hierarchy`
-* `coverage`
-* `precision`
-* `recall`
-* `relation_recall`
-* `hierarchy_recall`
-* `hierarchy_precision`
-
-Stages recorded are:
-
-* `extraction`
-* `after_sgc`
-* `after_cleanup`
-* `after_llm_reasoning`
-* `after_rule_based`
-* `after_gold_filter`
-
-These are written to `metrics["by_stage"]` in `metrics.json` and rendered as a formatted ablation table in `summary.txt`.
-
-#### Outputs
-
-Evaluation outputs include:
-
-* `evaluation/metrics.json`
-* `evaluation/table.csv`
-* `evaluation/hallucinated_classes.json`
-* `evaluation/improvement_counts.json`
+Run label generation is consistent between Python (`_format_run_label`) and JavaScript (`formatRunName`).
 
 ---
 
-### 2.9 Run artifacts and summary
+## 3.3 Summary
 
-#### Run directory structure
+The framework delivers a modular, end-to-end ontology engineering system with:
 
-Each run receives a unique ID consisting of a timestamp and short hash.
-
-The run directory includes:
-
-* **Corpus and config**
-
-  * `corpus_manifest.json`
-  * `metadata.json`
-    Includes `input_papers`, `config`, `environment`, and `code_version`
-
-* **Prompts**
-
-  * optional prompt saves under `prompts/`
-
-* **Generated**
-
-  * `ontology.json`
-  * `ontology_raw.json`
-  * `summary.txt`
-  * optionally `ontology_restricted.json`
-
-* **Evaluation**
-
-  * `metrics.json`
-  * `table.csv`
-  * `hallucinated_classes.json`
-  * `improvement_counts.json`
-  * optionally `axiom_violations.json`
-  * LLM reasoning patch files when relevant
-
-* **Other**
-
-  * `run.log`
-  * `warnings.txt`
-
-#### `summary.txt` (enhanced)
-
-The run summary is a single human-readable file containing:
-
-1. **Metadata**
-   Run ID, timestamp (UTC), prompting method, pipeline mode, extraction LLM, reasoning LLM (if different), improvements applied, evaluation settings (scope filter, gold-vocab, Medical NER)
-
-2. **Input paper(s)**
-   Filenames of all ingested source documents
-
-3. **Improvement counts**
-   Per-feature counts for classes, relations, and hierarchy items added, removed, or inferred, plus a note if the LLM Reasoning Layer inferred schema-only hierarchy edges
-
-4. **Metrics summary (final ontology)**
-   Coverage, precision, recall, errors, structural metrics, clinical-only sub-metrics, relation precision, relation recall
-
-5. **Metrics at extraction only**
-   Pre-improvement baseline for direct comparison with the final metrics
-
-6. **Per-stage ablation table**
-   Formatted table showing:
-
-   * `n_classes`
-   * `n_relations`
-   * `n_hierarchy`
-   * `coverage`
-   * `precision`
-   * `recall`
-     across all pipeline stages
-
-7. **Concept counts**
-   Final ontology counts
-
-8. **Classes, Relations, Hierarchy**
-   Final listings
-
-#### `metadata.json` (enhanced)
-
-`metadata.json` now includes an `input_papers` field such as:
-
-```json
-"input_papers": [
-  {"name": "corpus.txt", "stem": "corpus", "path": "data\\corpus_ui\\corpus.txt"}
-]
-```
-
-This provides full traceability from a run back to its source file independently of corpus snapshots.
-
----
-
-### 2.10 Web UI
-
-The Flask-based UI provides the following features:
-
-* **Run experiment form**
-  Three prompting toggles (Zero-Shot / One-Shot / Few-Shot), four pipeline mode cards (Strict / Guided / Schema-Completed / Fully Reasoned), LLM provider selector, evaluation settings (gold-vocab checkbox), and a collapsible Advanced section (Medical NER, Reasoning LLM). Few-Shot and Schema-Completed are the defaults.
-
-* **Progress page**
-  Live progress bar with cancel support. Extraction progress is shown per chunk.
-
-* **Results page**
-  Displays metrics, per-stage ablation table, ontology listing, and improvement counts.
-
-* **Run comparison**
-  The comparison configuration mirrors the Run experiment form. Runs are added to a comparison list with a **5-part standardised label**:
-
-  `Strategy - PipelineMode - LLM - EvalSettings - Advanced`
-
-  Example:
-  `Few-Shot - Schema-Completed - GPT-4o-mini - Gold-vocab - None`
-
-  The comparison dashboard displays these in a 5-column table.
-  Three pre-configured comparison groups are available:
-
-  * Cross-LLM
-  * Pipeline Modes
-  * Reasoning LLM
-
-* **Run list**
-  Browse all past runs and access results/analysis.
-
-* **Pipeline view**
-  Visual diagram of the current pipeline configuration.
-
-Run label generation is consistent across:
-
-* Python (`web/app.py: _format_run_label`)
-* JavaScript (`comparison_dashboard.html: formatRunName`, `comparison_progress.html: formatRunName`)
-
----
-
-## 3. Summary table (implemented functionality)
-
-| Area                             | Implemented                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Input**                        | Paste text, upload .txt/.pdf; Use default paper; corpus manifest per run. Load pipeline: strip control chars → normalize → optional scope filter; optional `raw_text` and PDF `pages`.                                                                                                                                                                                                                                             |
-| **Normalization**                | Hyphenation fix, symbol normalization, repeated header/footer removal, control-char strip (`normalize.py`).                                                                                                                                                                                                                                                                                                                        |
-| **Scope filter**                 | Optional document-level (paragraph + line, compound-phrase blacklist only) inside load_corpus; chunk-level dual-score router (admin_score, clinical_score; governance section blacklist; clinical section always-keep; reorder clinical first). `"monitoring"` is a strong clinical term (1.0 weight). `"fluids"`, `"fluid input and output"`, `"nutrition"`, `"condition"`, `"sedation levels"` are also strong terms (Phase 10). |
-| **Scope filter validation**      | `run_one()` raises `ValueError` if `scope_filter` is absent from config when gold is loaded.                                                                                                                                                                                                                                                                                                                                       |
-| **Chunking**                     | Semantic chunking; control chars stripped per chunk; candidates with section context.                                                                                                                                                                                                                                                                                                                                              |
-| **Prompting methods**            | Four active strategies: Zero-Shot, One-Shot (MMR-1), Few-Shot (`phased_2step`), Few-Shot III (`phased_3step`). One legacy strategy remains hidden but backward-compatible (`simple_fewshot`).                                                                                                                                                                                                                                      |
-| **Pipeline modes (UI)**          | Four progressive modes: Strict / Guided / Schema-Completed (default) / Fully Reasoned. These map to combinations of feature flags via hidden inputs and JavaScript.                                                                                                                                                                                                                                                                |
-| **Hierarchy phase filtering**    | `known_classes` are filtered to the allowed clinical vocabulary before hierarchy sub-calls.                                                                                                                                                                                                                                                                                                                                        |
-| **LLM providers (extraction)**   | OpenAI (default), Anthropic, Google, Groq, HuggingFace, DeepSeek.                                                                                                                                                                                                                                                                                                                                                                  |
-| **Reasoning LLM (improvements)** | Configurable separately: OpenAI (default) or DeepSeek Reasoner (R1). Available through the Advanced UI section.                                                                                                                                                                                                                                                                                                                    |
-| **Vocab guardrails**             | Injects gold class list plus paper-wording relation labels only; `RELATION_ALIASES_CORE` maps paper-wording to gold during filtering.                                                                                                                                                                                                                                                                                              |
-| **Medical NER**                  | ScispaCy NER anchor. Included in Guided mode (Mode 2) and cascades to Modes 3 and 4. Injects pre-identified clinical entities as “Suggested concepts” in the prompt.                                                                                                                                                                                                                                                               |
-| **Improvements**                 | Built-in cleanup (always when gold: dedupe, scope/abstract/broad pruning, evidence/hierarchy pruning, dangling hierarchy endpoint pruning, axioms); Schema-guided completion (canonical-aware, hierarchy-aware); LLM Reasoning Layer (PROPOSE/VERIFY, after cleanup); Rule-based Reasoning Layer (schema-derived edges with synthetic evidence). Order: SGC → Cleanup → LLM Reasoning → Rule-based.                                |
-| **Relation whitelist**           | `_ALLOWED_RELATION_LABELS_GLOBAL`: paper-wording plus camelCase gold labels (normalised).                                                                                                                                                                                                                                                                                                                                          |
-| **Evaluation — class**           | Coverage, precision, recall, error taxonomy, structural metrics; `extraction_only`; `clinical_only`; `by_stratum`; `by_stage`.                                                                                                                                                                                                                                                                                                     |
-| **Evaluation — relations**       | `compute_relation_metrics()`: label-level precision/recall via `RELATION_ALIASES_CORE`; `per_gold_relation`; stored in `metrics["relations"]` and `metrics["extraction_only"]["relations"]`.                                                                                                                                                                                                                                       |
-| **Evaluation — hierarchy**       | `compute_hierarchy_metrics()`: edge-level precision/recall by normalized key matching; stored in `metrics["hierarchy"]`.                                                                                                                                                                                                                                                                                                           |
-| **Per-stage ablation**           | `_capture_stage_metrics()` snapshots after each pipeline stage (including hierarchy metrics); written to `metrics["by_stage"]` in `metrics.json`; formatted in `summary.txt`. Stages: extraction → after_sgc → after_cleanup → after_llm_reasoning → after_rule_based → after_gold_filter.                                                                                                                                         |
-| **Canonical aliases**            | `CANONICAL_ALIAS_MAP` in `canonical.py`: TBI, CVP, ICP, CPP, GCS, GOSE, MAP variants plus Phase 10 extensions (Fluids, Sedation, Nutrition, Condition). Evaluation synonyms in `synonyms.py` are extended accordingly.                                                                                                                                                                                                             |
-| **Hierarchy triggers**           | `HIERARCHY_LEXICAL_TRIGGERS`: `"such as"`, `"is a"`, `"type of"`, `"kind of"`, `"include:"`, `"includes:"`. `extract_hierarchy_from_text()` handles all triggers; `"include:"` preserves compound nouns and strips `"use of"` prefixes.                                                                                                                                                                                            |
-| **Merge / build**                | `merge_parsed()`: classes by canonical key, relations by `(label, domain, range)`; `build_ontology`: evidence required; canonical alias map; singular/plural merge; stratum on entities; dedupe and duplicate merge.                                                                                                                                                                                                               |
-| **Run label format**             | `Strategy - PipelineMode - LLM - EvalSettings - Advanced`. Consistent in both Python and JavaScript.                                                                                                                                                                                                                                                                                                                               |
-| **Artifacts**                    | `ontology.json`, `ontology_raw.json`, `summary.txt` (enhanced), `metrics.json` (including `by_stage`), `improvement_counts.json`, `axiom_violations.json`, patch files, `metadata.json` (including `input_papers`), `run.log`.                                                                                                                                                                                                     |
-| **Config files**                 | `demo.json`: includes all benchmark-required keys. `benchmark_template.json`: reusable template.                                                                                                                                                                                                                                                                                                                                   |
-| **UI**                           | Flask app with Run experiment, progress, results, run comparison, pipeline view, and run list.                                                                                                                                                                                                                                                                                                                                     |
-| **CLI**                          | Config-driven runs; `scope_filter` must be explicit when gold is loaded.                                                                                                                                                                                                                                                                                                                                                           |
-
-This implementation delivers a **modular, hybrid ontology engineering framework** with multiple prompting strategies, multiple LLM providers, a four-mode progressive pipeline abstraction (Strict → Guided → Schema-Completed → Fully Reasoned), complete evaluation against the BrainIT gold standard including **relation recall**, **hierarchy precision/recall**, and **per-stage ablation**, together with reproducible and validated configuration for benchmark runs.
+- **Three prompting strategies** — Zero-Shot, One-Shot (MMR-1), and Few-Shot (three-phase extraction with enriched prompts, anti-anchoring, and breadth-over-caution).
+- **MMR-based example selection** — balancing relevance and diversity across task-specific pools.
+- **Medical NER anchoring** — ScispaCy-based entity pre-identification built into Guided mode and above.
+- **Six LLM providers** — with separate extraction and reasoning LLM configuration.
+- **Four progressive pipeline modes** — Strict → Guided → Schema-Completed → Fully Reasoned, for structured ablation.
+- **Robust post-processing** — SGC (with lenient evidence, large token budget, truncated-JSON recovery), ten-step cleanup, LLM Reasoning (PROPOSE/VERIFY), and rule-based reasoning.
+- **Comprehensive evaluation** — class, relation, and hierarchy metrics with per-stage ablation against the BrainIT v2.0 gold standard (72 classes, 16 relations, 57 hierarchy edges).
+- **Web interface** — Flask app with experiment running, progress tracking, results display, run comparison, ontology graph visualisation, and pipeline view.
+- **Full artifact recording** — every run is reproducible with saved prompts, ontologies, metrics, configs, and diagnostic logs.

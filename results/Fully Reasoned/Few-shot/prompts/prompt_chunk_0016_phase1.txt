@@ -11,7 +11,25 @@ LEAF-FIRST RULE (important):
 - If the text clearly mentions multiple distinct allowed leaf items, extract several of them (each with evidence) rather than stopping early.
 - Do NOT treat research methods/algorithms/guideline-adherence calculations as Therapy or Monitoring Data.
 
-Phase 1: Extract candidate classes only. Output JSON with keys classes, relations, hierarchy. Set relations and hierarchy to empty arrays.
+Suggested concepts (pre-identified in this text): TBI.
+These are pre-verified entity mentions in this text. Prefer using them where they fit. You may still use any label from the allowed class list above if it is supported by the text.
+
+Phase 1 — COMPREHENSIVE CLASS EXTRACTION
+Extract ALL clinical/biomedical classes mentioned in the text. Be thorough: extract every distinct concept, not just those similar to the examples.
+
+Look for ALL of these concept types:
+  • Clinical conditions and secondary insults (e.g. Hypotension, Intracranial Hypertension)
+  • Physiological parameters and monitoring variables (e.g. Heart Rate, ICP, Temperature)
+  • Treatments, therapies, and interventions (e.g. Sedation, Ventilation, Fluids)
+  • Clinical assessments and outcomes (e.g. GCS Assessment, GOSe Outcome)
+  • Laboratory values and biochemistry (e.g. Sodium, Glucose, Haemoglobin)
+  • Nursing interventions and bedside activities (e.g. Physiotherapy, Patient Transport)
+  • Data quality and sensor concepts (e.g. Sensor, Data Quality Assessment)
+  • Abstract category classes when explicitly named (e.g. Monitoring Data, Therapy, Observation)
+
+BREADTH OVER CAUTION: If the text mentions 15 distinct clinical concepts, extract all 15. Do not stop early or limit to a few. Each concept needs only a brief evidence mention.
+
+Output JSON with keys classes, relations, hierarchy. Set relations and hierarchy to empty arrays.
 
 Candidate terms (optional hints): can, Discussion, Future, Future Work, GRI, High Performance Computing, ICU, Medical, Medical Disorders, Proc, Web, Web Semantics, Work, additional, additional contextual, additional contextual information, applied, approach can, assess, assess medical
 
@@ -29,11 +47,11 @@ You are a highly precise medical ontology extraction engine. You specialize in N
    - IGNORE all metadata, authors, affiliations, journal names, DOI/ISBN, and semantic web/technical boilerplate (RDF, URI, etc).
    - Do NOT extract organisational, membership, database, or publication concepts (e.g. steering group, data validation staff, common database).
    - FOCUS ONLY on clinical/physiological concepts, treatments, parameters, and outcomes.
-5. **Reject rule:** When in doubt, omit. Prefer under-generation to over-generation.
+5. **Confidence rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely ambiguous or non-clinical items.
 
 **Default priority: classes first, then relations.** Extract relations only when the wording is explicit and stable. If uncertain, return no relations. If a phase instruction above overrides this priority, follow the phase instruction.
 
-Use the retrieved examples below as **style guidance only**. Apply the same OUTPUT FORMAT and evidence rules. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
 
 ### OUTPUT FORMAT (JSON Only)
 Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
@@ -144,25 +162,49 @@ Output (JSON):
 
 ---
 
-Text: Demographic and clinical data. This group contains data elements which are only collected once per patient and as such are not considered time-series data. Examples being the age and sex of the patient. Medical history is focused upon identifying previous neurological injury, substance abuse and associated injuries. Data elements are then collected describing the clinical status of the patient (e.g.: GCS scores). Both eyes are recorded individually and responsiveness classed as reacting or un-reacting. Pupil size is recorded as small, normal or large.
+Text: For the TBI domain, we used data consisting of 37 patients, 595,439 distinct timepoints, 4,467,949 observations for 14 parameters. In both domains, data is collected every minute. For the Medical Disorders rule, we created specific queries for hypotension and hypertension; and for the Treatments rule, queries for effects of noradrenaline and adrenaline.
 Output (JSON):
 {
   "classes": [
     {
       "label": "Patient",
-      "evidence": "data elements which are only collected once per patient"
+      "evidence": "37 patients"
     },
     {
-      "label": "Clinical Assessment",
-      "evidence": "describing the clinical status of the patient"
+      "label": "Timepoint",
+      "evidence": "595,439 distinct timepoints"
     },
     {
-      "label": "GCS Assessment",
-      "evidence": "GCS scores"
+      "label": "Observation",
+      "evidence": "4,467,949 observations"
     },
     {
-      "label": "Pupil Assessment",
-      "evidence": "Pupil size is recorded as small, normal or large"
+      "label": "Parameter",
+      "evidence": "observations for 14 parameters"
+    },
+    {
+      "label": "Monitoring Data",
+      "evidence": "observations for 14 parameters"
+    },
+    {
+      "label": "Condition",
+      "evidence": "hypotension and hypertension"
+    },
+    {
+      "label": "Hypotension",
+      "evidence": "hypotension"
+    },
+    {
+      "label": "Hypertension",
+      "evidence": "hypertension"
+    },
+    {
+      "label": "Noradrenaline",
+      "evidence": "effects of noradrenaline"
+    },
+    {
+      "label": "Adrenaline",
+      "evidence": "effects of noradrenaline and adrenaline"
     }
   ],
   "relations": [],

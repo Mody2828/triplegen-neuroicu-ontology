@@ -11,9 +11,20 @@ LEAF-FIRST RULE (important):
 - If the text clearly mentions multiple distinct allowed leaf items, extract several of them (each with evidence) rather than stopping early.
 - Do NOT treat research methods/algorithms/guideline-adherence calculations as Therapy or Monitoring Data.
 
-Phase 3: Extract hierarchy ONLY where the text contains explicit lexical cues: "such as", "is a", "type of", "kind of", "include:", "includes:". Output JSON with keys classes, relations, hierarchy. Set classes and relations to empty arrays. For each hierarchy edge, evidence MUST contain one of these phrases. Do not infer hierarchy.
+Suggested concepts (pre-identified in this text): neurological injury, substance abuse, Coma, head injury.
+These are pre-verified entity mentions in this text. Prefer using them where they fit. You may still use any label from the allowed class list above if it is supported by the text.
 
-Known classes (use only these for subclass/superclass): Baseline Therapy; Therapy; Patient; Heart Rate; SaO2; CVP; Brain Temperature; Microdialysis
+Phase 3 — HIERARCHY EXTRACTION
+Extract subclass/superclass (is-a) edges ONLY where the text contains explicit cues:
+  • "such as" (e.g. "parameters such as Heart Rate" → Heart Rate subClassOf Parameter)
+  • "is a" / "type of" / "kind of"
+  • "include:" / "includes:"
+
+For enumeration cues (e.g. "include: X, Y, Z"), extract EACH listed item as a subclass.
+Use ONLY the known classes below for subClass and superClass labels.
+Output JSON with keys classes, relations, hierarchy. Set classes and relations to empty arrays. Evidence MUST contain one of the lexical cues. Do not infer hierarchy.
+
+Known classes (use only these for subclass/superclass): Baseline Therapy; Therapy; Patient; Heart Rate; SaO2; CVP; Brain Temperature; Microdialysis; Respiration Rate
 
 Candidate terms (optional hints): central venous, ct scan, cvp, etco2, gcs, glasgow, heart rate, icp, mean arterial pressure, microdialysis, outcome, pupil, respiration rate, sjo2, tcd, monitoring, 4. Telephone interview with GP., Casualty Center, Emergency, Emergency
 Medical Services
@@ -32,11 +43,11 @@ You are a highly precise medical ontology extraction engine. You specialize in N
    - IGNORE all metadata, authors, affiliations, journal names, DOI/ISBN, and semantic web/technical boilerplate (RDF, URI, etc).
    - Do NOT extract organisational, membership, database, or publication concepts (e.g. steering group, data validation staff, common database).
    - FOCUS ONLY on clinical/physiological concepts, treatments, parameters, and outcomes.
-5. **Reject rule:** When in doubt, omit. Prefer under-generation to over-generation.
+5. **Confidence rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely ambiguous or non-clinical items.
 
 **Default priority: classes first, then relations.** Extract relations only when the wording is explicit and stable. If uncertain, return no relations. If a phase instruction above overrides this priority, follow the phase instruction.
 
-Use the retrieved examples below as **style guidance only**. Apply the same OUTPUT FORMAT and evidence rules. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
 
 ### OUTPUT FORMAT (JSON Only)
 Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
@@ -131,35 +142,6 @@ Output (JSON):
 
 ---
 
-Text: Patient outcome is assessed using the Extended Glasgow Outcome Scale (GOSe) at 6 months post-discharge from the neurosurgical centre. GOSe outcome is collected by structured interview with the patient, a relative, or a GP.
-Output (JSON):
-{
-  "classes": [
-    {
-      "label": "Outcome",
-      "evidence": "Patient outcome is assessed"
-    },
-    {
-      "label": "GOSe Outcome",
-      "evidence": "Extended Glasgow Outcome Scale (GOSe) at 6 months post-discharge"
-    },
-    {
-      "label": "Patient",
-      "evidence": "Patient outcome"
-    }
-  ],
-  "relations": [],
-  "hierarchy": [
-    {
-      "subClass": "GOSe Outcome",
-      "superClass": "Outcome",
-      "evidence": "Patient outcome is assessed using the Extended Glasgow Outcome Scale (GOSe)"
-    }
-  ]
-}
-
----
-
 Text: Demographic and clinical data include clinical status assessments. GCS scores are collected at pre-neurosurgical admission and neurosurgical admission. Both eyes are recorded individually: pupil size (small, normal, large) and responsiveness (reacting or un-reacting). CT scan classification uses TCDB nomenclature.
 Output (JSON):
 {
@@ -197,6 +179,35 @@ Output (JSON):
       "subClass": "CT Scan Assessment",
       "superClass": "Clinical Assessment",
       "evidence": "clinical status assessments...CT scan classification uses TCDB nomenclature"
+    }
+  ]
+}
+
+---
+
+Text: Patient outcome is assessed using the Extended Glasgow Outcome Scale (GOSe) at 6 months post-discharge from the neurosurgical centre. GOSe outcome is collected by structured interview with the patient, a relative, or a GP.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Outcome",
+      "evidence": "Patient outcome is assessed"
+    },
+    {
+      "label": "GOSe Outcome",
+      "evidence": "Extended Glasgow Outcome Scale (GOSe) at 6 months post-discharge"
+    },
+    {
+      "label": "Patient",
+      "evidence": "Patient outcome"
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "GOSe Outcome",
+      "superClass": "Outcome",
+      "evidence": "Patient outcome is assessed using the Extended Glasgow Outcome Scale (GOSe)"
     }
   ]
 }

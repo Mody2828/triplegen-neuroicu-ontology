@@ -11,9 +11,20 @@ LEAF-FIRST RULE (important):
 - If the text clearly mentions multiple distinct allowed leaf items, extract several of them (each with evidence) rather than stopping early.
 - Do NOT treat research methods/algorithms/guideline-adherence calculations as Therapy or Monitoring Data.
 
-Phase 3: Extract hierarchy ONLY where the text contains explicit lexical cues: "such as", "is a", "type of", "kind of", "include:", "includes:". Output JSON with keys classes, relations, hierarchy. Set classes and relations to empty arrays. For each hierarchy edge, evidence MUST contain one of these phrases. Do not infer hierarchy.
+Suggested concepts (pre-identified in this text): G12 8QQ, traumatic brain injury, sepsis, URIs.
+These are pre-verified entity mentions in this text. Prefer using them where they fit. You may still use any label from the allowed class list above if it is supported by the text.
 
-Known classes (use only these for subclass/superclass): Baseline Therapy; Therapy; Heart Rate; Sepsis
+Phase 3 — HIERARCHY EXTRACTION
+Extract subclass/superclass (is-a) edges ONLY where the text contains explicit cues:
+  • "such as" (e.g. "parameters such as Heart Rate" → Heart Rate subClassOf Parameter)
+  • "is a" / "type of" / "kind of"
+  • "include:" / "includes:"
+
+For enumeration cues (e.g. "include: X, Y, Z"), extract EACH listed item as a subclass.
+Use ONLY the known classes below for subClass and superClass labels.
+Output JSON with keys classes, relations, hierarchy. Set classes and relations to empty arrays. Evidence MUST contain one of the lexical cues. Do not infer hierarchy.
+
+Known classes (use only these for subclass/superclass): Sepsis; Heart Rate; Patient; Session; Timepoint; Monitoring Data; Core Monitoring Parameter; Optional Monitoring Parameter; Derived Parameter; Respiration Rate; Mean Arterial Pressure (MAP); Intracranial Pressure (ICP); SaO2; Temperature; CVP; EtCO2; SjO2; TCD; PbrO2; Brain Temperature; Microdialysis; Cerebral Perfusion Pressure (CPP); Therapy; Baseline Therapy; Secondary Insult Therapy; Ventilation; Sedation; Fluids; Nutrition; Vasopressors; Antibiotics; Noradrenaline; Adrenaline; Secondary Insult Treatment; Arterial Pressors; Condition; Secondary Insult; Intracranial Hypertension; Systemic Hypotension; Arterial Hypotension; Jugular Venous Desaturation; Acute Respiratory Distress Syndrome; Hypertension; Hypotension; Clinical Assessment; GCS Assessment; Pupil Assessment; CT Scan Assessment; Outcome; GOSe Outcome; Laboratory Values; Blood Gases; Biochemistry; Haematology; Sodium; Potassium; Glucose; Haemoglobin; White Blood Cell Count; Haematocrit; Nursing Intervention; Routine Nursing Care; Physiotherapy; Bedside Intervention; Patient Transport; Intensive Care Management; Observation; Parameter; Sensor; Data Quality Assessment; Possible Error; Probable Error
 
 Candidate terms (optional hints): heart rate, monitoring, Glasgow, Care, Care Unit, Care Unit ICU, Clinical Physics, Computing Science, However, ICU, Intensive, Intensive Care, Intensive Care Unit, Linked, Medical
 Data, RDF, Semantic, Semantic Web, Semantic Web Approach
@@ -34,11 +45,11 @@ You are a highly precise medical ontology extraction engine. You specialize in N
    - IGNORE all metadata, authors, affiliations, journal names, DOI/ISBN, and semantic web/technical boilerplate (RDF, URI, etc).
    - Do NOT extract organisational, membership, database, or publication concepts (e.g. steering group, data validation staff, common database).
    - FOCUS ONLY on clinical/physiological concepts, treatments, parameters, and outcomes.
-5. **Reject rule:** When in doubt, omit. Prefer under-generation to over-generation.
+5. **Confidence rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely ambiguous or non-clinical items.
 
 **Default priority: classes first, then relations.** Extract relations only when the wording is explicit and stable. If uncertain, return no relations. If a phase instruction above overrides this priority, follow the phase instruction.
 
-Use the retrieved examples below as **style guidance only**. Apply the same OUTPUT FORMAT and evidence rules. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
 
 ### OUTPUT FORMAT (JSON Only)
 Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.

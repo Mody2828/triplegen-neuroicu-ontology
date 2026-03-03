@@ -45,7 +45,7 @@ The left panel lets you provide input text in one of three ways:
 #### Option C: Use default paper
 
 1. Check the **Use default paper** toggle.
-2. The run uses the built-in BrainIT paper excerpt. Any pasted text or uploaded files are ignored.
+2. The run uses the built-in BrainIT paper. Any pasted text or uploaded files are ignored.
 
 ---
 
@@ -57,26 +57,28 @@ The right panel contains all experiment settings.
 
 #### Prompting method
 
-Choose **one** extraction strategy. Selecting one automatically deselects the others:
+Choose **one** extraction strategy. Selecting one deselects the others:
 
 | Strategy | What it does |
 |----------|-------------|
-| **Zero-Shot** | No examples — the LLM extracts classes, relations, and hierarchy from text alone. Baseline for comparison. |
-| **One-Shot** | One MMR-retrieved example per chunk guides the LLM's extraction format and style. |
-| **Few-Shot** *(default)* | Two-phase extraction: Phase 1 uses 3 concept examples to extract classes; Phase 2 uses 3 relation examples to extract relations and hierarchy. Best single-run performance. |
-| **Few-Shot III** | Three-phase extraction: concepts → relations → hierarchy (each in a separate LLM call with dedicated examples). Maximises hierarchy extraction. |
+| **Zero-Shot** | No examples — the LLM extracts classes, relations, and hierarchy from text alone. Serves as the baseline for comparison. |
+| **One-Shot** | One MMR-retrieved example per chunk guides the LLM's extraction format and style. May trigger a hierarchy sub-call when hierarchy cues are detected. |
+| **Few-Shot** | Three-phase extraction with dedicated examples per phase. Phase 1 uses 3 concept examples and a comprehensive 8-type prompt to extract classes broadly. Phase 2 uses 3 relation examples to extract relations (and any supplementary classes Phase 1 missed). Phase 3 uses 3 hierarchy examples to extract subClassOf edges, gated by lexical cues ("such as", "is a", "type of", "include:"). Anti-anchoring instructions prevent the model from narrowing its focus to example content. |
 
 
 #### Pipeline mode
 
-Choose **one** of four progressive modes. Each mode is a strict superset of the previous:
+Choose **one** of four progressive modes. Each mode builds on top of the previous one:
 
 | Mode | What it adds |
 |------|-------------|
 | **1 · Strict** | Scope filter + vocab guardrails inject gold labels into prompts. No NER, no post-processing. |
-| **2 · Guided** | Strict + Medical NER anchor (biomedical entities as prompt hints) + candidate term injection. |
-| **3 · Schema-Completed** *(default)* | Guided + Schema-guided completion (LLM fills corpus-evidenced gaps from the gold schema) + Rule-based reasoning (deterministic hierarchy completion). |
+| **2 · Guided** | Strict + Medical NER anchor (ScispaCy biomedical entities as prompt hints) + candidate term injection. |
+| **3 · Schema-Completed** | Guided + Schema-guided completion (LLM fills corpus-evidenced gaps from the gold schema) + Rule-based reasoning (deterministic hierarchy completion + orphan pruning). |
 | **4 · Fully Reasoned** | Schema-Completed + LLM Reasoning Layer (PROPOSE → VERIFY hierarchy inference from the gold schema). |
+
+The mode hint below the selector shows what each number enables:
+`1: Scope+Vocab · 2: +Candidates+M.NER · 3: +Schema-guided+Rule-based · 4: +LLM Reasoning`
 
 
 #### LLM provider
@@ -85,7 +87,7 @@ Choose **one** extraction LLM:
 
 | Provider | Model |
 |----------|-------|
-| **OpenAI** *(default)* | GPT-4o-mini |
+| **OpenAI** | GPT-4o-mini |
 | **Anthropic** | Claude Haiku 4.5 |
 | **Google** | Gemini 2.5 Flash |
 | **Groq** | Llama 3.1 8B (free) |
@@ -96,7 +98,7 @@ Choose **one** extraction LLM:
 
 | Setting | Description |
 |---------|-------------|
-| **Gold-vocabulary-only** *(on by default)* | Before computing precision/recall, the generated ontology is filtered to the gold vocabulary. This is an evaluation control — it does not change what is extracted. The full unfiltered output is always saved. |
+| **Gold-vocabulary-only** | Before computing precision/recall, the generated ontology is filtered to the gold vocabulary. This is an evaluation control — it doesn't change what gets extracted. The full unfiltered output is always saved alongside. |
 
 #### Advanced / Experimental
 
@@ -104,7 +106,9 @@ Click **Advanced / Experimental** to expand the collapsible section:
 
 | Option | Description |
 |--------|-------------|
-| **Reasoning LLM** | The LLM used for Schema-guided completion and the LLM Reasoning Layer (Modes 3 & 4). Choose between **OpenAI** (GPT-4o-mini, default) and **DeepSeek Reasoner** (R1, stronger reasoning). |
+| **Reasoning LLM** | The LLM used for Schema-guided completion and the LLM Reasoning Layer (Modes 3 & 4). Choose between **OpenAI** (GPT-4o-mini) and **DeepSeek Reasoner** (R1, stronger reasoning but slower). |
+
+If you don't change anything here, OpenAI GPT-4o-mini is used for both extraction and reasoning.
 
 ![Screenshot: Run configuration](screenshots/4_run_configuration.png)
 
@@ -130,7 +134,7 @@ The progress page shows real-time status while the pipeline runs:
 | **Live knowledge graph** | Visual network of extracted classes and relations, updated as chunks are processed. |
 | **Triple stream** | Subject → Predicate → Object pills showing the latest extraction. |
 
-**Cancel** — Click the Cancel button to stop the run immediately. A confirmation dialog appears; cancelled runs have their files deleted.
+**Cancel** — click the Cancel button to stop the run immediately. A confirmation dialog appears; cancelled runs have their files deleted.
 
 When the run completes, you are automatically redirected to the **Results page**.
 
@@ -162,7 +166,7 @@ Extraction              35     8    28    48.61%    100.00%  48.61%
 + Rule-based            57    19    41    79.17%    100.00%  79.17%
 ```
 
-This lets you see exactly which pipeline stage added or removed ontology content.
+This lets you see exactly which pipeline stage added or removed content — useful for understanding where the value (or damage) is coming from.
 
 ![Screenshot: Results page — evaluation metrics card and per-stage ablation table](screenshots/10_results_metrics.png)
 
@@ -174,13 +178,14 @@ The right card lists all generated artifacts. Click any link to view or download
 
 | Artifact | File | Description |
 |----------|------|-------------|
-| **Ontology** | `ontology.json` | Full generated ontology (classes, relations, hierarchy). |
-| **Restricted ontology** | `ontology_restricted.json` | Gold-vocab-filtered copy used for evaluation (only when Gold-vocab is on). |
-| **Summary** | `summary.txt` | Human-readable run report — metadata, improvement counts, metrics, ablation table, full listings. |
-| **Metrics** | `metrics.json` | Full metrics JSON including `by_stage`, `relations`, `extraction_only`. |
-| **Improvement counts** | `improvement_counts.json` | Per-feature tallies of added/removed items. |
-| **Prompts** | `prompt_chunk_NNNN.txt` | Exact prompt text sent to the LLM for each chunk. |
-| **Metadata** | `metadata.json` | Run configuration, input paper names, environment info. |
+| **Ontology** | `ontology.json` | Full generated ontology (classes, relations, hierarchy with evidence). |
+| **Restricted ontology** | `ontology_restricted.json` | Gold-vocab-filtered copy used for evaluation (only produced when Gold-vocab is on). |
+| **Summary** | `summary.txt` | Human-readable run report — metadata, input papers, improvement counts, metrics, ablation table, full listings. |
+| **Metrics** | `metrics.json` | All metrics including `by_stage`, `relations`, `extraction_only`, `hierarchy`. |
+| **Improvement counts** | `improvement_counts.json` | Per-feature tallies of items added/removed at each stage. |
+| **SGC diagnostic** | `sgc_diagnostic.json` | Schema-guided completion parsing counts — raw response length, parsed items, filtered items (Modes 3–4 only). |
+| **Prompts** | `prompt_chunk_NNNN.txt` | Exact prompt text sent to the LLM for each chunk and phase. |
+| **Metadata** | `metadata.json` | Run configuration, input paper names and paths, environment info, code version. |
 
 ![Screenshot: Results page — knowledge artifacts card with download links](screenshots/11_results_artifacts.png)
 
@@ -245,16 +250,16 @@ The table shows all configurations you have added:
 | **Checkbox** | Select/deselect this configuration for running or analysis. |
 | **#** | Row number. |
 | **Run name** | Auto-generated 5-part label (e.g. `Few-Shot - Schema-Completed - GPT‑4o‑mini - Gold-vocab - None`). |
-| **Strategy** | Zero-Shot / One-Shot / Few-Shot / Few-Shot III. |
-| **Mode** | Strict / Guided / Schema-Completed / Fully Reasoned. |
+| **Strategy** | Zero-Shot / One-Shot / Few-Shot. |
+| **Pipeline mode** | Strict / Guided / Schema-Completed / Fully Reasoned. |
 | **LLM** | Provider and model. |
-| **Eval** | Gold-vocab / None. |
-| **Advanced** | M.NER / DSR / None. |
+| **Eval settings** | Gold-vocab / None. |
+| **Advanced** | DSR (DeepSeek Reasoner) / None. |
 | **Actions** | View last result, view analysis, or remove the row. |
 
 **Select all** checkbox in the header selects/deselects all rows at once.
 
-Use the **trash icon** (🗑) in the Actions column to remove an unwanted row.
+Use the **trash icon** in the Actions column to remove an unwanted row.
 
 ![Screenshot: Runs table with several configurations added](screenshots/17_runs_table.png)
 
@@ -315,7 +320,9 @@ The table includes:
 | **Coverage** | Class coverage. |
 | **View** | Opens the full Results page for that run. |
 
-The **best run** (by F1) is highlighted with a "best" badge. An interactive bar chart visualises the comparison.
+The **best run** (by F1) is highlighted with a "best" badge. An interactive bar chart visualises the comparison, and a precision-vs-recall scatter plot shows where each run sits.
+
+You can filter the table by run name, and toggle between Top 10 / Top 20 / All views.
 
 ![Screenshot: Analyze selected modal with comparison table and chart](screenshots/20_analyze_selected.png)
 
@@ -328,8 +335,8 @@ In the runs table, each row has action buttons:
 
 | Button | Icon | What it does |
 |--------|------|-------------|
-| **Last result** | 📋 | Opens a modal showing the summary of the most recent completed run for this configuration. |
-| **Analysis** | 📊 | Opens a modal showing metrics for **all** past runs with this exact configuration — useful for studying LLM non-determinism across repeated runs. |
+| **Last result** | clipboard | Opens a modal showing the summary of the most recent completed run for this configuration. |
+| **Analysis** | chart | Opens a modal showing metrics for **all** past runs with this exact configuration — useful for studying LLM non-determinism across repeated runs. |
 
 ![Screenshot: Per-run action buttons — Last result and Analysis](screenshots/21_per_run_actions.png)
 
@@ -356,10 +363,10 @@ Every run produces a `summary.txt` — the primary human-readable report. It con
 | Section | Contents |
 |---------|----------|
 | **1. Metadata** | Run ID, timestamp, prompting method, pipeline mode, LLM provider, reasoning LLM, improvements applied, evaluation settings. |
-| **2. Input paper(s)** | Filenames of all ingested source documents. For pasted text, shows your Paper title (or `corpus.txt`). |
-| **3. Improvement counts** | Per-feature tallies: classes/relations/hierarchy added, removed, inferred at each stage. |
+| **2. Input paper(s)** | Filenames of all ingested source documents. For pasted text, shows your Paper title (or `corpus.txt` if none was entered). |
+| **3. Improvement counts** | Per-feature tallies: classes/relations/hierarchy added, removed, and inferred at each stage. |
 | **4. Final ontology metrics** | Coverage, precision, recall, errors, structural metrics, clinical-only sub-metrics, relation precision/recall. |
-| **5. Extraction-only metrics** | Same metrics before any improvement step — your raw LLM baseline. |
+| **5. Extraction-only metrics** | Same metrics before any improvement step — your raw LLM baseline, useful for seeing what the extraction alone achieved. |
 | **6. Per-stage ablation table** | Compact table: n_classes, n_relations, n_hierarchy, coverage, precision, recall at every pipeline stage. |
 | **7. Concept counts** | Total classes, relations, and hierarchy edges in the final evaluated ontology. |
 | **8. Full listings** | Every class, relation, and hierarchy edge with labels and evidence. |
@@ -381,9 +388,9 @@ Strategy - PipelineMode - LLM - EvalSettings - Advanced
 
 | Label | Meaning |
 |-------|---------|
-| `Few-Shot - Schema-Completed - GPT‑4o‑mini - Gold-vocab - None` | Few-Shot extraction, Schema-Completed mode, OpenAI GPT-4o-mini, gold-vocab evaluation, no advanced options. |
+| `Few-Shot - Schema-Completed - GPT‑4o‑mini - Gold-vocab - None` | Few-Shot (3-phase) extraction, Schema-Completed mode, OpenAI GPT-4o-mini, gold-vocab evaluation, no advanced options. |
 | `Zero-Shot - Fully Reasoned - Anthropic - Gold-vocab - None` | Zero-Shot baseline with full post-processing, using Anthropic Claude. |
-| `Few-Shot III - Schema-Completed - GPT‑4o‑mini - Gold-vocab - DSR` | Few-Shot III (3-phase) with DeepSeek Reasoner for improvements. |
+| `Few-Shot - Schema-Completed - GPT‑4o‑mini - Gold-vocab - DSR` | Few-Shot with DeepSeek Reasoner for schema-guided completion and LLM reasoning. |
 
 This label appears in the comparison table, run list, batch progress, summary file, and metadata.
 
@@ -410,6 +417,6 @@ runs/<run_id>/
     ├── prompt_chunk_0000_phase2.txt
     ├── sgc_prompt.txt          # Schema-guided completion prompt
     ├── sgc_response.txt        # SGC raw LLM response
+    ├── sgc_diagnostic.json     # SGC parsing pipeline counts
     └── ...
 ```
-

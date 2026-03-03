@@ -11,7 +11,25 @@ LEAF-FIRST RULE (important):
 - If the text clearly mentions multiple distinct allowed leaf items, extract several of them (each with evidence) rather than stopping early.
 - Do NOT treat research methods/algorithms/guideline-adherence calculations as Therapy or Monitoring Data.
 
-Phase 1: Extract candidate classes only. Output JSON with keys classes, relations, hierarchy. Set relations and hierarchy to empty arrays.
+Suggested concepts (pre-identified in this text): CRF.
+These are pre-verified entity mentions in this text. Prefer using them where they fit. You may still use any label from the allowed class list above if it is supported by the text.
+
+Phase 1 — COMPREHENSIVE CLASS EXTRACTION
+Extract ALL clinical/biomedical classes mentioned in the text. Be thorough: extract every distinct concept, not just those similar to the examples.
+
+Look for ALL of these concept types:
+  • Clinical conditions and secondary insults (e.g. Hypotension, Intracranial Hypertension)
+  • Physiological parameters and monitoring variables (e.g. Heart Rate, ICP, Temperature)
+  • Treatments, therapies, and interventions (e.g. Sedation, Ventilation, Fluids)
+  • Clinical assessments and outcomes (e.g. GCS Assessment, GOSe Outcome)
+  • Laboratory values and biochemistry (e.g. Sodium, Glucose, Haemoglobin)
+  • Nursing interventions and bedside activities (e.g. Physiotherapy, Patient Transport)
+  • Data quality and sensor concepts (e.g. Sensor, Data Quality Assessment)
+  • Abstract category classes when explicitly named (e.g. Monitoring Data, Therapy, Observation)
+
+BREADTH OVER CAUTION: If the text mentions 15 distinct clinical concepts, extract all 15. Do not stop early or limit to a few. Each concept needs only a brief evidence mention.
+
+Output JSON with keys classes, relations, hierarchy. Set relations and hierarchy to empty arrays.
 
 Candidate terms (optional hints): rate, secondary insult, acting secondary insults, monitoring, monitoring approach, outcome, secondary, secondary insults, secondary insults could, CRF, acting, acting secondary, adverse, adverse events, also, could, detect, drug, events, factors
 
@@ -29,11 +47,11 @@ You are a highly precise medical ontology extraction engine. You specialize in N
    - IGNORE all metadata, authors, affiliations, journal names, DOI/ISBN, and semantic web/technical boilerplate (RDF, URI, etc).
    - Do NOT extract organisational, membership, database, or publication concepts (e.g. steering group, data validation staff, common database).
    - FOCUS ONLY on clinical/physiological concepts, treatments, parameters, and outcomes.
-5. **Reject rule:** When in doubt, omit. Prefer under-generation to over-generation.
+5. **Confidence rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely ambiguous or non-clinical items.
 
 **Default priority: classes first, then relations.** Extract relations only when the wording is explicit and stable. If uncertain, return no relations. If a phase instruction above overrides this priority, follow the phase instruction.
 
-Use the retrieved examples below as **style guidance only**. Apply the same OUTPUT FORMAT and evidence rules. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
 
 ### OUTPUT FORMAT (JSON Only)
 Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.

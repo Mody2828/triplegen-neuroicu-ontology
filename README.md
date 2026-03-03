@@ -2,74 +2,57 @@
 
 ## Overview
 
-**TripleGen** is a research project focused on using **Large Language Models (LLMs)** to support **source-faithful ontology engineering** in the **Neuro-ICU** domain.
+**TripleGen** is a research framework that uses Large Language Models to build ontologies from Neuro-ICU literature. It takes BrainIT consortium papers as input, extracts ontology elements (classes, relations, hierarchy), and evaluates the result against a clinician-designed gold standard.
 
-The project investigates how effectively LLMs can reconstruct and refine a domain ontology from **Neuro-ICU literature**, particularly in a **low-resource clinical setting** where high-quality ontologies are difficult to build manually. TripleGen combines prompt-based extraction, retrieval-enhanced examples, structured post-processing, and evaluation to explore both the strengths and limitations of LLM-driven ontology generation.
-
-## Project Aim
-
-To design, implement, and evaluate **TripleGen**, an LLM-driven framework for **source-faithful ontology engineering** in the **Neuro-ICU domain**.
-
-## Main Research Question
-
-**How effectively can Large Language Models support source-faithful ontology engineering in the low-resource Neuro-ICU domain?**
+The core question is straightforward: can LLMs reconstruct a high-quality domain ontology in a low-resource clinical setting where expert-built ontologies are hard to come by? TripleGen explores this through controlled prompting strategies, progressive post-processing, and rigorous evaluation — measuring not just what the LLM gets right, but where and why it fails.
 
 ## Research Objectives
 
-* Develop a reproducible pipeline for **ontology extraction, refinement, and evaluation** from Neuro-ICU literature.
-* Compare multiple **prompting strategies**, including zero-shot, one-shot, and phased few-shot approaches.
-* Evaluate the contribution of **retrieval-based examples** to extraction quality.
-* Assess the impact of **post-processing layers**, including cleanup, schema-guided completion, and reasoning.
-* Measure ontology quality using evidence-based and structure-aware metrics such as **precision, recall, evidence fidelity, hierarchy quality, and ontology consistency**.
-* Explore how extraction performance varies across **different paper types and ontology extraction scenarios**.
-* Provide a **web-based interface** for running experiments and visualising ontology outputs.
+1. **Assess LLM capability** — can LLMs reconstruct BrainIT ontology concepts, relations, and hierarchy from domain literature?
+2. **Compare prompting strategies** — how do Zero-Shot, One-Shot, and Few-Shot (three-phase decomposition with anti-anchoring) approaches compare across multiple LLM providers?
+3. **Analyse failure modes** — hallucinations, scope drift, anchoring bias, structural inconsistencies.
+4. **Evaluate pipeline components** — how do vocabulary guardrails, Medical NER, schema-guided completion, and LLM reasoning layers affect alignment?
 
-## Repository Contents
+## What Makes This Different
 
-This repository contains the core documentation, resources, and implementation materials for TripleGen.
+Most prior work evaluates LLM ontology engineering against well-established biomedical ontologies (SNOMED, Gene Ontology, etc.). TripleGen uses a **clinician-designed gold standard** from the BrainIT consortium — a smaller, domain-specific ontology that's closer to what clinicians actually build in practice. This gives practical insight into LLM performance in genuinely low-resource settings.
 
-### Key Documents
+## Key Features
 
-| Document                                       | Description                                                                                                                                                                                       |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [**TripleGen_WepApp.md**](TripleGen_WepApp.md) | A visual guide to the web application, including step-by-step usage instructions and annotated screenshots.                                                                                       |
-| [**Implementation.md**](implementation.md)     | A detailed explanation of the system design and implementation, including pipeline architecture, prompting strategies, retrieval setup, cleanup layers, evaluation design, and the gold standard. |
-| [**Scope.md**](Scope.md)                       | A concise description of the project scope, including what is included, excluded, and prioritised within the research.                                                                            |
+- **Three prompting strategies**: Zero-Shot (baseline), One-Shot (single MMR example), and Few-Shot (three-phase extraction with dedicated example pools per phase and anti-anchoring instructions).
+- **Four progressive pipeline modes**: Strict → Guided → Schema-Completed → Fully Reasoned — each adding more post-processing to show what each component contributes.
+- **Medical NER anchor**: ScispaCy biomedical entity recognition built into Guided mode and above, giving the LLM a head start on clinical terms.
+- **Schema-guided completion**: LLM-based gap-filling from the gold schema, adding only corpus-evidenced items.
+- **LLM Reasoning Layer**: PROPOSE/VERIFY hierarchy inference using two separate LLM calls.
+- **Per-stage ablation**: metrics captured after every pipeline stage so you can see exactly where value (or damage) comes from.
+- **Multi-LLM support**: OpenAI GPT-4o-mini, Anthropic Claude Haiku 4.5, Google Gemini 2.5 Flash, Groq Llama 3.1 8B, Hugging Face Mistral 7B, DeepSeek.
+- **Web interface**: Flask app for running experiments, comparing runs, and visualising ontologies as interactive graphs (Cytoscape.js).
 
-## Core Deliverables
+## Documents in This Folder
 
-* A reproducible **LLM-driven ontology engineering pipeline** for Neuro-ICU literature.
-* A set of **prompting strategies** for strict and task-specific ontology extraction.
-* Retrieval-based workflows for **one-shot and few-shot extraction**.
-* Post-processing components for **cleanup, completion, and reasoning-based refinement**.
-* A comparative experimental framework for analysing strategies, models, and improvement layers.
-* A web application with ontology visualisation, experiment controls, and exportable outputs.
-
-## Project Structure
-
-TripleGen is designed as both:
-
-* a **research framework** for studying LLM-based ontology engineering, and
-* a **practical prototype** for running ontology extraction experiments in the Neuro-ICU domain.
-
-The system supports:
-
-* literature ingestion and preprocessing,
-* scope-aware chunking and retrieval,
-* ontology extraction with multiple prompting strategies,
-* optional refinement layers,
-* and structured evaluation of ontology quality.
+| Document | Description |
+|----------|-------------|
+| [**implementation_chapter.md**](implementation_chapter.md) | Full design and implementation: pipeline architecture, prompting strategies, pipeline modes, post-processing, evaluation, gold standard. Start here to understand how TripleGen works. |
+| [**Scope.md**](Scope.md) | Project scope, research objectives, delivered methodology, technology stack, and outputs. |
+| [**TripleGen_WepApp.md**](TripleGen_WepApp.md) | Visual walkthrough of the web application with step-by-step usage instructions and screenshot placeholders. |
 
 ## Getting Started
 
-To understand the project structure and methodology, start with [**Implementation.md**](implementation.md).
-This is the best entry point for understanding how TripleGen works, including its pipeline stages, prompting strategies, operational modes, and evaluation workflow.
+- **How TripleGen works** — read [implementation_chapter.md](implementation_chapter.md). It covers the full pipeline from corpus ingestion through evaluation, including prompting strategies, pipeline modes, and the reasoning layers.
+- **Project scope and objectives** — read [Scope.md](Scope.md). It covers what's in scope, the research questions, and the delivered outputs.
+- **Using the web app** — read [TripleGen_WepApp.md](TripleGen_WepApp.md). It walks through running experiments, comparing results, and interpreting the ontology graph.
 
-For project boundaries and research framing, see [**Scope.md**](Scope.md).
-For application usage, see [**TripleGen_WepApp.md**](TripleGen_WepApp.md).
+## Technology Stack
 
-## Notes
-
-TripleGen is intended to investigate not only whether LLMs can extract ontology elements, but also **how different prompting, retrieval, and refinement strategies affect the quality, faithfulness, and usefulness of the resulting ontology**.
+| Component | Technology |
+|-----------|------------|
+| Language | Python 3.10+ |
+| Extraction LLMs | OpenAI GPT-4o-mini, Anthropic Claude Haiku 4.5, Google Gemini 2.5 Flash, Groq, Hugging Face, DeepSeek |
+| Reasoning LLMs | OpenAI GPT-4o-mini, DeepSeek Reasoner R1 |
+| Retrieval | TF-IDF + cosine similarity + MMR (λ=0.7) |
+| Medical NER | ScispaCy `en_ner_bc5cdr_md` |
+| Ontology | JSON (internal), OWL/RDF Turtle (gold standard), rdflib |
+| Web UI | Flask + Jinja2 + vanilla JS + Cytoscape.js |
+| Evaluation | Custom alignment with TF-IDF semantic matching, per-stage ablation, error taxonomy |
 
 ---

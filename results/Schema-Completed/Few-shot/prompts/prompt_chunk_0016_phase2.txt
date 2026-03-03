@@ -11,7 +11,14 @@ LEAF-FIRST RULE (important):
 - If the text clearly mentions multiple distinct allowed leaf items, extract several of them (each with evidence) rather than stopping early.
 - Do NOT treat research methods/algorithms/guideline-adherence calculations as Therapy or Monitoring Data.
 
-Phase 2: Classes were already extracted in Phase 1. Now extract relations only (hierarchy will be extracted in Phase 3). Output JSON with keys classes, relations, hierarchy. Set classes and hierarchy to empty arrays unless a new class is needed as domain/range for a relation.
+Suggested concepts (pre-identified in this text): TBI.
+These are pre-verified entity mentions in this text. Prefer using them where they fit. You may still use any label from the allowed class list above if it is supported by the text.
+
+Phase 2 — RELATION EXTRACTION (+ supplementary classes)
+Primary task: extract relations between the known classes listed below.
+Secondary task: if you notice clinical concepts in the text that Phase 1 missed (e.g. a concept needed as domain/range, or simply not extracted yet), add them to the classes array with evidence.
+Hierarchy will be extracted in Phase 3 — set hierarchy to an empty array.
+Output JSON with keys classes, relations, hierarchy.
 
 Candidate terms (optional hints): can, Discussion, Future, Future Work, GRI, High Performance Computing, ICU, Medical, Medical Disorders, Proc, Web, Web Semantics, Work, additional, additional contextual, additional contextual information, applied, approach can, assess, assess medical
 
@@ -29,11 +36,11 @@ You are a highly precise medical ontology extraction engine. You specialize in N
    - IGNORE all metadata, authors, affiliations, journal names, DOI/ISBN, and semantic web/technical boilerplate (RDF, URI, etc).
    - Do NOT extract organisational, membership, database, or publication concepts (e.g. steering group, data validation staff, common database).
    - FOCUS ONLY on clinical/physiological concepts, treatments, parameters, and outcomes.
-5. **Reject rule:** When in doubt, omit. Prefer under-generation to over-generation.
+5. **Confidence rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely ambiguous or non-clinical items.
 
 **Default priority: classes first, then relations.** Extract relations only when the wording is explicit and stable. If uncertain, return no relations. If a phase instruction above overrides this priority, follow the phase instruction.
 
-Use the retrieved examples below as **style guidance only**. Apply the same OUTPUT FORMAT and evidence rules. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
 
 ### OUTPUT FORMAT (JSON Only)
 Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
@@ -220,37 +227,43 @@ Output (JSON):
 
 ---
 
-Text: ICU management data covers nursing interventions: routine nursing care (eye/mouth care, ET tube suction), physiotherapy, bedside interventions (line insertion, transducer calibration), and patient transport to Theatre or CT-Scan. These are annotated in the management time-series.
+Text: Each patient undergoes structured clinical assessments: GCS scores collected at pre-neurosurgical admission and neurosurgical admission, pupil size and responsiveness assessed for each eye, and CT scan classification using TCDB nomenclature.
 Output (JSON):
 {
   "classes": [
     {
       "label": "Patient",
-      "evidence": "management data covers nursing interventions"
+      "evidence": "Each patient"
     },
     {
-      "label": "Nursing Intervention",
-      "evidence": "nursing interventions"
+      "label": "Clinical Assessment",
+      "evidence": "structured clinical assessments"
     },
     {
-      "label": "Routine Nursing Care",
-      "evidence": "routine nursing care (eye/mouth care, ET tube suction)"
+      "label": "GCS Assessment",
+      "evidence": "GCS scores collected at pre-neurosurgical admission"
     },
     {
-      "label": "Physiotherapy",
-      "evidence": "physiotherapy"
+      "label": "Pupil Assessment",
+      "evidence": "pupil size and responsiveness assessed for each eye"
     },
     {
-      "label": "Patient Transport",
-      "evidence": "patient transport to Theatre or CT-Scan"
+      "label": "CT Scan Assessment",
+      "evidence": "CT scan classification using TCDB nomenclature"
     }
   ],
   "relations": [
     {
-      "label": "has nursing intervention",
+      "label": "has clinical assessment",
       "domain": "Patient",
-      "range": "Nursing Intervention",
-      "evidence": "ICU management data covers nursing interventions...annotated in the management time-series"
+      "range": "Clinical Assessment",
+      "evidence": "Each patient undergoes structured clinical assessments: GCS scores"
+    },
+    {
+      "label": "has clinical assessment",
+      "domain": "Patient",
+      "range": "GCS Assessment",
+      "evidence": "GCS scores collected at pre-neurosurgical admission"
     }
   ],
   "hierarchy": []
