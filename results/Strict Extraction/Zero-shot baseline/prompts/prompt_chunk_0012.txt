@@ -32,7 +32,20 @@ If unsure, omit.
 - `evidence` must be an EXACT verbatim fragment copied from the text.
 - If exact evidence is not available, omit the item.
 
-3. STRICT SCOPE
+3. IGNORE NON-CLINICAL CONTENT
+Do NOT extract any of the following:
+- Authors, affiliations, institutions, department names, investigator lists
+- Journal names, page numbers, DOI, ISBN, PMID, publication dates, copyright notices, URLs
+- Organisations, groups, committees, memberships, centres, investigators
+- Meetings, projects, funding, EEC, collaborations, publications
+- Databases, software, forms, websites, infrastructure, validation workflows
+- Ethics, confidentiality, ownership, accessibility, legal / administrative concepts
+- Generic research-process concepts such as trials, study design, feasibility exercise, data collection workflow
+
+IMPORTANT:
+If a sentence or paragraph is mainly about governance, organisation, validation, infrastructure, publication, centres, membership, or database access, IGNORE that sentence or paragraph completely.
+
+4. EXTRACT ONLY CLINICAL CONTENT
 Extract ONLY:
 - clinical conditions
 - physiological parameters
@@ -41,23 +54,13 @@ Extract ONLY:
 - outcomes
 - directly named clinical dataset groups only when explicitly stated in the text
 
-DO NOT extract:
-- organisations, groups, committees, memberships, centres, investigators
-- meetings, projects, funding, EEC, collaborations, publications
-- databases, software, forms, websites, infrastructure, validation workflows
-- ethics, confidentiality, ownership, accessibility, legal / administrative concepts
-- generic research-process concepts such as trials, study design, feasibility exercise, data collection workflow
-
-IMPORTANT:
-If a sentence or paragraph is mainly about governance, organisation, validation, infrastructure, publication, centres, membership, or database access, IGNORE that sentence or paragraph completely.
-
-4. CLASS RULES
+5. CLASS RULES
 - Prefer concrete clinical labels from the text.
 - Prefer specific labels over abstract ones (e.g. prefer 'Heart Rate' over 'Monitoring Data' when both are mentioned). If an allowed class list is provided, you may use those labels; otherwise avoid abstract categories unless the text explicitly names them.
 - Keep labels close to the wording in the text.
 - Do not invent CamelCase labels.
 
-5. RELATION RULES
+6. RELATION RULES
 - Classes are the priority.
 - Extract relations ONLY when the text explicitly states a stable relation between two extracted class labels.
 - If uncertain, omit the relation.
@@ -66,7 +69,7 @@ If a sentence or paragraph is mainly about governance, organisation, validation,
 - If an allowed relation list was provided, use those labels. Otherwise, prefer labels that reflect the text's wording.
 - Do NOT invent arbitrary relation labels.
 
-6. HIERARCHY RULES
+7. HIERARCHY RULES
 - Extract hierarchy ONLY when the text explicitly uses one of these lexical cues:
   - "is a"
   - "type of"
@@ -78,7 +81,7 @@ If a sentence or paragraph is mainly about governance, organisation, validation,
 - NEVER output long clauses, verb phrases, or sentence fragments as subclass or superclass.
 - If either side is not a clean noun phrase, omit the hierarchy edge.
 
-7. ZERO-SHOT BEHAVIOUR
+8. ZERO-SHOT BEHAVIOUR
 - This is a strict baseline: prefer under-generation to over-generation.
 - It is better to return fewer high-confidence items than many weak items.
 - If the text is mixed clinical + governance, keep ONLY the clinical part.

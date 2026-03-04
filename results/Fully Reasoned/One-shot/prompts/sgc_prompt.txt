@@ -17,7 +17,8 @@ You are performing schema-guided completion. The current ontology was merged fro
 
 Task: From the corpus evidence below, which of these missing items are SUPPORTED by the text?
 1. Consider ONLY the missing classes, relations, and hierarchy edges listed.
-2. For each class or relation you output, provide an evidence span: an exact quote or phrase from the corpus.
+2. For each item, provide an evidence span: an EXACT quote or short phrase copied from the corpus text below.
+   IMPORTANT: Evidence must be actual text from the corpus, NOT ontology URIs (e.g. 'pd:Session'), NOT the label repeated, and NOT definitions. Copy a real fragment from the corpus.
 3. A brief mention (even 1-3 words) in the corpus IS sufficient evidence. Do not require a full sentence.
 4. You MUST output as many matching items as the corpus supports — do not leave known classes out.
 5. Use exact labels from the gold schema (same spelling and capitalisation).
@@ -29,7 +30,7 @@ Output valid JSON only with keys: classes, relations, hierarchy.
 ## Missing from current ontology (in gold schema but not yet predicted):
 
 ### Missing classes:
-- Session (A continuous monitoring session for a patient in the ICU, comprising an ordered sequence of timepoints. [P2])
+- Core Monitoring Parameter (Minimum required minute-by-minute monitoring parameters for BrainIT Database inclusion. All participating centres must provide these. [P1])
 - Optional Monitoring Parameter (Extended monitoring parameters included in the BrainIT Database whenever monitored as part of a centre's routine clinical management. [P1])
 - Derived Parameter (Monitoring parameter computed from other measured parameters (e.g. CPP = MAP − ICP). [P1])
 - Intracranial Pressure (ICP) (Core BrainIT parameter. Monitoring site: intraventricular, intraparenchymal, or subdural. Technology: catheter-tip or fluid-filled catheter-transducer. [P1])
@@ -38,14 +39,12 @@ Output valid JSON only with keys: classes, relations, hierarchy.
 - TCD (Transcranial Doppler. Optional BrainIT parameter. [P1])
 - PbrO2 (Brain tissue oxygen partial pressure. Optional BrainIT parameter. [P1])
 - Cerebral Perfusion Pressure (CPP) (Derived: CPP = MAP − ICP. Critical threshold ~70 mmHg. CPP-targeted therapy is a key BrainIT secondary-insult management concept. [P1])
+- Baseline Therapy (Routine ICU management delivered to all TBI patients. Collected as Intensive Care Management data with start/end times. [P1])
 - Secondary Insult Therapy (Non-surgical medical management specifically given to treat secondary insults. Each therapy must be assigned a therapy target from a standardised drop-down list. [P1])
 - Nutrition (Nutritional support. Baseline therapy. [P1])
 - Antibiotics (Antibiotic therapy. Baseline therapy. [P1])
-- Arterial Pressors (Arterial pressure agents used in secondary insult therapy. Therapy target: systemic hypotension OR reduced CPP secondary to raised ICP. [P1])
 - Jugular Venous Desaturation (SjO2 < 50%. A secondary insult associated with aggressive CPP management (>70 mmHg). [P1])
-- Clinical Assessment (Structured clinical evaluation performed at admission and during the ICU stay. Abstract superclass. [P1])
-- Laboratory Values (Routine laboratory tests performed during ICU management. Includes blood gases, biochemistry, and haematology. Recorded daily alongside minute-by-minute monitoring. [P1])
-- Blood Gases (Arterial blood gas analysis. Recorded routinely in ICU management data. [P1])
+- GCS Assessment (Glasgow Coma Scale. Collected at pre-neurosurgical hospital admission and at neurosurgical admission. Also collected as time-series in the ICU management dataset. [P1])
 - Sodium (Serum sodium (Na). Daily biochemistry value. [P1])
 - Potassium (Serum potassium (K+). Daily biochemistry value. [P1])
 - Glucose (Blood glucose. Daily biochemistry value. [P1])
@@ -54,84 +53,71 @@ Output valid JSON only with keys: classes, relations, hierarchy.
 - Haematocrit (Packed cell volume. Daily haematology value. [P1])
 - Nursing Intervention (Routine nursing care, physiotherapy, or bedside clinical activities annotated in the ICU management time-series. [P1])
 - Routine Nursing Care (Eye/mouth care, ET tube suction, bed care. Coded and annotated in ICU management data. [P1])
-- Physiotherapy (Physiotherapy sessions annotated in ICU management data. [P1])
-- Patient Transport (Transport to and from Theatre or CT-Scan. Annotated in ICU management data. [P1])
 
 ### Missing relations:
-- has monitoring data(Patient -> Monitoring Data)
-- receives therapy(Patient -> Therapy)
-- targets condition(Therapy -> Condition)
 - monitoring indicates condition(Monitoring Data -> Condition)
 - has clinical assessment(Patient -> Clinical Assessment)
-- has outcome(Patient -> Outcome)
 - has laboratory value(Patient -> Laboratory Values)
 - has nursing intervention(Patient -> Nursing Intervention)
-- has session(Patient -> Session)
-- has timepoint(Session -> Timepoint)
-- has observation(Timepoint -> Observation)
-- measures parameter(Observation -> Parameter)
-- produced by sensor(Observation -> Sensor)
 - has quality assessment(Observation -> Data Quality Assessment)
-- associated with condition(Data Quality Assessment -> Condition)
 - affected by treatment(Data Quality Assessment -> Therapy)
 
 ### Missing hierarchy edges (subClass -> superClass):
-- Systemic Hypotension -> Secondary Insult
-- Physiotherapy -> Nursing Intervention
-- Antibiotics -> Baseline Therapy
-- CT Scan Assessment -> Clinical Assessment
-- Secondary Insult Treatment -> Secondary Insult Therapy
-- SjO2 -> Optional Monitoring Parameter
-- CVP -> Optional Monitoring Parameter
-- Baseline Therapy -> Therapy
-- Glucose -> Biochemistry
-- Possible Error -> Data Quality Assessment
-- Heart Rate -> Core Monitoring Parameter
-- Respiration Rate -> Core Monitoring Parameter
-- Vasopressors -> Baseline Therapy
-- Acute Respiratory Distress Syndrome -> Secondary Insult
-- Haemoglobin -> Haematology
-- White Blood Cell Count -> Haematology
-- GCS Assessment -> Clinical Assessment
-- Biochemistry -> Laboratory Values
-- Secondary Insult Therapy -> Therapy
-- Adrenaline -> Vasopressors
-- Patient Transport -> Nursing Intervention
-- Microdialysis -> Optional Monitoring Parameter
-- Probable Error -> Data Quality Assessment
-- Temperature -> Core Monitoring Parameter
-- Hypertension -> Condition
-- Sepsis -> Condition
-- Routine Nursing Care -> Nursing Intervention
-- Intracranial Pressure (ICP) -> Core Monitoring Parameter
-- Nutrition -> Baseline Therapy
-- Arterial Pressors -> Secondary Insult Therapy
-- Sodium -> Biochemistry
-- Potassium -> Biochemistry
-- Pupil Assessment -> Clinical Assessment
-- Bedside Intervention -> Nursing Intervention
-- Haematology -> Laboratory Values
-- Arterial Hypotension -> Systemic Hypotension
-- EtCO2 -> Optional Monitoring Parameter
-- Derived Parameter -> Monitoring Data
-- GOSe Outcome -> Outcome
-- SaO2 -> Core Monitoring Parameter
-- Mean Arterial Pressure (MAP) -> Core Monitoring Parameter
-- Hypotension -> Condition
-- Blood Gases -> Laboratory Values
-- Core Monitoring Parameter -> Monitoring Data
-- Sedation -> Baseline Therapy
-- PbrO2 -> Optional Monitoring Parameter
-- Cerebral Perfusion Pressure (CPP) -> Derived Parameter
-- Haematocrit -> Haematology
 - Jugular Venous Desaturation -> Secondary Insult
+- Sedation -> Baseline Therapy
+- White Blood Cell Count -> Haematology
+- Secondary Insult Treatment -> Secondary Insult Therapy
+- Potassium -> Biochemistry
+- Mean Arterial Pressure (MAP) -> Core Monitoring Parameter
+- Intracranial Pressure (ICP) -> Core Monitoring Parameter
+- CT Scan Assessment -> Clinical Assessment
+- SjO2 -> Optional Monitoring Parameter
+- Possible Error -> Data Quality Assessment
+- Biochemistry -> Laboratory Values
+- Antibiotics -> Baseline Therapy
 - Secondary Insult -> Condition
-- TCD -> Optional Monitoring Parameter
-- Brain Temperature -> Optional Monitoring Parameter
-- Ventilation -> Baseline Therapy
+- Haematology -> Laboratory Values
+- Pupil Assessment -> Clinical Assessment
+- Respiration Rate -> Core Monitoring Parameter
 - Fluids -> Baseline Therapy
-- Noradrenaline -> Vasopressors
+- Microdialysis -> Optional Monitoring Parameter
+- Arterial Hypotension -> Systemic Hypotension
+- Hypotension -> Condition
+- Nutrition -> Baseline Therapy
+- Physiotherapy -> Nursing Intervention
+- GCS Assessment -> Clinical Assessment
+- Temperature -> Core Monitoring Parameter
+- PbrO2 -> Optional Monitoring Parameter
+- Ventilation -> Baseline Therapy
+- Derived Parameter -> Monitoring Data
+- Vasopressors -> Baseline Therapy
+- Sepsis -> Condition
+- GOSe Outcome -> Outcome
+- Glucose -> Biochemistry
+- Cerebral Perfusion Pressure (CPP) -> Derived Parameter
+- EtCO2 -> Optional Monitoring Parameter
 - Optional Monitoring Parameter -> Monitoring Data
+- Blood Gases -> Laboratory Values
+- SaO2 -> Core Monitoring Parameter
+- Systemic Hypotension -> Secondary Insult
+- Adrenaline -> Vasopressors
+- Haematocrit -> Haematology
+- Sodium -> Biochemistry
+- Arterial Pressors -> Secondary Insult Therapy
+- Brain Temperature -> Optional Monitoring Parameter
+- Core Monitoring Parameter -> Monitoring Data
+- CVP -> Optional Monitoring Parameter
+- Haemoglobin -> Haematology
+- Patient Transport -> Nursing Intervention
+- Hypertension -> Condition
+- Bedside Intervention -> Nursing Intervention
+- Secondary Insult Therapy -> Therapy
+- Probable Error -> Data Quality Assessment
+- TCD -> Optional Monitoring Parameter
+- Baseline Therapy -> Therapy
+- Acute Respiratory Distress Syndrome -> Secondary Insult
+- Routine Nursing Care -> Nursing Intervention
+- Noradrenaline -> Vasopressors
 
 ## Corpus (evidence source):
 

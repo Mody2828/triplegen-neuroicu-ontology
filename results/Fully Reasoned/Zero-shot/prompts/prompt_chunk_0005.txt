@@ -1,5 +1,3 @@
-Candidate terms (optional hints): biochemistry, blood gases, cerebral perfusion pressure, cpp, gcs, haematology, hypotension, icp, monitoring, pupil, secondary insult, sedation, vasopressors, ventilation, Each Therapy, can, secondary, therapy, BrainIT, PC software
-
 Use ONLY the following class labels:
 Acute Respiratory Distress Syndrome; Adrenaline; Antibiotics; Arterial Hypotension; Arterial Pressors; Baseline Therapy; Bedside Intervention; Biochemistry; Blood Gases; Brain Temperature; CT Scan Assessment; CVP; Cerebral Perfusion Pressure (CPP); Clinical Assessment; Condition; Core Monitoring Parameter; Data Quality Assessment; Derived Parameter; EtCO2; Fluids; GCS Assessment; GOSe Outcome; Glucose; Haematocrit; Haematology; Haemoglobin; Heart Rate; Hypertension; Hypotension; Intensive Care Management; Intracranial Hypertension; Intracranial Pressure (ICP); Jugular Venous Desaturation; Laboratory Values; Mean Arterial Pressure (MAP); Microdialysis; Monitoring Data; Noradrenaline; Nursing Intervention; Nutrition; Observation; Optional Monitoring Parameter; Outcome; Parameter; Patient; Patient Transport; PbrO2; Physiotherapy; Possible Error; Potassium; Probable Error; Pupil Assessment; Respiration Rate; Routine Nursing Care; SaO2; Secondary Insult; Secondary Insult Therapy; Secondary Insult Treatment; Sedation; Sensor; Sepsis; Session; SjO2; Sodium; Systemic Hypotension; TCD; Temperature; Therapy; Timepoint; Vasopressors; Ventilation; White Blood Cell Count
 Relations (use exact labels + domain/range):
@@ -12,6 +10,11 @@ LEAF-FIRST RULE (important):
 - You may include container classes when needed as endpoints for allowed relations, but do not stop at containers when leaf items are present.
 - If the text clearly mentions multiple distinct allowed leaf items, extract several of them (each with evidence) rather than stopping early.
 - Do NOT treat research methods/algorithms/guideline-adherence calculations as Therapy or Monitoring Data.
+
+Suggested concepts (pre-identified by biomedical NER in this text): Na, Glucose, Secondary insult, pressors, hypotension.
+These are entity mentions detected in this chunk. Use them as additional evidence that a concept is present, but only extract labels from the allowed class list above.
+
+Candidate domain terms (contextual hints from this chunk — use only if supported by the text): biochemistry; blood gases; cerebral perfusion pressure; cpp; gcs; haematology; hypotension; icp; monitoring; pupil; secondary insult; sedation
 
 ### SYSTEM ROLE
 You are a highly precise medical ontology extraction engine for a strict evaluation benchmark in Neuro-ICU / BrainIT literature.
@@ -34,7 +37,20 @@ If unsure, omit.
 - `evidence` must be an EXACT verbatim fragment copied from the text.
 - If exact evidence is not available, omit the item.
 
-3. STRICT SCOPE
+3. IGNORE NON-CLINICAL CONTENT
+Do NOT extract any of the following:
+- Authors, affiliations, institutions, department names, investigator lists
+- Journal names, page numbers, DOI, ISBN, PMID, publication dates, copyright notices, URLs
+- Organisations, groups, committees, memberships, centres, investigators
+- Meetings, projects, funding, EEC, collaborations, publications
+- Databases, software, forms, websites, infrastructure, validation workflows
+- Ethics, confidentiality, ownership, accessibility, legal / administrative concepts
+- Generic research-process concepts such as trials, study design, feasibility exercise, data collection workflow
+
+IMPORTANT:
+If a sentence or paragraph is mainly about governance, organisation, validation, infrastructure, publication, centres, membership, or database access, IGNORE that sentence or paragraph completely.
+
+4. EXTRACT ONLY CLINICAL CONTENT
 Extract ONLY:
 - clinical conditions
 - physiological parameters
@@ -43,23 +59,13 @@ Extract ONLY:
 - outcomes
 - directly named clinical dataset groups only when explicitly stated in the text
 
-DO NOT extract:
-- organisations, groups, committees, memberships, centres, investigators
-- meetings, projects, funding, EEC, collaborations, publications
-- databases, software, forms, websites, infrastructure, validation workflows
-- ethics, confidentiality, ownership, accessibility, legal / administrative concepts
-- generic research-process concepts such as trials, study design, feasibility exercise, data collection workflow
-
-IMPORTANT:
-If a sentence or paragraph is mainly about governance, organisation, validation, infrastructure, publication, centres, membership, or database access, IGNORE that sentence or paragraph completely.
-
-4. CLASS RULES
+5. CLASS RULES
 - Prefer concrete clinical labels from the text.
 - Prefer specific labels over abstract ones (e.g. prefer 'Heart Rate' over 'Monitoring Data' when both are mentioned). If an allowed class list is provided, you may use those labels; otherwise avoid abstract categories unless the text explicitly names them.
 - Keep labels close to the wording in the text.
 - Do not invent CamelCase labels.
 
-5. RELATION RULES
+6. RELATION RULES
 - Classes are the priority.
 - Extract relations ONLY when the text explicitly states a stable relation between two extracted class labels.
 - If uncertain, omit the relation.
@@ -68,7 +74,7 @@ If a sentence or paragraph is mainly about governance, organisation, validation,
 - If an allowed relation list was provided, use those labels. Otherwise, prefer labels that reflect the text's wording.
 - Do NOT invent arbitrary relation labels.
 
-6. HIERARCHY RULES
+7. HIERARCHY RULES
 - Extract hierarchy ONLY when the text explicitly uses one of these lexical cues:
   - "is a"
   - "type of"
@@ -80,7 +86,7 @@ If a sentence or paragraph is mainly about governance, organisation, validation,
 - NEVER output long clauses, verb phrases, or sentence fragments as subclass or superclass.
 - If either side is not a clean noun phrase, omit the hierarchy edge.
 
-7. ZERO-SHOT BEHAVIOUR
+8. ZERO-SHOT BEHAVIOUR
 - This is a strict baseline: prefer under-generation to over-generation.
 - It is better to return fewer high-confidence items than many weak items.
 - If the text is mixed clinical + governance, keep ONLY the clinical part.

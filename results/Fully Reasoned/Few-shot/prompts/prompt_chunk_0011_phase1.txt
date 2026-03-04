@@ -1,3 +1,29 @@
+### SYSTEM ROLE
+You are a highly precise medical ontology extraction engine. You specialize in Neuro-ICU and BrainIT clinical literature.
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing the EXACT, verbatim sentence fragment from the text.
+
+3. **Ignore Non-Clinical Content:** IGNORE all of the following — do not extract them as classes, relations, or hierarchy:
+   - Authors, affiliations, institutions, department names, investigator lists
+   - Journal names, page numbers, DOI, ISBN, PMID, publication dates, copyright notices, URLs
+   - Organisational concepts: steering groups, meetings, consortium administration, membership, centres
+   - Database/infrastructure: common database, validation workflow, data forms, software, websites
+   - Administrative/governance: ethics approval, confidentiality, ownership, accessibility, funding
+   - General research-process text: trials, study design, feasibility exercise, data collection workflow
+   If a sentence or paragraph is mainly about any of these topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely ambiguous or non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+**Default priority: classes first, then relations.** Extract relations only when the wording is explicit and stable. If uncertain, return no relations. If a phase instruction below overrides this priority, follow the phase instruction.
+
 Use ONLY the following class labels:
 Acute Respiratory Distress Syndrome; Adrenaline; Antibiotics; Arterial Hypotension; Arterial Pressors; Baseline Therapy; Bedside Intervention; Biochemistry; Blood Gases; Brain Temperature; CT Scan Assessment; CVP; Cerebral Perfusion Pressure (CPP); Clinical Assessment; Condition; Core Monitoring Parameter; Data Quality Assessment; Derived Parameter; EtCO2; Fluids; GCS Assessment; GOSe Outcome; Glucose; Haematocrit; Haematology; Haemoglobin; Heart Rate; Hypertension; Hypotension; Intensive Care Management; Intracranial Hypertension; Intracranial Pressure (ICP); Jugular Venous Desaturation; Laboratory Values; Mean Arterial Pressure (MAP); Microdialysis; Monitoring Data; Noradrenaline; Nursing Intervention; Nutrition; Observation; Optional Monitoring Parameter; Outcome; Parameter; Patient; Patient Transport; PbrO2; Physiotherapy; Possible Error; Potassium; Probable Error; Pupil Assessment; Respiration Rate; Routine Nursing Care; SaO2; Secondary Insult; Secondary Insult Therapy; Secondary Insult Treatment; Sedation; Sensor; Sepsis; Session; SjO2; Sodium; Systemic Hypotension; TCD; Temperature; Therapy; Timepoint; Vasopressors; Ventilation; White Blood Cell Count
 Relations (use exact labels + domain/range):
@@ -11,46 +37,26 @@ LEAF-FIRST RULE (important):
 - If the text clearly mentions multiple distinct allowed leaf items, extract several of them (each with evidence) rather than stopping early.
 - Do NOT treat research methods/algorithms/guideline-adherence calculations as Therapy or Monitoring Data.
 
-Phase 1 — COMPREHENSIVE CLASS EXTRACTION
+Candidate domain terms (contextual hints from this chunk — use only if supported by the text): glasgow; monitoring
+
+
+### CURRENT TASK: Phase 1 — COMPREHENSIVE CLASS EXTRACTION
 Extract ALL clinical/biomedical classes mentioned in the text. Be thorough: extract every distinct concept, not just those similar to the examples.
 
 Look for ALL of these concept types:
-  • Clinical conditions and secondary insults (e.g. Hypotension, Intracranial Hypertension)
-  • Physiological parameters and monitoring variables (e.g. Heart Rate, ICP, Temperature)
-  • Treatments, therapies, and interventions (e.g. Sedation, Ventilation, Fluids)
-  • Clinical assessments and outcomes (e.g. GCS Assessment, GOSe Outcome)
-  • Laboratory values and biochemistry (e.g. Sodium, Glucose, Haemoglobin)
-  • Nursing interventions and bedside activities (e.g. Physiotherapy, Patient Transport)
-  • Data quality and sensor concepts (e.g. Sensor, Data Quality Assessment)
-  • Abstract category classes when explicitly named (e.g. Monitoring Data, Therapy, Observation)
+  1. Clinical conditions and secondary insults (e.g. Hypotension, Intracranial Hypertension)
+  2. Physiological parameters and monitoring variables (e.g. Heart Rate, ICP, Temperature)
+  3. Treatments, therapies, and interventions (e.g. Sedation, Ventilation, Fluids)
+  4. Clinical assessments and outcomes (e.g. GCS Assessment, GOSe Outcome)
+  5. Laboratory values and biochemistry (e.g. Sodium, Glucose, Haemoglobin)
+  6. Nursing interventions and bedside activities (e.g. Physiotherapy, Patient Transport)
+  7. Data quality and sensor concepts (e.g. Sensor, Data Quality Assessment)
+  8. Abstract category classes when explicitly named (e.g. Monitoring Data, Therapy, Observation)
 
 BREADTH OVER CAUTION: If the text mentions 15 distinct clinical concepts, extract all 15. Do not stop early or limit to a few. Each concept needs only a brief evidence mention.
 
 Output JSON with keys classes, relations, hierarchy. Set relations and hierarchy to empty arrays.
 
-Candidate terms (optional hints): glasgow, monitoring, Addenbrookes Hospital, BrainIT, Brno, Collectively, Collectively working, Collectively working towards, Country
-Newcastle General Hospital, Elizabeth, General, General Hospital, Germany, Hospital, Italy, Italy
-Neurosurgery, Monza, Neurosurgery, Newcastle, Novara
-
-### SYSTEM ROLE
-You are a highly precise medical ontology extraction engine. You specialize in Neuro-ICU and BrainIT clinical literature.
-
-### CORE CONSTRAINTS (Strict Adherence Required)
-1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
-   - DO NOT infer, guess, or use external medical knowledge.
-   - If a clinical concept is not explicitly named, omit it.
-   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided above, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
-2. **Evidence Anchor:** EVERY class and relation extracted MUST be accompanied by an `evidence` field containing the EXACT, verbatim sentence fragment from the text.
-3. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
-4. **Scope Limitation:**
-   - IGNORE all metadata, authors, affiliations, journal names, DOI/ISBN, and semantic web/technical boilerplate (RDF, URI, etc).
-   - Do NOT extract organisational, membership, database, or publication concepts (e.g. steering group, data validation staff, common database).
-   - FOCUS ONLY on clinical/physiological concepts, treatments, parameters, and outcomes.
-5. **Confidence rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely ambiguous or non-clinical items.
-
-**Default priority: classes first, then relations.** Extract relations only when the wording is explicit and stable. If uncertain, return no relations. If a phase instruction above overrides this priority, follow the phase instruction.
-
-**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
 
 ### OUTPUT FORMAT (JSON Only)
 Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
@@ -67,8 +73,9 @@ Structure:
 
 **Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
 
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
 ---
-Retrieved examples:
 --- Retrieved examples (3) ---
 
 Text: This is the minimum minute by minute monitoring data required for inclusion in the BrainIT Database and include: Heart Rate (specifying source: ECG or Pulse Oximetry), Respiration Rate (sources: impedance plethmography or ventilator), Mean Arterial Pressure, mean ICP, Pulse Oximetry (SaO2) and Temperature (sources: rectal=oesophageal= bladder=skin.) However, additional variables: Central Venous Pressure (CVP), EtCO2, SjO2, TCD, PbrO2, Brain Temperature, Microdialysis. . . will also be included in the database if they are monitored, in a given patient, as part of their usual clinical management.

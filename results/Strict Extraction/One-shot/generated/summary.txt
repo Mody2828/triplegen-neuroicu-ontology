@@ -3,8 +3,8 @@ RUN SUMMARY  —  TripleGen Ontology Engineering Framework
 ============================================================
 
 --- Metadata ---
-Run ID:          20260302-212434-dc6ffbb8
-Timestamp (UTC): 2026-03-02T21:26:17.144629
+Run ID:          20260304-002043-297bca1a
+Timestamp (UTC): 2026-03-04T00:23:52.859555
 Method:          One-Shot (MMR-1)
 Pipeline mode:   Strict
 LLM provider:    openai gpt-4o-mini
@@ -16,68 +16,66 @@ Eval settings:   Scope filter (clinical-only chunks), Gold-vocabulary-only evalu
   • Trusting-Intensive-Care-Unit-.txt
 
 --- Improvement counts (for ablation / fairness) ---
-  Built-in cleanup (always active): classes_removed_dedupe=0, relations_removed_dedupe=0, hierarchy_removed_dedupe=0, out_of_scope_classes_removed=3, abstract_data_classes_removed=1, broad_contextual_classes_removed=0, classes_removed_evidence=1, hierarchy_pruned_dangling=26, relations_pruned=0, relations_removed_evidence=0, hierarchy_fragments_removed=0, hierarchy_removed_axiom=0, relations_removed_axiom=0, hierarchy_added=0, orphans_removed=0
+  Built-in cleanup (always active): classes_removed_dedupe=0, relations_removed_dedupe=0, hierarchy_removed_dedupe=0, out_of_scope_classes_removed=0, abstract_data_classes_removed=0, broad_contextual_classes_removed=0, classes_removed_evidence=1, hierarchy_pruned_dangling=27, relations_pruned=1, relations_removed_evidence=0, hierarchy_fragments_removed=0, hierarchy_removed_axiom=0, relations_removed_axiom=4, hierarchy_added=0, orphans_removed=0, axiom_violations_count=4
 
 
 --- Metrics summary (final ontology) ---
-  Coverage:        70.83%
+  Coverage:        72.22%
   Precision:       100.00%
-  Recall:          70.83%
+  Recall:          72.22%
   Errors:          hallucinations=0, schema_violations=0, omissions=0
-  Structural:      hierarchy_edges=2, hierarchy_coverage=0.06, relation_domain_range_rate=0.00
-  Clinical-only:   coverage=70.83%, precision=100.00%, recall=70.83%
-  Relations:       precision=0.00%, recall=0.00%, n_generated=0, n_gold=16
+  Structural:      hierarchy_edges=2, hierarchy_coverage=0.06, relation_domain_range_rate=1.00
+  Clinical-only:   coverage=72.22%, precision=100.00%, recall=72.22%
+  Relations:       precision=100.00%, recall=93.75%, n_generated=25, n_gold=16
   Hierarchy:       precision=50.00%, recall=1.75%, matched=1, n_generated=2, n_gold=57
 
 --- Metrics at extraction only (pre-improvement baseline) ---
-  Coverage:        76.39%
-  Precision:       93.22%
-  Recall:          76.39%
-  Structural:      hierarchy_edges=28, hierarchy_coverage=0.59, relation_domain_range_rate=0.00
-  Relations:       precision=0.00%, recall=0.00%, n_generated=0
+  Coverage:        73.61%
+  Precision:       96.36%
+  Recall:          73.61%
+  Structural:      hierarchy_edges=29, hierarchy_coverage=0.65, relation_domain_range_rate=1.00
+  Relations:       precision=100.00%, recall=100.00%, n_generated=34
 
 --- Per-stage ablation (pipeline progression) ---
   Stage                   Classes   Rels   Hier   Coverage  Precision     Recall
   --------------------------------------------------------------------------
-  Extraction                   59      0     28     76.39%     93.22%     76.39%
-  + Cleanup                    54      0      2     70.83%     94.44%     70.83%
-  = Gold-filtered              51      0      2     70.83%    100.00%     70.83%
+  Extraction                   55     34     29     73.61%     96.36%     73.61%
+  + Cleanup                    54     29      2     72.22%     96.30%     72.22%
+  = Gold-filtered              52     25      2     72.22%    100.00%     72.22%
 
 --- Concept counts (final ontology) ---
-  Classes:         51
-  Relations:       0
+  Classes:         52
+  Relations:       25
   Hierarchy edges: 2
 
 --- Classes ---
+  • Intracranial Pressure (ICP)
+  • Cerebral Perfusion Pressure (CPP)
+  • Monitoring Data
   • Patient
   • Condition
+  • Therapy
   • Outcome
-  • Core Monitoring Parameter
-  • Cerebral Perfusion Pressure (CPP)
+  • Data Quality Assessment
   • Intensive Care Management
-  • Secondary Insult
   • Secondary Insult Treatment
-  • Ventilation
   • Sedation
+  • Ventilation
   • CVP
-  • Intracranial Pressure (ICP)
-  • Arterial Hypotension
-  • Routine Nursing Care
+  • CT Scan Assessment
+  • GOSe Outcome
   • Heart Rate
   • Respiration Rate
   • Mean Arterial Pressure (MAP)
   • SaO2
   • Temperature
-  • EtCO2
-  • SjO2
-  • TCD
-  • PbrO2
   • Brain Temperature
   • Microdialysis
-  • Baseline Therapy
+  • GCS Assessment
   • Pupil Assessment
   • Fluids
   • Vasopressors
+  • Routine Nursing Care
   • Physiotherapy
   • Bedside Intervention
   • Patient Transport
@@ -85,24 +83,52 @@ Eval settings:   Scope filter (clinical-only chunks), Gold-vocabulary-only evalu
   • Laboratory Values
   • Biochemistry
   • Haematology
+  • Secondary Insult Therapy
+  • Arterial Pressors
   • Systemic Hypotension
-  • Intracranial Hypertension
+  • Jugular Venous Desaturation
   • Acute Respiratory Distress Syndrome
-  • Sepsis
+  • Intracranial Hypertension
+  • Arterial Hypotension
+  • Secondary Insult
   • Session
   • Timepoint
   • Observation
   • Parameter
-  • Sensor
   • Possible Error
   • Probable Error
+  • Sensor
   • Hypotension
-  • Hypertension
   • Noradrenaline
   • Adrenaline
 
 --- Relations ---
+  • has monitoring data(Patient → Monitoring Data)
+  • targets condition(Therapy → Condition)
+  • has outcome(Patient → Outcome)
+  • associated with condition(Data Quality Assessment → Condition)
+  • has clinical assessment(Patient → GCS Assessment)
+  • has outcome(Patient → GOSe Outcome)
+  • has clinical assessment(Patient → Pupil Assessment)
+  • has nursing intervention(Patient → Routine Nursing Care)
+  • has nursing intervention(Patient → Physiotherapy)
+  • has nursing intervention(Patient → Bedside Intervention)
+  • has nursing intervention(Patient → Patient Transport)
+  • has laboratory value(Patient → Blood Gases)
+  • has laboratory value(Patient → Laboratory Values)
+  • has laboratory value(Patient → Biochemistry)
+  • has laboratory value(Patient → Haematology)
+  • receives therapy(Patient → Secondary Insult Therapy)
+  • targets condition(Secondary Insult Therapy → Systemic Hypotension)
+  • monitoring indicates condition(Monitoring Data → Condition)
+  • has session(Patient → Session)
+  • has timepoint(Session → Timepoint)
+  • has observation(Timepoint → Observation)
+  • measures parameter(Observation → Parameter)
+  • produced by sensor(Observation → Sensor)
+  • has quality assessment(Observation → Possible Error)
+  • has quality assessment(Observation → Probable Error)
 
 --- Hierarchy (subclass → superclass) ---
-  • Intracranial Hypertension ⊑ Condition
   • Intracranial Hypertension ⊑ Secondary Insult
+  • Arterial Hypotension ⊑ Secondary Insult

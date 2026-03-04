@@ -1,8 +1,258 @@
-Extract only subclass/superclass (is-a) relationships where the text contains "such as", "is a", "type of", "kind of", "include:", or "includes:". Use ONLY the following class labels for subClass and superClass. Output valid JSON with keys: "classes", "relations", "hierarchy". Set "classes" and "relations" to empty arrays. In "hierarchy", list objects with "subClass" and "superClass" (optional "evidence"). Example: {"subClass": "Ventilation", "superClass": "Baseline Therapy", "evidence": "..."}
+### SYSTEM ROLE
+You are a highly precise medical ontology extraction engine. You specialize in Neuro-ICU and BrainIT clinical literature.
 
-Class labels to use: Baseline Therapy; Brain Temperature; Monitoring Data; Outcome; Condition; Therapy
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
 
-Text:
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing the EXACT, verbatim sentence fragment from the text.
+
+3. **Ignore Non-Clinical Content:** IGNORE all of the following — do not extract them as classes, relations, or hierarchy:
+   - Authors, affiliations, institutions, department names, investigator lists
+   - Journal names, page numbers, DOI, ISBN, PMID, publication dates, copyright notices, URLs
+   - Organisational concepts: steering groups, meetings, consortium administration, membership, centres
+   - Database/infrastructure: common database, validation workflow, data forms, software, websites
+   - Administrative/governance: ethics approval, confidentiality, ownership, accessibility, funding
+   - General research-process text: trials, study design, feasibility exercise, data collection workflow
+   If a sentence or paragraph is mainly about any of these topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely ambiguous or non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+**Default priority: classes first, then relations.** Extract relations only when the wording is explicit and stable. If uncertain, return no relations. If a phase instruction below overrides this priority, follow the phase instruction.
+
+Use ONLY the following class labels:
+Acute Respiratory Distress Syndrome; Adrenaline; Antibiotics; Arterial Hypotension; Arterial Pressors; Baseline Therapy; Bedside Intervention; Biochemistry; Blood Gases; Brain Temperature; CT Scan Assessment; CVP; Cerebral Perfusion Pressure (CPP); Clinical Assessment; Condition; Core Monitoring Parameter; Data Quality Assessment; Derived Parameter; EtCO2; Fluids; GCS Assessment; GOSe Outcome; Glucose; Haematocrit; Haematology; Haemoglobin; Heart Rate; Hypertension; Hypotension; Intensive Care Management; Intracranial Hypertension; Intracranial Pressure (ICP); Jugular Venous Desaturation; Laboratory Values; Mean Arterial Pressure (MAP); Microdialysis; Monitoring Data; Noradrenaline; Nursing Intervention; Nutrition; Observation; Optional Monitoring Parameter; Outcome; Parameter; Patient; Patient Transport; PbrO2; Physiotherapy; Possible Error; Potassium; Probable Error; Pupil Assessment; Respiration Rate; Routine Nursing Care; SaO2; Secondary Insult; Secondary Insult Therapy; Secondary Insult Treatment; Sedation; Sensor; Sepsis; Session; SjO2; Sodium; Systemic Hypotension; TCD; Temperature; Therapy; Timepoint; Vasopressors; Ventilation; White Blood Cell Count
+
+Use ONLY the following relation labels with the stated domain and range:
+affected by treatment(Data Quality Assessment->Therapy); associated with condition(Data Quality Assessment->Condition); has clinical assessment(Patient->Clinical Assessment); has laboratory value(Patient->Laboratory Values); has monitoring data(Patient->Monitoring Data); has nursing intervention(Patient->Nursing Intervention); has observation(Timepoint->Observation); has outcome(Patient->Outcome); has quality assessment(Observation->Data Quality Assessment); has session(Patient->Session); has timepoint(Session->Timepoint); measures parameter(Observation->Parameter); monitoring indicates condition(Monitoring Data->Condition); produced by sensor(Observation->Sensor); receives therapy(Patient->Therapy); targets condition(Therapy->Condition)
+
+If an item is not supported by the text and does not match the allowed labels above, omit it.
+
+Leaf-first rule (important):
+Prefer the most specific allowed class labels explicitly supported by the text.
+Do not stop at broad container classes such as Monitoring Data, Therapy, or Condition if the text names more specific allowed concepts.
+Broad classes may be included only when directly supported by the text or when needed as valid endpoints for a clearly supported relation.
+If multiple distinct allowed leaf concepts are explicitly named, extract each of them separately with its own evidence.
+Do not treat research methods, feasibility workflow, organisational process, or guideline-adherence calculations as Therapy, Monitoring Data, or other clinical ontology classes.
+
+Candidate domain terms (contextual hints only — use only if explicitly supported by the text):
+outcome; monitoring; brain; drug; injury; management; patients; standardised
+
+
+### CURRENT TASK: Phase 3 — HIERARCHY EXTRACTION
+Extract subclass/superclass (is-a) edges ONLY where the text contains explicit cues:
+  1. "such as" (e.g. "parameters such as Heart Rate" → Heart Rate subClassOf Parameter)
+  2. "is a" / "type of" / "kind of"
+  3. "include:" / "includes:"
+
+For enumeration cues (e.g. "include: X, Y, Z"), extract EACH listed item as a subclass.
+Use ONLY the known classes below for subClass and superClass labels.
+Output JSON with keys classes, relations, hierarchy. Set classes and relations to empty arrays. Evidence MUST contain one of the lexical cues. Do not infer hierarchy.
+
+Known classes (use only these for subclass/superclass): Data Quality Assessment; Patient; Condition; Therapy; Session; Timepoint; Monitoring Data; Core Monitoring Parameter; Optional Monitoring Parameter; Derived Parameter; Heart Rate; Respiration Rate; Mean Arterial Pressure (MAP); Intracranial Pressure (ICP); SaO2; Temperature; CVP; EtCO2; SjO2; TCD; PbrO2; Brain Temperature; Microdialysis; Cerebral Perfusion Pressure (CPP); Baseline Therapy; Secondary Insult Therapy; Ventilation; Sedation; Fluids; Nutrition; Vasopressors; Antibiotics; Noradrenaline; Adrenaline; Secondary Insult Treatment; Arterial Pressors; Secondary Insult; Intracranial Hypertension; Systemic Hypotension; Arterial Hypotension; Jugular Venous Desaturation; Acute Respiratory Distress Syndrome; Hypertension; Hypotension; Sepsis; Clinical Assessment; GCS Assessment; Pupil Assessment; CT Scan Assessment; Outcome; GOSe Outcome; Laboratory Values; Blood Gases; Biochemistry; Haematology; Sodium; Potassium; Glucose; Haemoglobin; White Blood Cell Count; Haematocrit; Nursing Intervention; Routine Nursing Care; Physiotherapy; Bedside Intervention; Patient Transport; Intensive Care Management; Observation; Parameter; Sensor; Possible Error; Probable Error
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+---
+--- Retrieved examples (3) ---
+
+Text: This is the minimum minute by minute monitoring data required for inclusion in the BrainIT Database and include: Heart Rate, Respiration Rate, Mean Arterial Pressure, mean ICP, SaO2 and Temperature.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Monitoring Data",
+      "evidence": "minute by minute monitoring data"
+    },
+    {
+      "label": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required"
+    },
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate"
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate"
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "Mean Arterial Pressure"
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "mean ICP"
+    },
+    {
+      "label": "SaO2",
+      "evidence": "SaO2"
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature"
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Heart Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required...include: Heart Rate"
+    },
+    {
+      "subClass": "Respiration Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required...include: Heart Rate, Respiration Rate"
+    },
+    {
+      "subClass": "Mean Arterial Pressure (MAP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Heart Rate, Respiration Rate, Mean Arterial Pressure"
+    },
+    {
+      "subClass": "Intracranial Pressure (ICP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Heart Rate, Respiration Rate, Mean Arterial Pressure, mean ICP"
+    },
+    {
+      "subClass": "SaO2",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Heart Rate, Respiration Rate, Mean Arterial Pressure, mean ICP, SaO2"
+    },
+    {
+      "subClass": "Temperature",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Heart Rate, Respiration Rate, Mean Arterial Pressure, mean ICP, SaO2 and Temperature"
+    }
+  ]
+}
+
+---
+
+Text: Patient outcome is assessed using the Extended Glasgow Outcome Scale (GOSe) at 6 months post-discharge from the neurosurgical centre. GOSe outcome is collected by structured interview with the patient, a relative, or a GP.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Outcome",
+      "evidence": "Patient outcome is assessed"
+    },
+    {
+      "label": "GOSe Outcome",
+      "evidence": "Extended Glasgow Outcome Scale (GOSe) at 6 months post-discharge"
+    },
+    {
+      "label": "Patient",
+      "evidence": "Patient outcome"
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "GOSe Outcome",
+      "superClass": "Outcome",
+      "evidence": "Patient outcome is assessed using the Extended Glasgow Outcome Scale (GOSe)"
+    }
+  ]
+}
+
+---
+
+Text: Intensive care management information. Types of data include: GCS scores, pupil scores, ventilation settings, sedation levels, fluid input and output, nutrition, use of vasopressors, antibiotics. These constitute baseline therapy — routine ICU management delivered to all patients.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Intensive Care Management",
+      "evidence": "Intensive care management information"
+    },
+    {
+      "label": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management"
+    },
+    {
+      "label": "Ventilation",
+      "evidence": "ventilation settings"
+    },
+    {
+      "label": "Sedation",
+      "evidence": "sedation levels"
+    },
+    {
+      "label": "Fluids",
+      "evidence": "fluid input and output"
+    },
+    {
+      "label": "Nutrition",
+      "evidence": "nutrition"
+    },
+    {
+      "label": "Vasopressors",
+      "evidence": "use of vasopressors"
+    },
+    {
+      "label": "Antibiotics",
+      "evidence": "antibiotics"
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Ventilation",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: ventilation settings"
+    },
+    {
+      "subClass": "Sedation",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: sedation levels"
+    },
+    {
+      "subClass": "Fluids",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: fluid input and output"
+    },
+    {
+      "subClass": "Nutrition",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: nutrition"
+    },
+    {
+      "subClass": "Vasopressors",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: use of vasopressors"
+    },
+    {
+      "subClass": "Antibiotics",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: antibiotics"
+    }
+  ]
+}
+
+---
+TEXT TO ANALYZE:
 Summary
 
 By not using appropriate high resolution standardised
@@ -55,5 +305,4 @@ Kiening, Karl
 Lemaire, Jean-Jacques
 Lobato, Ramiro
 Mascia, Luciana
-
-Your answer:
+---

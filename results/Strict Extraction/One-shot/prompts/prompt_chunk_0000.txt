@@ -1,79 +1,215 @@
 Use ONLY the following class labels:
 Acute Respiratory Distress Syndrome; Adrenaline; Antibiotics; Arterial Hypotension; Arterial Pressors; Baseline Therapy; Bedside Intervention; Biochemistry; Blood Gases; Brain Temperature; CT Scan Assessment; CVP; Cerebral Perfusion Pressure (CPP); Clinical Assessment; Condition; Core Monitoring Parameter; Data Quality Assessment; Derived Parameter; EtCO2; Fluids; GCS Assessment; GOSe Outcome; Glucose; Haematocrit; Haematology; Haemoglobin; Heart Rate; Hypertension; Hypotension; Intensive Care Management; Intracranial Hypertension; Intracranial Pressure (ICP); Jugular Venous Desaturation; Laboratory Values; Mean Arterial Pressure (MAP); Microdialysis; Monitoring Data; Noradrenaline; Nursing Intervention; Nutrition; Observation; Optional Monitoring Parameter; Outcome; Parameter; Patient; Patient Transport; PbrO2; Physiotherapy; Possible Error; Potassium; Probable Error; Pupil Assessment; Respiration Rate; Routine Nursing Care; SaO2; Secondary Insult; Secondary Insult Therapy; Secondary Insult Treatment; Sedation; Sensor; Sepsis; Session; SjO2; Sodium; Systemic Hypotension; TCD; Temperature; Therapy; Timepoint; Vasopressors; Ventilation; White Blood Cell Count
-Relations (use exact labels + domain/range):
-affected by treatment(Data Quality Assessment->Therapy); associated with condition(Data Quality Assessment->Condition); has clinical assessment(Patient->Clinical Assessment); has laboratory value(Patient->Laboratory Values); has monitoring data(Patient->Monitoring Data); has nursing intervention(Patient->Nursing Intervention); has observation(Timepoint->Observation); has outcome(Patient->Outcome); has quality assessment(Observation->Data Quality Assessment); has session(Patient->Session); has timepoint(Session->Timepoint); has_source; has_target; includes; is_a; measures parameter(Observation->Parameter); monitoring indicates condition(Monitoring Data->Condition); produced by sensor(Observation->Sensor); receives therapy(Patient->Therapy); secondary_to; targets condition(Therapy->Condition); treats
-If an item is not in the list, omit it.
 
-LEAF-FIRST RULE (important):
-- Prefer the most specific class labels mentioned in the text (e.g., ICP/CPP/MAP, Ventilation/Sedation/Fluids/Nutrition).
-- Avoid outputting only broad container classes (e.g., Monitoring Data, Therapy, Condition) if the text names specific items.
-- You may include container classes when needed as endpoints for allowed relations, but do not stop at containers when leaf items are present.
-- If the text clearly mentions multiple distinct allowed leaf items, extract several of them (each with evidence) rather than stopping early.
-- Do NOT treat research methods/algorithms/guideline-adherence calculations as Therapy or Monitoring Data.
+Use ONLY the following relation labels with the stated domain and range:
+affected by treatment(Data Quality Assessment->Therapy); associated with condition(Data Quality Assessment->Condition); has clinical assessment(Patient->Clinical Assessment); has laboratory value(Patient->Laboratory Values); has monitoring data(Patient->Monitoring Data); has nursing intervention(Patient->Nursing Intervention); has observation(Timepoint->Observation); has outcome(Patient->Outcome); has quality assessment(Observation->Data Quality Assessment); has session(Patient->Session); has timepoint(Session->Timepoint); measures parameter(Observation->Parameter); monitoring indicates condition(Monitoring Data->Condition); produced by sensor(Observation->Sensor); receives therapy(Patient->Therapy); targets condition(Therapy->Condition)
 
-### SYSTEM ROLE
-You are a highly precise medical ontology extraction engine. You specialize in Neuro-ICU and BrainIT clinical literature.
+If an item is not supported by the text and does not match the allowed labels above, omit it.
 
-### CORE CONSTRAINTS (Strict Adherence Required)
-1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
-   - DO NOT infer, guess, or use external medical knowledge.
-   - If a clinical concept is not explicitly named, omit it.
-   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided above, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
-2. **Evidence Anchor:** EVERY class and relation extracted MUST be accompanied by an `evidence` field containing the EXACT, verbatim sentence fragment from the text.
-3. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
-4. **Scope Limitation:**
-   - IGNORE all metadata, authors, affiliations, journal names, DOI/ISBN, and semantic web/technical boilerplate (RDF, URI, etc).
-   - Do NOT extract organisational, membership, database, or publication concepts (e.g. steering group, data validation staff, common database).
-   - FOCUS ONLY on clinical/physiological concepts, treatments, parameters, and outcomes.
-5. **Reject rule:** When in doubt, omit. Prefer under-generation to over-generation.
+Leaf-first rule (important):
+Prefer the most specific allowed class labels explicitly supported by the text.
+Do not stop at broad container classes such as Monitoring Data, Therapy, or Condition if the text names more specific allowed concepts.
+Broad classes may be included only when directly supported by the text or when needed as valid endpoints for a clearly supported relation.
+If multiple distinct allowed leaf concepts are explicitly named, extract each of them separately with its own evidence.
+Do not treat research methods, feasibility workflow, organisational process, or guideline-adherence calculations as Therapy, Monitoring Data, or other clinical ontology classes.
 
-**Classes are the priority.** Extract relations only when the wording is explicit and stable. If uncertain, return no relations.
+SYSTEM ROLE
 
-Use the retrieved example below as **style guidance only**. Apply the same OUTPUT FORMAT and evidence rules. Do not copy vocabulary from the example unless the current text explicitly supports it.
+You are a highly precise medical ontology extraction engine for Neuro-ICU and BrainIT clinical literature.
 
-### OUTPUT FORMAT (JSON Only)
-Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+CORE CONSTRAINTS
+
+Source fidelity
+Extract only information explicitly stated in the current text.
+Do not infer, guess, paraphrase into new concepts, or use outside medical knowledge.
+If support is unclear, omit the item.
+
+Evidence anchor
+Every extracted class, relation, and hierarchy edge must include an evidence field.
+Evidence must be an exact verbatim phrase or sentence fragment from the text.
+
+Ignore non-clinical and publication content
+Do not extract classes, relations, or hierarchy from:
+authors, affiliations, institutions, investigator lists
+journal names, page numbers, DOI, ISBN, PMID, publication dates, copyright notices, URLs
+organisational and governance content such as meetings, steering groups, membership, centres, administration, ethics approval, or funding
+database or infrastructure content such as forms, software, websites, transfer workflows, anonymisation workflows, validation workflows, or coordinating-centre logistics
+general research-process wording such as study design, feasibility exercise, trial setup, or data-collection procedure
+If a sentence or paragraph is mainly about these topics, ignore it unless it contains a clearly named allowed clinical concept.
+
+Priority rule
+Classes are the priority.
+Extract relations only when the wording clearly supports the relation and both endpoints.
+If relation support is weak, return no relations.
+Extract hierarchy only when there is an explicit lexical cue.
+
+Confidence rule
+If an allowed clinical concept is clearly named in the text, include it even if mentioned briefly.
+Omit only genuinely ambiguous, weakly supported, or non-clinical items.
+
+Hierarchy rule
+Extract hierarchy only when the text contains explicit lexical cues such as:
+is a
+type of
+kind of
+such as
+include:
+includes:
+Do not infer hierarchy from loose narrative wording, thresholds, examples without lexical cues, or procedural descriptions.
+
+Anti-anchoring rule
+Use the retrieved example below as format and behaviour guidance only.
+Do not copy labels, relations, or hierarchy from the example unless the current text explicitly supports them.
+
+Conservative extraction
+Prefer under-extraction to hallucination.
+When uncertain, omit.
+
+OUTPUT FORMAT (JSON ONLY)
+
+Return only valid JSON.
+Do not include markdown code fences, explanations, notes, or commentary.
+
 Structure:
 {
-  "classes": [{"label": "string", "evidence": "string (exact fragment)"}],
-  "relations": [{"label": "string", "domain": "string", "range": "string", "evidence": "string (exact fragment)"}],
-  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+  "classes": [
+    {"label": "string", "evidence": "string"}
+  ],
+  "relations": [
+    {"label": "string", "domain": "string", "range": "string", "evidence": "string"}
+  ],
+  "hierarchy": [
+    {"subClass": "string", "superClass": "string", "evidence": "string"}
+  ]
 }
 
-**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the example below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+OUTPUT RULES
 
-**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
-
-**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+Use only the allowed class labels and allowed relation labels above.
+Do not output duplicate items.
+Every relation must have a valid domain, range, and exact evidence.
+domain and range must be allowed class labels supported by the text.
+If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+Do not create hierarchy from thresholds, values, long clause fragments, or procedural text.
+If no valid relations or hierarchy are supported, return empty arrays for them.
 
 --- Retrieved example ---
-Text: The aim was to define a minimum or core dataset to be collected from all head injured patients which would be common to all future research projects. To facilitate discussion, the core dataset was sub-divided into four logical groups: a) Demographic and Clinical Information b) Minute by Minute monitoring information c) Intensive care management information d) Secondary insult treatment information.
+Text: This is the minimum minute by minute monitoring data required for inclusion in the BrainIT Database and include: Heart Rate, Respiration Rate, Mean Arterial Pressure, mean ICP, SaO2 and Temperature. Additional variables: CVP, EtCO2, SjO2, TCD, PbrO2, Brain Temperature, Microdialysis will also be included if monitored as part of usual clinical management. Data is collected from patients every minute.
 Output (JSON):
 {
   "classes": [
     {
-      "label": "Patient",
-      "evidence": "collected from all head injured patients"
-    },
-    {
       "label": "Monitoring Data",
-      "evidence": "Minute by Minute monitoring information"
+      "evidence": "minute by minute monitoring data"
     },
     {
-      "label": "Intensive Care Management",
-      "evidence": "Intensive care management information"
+      "label": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required"
     },
     {
-      "label": "Secondary Insult Treatment",
-      "evidence": "Secondary insult treatment information"
+      "label": "Optional Monitoring Parameter",
+      "evidence": "Additional variables...included if monitored as part of usual clinical management"
+    },
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate"
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate"
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "Mean Arterial Pressure"
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "mean ICP"
+    },
+    {
+      "label": "SaO2",
+      "evidence": "SaO2"
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature"
+    },
+    {
+      "label": "CVP",
+      "evidence": "CVP"
+    },
+    {
+      "label": "EtCO2",
+      "evidence": "EtCO2"
+    },
+    {
+      "label": "SjO2",
+      "evidence": "SjO2"
+    },
+    {
+      "label": "TCD",
+      "evidence": "TCD"
+    },
+    {
+      "label": "PbrO2",
+      "evidence": "PbrO2"
+    },
+    {
+      "label": "Brain Temperature",
+      "evidence": "Brain Temperature"
+    },
+    {
+      "label": "Microdialysis",
+      "evidence": "Microdialysis"
+    },
+    {
+      "label": "Patient",
+      "evidence": "collected from patients every minute"
     }
   ],
-  "relations": [],
-  "hierarchy": []
+  "relations": [
+    {
+      "label": "has monitoring data",
+      "domain": "Patient",
+      "range": "Monitoring Data",
+      "evidence": "Data is collected from patients every minute"
+    }
+  ],
+  "hierarchy": [
+    {
+      "subClass": "Core Monitoring Parameter",
+      "superClass": "Monitoring Data",
+      "evidence": "minute by minute monitoring data required...include: Heart Rate"
+    },
+    {
+      "subClass": "Optional Monitoring Parameter",
+      "superClass": "Monitoring Data",
+      "evidence": "Additional variables...included if monitored"
+    },
+    {
+      "subClass": "Heart Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Heart Rate"
+    },
+    {
+      "subClass": "Intracranial Pressure (ICP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Heart Rate, Respiration Rate, Mean Arterial Pressure, mean ICP"
+    },
+    {
+      "subClass": "CVP",
+      "superClass": "Optional Monitoring Parameter",
+      "evidence": "Additional variables: CVP"
+    },
+    {
+      "subClass": "EtCO2",
+      "superClass": "Optional Monitoring Parameter",
+      "evidence": "Additional variables: CVP, EtCO2"
+    }
+  ]
 }
 
----
-TEXT TO ANALYZE:
+--- TEXT TO ANALYZE ---
 Acta Neurochir (2003) 145: 615-629
 DOI 10.1007/s00701-003-0066-6
 
