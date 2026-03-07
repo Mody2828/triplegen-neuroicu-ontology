@@ -139,6 +139,8 @@ The web interface provides run comparison across three prompting strategies, mul
 
 For a visual walkthrough of the web interface — including step-by-step usage instructions and screenshots — see [TripleGen_WepApp.md](TripleGen_WepApp.md).
 
+For a visual diagram and detailed breakdown of the full pipeline — including prompt assembly, post-processing order, stage snapshots, and artefact listing — see [pipeline.md](pipeline.md).
+
 The web app provides:
 
 - **Run experiment** — strategy toggles (Zero-Shot, One-Shot, Few-Shot), pipeline mode cards, LLM provider selector, evaluation settings, and an Advanced section for reasoning LLM override. Few-Shot + Schema-Completed are selected by default.
