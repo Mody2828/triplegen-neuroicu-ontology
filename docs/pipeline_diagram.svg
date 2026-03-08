@@ -1,0 +1,376 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="2340" viewBox="0 0 1100 2340" font-family="Segoe UI, system-ui, -apple-system, sans-serif">
+<rect width="1100" height="2340" fill="white"/>
+
+<!-- ══ TITLE ══ -->
+<text x="550" y="38" text-anchor="middle" font-size="20" font-weight="700" fill="#1a1a2e">TripleGen — Fully Reasoned Pipeline</text>
+<text x="550" y="58" text-anchor="middle" font-size="12" fill="#555">Complete pipeline for the Fully Reasoned mode (superset of Strict → Guided → Schema-Completed)</text>
+
+<!-- ══ LEGEND ══ -->
+<rect x="311" y="72" width="122" height="22" rx="11" fill="#e3f2fd" stroke="#1976D2" stroke-width="1.5"/>
+<text x="372" y="87" text-anchor="middle" font-size="10" font-weight="600" fill="#1976D2">Strict (all modes)</text>
+<rect x="447" y="72" width="70" height="22" rx="11" fill="#e8f5e9" stroke="#388E3C" stroke-width="1.5"/>
+<text x="482" y="87" text-anchor="middle" font-size="10" font-weight="600" fill="#388E3C">+ Guided</text>
+<rect x="531" y="72" width="132" height="22" rx="11" fill="#f3e5f5" stroke="#7B1FA2" stroke-width="1.5"/>
+<text x="597" y="87" text-anchor="middle" font-size="10" font-weight="600" fill="#7B1FA2">+ Schema-Completed</text>
+<rect x="677" y="72" width="115" height="22" rx="11" fill="#fce4ec" stroke="#C2185B" stroke-width="1.5"/>
+<text x="734" y="87" text-anchor="middle" font-size="10" font-weight="600" fill="#C2185B">+ Fully Reasoned</text>
+
+<!-- ══════════════════════════════════════════ -->
+<!--                PIPELINE                    -->
+<!-- ══════════════════════════════════════════ -->
+
+<!-- ── STEP 1: Corpus Input ── -->
+<rect x="210" y="112" width="680" height="62" rx="8" fill="#e3f2fd" stroke="#2196F3" stroke-width="2"/>
+<rect x="224" y="104" width="22" height="16" rx="8" fill="#1976D2"/>
+<text x="235" y="116" text-anchor="middle" font-size="11" font-weight="700" fill="white">1</text>
+<text x="228" y="137" font-size="13" font-weight="700" fill="#1a1a2e">Corpus Input</text>
+<text x="228" y="155" font-size="11" fill="#1a1a2e">Paste text, upload one or more .txt / .pdf files, or enable the built-in default BrainIT paper.</text>
+
+<!-- Arrow 1→2 -->
+<line x1="550" y1="174" x2="550" y2="189" stroke="#444" stroke-width="2"/>
+<polygon points="545,189 555,189 550,194" fill="#444"/>
+
+<!-- ── STEP 2: Pre-processing ── -->
+<rect x="210" y="194" width="680" height="90" rx="8" fill="#e8f5e9" stroke="#4CAF50" stroke-width="2"/>
+<rect x="224" y="186" width="22" height="16" rx="8" fill="#388E3C"/>
+<text x="235" y="198" text-anchor="middle" font-size="11" font-weight="700" fill="white">2</text>
+<text x="228" y="219" font-size="13" font-weight="700" fill="#1a1a2e">Pre-processing (document level)</text>
+<text x="228" y="236" font-size="11" fill="#1a1a2e">• Strip control characters (clean_chars)</text>
+<text x="228" y="251" font-size="11" fill="#1a1a2e">• Normalise — hyphenation repair, symbol normalisation, header/footer removal</text>
+<text x="228" y="266" font-size="11" fill="#1a1a2e">• Document-level scope filter (if enabled) — drops admin-heavy paragraphs and blacklisted lines</text>
+
+<!-- Arrow 2→3 -->
+<line x1="550" y1="284" x2="550" y2="299" stroke="#444" stroke-width="2"/>
+<polygon points="545,299 555,299 550,304" fill="#444"/>
+
+<!-- ── STEP 3: Semantic Chunking ── -->
+<rect x="210" y="304" width="680" height="100" rx="8" fill="#e8f5e9" stroke="#4CAF50" stroke-width="2"/>
+<rect x="224" y="296" width="22" height="16" rx="8" fill="#388E3C"/>
+<text x="235" y="308" text-anchor="middle" font-size="11" font-weight="700" fill="white">3</text>
+<text x="228" y="329" font-size="13" font-weight="700" fill="#1a1a2e">Semantic Chunking</text>
+<text x="228" y="346" font-size="11" fill="#1a1a2e">• Documents split into coherent chunks within prompt token limits</text>
+<text x="228" y="361" font-size="11" fill="#1a1a2e">• Control chars stripped again per chunk</text>
+<text x="228" y="376" font-size="11" fill="#1a1a2e">• Candidate term extraction — noun phrases with aggressive filtering (reject generic terms,</text>
+<text x="228" y="390" font-size="11" fill="#1a1a2e">  metadata, author names);  max_terms=12</text>
+
+<!-- Arrow 3→4 -->
+<line x1="550" y1="404" x2="550" y2="419" stroke="#444" stroke-width="2"/>
+<polygon points="545,419 555,419 550,424" fill="#444"/>
+
+<!-- ── STEP 4: Chunk-level Scope Filter ── -->
+<rect x="210" y="424" width="680" height="96" rx="8" fill="#e8f5e9" stroke="#4CAF50" stroke-width="2"/>
+<rect x="224" y="416" width="22" height="16" rx="8" fill="#388E3C"/>
+<text x="235" y="428" text-anchor="middle" font-size="11" font-weight="700" fill="white">4</text>
+<text x="228" y="449" font-size="13" font-weight="700" fill="#1a1a2e">Chunk-level Scope Filter</text>
+<!-- mode tag: all modes -->
+<rect x="416" y="438" width="60" height="14" rx="7" fill="#555"/>
+<text x="446" y="449" text-anchor="middle" font-size="9" font-weight="700" fill="white">all modes</text>
+<text x="228" y="466" font-size="11" fill="#1a1a2e">Dual-score router computes (admin_score, clinical_score) per chunk. Drops chunks with high</text>
+<text x="228" y="481" font-size="11" fill="#1a1a2e">admin / low clinical scores. Clinical sections (Monitoring, ICU Management, Secondary Insults)</text>
+<text x="228" y="496" font-size="11" fill="#1a1a2e">always kept. Governance sections dropped. Remaining clinical chunks reordered first.</text>
+
+<!-- Arrow 4→5 -->
+<line x1="550" y1="520" x2="550" y2="535" stroke="#444" stroke-width="2"/>
+<polygon points="545,535 555,535 550,540" fill="#444"/>
+
+<!-- ══ STEP 5: Wide Row — Prompt Assembly ══ -->
+
+<!-- Left side panel: Gold Vocabulary Pool -->
+<rect x="20" y="540" width="170" height="116" rx="8" fill="#e8eaf6" stroke="#5C6BC0" stroke-width="1.5"/>
+<text x="105" y="562" text-anchor="middle" font-size="11" font-weight="700" fill="#1a1a2e">Gold Vocabulary Pool</text>
+<text x="32" y="578" font-size="10.5" fill="#1a1a2e">• 72 gold class labels</text>
+<text x="32" y="592" font-size="10.5" fill="#1a1a2e">• 16 typed relation labels</text>
+<text x="32" y="606" font-size="10.5" fill="#1a1a2e">  (paper-wording only)</text>
+<text x="32" y="620" font-size="10.5" fill="#1a1a2e">• Leaf-first rule</text>
+<text x="32" y="634" font-size="10.5" fill="#1a1a2e" font-style="italic">• CamelCase labels excluded</text>
+
+<!-- Side arrow → -->
+<text x="200" y="603" text-anchor="middle" font-size="18" font-weight="700" fill="#C2185B">→</text>
+
+<!-- Central step box: Prompt Assembly -->
+<rect x="210" y="540" width="680" height="226" rx="8" fill="#fff3e0" stroke="#FF9800" stroke-width="2"/>
+<rect x="224" y="532" width="22" height="16" rx="8" fill="#E65100"/>
+<text x="235" y="544" text-anchor="middle" font-size="11" font-weight="700" fill="white">5</text>
+<text x="228" y="565" font-size="13" font-weight="700" fill="#1a1a2e">Prompt Assembly</text>
+<text x="356" y="565" font-size="11" fill="#666">  (per chunk)</text>
+<text x="228" y="581" font-size="11" fill="#1a1a2e">Template + placeholder substitution. Components injected:</text>
+<text x="228" y="597" font-size="11" fill="#1a1a2e">• VOCAB_AND_HINTS block: gold class labels, typed relation labels, omit rule, leaf-first rule</text>
+<!-- Strict+ tag -->
+<rect x="730" y="586" width="48" height="14" rx="7" fill="#1976D2"/>
+<text x="754" y="597" text-anchor="middle" font-size="9" font-weight="700" fill="white">Strict+</text>
+<text x="228" y="612" font-size="11" fill="#1a1a2e">    + NER note (ScispaCy entities, filtered to gold matches)</text>
+<!-- Guided+ tag -->
+<rect x="602" y="601" width="50" height="14" rx="7" fill="#388E3C"/>
+<text x="627" y="612" text-anchor="middle" font-size="9" font-weight="700" fill="white">Guided+</text>
+<text x="228" y="627" font-size="11" fill="#1a1a2e">    + Candidate domain terms (filtered noun phrases)</text>
+<!-- Guided+ tag -->
+<rect x="556" y="616" width="50" height="14" rx="7" fill="#388E3C"/>
+<text x="581" y="627" text-anchor="middle" font-size="9" font-weight="700" fill="white">Guided+</text>
+<text x="228" y="642" font-size="11" fill="#1a1a2e">• SYSTEM ROLE + CORE CONSTRAINTS (source fidelity, evidence, ignore non-clinical,</text>
+<text x="228" y="657" font-size="11" fill="#1a1a2e">  priority, confidence, hierarchy rule)</text>
+<text x="228" y="672" font-size="11" fill="#1a1a2e">• Anti-anchoring instruction + conservative extraction rule</text>
+<text x="228" y="687" font-size="11" fill="#1a1a2e">• OUTPUT FORMAT (JSON structure + output rules)</text>
+<text x="228" y="702" font-size="11" fill="#1a1a2e">• Examples — 0 (Zero-Shot), 1 comprehensive (One-Shot via MMR), 3 phase-specific (Few-Shot via MMR)</text>
+<text x="228" y="717" font-size="11" fill="#1a1a2e">• Chunk text</text>
+<text x="228" y="734" font-size="10" fill="#666" font-style="italic">Section order varies by strategy — see table below</text>
+
+<!-- Side arrow ← -->
+<text x="900" y="603" text-anchor="middle" font-size="18" font-weight="700" fill="#C2185B">←</text>
+
+<!-- Right side panels -->
+<!-- Prompt Templates -->
+<rect x="910" y="540" width="170" height="108" rx="8" fill="#fce4ec" stroke="#E91E63" stroke-width="1.5"/>
+<text x="995" y="562" text-anchor="middle" font-size="11" font-weight="700" fill="#1a1a2e">Prompt Templates</text>
+<text x="922" y="578" font-size="10.5" fill="#1a1a2e">• Few-Shot</text>
+<text x="922" y="591" font-family="Consolas, 'Courier New', monospace" font-size="9" fill="#1a1a2e">  mmr_fewshot_controlled.txt</text>
+<text x="922" y="604" font-size="10.5" fill="#1a1a2e">• One-Shot</text>
+<text x="922" y="616" font-family="Consolas, 'Courier New', monospace" font-size="9" fill="#1a1a2e">  one_shot.json</text>
+<text x="922" y="629" font-size="10.5" fill="#1a1a2e">• Zero-Shot</text>
+<text x="922" y="641" font-family="Consolas, 'Courier New', monospace" font-size="9" fill="#1a1a2e">  baseline.json</text>
+
+<!-- Example Pools (MMR) -->
+<rect x="910" y="658" width="170" height="108" rx="8" fill="#e8f5e9" stroke="#43A047" stroke-width="1.5"/>
+<text x="995" y="680" text-anchor="middle" font-size="11" font-weight="700" fill="#1a1a2e">Example Pools (MMR)</text>
+<text x="922" y="696" font-size="10.5" fill="#1a1a2e">• Class examples (6)</text>
+<text x="922" y="710" font-size="10.5" fill="#1a1a2e">• Relation examples (6)</text>
+<text x="922" y="724" font-size="10.5" fill="#1a1a2e">• Hierarchy examples (5)</text>
+<text x="922" y="738" font-size="10.5" fill="#1a1a2e">• Comprehensive (5)</text>
+<text x="922" y="751" font-size="10.5" fill="#666" font-style="italic">  (One-Shot only)</text>
+
+<!-- ── Prompt Order Table ── -->
+<rect x="210" y="778" width="680" height="104" rx="4" fill="#fff3e0" stroke="#FF9800" stroke-width="1"/>
+<!-- Header row -->
+<rect x="210" y="778" width="680" height="22" rx="4" fill="#FF9800"/>
+<rect x="210" y="789" width="680" height="11" fill="#FF9800"/>
+<text x="310" y="794" text-anchor="middle" font-size="10" font-weight="700" fill="white">Strategy</text>
+<text x="580" y="794" text-anchor="middle" font-size="10" font-weight="700" fill="white">Section order (top → bottom in prompt)</text>
+<!-- col divider -->
+<line x1="408" y1="778" x2="408" y2="882" stroke="#FF9800" stroke-width="1"/>
+<!-- Row 1: One-Shot -->
+<rect x="210" y="800" width="680" height="27" fill="#fff3e0"/>
+<text x="228" y="818" font-size="10" font-weight="600" fill="#1a1a2e">One-Shot</text>
+<text x="416" y="812" font-size="9" fill="#1a1a2e">VOCAB_AND_HINTS → SYSTEM ROLE → CORE CONSTRAINTS → Anti-anchoring</text>
+<text x="416" y="824" font-size="9" fill="#1a1a2e">→ Conservative → OUTPUT FORMAT → Example (1) → Chunk text</text>
+<line x1="210" y1="827" x2="890" y2="827" stroke="#FFB74D" stroke-width="0.5"/>
+<!-- Row 2: Few-Shot -->
+<rect x="210" y="827" width="680" height="27" fill="#fff8e1"/>
+<text x="228" y="845" font-size="10" font-weight="600" fill="#1a1a2e">Few-Shot</text>
+<text x="416" y="839" font-size="9" fill="#1a1a2e">SYSTEM ROLE → CORE CONSTRAINTS → VOCAB_AND_HINTS → PHASE_INSTRUCTION</text>
+<text x="416" y="851" font-size="9" fill="#1a1a2e">→ OUTPUT FORMAT → ANTI-ANCHORING → Examples (3) → Chunk text</text>
+<line x1="210" y1="854" x2="890" y2="854" stroke="#FFB74D" stroke-width="0.5"/>
+<!-- Row 3: Zero-Shot -->
+<rect x="210" y="854" width="680" height="27" fill="#fff3e0"/>
+<text x="228" y="872" font-size="10" font-weight="600" fill="#1a1a2e">Zero-Shot</text>
+<text x="416" y="866" font-size="9" fill="#1a1a2e">VOCAB_AND_HINTS → SYSTEM ROLE → PRIMARY GOAL → HARD RULES</text>
+<text x="416" y="878" font-size="9" fill="#1a1a2e">→ OUTPUT FORMAT → FINAL CHECK → Chunk text</text>
+
+<!-- Arrow 5→6 -->
+<line x1="550" y1="882" x2="550" y2="897" stroke="#444" stroke-width="2"/>
+<polygon points="545,897 555,897 550,902" fill="#444"/>
+
+<!-- ── STEP 6: LLM Extraction Calls ── -->
+<rect x="210" y="902" width="680" height="88" rx="8" fill="#fce4ec" stroke="#E91E63" stroke-width="2"/>
+<rect x="224" y="894" width="22" height="16" rx="8" fill="#C2185B"/>
+<text x="235" y="906" text-anchor="middle" font-size="11" font-weight="700" fill="white">6</text>
+<text x="228" y="927" font-size="13" font-weight="700" fill="#1a1a2e">LLM Extraction Call(s)</text>
+<text x="388" y="927" font-size="11" fill="#666">  (per chunk)</text>
+<text x="228" y="944" font-size="11" fill="#1a1a2e">• Zero-Shot: 1 call per chunk</text>
+<text x="228" y="959" font-size="11" fill="#1a1a2e">• One-Shot: 1 call per chunk (+1 optional hierarchy sub-call when chunk has hierarchy cues and ≥1 allowed class)</text>
+<text x="228" y="974" font-size="11" fill="#1a1a2e">• Few-Shot: 3 calls per chunk — Phase 1 (classes) → Phase 2 (relations) → Phase 3 (hierarchy, gated by lexical cues)</text>
+
+<!-- Arrow 6→7 -->
+<line x1="550" y1="990" x2="550" y2="1005" stroke="#444" stroke-width="2"/>
+<polygon points="545,1005 555,1005 550,1010" fill="#444"/>
+
+<!-- ── STEP 7: Parse + Validate ── -->
+<rect x="210" y="1010" width="680" height="100" rx="8" fill="#fce4ec" stroke="#E91E63" stroke-width="2"/>
+<rect x="224" y="1002" width="22" height="16" rx="8" fill="#C2185B"/>
+<text x="235" y="1014" text-anchor="middle" font-size="11" font-weight="700" fill="white">7</text>
+<text x="228" y="1035" font-size="13" font-weight="700" fill="#1a1a2e">Parse + Validate</text>
+<text x="228" y="1052" font-size="11" fill="#1a1a2e">• JSON parsing with truncated-response recovery (strip trailing whitespace/commas, try multiple closing sequences)</text>
+<text x="228" y="1067" font-size="11" fill="#1a1a2e">• Evidence required for every item; items without evidence or below min length dropped</text>
+<text x="228" y="1082" font-size="11" fill="#1a1a2e">• Vocabulary filtering per phase output (restrict to allowed labels)</text>
+<text x="228" y="1097" font-size="11" fill="#1a1a2e">• Hierarchy filtered through filter_hierarchy_to_lexical_cues</text>
+
+<!-- Arrow 7→8 -->
+<line x1="550" y1="1110" x2="550" y2="1125" stroke="#444" stroke-width="2"/>
+<polygon points="545,1125 555,1125 550,1130" fill="#444"/>
+
+<!-- ── STEP 8: Merge into One Ontology ── -->
+<rect x="210" y="1130" width="680" height="103" rx="8" fill="#f3e5f5" stroke="#9C27B0" stroke-width="2"/>
+<rect x="224" y="1122" width="22" height="16" rx="8" fill="#7B1FA2"/>
+<text x="235" y="1134" text-anchor="middle" font-size="11" font-weight="700" fill="white">8</text>
+<text x="228" y="1155" font-size="13" font-weight="700" fill="#1a1a2e">Merge into One Ontology</text>
+<text x="228" y="1172" font-size="11" fill="#1a1a2e">• Canonical alias mapping — e.g. "ICP", "mean ICP" → "Intracranial Pressure (ICP)"</text>
+<text x="228" y="1187" font-size="11" fill="#1a1a2e">• Singular/plural normalisation + deduplication by canonical key</text>
+<text x="228" y="1202" font-size="11" fill="#1a1a2e">• Relations deduped by (label, domain, range); evidence and provenance merged</text>
+<text x="228" y="1217" font-size="11" fill="#1a1a2e">• [Vocabulary filter] if filter_to_gold_vocabulary enabled</text>
+
+<!-- Short arrow → Snapshot: extraction -->
+<line x1="550" y1="1233" x2="550" y2="1240" stroke="#444" stroke-width="2"/>
+<polygon points="547,1240 553,1240 550,1244" fill="#444"/>
+<rect x="272" y="1244" width="556" height="20" rx="4" fill="#fafafa" stroke="#bbb" stroke-width="1" stroke-dasharray="4,3"/>
+<text x="550" y="1258" text-anchor="middle" font-size="9" fill="#888" font-style="italic">── STAGE SNAPSHOT: extraction ──</text>
+<line x1="550" y1="1264" x2="550" y2="1271" stroke="#444" stroke-width="2"/>
+<polygon points="547,1271 553,1271 550,1275" fill="#444"/>
+
+<!-- ── STEP 9: Schema-Guided Completion (SGC) ── -->
+<rect x="210" y="1275" width="680" height="106" rx="8" fill="#f3e5f5" stroke="#9C27B0" stroke-width="2"/>
+<rect x="224" y="1267" width="22" height="16" rx="8" fill="#7B1FA2"/>
+<text x="235" y="1279" text-anchor="middle" font-size="11" font-weight="700" fill="white">9</text>
+<text x="228" y="1300" font-size="13" font-weight="700" fill="#1a1a2e">Schema-Guided Completion (SGC)</text>
+<!-- Schema-Completed+ mode tag -->
+<rect x="461" y="1289" width="110" height="14" rx="7" fill="#7B1FA2"/>
+<text x="516" y="1300" text-anchor="middle" font-size="9" font-weight="700" fill="white">Schema-Completed+</text>
+<text x="228" y="1317" font-size="11" fill="#1a1a2e">• Compares merged ontology against gold schema; identifies missing classes, relations, hierarchy edges</text>
+<text x="228" y="1332" font-size="11" fill="#1a1a2e">• Asks the LLM: "Which of these missing items are supported by the corpus?"</text>
+<text x="228" y="1347" font-size="11" fill="#1a1a2e">• Adds only corpus-evidenced items with valid domain/range; lenient evidence threshold; 8192 token budget</text>
+<text x="228" y="1362" font-size="11" fill="#1a1a2e">• Diagnostic artifacts: sgc_prompt.txt, sgc_response.txt, sgc_diagnostic.json</text>
+
+<!-- Short arrow → Snapshot: after_sgc -->
+<line x1="550" y1="1381" x2="550" y2="1388" stroke="#444" stroke-width="2"/>
+<polygon points="547,1388 553,1388 550,1392" fill="#444"/>
+<rect x="272" y="1392" width="556" height="20" rx="4" fill="#fafafa" stroke="#bbb" stroke-width="1" stroke-dasharray="4,3"/>
+<text x="550" y="1406" text-anchor="middle" font-size="9" fill="#888" font-style="italic">── STAGE SNAPSHOT: after_sgc ──</text>
+<line x1="550" y1="1412" x2="550" y2="1419" stroke="#444" stroke-width="2"/>
+<polygon points="547,1419 553,1419 550,1423" fill="#444"/>
+
+<!-- ── STEP 10: Built-in Cleanup ── -->
+<rect x="210" y="1423" width="680" height="138" rx="8" fill="#f3e5f5" stroke="#9C27B0" stroke-width="2"/>
+<rect x="224" y="1415" width="28" height="16" rx="8" fill="#7B1FA2"/>
+<text x="238" y="1427" text-anchor="middle" font-size="11" font-weight="700" fill="white">10</text>
+<text x="228" y="1448" font-size="13" font-weight="700" fill="#1a1a2e">Built-in Cleanup</text>
+<!-- Schema-Completed+ mode tag -->
+<rect x="356" y="1437" width="110" height="14" rx="7" fill="#7B1FA2"/>
+<text x="411" y="1448" text-anchor="middle" font-size="9" font-weight="700" fill="white">Schema-Completed+</text>
+<text x="228" y="1465" font-size="11" fill="#1a1a2e">10-step deterministic cleanup (runs before LLM Reasoning so it operates on clean data):</text>
+<text x="228" y="1481" font-size="11" fill="#1a1a2e">① Deduplicate (canonical key, gold labels)   ② Out-of-scope class pruning   ③ Abstract data label pruning</text>
+<text x="228" y="1496" font-size="11" fill="#1a1a2e">④ Broad contextual label pruning   ⑤ Class evidence pruning (30+ gold anchors exempt)</text>
+<text x="228" y="1511" font-size="11" fill="#1a1a2e">⑥ Dangling hierarchy endpoint pruning   ⑦ Relation domain/range pruning</text>
+<text x="228" y="1526" font-size="11" fill="#1a1a2e">⑧ Relation evidence pruning   ⑨ Hierarchy fragment pruning</text>
+<text x="228" y="1541" font-size="11" fill="#1a1a2e">⑩ Axiom constraint enforcement (29 forbidden hierarchy pairs)</text>
+
+<!-- Short arrow → Snapshot: after_cleanup -->
+<line x1="550" y1="1561" x2="550" y2="1568" stroke="#444" stroke-width="2"/>
+<polygon points="547,1568 553,1568 550,1572" fill="#444"/>
+<rect x="272" y="1572" width="556" height="20" rx="4" fill="#fafafa" stroke="#bbb" stroke-width="1" stroke-dasharray="4,3"/>
+<text x="550" y="1586" text-anchor="middle" font-size="9" fill="#888" font-style="italic">── STAGE SNAPSHOT: after_cleanup ──</text>
+<line x1="550" y1="1592" x2="550" y2="1599" stroke="#444" stroke-width="2"/>
+<polygon points="547,1599 553,1599 550,1603" fill="#444"/>
+
+<!-- ── STEP 11: LLM Reasoning Layer ── -->
+<rect x="210" y="1603" width="680" height="106" rx="8" fill="#fce4ec" stroke="#E91E63" stroke-width="2"/>
+<rect x="224" y="1595" width="28" height="16" rx="8" fill="#C2185B"/>
+<text x="238" y="1607" text-anchor="middle" font-size="11" font-weight="700" fill="white">11</text>
+<text x="228" y="1628" font-size="13" font-weight="700" fill="#1a1a2e">LLM Reasoning Layer</text>
+<!-- Fully Reasoned mode tag -->
+<rect x="378" y="1617" width="94" height="14" rx="7" fill="#C2185B"/>
+<text x="425" y="1628" text-anchor="middle" font-size="9" font-weight="700" fill="white">Fully Reasoned</text>
+<text x="228" y="1645" font-size="11" fill="#1a1a2e">• PROPOSE: LLM proposes missing hierarchy edges from clean ontology + gold schema (no corpus)</text>
+<text x="228" y="1660" font-size="11" fill="#1a1a2e">• VERIFY: LLM verifies each proposed edge; only schema-licensed edges applied</text>
+<text x="228" y="1675" font-size="11" fill="#1a1a2e">• Uses alias-aware canonical matching (canonical_key(resolve_to_canonical_label(...)))</text>
+<text x="228" y="1690" font-size="11" fill="#1a1a2e">• Artifacts: llm_reasoning_propose_*.txt, llm_reasoning_verify_*.txt, llm_reasoning_patch.json</text>
+
+<!-- Short arrow → Snapshot: after_llm_reasoning -->
+<line x1="550" y1="1709" x2="550" y2="1716" stroke="#444" stroke-width="2"/>
+<polygon points="547,1716 553,1716 550,1720" fill="#444"/>
+<rect x="272" y="1720" width="556" height="20" rx="4" fill="#fafafa" stroke="#bbb" stroke-width="1" stroke-dasharray="4,3"/>
+<text x="550" y="1734" text-anchor="middle" font-size="9" fill="#888" font-style="italic">── STAGE SNAPSHOT: after_llm_reasoning ──</text>
+<line x1="550" y1="1740" x2="550" y2="1747" stroke="#444" stroke-width="2"/>
+<polygon points="547,1747 553,1747 550,1751" fill="#444"/>
+
+<!-- ── STEP 12: Rule-based Reasoning ── -->
+<rect x="210" y="1751" width="680" height="100" rx="8" fill="#f3e5f5" stroke="#9C27B0" stroke-width="2"/>
+<rect x="224" y="1743" width="28" height="16" rx="8" fill="#7B1FA2"/>
+<text x="238" y="1755" text-anchor="middle" font-size="11" font-weight="700" fill="white">12</text>
+<text x="228" y="1776" font-size="13" font-weight="700" fill="#1a1a2e">Rule-based Reasoning</text>
+<!-- Schema-Completed+ mode tag -->
+<rect x="386" y="1765" width="110" height="14" rx="7" fill="#7B1FA2"/>
+<text x="441" y="1776" text-anchor="middle" font-size="9" font-weight="700" fill="white">Schema-Completed+</text>
+<text x="228" y="1793" font-size="11" fill="#1a1a2e">• Schema completion: adds gold hierarchy edges where both endpoint classes exist;</text>
+<text x="228" y="1808" font-size="11" fill="#1a1a2e">  synthetic evidence strings ("Schema-inferred: X is a subclass of Y") satisfy evidence + trigger filters</text>
+<text x="228" y="1823" font-size="11" fill="#1a1a2e">• Orphan pruning: removes classes not referenced by any relation or hierarchy edge</text>
+<text x="228" y="1836" font-size="11" fill="#1a1a2e">  (gold-aligned classes always preserved)</text>
+
+<!-- Short arrow → Snapshot: after_rule_based -->
+<line x1="550" y1="1851" x2="550" y2="1858" stroke="#444" stroke-width="2"/>
+<polygon points="547,1858 553,1858 550,1862" fill="#444"/>
+<rect x="272" y="1862" width="556" height="20" rx="4" fill="#fafafa" stroke="#bbb" stroke-width="1" stroke-dasharray="4,3"/>
+<text x="550" y="1876" text-anchor="middle" font-size="9" fill="#888" font-style="italic">── STAGE SNAPSHOT: after_rule_based ──</text>
+<line x1="550" y1="1882" x2="550" y2="1889" stroke="#444" stroke-width="2"/>
+<polygon points="547,1889 553,1889 550,1893" fill="#444"/>
+
+<!-- ── STEP 13: Gold-Vocabulary Filter ── -->
+<rect x="210" y="1893" width="680" height="76" rx="8" fill="#f3e5f5" stroke="#9C27B0" stroke-width="2"/>
+<rect x="224" y="1885" width="28" height="16" rx="8" fill="#7B1FA2"/>
+<text x="238" y="1897" text-anchor="middle" font-size="11" font-weight="700" fill="white">13</text>
+<text x="228" y="1918" font-size="13" font-weight="700" fill="#1a1a2e">Gold-Vocabulary Filter</text>
+<!-- Strict+ mode tag -->
+<rect x="401" y="1907" width="48" height="14" rx="7" fill="#1976D2"/>
+<text x="425" y="1918" text-anchor="middle" font-size="9" font-weight="700" fill="white">Strict+</text>
+<text x="228" y="1935" font-size="11" fill="#1a1a2e">When eval_restrict_to_gold is enabled, restricts the final ontology to gold-vocabulary items only before</text>
+<text x="228" y="1950" font-size="11" fill="#1a1a2e">computing metrics. Precision becomes 100% by design; used as a recall control.</text>
+
+<!-- Short arrow → Snapshot: after_gold_filter -->
+<line x1="550" y1="1969" x2="550" y2="1976" stroke="#444" stroke-width="2"/>
+<polygon points="547,1976 553,1976 550,1980" fill="#444"/>
+<rect x="272" y="1980" width="556" height="20" rx="4" fill="#fafafa" stroke="#bbb" stroke-width="1" stroke-dasharray="4,3"/>
+<text x="550" y="1994" text-anchor="middle" font-size="9" fill="#888" font-style="italic">── STAGE SNAPSHOT: after_gold_filter ──</text>
+<line x1="550" y1="2000" x2="550" y2="2007" stroke="#444" stroke-width="2"/>
+<polygon points="547,2007 553,2007 550,2011" fill="#444"/>
+
+<!-- ── STEP 14: Evaluation + Artifact Generation ── -->
+<rect x="210" y="2011" width="680" height="158" rx="8" fill="#e0f2f1" stroke="#00897B" stroke-width="2"/>
+<rect x="224" y="2003" width="28" height="16" rx="8" fill="#00695C"/>
+<text x="238" y="2015" text-anchor="middle" font-size="11" font-weight="700" fill="white">14</text>
+<text x="228" y="2036" font-size="13" font-weight="700" fill="#1a1a2e">Evaluation + Artifact Generation</text>
+<text x="228" y="2053" font-size="11" fill="#1a1a2e">• Class metrics: coverage, precision, recall, F1 (exact + TF-IDF semantic matching, threshold 0.55, synonym expansion)</text>
+<text x="228" y="2068" font-size="11" fill="#1a1a2e">• Relation metrics: label-level P/R via alias-aware mapping + per-gold-relation breakdown</text>
+<text x="228" y="2083" font-size="11" fill="#1a1a2e">• Hierarchy metrics: edge-level P/R by normalised (subClass, superClass) matching</text>
+<text x="228" y="2098" font-size="11" fill="#1a1a2e">• Per-stage ablation table: n_classes, n_relations, n_hierarchy, coverage, precision, recall at each stage</text>
+<text x="228" y="2113" font-size="11" fill="#1a1a2e">• Error taxonomy: hallucinations, schema violations, omissions, plausible-but-unmatched</text>
+<text x="228" y="2128" font-size="11" fill="#1a1a2e">• Artifacts: metrics.json, summary.txt, table.csv, hallucinated_classes.json, improvement_counts.json,</text>
+<text x="228" y="2143" font-size="11" fill="#1a1a2e">  axiom_violations.json, ontology.json</text>
+
+<!-- ══ PIPELINE MODE COVERAGE TABLE ══ -->
+<rect x="210" y="2184" width="680" height="142" rx="8" fill="#f5f5f5" stroke="#333" stroke-width="1.5"/>
+<text x="550" y="2204" text-anchor="middle" font-size="12" font-weight="700" fill="#1a1a2e">Pipeline Mode Coverage</text>
+<!-- Header row -->
+<rect x="210" y="2210" width="680" height="22" fill="#e0e0e0"/>
+<rect x="210" y="2221" width="680" height="11" fill="#e0e0e0"/>
+<line x1="210" y1="2210" x2="210" y2="2326" stroke="#333" stroke-width="1.5"/>
+<line x1="890" y1="2210" x2="890" y2="2326" stroke="#333" stroke-width="1.5"/>
+<line x1="210" y1="2232" x2="890" y2="2232" stroke="#888" stroke-width="1"/>
+<!-- column dividers -->
+<line x1="350" y1="2210" x2="350" y2="2326" stroke="#ccc" stroke-width="1"/>
+<line x1="520" y1="2210" x2="520" y2="2326" stroke="#ccc" stroke-width="1"/>
+<!-- header text -->
+<text x="280" y="2225" text-anchor="middle" font-size="10" font-weight="700" fill="#333">Mode</text>
+<text x="435" y="2225" text-anchor="middle" font-size="10" font-weight="700" fill="#333">Steps active</text>
+<text x="705" y="2225" text-anchor="middle" font-size="10" font-weight="700" fill="#333">What it adds</text>
+<!-- Row 1: Strict -->
+<line x1="210" y1="2260" x2="890" y2="2260" stroke="#ddd" stroke-width="1"/>
+<rect x="218" y="2237" width="48" height="14" rx="7" fill="#1976D2"/>
+<text x="242" y="2248" text-anchor="middle" font-size="9" font-weight="700" fill="white">Strict</text>
+<text x="360" y="2248" font-size="10" fill="#1a1a2e">1–8, 13, 14</text>
+<text x="530" y="2248" font-size="10" fill="#1a1a2e">Extraction with vocab guardrails + gold-restricted evaluation</text>
+<!-- Row 2: Guided -->
+<line x1="210" y1="2288" x2="890" y2="2288" stroke="#ddd" stroke-width="1"/>
+<rect x="218" y="2265" width="50" height="14" rx="7" fill="#388E3C"/>
+<text x="243" y="2276" text-anchor="middle" font-size="9" font-weight="700" fill="white">Guided</text>
+<text x="360" y="2272" font-size="10" fill="#1a1a2e">1–8, 13, 14</text>
+<text x="360" y="2284" font-size="10" fill="#666" font-style="italic">(+ NER &amp; candidates in step 5)</text>
+<text x="530" y="2276" font-size="10" fill="#1a1a2e">+ Medical NER anchor + candidate term injection in prompts</text>
+<!-- Row 3: Schema-Completed -->
+<line x1="210" y1="2316" x2="890" y2="2316" stroke="#ddd" stroke-width="1"/>
+<rect x="218" y="2293" width="110" height="14" rx="7" fill="#7B1FA2"/>
+<text x="273" y="2304" text-anchor="middle" font-size="9" font-weight="700" fill="white">Schema-Completed</text>
+<text x="360" y="2304" font-size="10" fill="#1a1a2e">1–10, 12–14</text>
+<text x="530" y="2304" font-size="10" fill="#1a1a2e">+ SGC + built-in cleanup + rule-based reasoning</text>
+<!-- Row 4: Fully Reasoned -->
+<rect x="218" y="2321" width="94" height="14" rx="7" fill="#C2185B"/>
+<text x="265" y="2332" text-anchor="middle" font-size="9" font-weight="700" fill="white">Fully Reasoned</text>
+<text x="360" y="2332" font-size="10" font-weight="700" fill="#1a1a2e">1–14 (all)</text>
+<text x="530" y="2332" font-size="10" fill="#1a1a2e">+ LLM Reasoning Layer (PROPOSE/VERIFY)</text>
+
+</svg>

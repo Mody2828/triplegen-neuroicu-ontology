@@ -6,7 +6,7 @@ This document provides a visual overview of the TripleGen pipeline in **Fully Re
 
 ## Pipeline Poster
 
-![TripleGen LLM-Driven Ontology Engineering Pipeline](docs/TripleGen_Pipeline_Poster.png)
+![TripleGen LLM-Driven Ontology Engineering Pipeline](docs/pipeline_diagram.svg)
 
 *Full pipeline covering all four progressive modes: M1 Strict, M2 Guided, M3 Schema-Completed, M4 Fully Reasoned.*
 
