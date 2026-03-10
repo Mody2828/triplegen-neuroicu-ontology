@@ -1,4 +1,4 @@
-# TripleGen: LLM-Driven Ontology Engineering for Neuro-ICU
+# TripleGen: Evaluating LLM-Generated Ontologies in a Low-Resource Clinical Domain: The BrainIT Case
 
 ## Overview
 
