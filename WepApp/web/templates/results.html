@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Results · Run {{ run_id }} · Neuro-ICU Ontology{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="page-hero d-flex flex-wrap align-items-center justify-content-between gap-3">
+  <div>
+    <h1><i class="bi bi-graph-up tg-semantic-eval"></i> Experiment results</h1>
+    <p class="mb-0 mt-1 text-muted small">Run ID: <span class="run-id-badge">{{ run_id }}</span></p>
+  </div>
+  <a href="{{ url_for('index') }}" class="btn btn-outline-tech">
+    <i class="bi bi-plus-circle me-1"></i>Run another experiment
+  </a>
+</div>
+
+<div class="row">
+  <div class="col-lg-6 mb-4">
+    <div class="card h-100">
+      <div class="card-header tg-card-eval">
+        <i class="bi bi-speedometer2"></i> Evaluation metrics
+      </div>
+      <div class="card-body">
+        {% if metrics %}
+        <pre class="metrics-pre mb-0">{{ metrics | tojson(indent=2) }}</pre>
+        {% else %}
+        <p class="text-muted mb-0">No metrics found for this run.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6 mb-4">
+    <div class="card h-100">
+      <div class="card-header tg-card-ontology">
+        <i class="bi bi-diagram-3"></i> Knowledge artifacts
+      </div>
+      <div class="card-body">
+        <a href="{{ url_for('artifact_file', run_id=run_id, artifact_type='ontology') if artifacts.ontology.exists() else '#' }}" class="artifact-item artifact-link" {% if artifacts.ontology.exists() %}target="_blank" rel="noopener"{% endif %}>
+          <div class="icon-wrap ontology"><i class="bi bi-diagram-3"></i></div>
+          <div><span class="text-muted small d-block">Ontology (classes &amp; relations)</span><code>{{ artifacts.ontology }}</code></div>
+        </a>
+        {% if artifacts.ontology.exists() %}
+        <div class="text-center">
+          <button type="button" class="btn-show-graph" id="btn-show-graph" data-run-id="{{ run_id }}">
+            <i class="bi bi-share"></i> Show Ontology Graph
+          </button>
+        </div>
+        {% endif %}
+        <a href="{{ url_for('artifact_file', run_id=run_id, artifact_type='summary') if artifacts.summary.exists() else '#' }}" class="artifact-item artifact-link" {% if artifacts.summary.exists() %}target="_blank" rel="noopener"{% endif %}>
+          <div class="icon-wrap summary"><i class="bi bi-file-text"></i></div>
+          <div><span class="text-muted small d-block">Summary</span><code>{{ artifacts.summary }}</code></div>
+        </a>
+        <a href="{{ url_for('artifact_file', run_id=run_id, artifact_type='evaluation') if artifacts.evaluation.exists() else '#' }}" class="artifact-item artifact-link" {% if artifacts.evaluation.exists() %}target="_blank" rel="noopener"{% endif %}>
+          <div class="icon-wrap eval"><i class="bi bi-clipboard-check"></i></div>
+          <div><span class="text-muted small d-block">Evaluation</span><code>{{ artifacts.evaluation }}</code></div>
+        </a>
+        <div class="artifact-item">
+          <div class="icon-wrap ontology"><i class="bi bi-chat-left-text"></i></div>
+          <div>
+            <span class="text-muted small d-block">Prompts (exact text sent to LLM)</span>
+            <code>{{ artifacts.prompts_dir }}</code>
+            {% if artifacts.prompt_files %}
+            <div class="mt-1 small">Files: {% for f in artifacts.prompt_files %}{{ f.name }}{% if not loop.last %}, {% endif %}{% endfor %}</div>
+            {% else %}
+            <div class="mt-1 small text-muted">No prompt files yet. New runs save the exact prompt per chunk here. Open the folder path above in Explorer to view prompt_chunk_0000.txt, etc.</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if analysis %}
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header tg-card-eval">
+        <i class="bi bi-arrow-left-right"></i> Performance comparison
+      </div>
+      <div class="card-body">
+        {% if analysis.summary %}
+        <pre class="metrics-pre mb-3">{{ analysis.summary }}</pre>
+        {% endif %}
+        <div class="artifact-item">
+          <div class="icon-wrap eval"><i class="bi bi-table"></i></div>
+          <div><span class="text-muted small d-block">Comparison CSV</span><code>{{ analysis.comparison_csv }}</code></div>
+        </div>
+        <div class="artifact-item">
+          <div class="icon-wrap summary"><i class="bi bi-image"></i></div>
+          <div><span class="text-muted small d-block">Comparison Plot</span><code>{{ analysis.comparison_plot }}</code></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body text-center py-4">
+        <p class="text-muted mb-3">Generated ontology, summary, and evaluation are stored under this run.</p>
+        <a href="{{ url_for('index') }}" class="btn btn-run">
+          <i class="bi bi-play-fill me-2"></i>New experiment
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/ontology_graph.js') }}"></script>
+<script>
+  (function() {
+    var btn = document.getElementById('btn-show-graph');
+    if (btn) {
+      btn.addEventListener('click', function() {
+        OntologyGraph.open(btn.dataset.runId);
+      });
+    }
+  })();
+</script>
+{% endblock %}

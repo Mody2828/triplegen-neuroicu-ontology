@@ -1,0 +1,492 @@
+### TASK: Relation Extraction
+You are a clinical ontology engineer. Your task is to find semantic RELATIONS between the classes listed below, using the source text as evidence. Extract every relation the text explicitly supports.
+
+### WHAT IS AN ONTOLOGY RELATION?
+An ontology relation (object property) defines a typed semantic link between two classes. The DOMAIN is the subject; the RANGE is the object.
+Model the SCHEMA of the domain — not individual facts. Think:
+'Every instance of [domain] can be linked via [relation] to an instance of [range].'
+
+### RELATION EXTRACTION METHOD
+Systematically examine class pairs and reason step by step:
+1. Scan the text for sentences where two or more classes co-occur.
+2. For each co-occurrence, determine: what is the semantic nature of the link?
+   (measurement, treatment, assessment, outcome, composition, causation, etc.)
+3. Decide which class is domain (subject) and which is range (object).
+4. Assign a clear, descriptive relation label.
+5. Provide an exact verbatim quote from the text as evidence.
+
+### RELATION PATTERNS
+Patient-centric:
+  - has monitoring data: Patient → Monitoring Data
+  - receives therapy: Patient → Therapy
+  - has outcome: Patient → Outcome
+  - has clinical assessment: Patient → Clinical Assessment
+  - has laboratory value: Patient → Laboratory Values
+  - has nursing intervention: Patient → Nursing Intervention
+  - has surgical procedure: Patient → Surgical Procedure
+  - has session: Patient → Session
+  - has demographic data: Patient → Demographic Data
+Clinical process:
+  - monitoring indicates condition: Monitoring Data → Condition
+  - targets condition: Therapy → Condition
+  - triggers intervention: Condition → Therapy
+  - affected by treatment: Data Quality Assessment → Therapy
+  - associated with condition: Data Quality Assessment → Condition
+Structural:
+  - has observation: Timepoint → Observation
+  - has timepoint: Session → Timepoint
+  - measures parameter: Observation → Parameter
+  - produced by sensor: Observation → Sensor
+  - has quality assessment: Observation → Data Quality Assessment
+  - includes: Category → Member
+  - derived from: DerivedParameter → SourceParameter
+You SHOULD also discover relations not in this list if the text supports them.
+
+### CLASSES IN THE ONTOLOGY
+  - AUC
+  - Acute Hypotensive Episode
+  - Admission Time to ICU
+  - Age
+  - Analysis Software
+  - Arterial Hypotension
+  - BP Data
+  - Bayesian Artificial Neural Network (BANN)
+  - Bedside Intervention
+  - Blood Pressure Measurement System
+  - BrainIT Database
+  - Clinical Client Software
+  - Clinical Setting
+  - Clinical Study
+  - Condition
+  - Continuous Monitoring Data
+  - Critical Care
+  - Data
+  - Data Push Software
+  - Demographic Data
+  - Demographic Variables
+  - EUSIG Grade
+  - Edinburgh University Secondary Insult Grades (EUSIG)
+  - Electronic Health Record
+  - Episodic Data
+  - EtCO2
+  - False Positive Correction
+  - GCS Assessment
+  - HYPO-NET
+  - Haemodialysis Treatment
+  - Heart Rate
+  - Heart-Rate Variability
+  - HypoNet System
+  - Hypotension
+  - ICU
+  - ICU Nurse
+  - Injury Type
+  - Intensive Care Management
+  - Intracranial Pressure
+  - Ischaemic Mechanisms
+  - Laboratory Data
+  - Machine Learning
+  - Machine Learning Technology
+  - Mass Lesions
+  - Mean Arterial Pressure
+  - Mean Arterial Pressure (MAP)
+  - Mean Blood Pressure
+  - Medical Device
+  - Medical Management
+  - Monitoring Data
+  - Monitoring System
+  - Mortality
+  - Neural Network
+  - Neural Network Model
+  - Neuro-intensive Care
+  - Neurocritical Care
+  - Nursing Procedure
+  - Outcome
+  - Patient
+  - Patient Age
+  - Patient Cohort
+  - Patient Demographics
+  - Patient Monitoring System
+  - Patient Outcome
+  - Peripheral Arterial Blood Pressure Waveform
+  - Physiological Data
+  - Physiological Features
+  - Precision
+  - Prediction Model
+  - Predictive Accuracy
+  - Predictive Model
+  - Pressure Area Care
+  - Pulse Pressure
+  - ROC Curve
+  - Randomised Clinical Trial
+  - Recall
+  - Research Nurse
+  - Risk Warning
+  - Routine Patient Hygiene
+  - SAO2
+  - Secondary Insult
+  - Sensitivity
+  - Sepsis
+  - Sex
+  - Specificity
+  - Systolic Arterial Blood Pressure
+  - Systolic Blood Pressure (SBP)
+  - TBI Patient
+  - Temperature
+  - Traumatic Brain Injury
+  - User Interface
+  - Warning Time
+
+### CLASSES WITH NO RELATIONS (high priority — find connections!)
+  - AUC
+  - Clinical Study
+  - Critical Care
+  - Electronic Health Record
+  - False Positive Correction
+  - Haemodialysis Treatment
+  - ICU Nurse
+  - Machine Learning Technology
+  - Mean Blood Pressure
+  - Medical Device
+  - Monitoring System
+  - Neuro-intensive Care
+  - Neurocritical Care
+  - Precision
+  - Prediction Model
+  - Predictive Accuracy
+  - ROC Curve
+  - Randomised Clinical Trial
+  - Recall
+  - Research Nurse
+  - Risk Warning
+  - Sensitivity
+  - Specificity
+  - User Interface
+  - Warning Time
+
+### EXISTING RELATIONS (do NOT duplicate these)
+  - at risk from(Traumatic Brain Injury → Secondary Insult)
+  - related to(Arterial Hypotension → Outcome)
+  - predicts(Bayesian Artificial Neural Network (BANN) → Arterial Hypotension)
+  - defined using(Arterial Hypotension → Edinburgh University Secondary Insult Grades (EUSIG))
+  - collected from(Physiological Data → BrainIT Database)
+  - includes(BrainIT Database → Demographic Data)
+  - includes(BrainIT Database → Episodic Data)
+  - has monitoring data(TBI Patient → Continuous Monitoring Data)
+  - has demographic data(TBI Patient → Patient Demographics)
+  - has injury mechanism(TBI Patient → Injury Type)
+  - has clinical assessment(TBI Patient → GCS Assessment)
+  - monitoring indicates condition(Continuous Monitoring Data → Hypotension)
+  - has EUSIG grade(Hypotension → EUSIG Grade)
+  - receives therapy(TBI Patient → Predictive Model)
+  - has monitoring data(TBI Patient → Heart Rate)
+  - has monitoring data(TBI Patient → Mean Arterial Pressure (MAP))
+  - has monitoring data(TBI Patient → EtCO2)
+  - has monitoring data(TBI Patient → Temperature)
+  - has monitoring data(TBI Patient → SAO2)
+  - has monitoring data(TBI Patient → Admission Time to ICU)
+  - uses framework(Bayesian Artificial Neural Network (BANN) → HYPO-NET)
+  - monitoring indicates condition(Pulse Pressure → Arterial Hypotension)
+  - includes(Demographic Variables → Physiological Features)
+  - derived from(Neural Network → Physiological Features)
+  - has monitoring data(HypoNet System → Monitoring Data)
+  - has laboratory value(HypoNet System → Laboratory Data)
+  - uses software(HypoNet System → Clinical Client Software)
+  - uses software(HypoNet System → Analysis Software)
+  - uses software(HypoNet System → Data Push Software)
+  - has demographic data(Patient → Age)
+  - has demographic data(Patient → Sex)
+  - has monitoring data(Patient → Mean Arterial Pressure (MAP))
+  - has monitoring data(Patient → Systolic Arterial Blood Pressure)
+  - has monitoring data(Patient → Heart Rate)
+  - monitoring indicates condition(Monitoring Data → Hypotension)
+  - monitoring indicates condition(Monitoring Data → Sepsis)
+  - includes(Hypotension → Mean Arterial Pressure (MAP))
+  - derived from(Heart-Rate Variability → Heart Rate)
+  - predicts(Neural Network Model → Hypotension)
+  - predicts(Patient Age → Outcome)
+  - predicts(Mean Arterial Pressure (MAP) → Outcome)
+  - triggers intervention(Arterial Hypotension → Bedside Intervention)
+  - receives therapy(Patient Cohort → Intensive Care Management)
+  - has monitoring data(ICU → Patient Monitoring System)
+  - includes(Nursing Procedure → Routine Patient Hygiene)
+  - includes(Nursing Procedure → Pressure Area Care)
+  - monitoring indicates condition(Blood Pressure Measurement System → Arterial Hypotension)
+  - has outcome(Medical Management → Patient Outcome)
+  - produced by sensor(BP Data → Blood Pressure Measurement System)
+  - has clinical assessment(Patient Cohort → Mortality)
+  - provides early warning of(Machine Learning → Arterial Hypotension)
+  - used in(Machine Learning → Clinical Setting)
+  - predicts(Neural Network → Acute Hypotensive Episode)
+  - based on(Prediction → Peripheral Arterial Blood Pressure Waveform)
+  - requires(Prediction → Data)
+  - at risk from(TBI Patient → Secondary Insult)
+  - caused by(Intracranial Pressure → Mass Lesions)
+  - resulting in(Ischaemic Mechanisms → Condition)
+  - defined as(Arterial Hypotension → Systolic Blood Pressure (SBP))
+  - defined as(Arterial Hypotension → Mean Arterial Pressure)
+
+### EVIDENCE RULES (CRITICAL)
+- The 'evidence' field MUST be an exact verbatim quote from the SOURCE TEXT.
+- Evidence should mention or imply at least one endpoint class.
+- Do NOT reuse the same evidence for multiple relations.
+- Do NOT invent or paraphrase — if no supporting text exists, skip.
+- Use the abstract superclass as the range (e.g., 'Monitoring Data' not 'ICP').
+
+### OUTPUT FORMAT (JSON only, no commentary)
+{
+  "relations": [{"label": "rel_name", "domain": "DomainClass", "range": "RangeClass", "evidence": "exact quote from text"}]
+}
+
+Extract as many valid relations as the text supports. Be thorough — especially for the classes that currently have NO relations.
+
+### SOURCE TEXT
+ORIGINAL RESEARCH
+
+Forewarning of hypotensive events using a Bayesian artificial neural
+network in neurocritical care
+Rob Donald1 · Tim Howells2 · Ian Piper3 · P. Enblad4 · P. Nilsson4 · I. Chambers5 · B. Gregson6 · G. Citerio7 ·
+
+Traumatically brain injured (TBI) patients are at risk from secondary insults. Arterial hypotension, critically low blood
+pressure, is one of the most dangerous secondary insults and is related to poor outcome in patients. The overall aim of this
+study was to get proof of the concept that advanced statistical techniques (machine learning) are methods that are able to
+provide early warning of impending hypotensive events before they occur during neuro-critical care. A Bayesian artificial
+neural network (BANN) model predicting episodes of hypotension was developed using data from 104 patients selected
+from the BrainIT multi-center database. Arterial hypotension events were recorded and defined using the Edinburgh University Secondary Insult Grades (EUSIG) physiological adverse event scoring system. The BANN was trained on a random
+selection of 50% of the available patients (n = 52) and validated on the remaining cohort. A multi-center prospective pilot
+study (Phase 1, n = 30) was then conducted with the system running live in the clinical environment, followed by a second
+validation pilot study (Phase 2, n = 49). From these prospectively collected data, a final evaluation study was done on 69 of
+these patients with 10 patients excluded from the Phase 2 study because of insufficient or invalid data. Each data collection
+phase was a prospective non-interventional observational study conducted in a live clinical setting to test the data collection
+systems and the model performance. No prediction information was available to the clinical teams during a patient's stay in
+the ICU. The final cohort (n = 69), using a decision threshold of 0.4, and including false positive checks, gave a sensitivity
+of 39.3% (95% CI 32.9-46.1) and a specificity of 91.5% (95% CI 89.0-93.7). Using a decision threshold of 0.3, and false
+positive correction, gave a sensitivity of 46.6% (95% CI 40.1-53.2) and specificity of 85.6% (95% CI 82.3-88.8). With a
+decision threshold of 0.3, > 15 min warning of patient instability can be achieved. We have shown, using advanced machine
+learning techniques running in a live neuro-critical care environment, that it would be possible to give neurointensive teams
+early warning of potential hypotensive events before they emerge, allowing closer monitoring and earlier clinical assessment
+in an attempt to prevent the onset of hypotension. The multi-centre clinical infrastructure developed to support the clinical
+studies provides a solid base for further collaborative research on data quality, false positive correction and the display of
+early warning data in a clinical setting.
+
+Keywords Traumatic brain injury · Neuro-intensive care · Bayesian prediction · Clinical study results
+
+1 Introduction complications during neurocritical care (NCC) known as
+secondary insults [2]. The secondary insults can be both
+One of the primary aims in treating emergency admission intracranial and systemic. The intracranial insults predomipatients with physical trauma is to stabilise vital physiologi- nantly result from high intracranial pressure caused by
+cal systems [1]. It is also recognised that patients who have mass lesions and ischaemic mechanisms resulting in brain
+suffered a traumatic brain injury (TBI) are at risk of having swelling. One of the most critical types of systemic sectheir "primary" brain damage exacerbated from a class of ondary insult is arterial hypotension, defined as abnormally
+low arterial blood pressure. Research has shown [3] that
+increased incidence of hypotensive episodes is related to
+* Ian Piper
+ian.piper@brainit.org poor neurological outcome. The physiological vital func-
+tions are extensively monitored in critical care and alarms
+Extended author information available on the last page of the article
+
+Vol.:(0123456789)
+
+40 Journal of Clinical Monitoring and Computing (2019) 33:39-51
+
+are sent out when a secondary insult, e.g. an hypotensive generation as well as the development and testing of new
+event, occurs so effective treatment can be initiated immedi- data analysis methods. The group defined a core data set [5]
+ately without delay to reduce the development of secondary and then collected a database of over 200 patients containing
+injuries. The ideal situation in the future would be to have a demographic data (e.g. age, gender, time of injury, initial
+monitoring system that sends out alarms before a secondary admission data both at pre-neurosurgical and neurosurgical
+insult will take place so relevant precautions can be insti- admission), episodic data (e.g. treatments given, lab results
+tuted to avoid the secondary event completely. from routine blood samples and nursing procedures) and
+The overall aim of this study was to get proof of the con- minute-by-minute physiological data from bedside monicept that advanced statistical techniques (machine learning) tors [6]. The BANN was constructed using data from 104
+are methods that are not only able to provide early warn- patients from the BrainIT database, which was recruited
+ing of impending hypotensive events before they occur, but from 22 European neuro-intensive care centers between
+can do so prospectively in a live neuro-critical care envi- March 2003 and June 2005 [6, 7].
+ronment. This project had two specific aims: to develop a To support a pilot study of the prediction system, 30
+prediction of hypotensive events; and to run a prospective 2009 and October 2010 from six BrainIT centres (Prospecmulti-centre clinical study to test the system in a real clinical tive Phase I Dataset): Uppsala, Sweden; Glasgow, Scotland;
+environment. For the clinical study a secure software and Vilnius, Lithuania; Heidelberg, Germany; Monza, Italy;
+hardware infrastructure was developed and used for collec- and Barcelona, Spain. Then in support of this data, 49 more
+tion of anonymised data from hospital intensive care units patients were prospectively recruited from the same centers
+(ICUs). between December 2010 and July 2011 (Prospective Phase
+II dataset). The Phase II prospective study used a "Hanfelt"
+two stage design consisting of an initial collection of 13
+2 Materials and methods patients (Phase II-Stage 1) followed by a subsequent 36
+patients (Phase II-Stage 2). The Hanfelt design is used to
+2.1 Patient data minimise the recruitment of patients in Phase II trials [14].
+See Fig. 1 outlining the design and timing of the clinical
+In 1997 an international group of clinicians and clinical sci- studies.
+entists set up the BrainIT consortium [4] with an aim to In the final analysis reported here the initial Phase I and
+collect high resolution physiological and clinical data from repeat Phase II cohorts were combined. Ten patients had
+TBI patients in a standardized manner, and to use that data to to be excluded due to excessive missing or invalid data
+undertake further research in this domain through hypothesis (seven patients did not have the required minimum of 24 h
+
+Fig. 1 Graphical representation of the clinical study design
+broken down by testing stage
+
+See Fig. 1 outlining the design and timing of the clinical
+In 1997 an international group of clinicians and clinical sci- studies. entists set up the BrainIT consortium [4] with an aim to In the final analysis reported here the initial Phase I and
+collect high resolution physiological and clinical data from repeat Phase II cohorts were combined. Ten patients had
+TBI patients in a standardized manner, and to use that data to to be excluded due to excessive missing or invalid data
+undertake further research in this domain through hypothesis (seven patients did not have the required minimum of 24 h
+
+Journal of Clinical Monitoring and Computing (2019) 33:39-51 41
+
+of continuous monitoring data and three patients from one 2.4 BANN construction and testing
+centre had technical data capture issues resulting in unrecoverable corrupted data), leaving a total of 69 patients for The inputs to the model were built from a series of movanalysis. Of these 52 (75%) were male and 17 (25%) female. ing windows (based upon minute by minute data sampling)
+In terms of patient demographics, the median age was 40 configured across the data.
+years, range 16 to 83. There were two main types of injury: Inputs for the neural network were taken from the demofall (30) and road traffic accident (25). The remaining 14 graphic database or formed by extracting features such as
+injuries were in the categories: pedestrian (4); unknown (4); mean, standard deviation, and slope from the physiological
+assault (3); and sports related (3). The GCS scores, where data over a time window or a series of windows prior to the
+complete, were obtained from two time-points: at admission prediction. The slope feature is the slope of a linear trend
+to the pre-neurosurgery hospital, median GCS = 8 (range line with a least-squares fit over the data in the given time
+3-15; complete n = 51); at admission to the neurosurgery window. A set of BANNs were constructed using clinical
+ICU, median GCS = 8 (range 3-14; complete n = 24). parameters selected through a combination of clinical guid-
+ance and exploratory modelling for the selection of input
+features.
+2.2 Hypotension definition
+A cohort of suitable patients (n = 104) having more than
+24 h of data for heart-rate and mean and systolic blood
+Although other studies have assessed machine learning
+pressure was extracted from the BrainIT database [6]. A
+approaches to hypotension prediction [19-25], these use
+total of 33 models were trained on the data from 52 ranhypotension definitions that are markedly more severe
+domly selected patients (the 'training' set) and tested on
+in terms of the depth of hypotension and their combined
+the remainder (the unseen 'test' set) all 33 models and their
+duration (often > 30 min). In the management of patients
+parameters are summarised in Appendix. This was a conwith TBI there is compelling evidence that even "minute
+servative approach and possibly sub-optimal given available
+by minute" hypotension events cumulatively can influence
+techniques such as cross validation to make best use of a
+patient outcome [2]. Thus, in order to quantify the occur-
+relatively small data set. However, given the cautious nature
+rence of hypotension the Edinburgh University Secondary
+of the clinical community, one which is more likely to feel
+Insult Grading (EUSIG) system was used, which defines
+comfortable with a prediction model based on incorporathypotension as systolic arterial pressure (BPs) ≤ 90 mmHg
+ing pertinent physiological parameters derived from clinical
+or mean arterial pressure (BPm) ≤ 70 mmHg sustained
+guidance, it was felt that this approach to creating a model
+for at least 5 min. This definition has been shown to be a
+for early warning of hypotensive events would be easier to
+clinically relevant measure when assessing the burden of
+gain acceptance clinically.
+hypotension [2]. The EUSIG definition requires that blood
+The model with the best performance on the test set and
+pressure return to above threshold for at least 5 min before
+good coverage with respect to completeness of data within
+the hypotension event is considered to have ended. For the
+the BrainIT database was selected as the predictive model
+purposes of these studies we have increased this "switch off
+to be used in the Phase I and repeat Phase II clinical studies.
+time" to 15 min, because we found that otherwise we created
+The model selected used demographic parameters of age
+clusters of closely related events that were better considered
+and gender with the physiological variables of heart rate,
+as a single episode.
+systolic and mean blood pressure. Models including param-
+eters other than blood pressure and heart rate were tested.
+2.3 Bayesian artificial neural networks (BANN) Additional parameters (e.g. ETCO2, temperature, SAO2,
+admission time to ICU) were tried but they did not produce
+The term artificial neural network incorporates a variety models with better sensitivity. Often, due to missing data,
+of techniques, but most often (and in the present case) these models could only be trained and tested on subsets of
+describes a form of nonlinear regression. Neural networks the complete training and test sets.
+are very general and powerful models, capable of modelling
+any continuous function [8]. They have consistently proved 2.5 Clinical study methodology
+to be among the best techniques for difficult problems in
+statistical pattern recognition [9, 10]. Bayesian analysis can Figure 1 below summarises the clinical study design. A
+be used to estimate error bars for neural network predic- Phase 1 study of 30 patients was conducted to ensure that the
+tions, and to mitigate problems like over-fitting that can arise data acquisition and prediction software could be installed
+due to the power of the models [11, 12]. We have adapted in the clinical environment and produce predictions on live
+a Bayesian system designed and implemented by Radford clinical data being collected from the patient monitors, conNeal that utilizes a hybrid Monte-Carlo technique [12]. sidering all the data quality issues that are present in an
+
+42 Journal of Clinical Monitoring and Computing (2019) 33:39-51
+
+operational setting. Details of the participating hospitals and 2.9 HYPO-NET
+their hardware and software infrastructure can be found in
+[13]. HYPO-NET-a previously developed data collection frame-
+The Phase I study was successful, with the prediction work was used for testing of the BANN models in real-time
+results matching the results from the test on the retrospective in a live clinical environment [13] (Fig. 2). To be clinically
+data in the BrainIT database. Therefore we began a repeat useful, not only do predictive models need to be developed
+study (Phase 2), using the methods detailed in the paper by with appropriate prediction accuracy, but it must also be
+Hanfelt [14] which is a modification of the paper by Simon shown that it is feasible to develop a data collection platform
+[15]. capable of running these BANN models in real time in a live
+clinical setting. It is one thing to show that predictive mod-
+els have good accuracy on cleaned retrospective data and
+2.6 Sample size analysis another to show that the same models perform equally well
+in a live clinical environment particularly one as technically
+Our end-point was defined as the sensitivity of true predic- challenging as an intensive care unit.
+tions of hypotensive events. In order to minimise the recruitment of patients, we opted for an oftenused Phase II trial 2.10 Study ethics
+design based upon the "Hanfelt design" modified from the
+method first described by Simon et al. This required a stage 1 Each local hospital ethics and R&D committee's approved
+sample size of 13 and, assuming a positive outcome in stage the patient recruitment protocol and consent documentation.
+and supporting tables are fully described in the referenced centre. Patient "assent" was required for every patient by
+paper by Hanfelt et al. [14]. interview with patients relatives or next of kin.
+
+2.7 False positive correction 3 Results
+
+To minimise false positives, two checks were per- 3.1 Model selection
+formed on the arterial blood pressure readings: (i) BP
+pulse < 10 mmHg, if the pulse pressure (BPs-BPd) is < The model selected for prospective testing is described in
+10 mmHg, this potentially indicates a fault within the pres- Table 1 below. Two demographic variables; age and sex are
+sure measuring system resulting as often found in an over- included. Additionally seven physiological features based
+damped trace and therefore any warnings that occurred on mean and systolic blood pressure and heart rate were
+under this condition are ignored. (ii) BPm > 90 mmHg, if the extracted from two sub-windows of 15 min of data starting
+mean arterial blood pressure is > 90 mmHg when the warn- at 15 and 30 min before the prediction time. This gives a
+ing was generated a hypotensive event is unlikely to occur in total of 16 inputs to the neural network for each prediction.
+the near future and therefore this warning can be discounted.
+The false positive correction (FPC) was not used during 3.2 Predictive accuracy: bann test set
+BANN model development. The various models developed
+during the research phase were assessed on their sensitivity/ In the next sections we present results using a standard
+specificity scores. While true the post-hoc processing influ- visual technique to assess the trade off between true posiences the real-world results, it is valid as exploratory analy- tive identifications of episode starts and false alarms, a plot
+projects. In reality, the FPC corrections although improv- The ROC curve plots the specificity (false positive rate)
+ing the prediction performance, did not make a significant on the x-axis and the sensitivity (true positive rate) on the
+improvement at the decision thresholds used. y-axis. The cross markings on the plot indicate probabil-
+ity decision thresholds and move from a decision setting of
+probability zero (we will accept all predictions) at the top
+2.8 ROC confidence intervals right of the plot, to a probability of one at the bottom left of
+the plot (we would reject all predictions).
+Confidence intervals were calculated for sensitivity and The ROC curve for the BANN test set results (data from
+specificity estimates using the bootstrap methodology the retrospective BrainIT database) is shown in Fig. 3. A
+described in [16]. review of the prediction results suggested that the BANN
+
+Journal of Clinical Monitoring and Computing (2019) 33:39-51 43
+
+Fig. 2 HYPO-NET system
+architecture in one of six
+BrainIT centres. Staff ICU nurse
+log patient's onto local information systems. Research Nurse
+log patient's onto a patient study
+via the ward web app (WWA).
+This triggers "Clinical Client"
+software to parse clinical, laboratory and monitoring data from
+local hospital based systems and
+push data onto a local HypoNet
+Research data is entered via
+the WWA program. Analysis
+software calculates project specific derived indices from data
+acquired from the local SQL
+database. Once per hour "Data
+Push" software anonymises
+local data and pushes clinical,
+monitoring and status log files
+at the National eScience (NeSC)
+centre in Glasgow University. A
+trial monitor can view and run
+queries on HypoNet data arriving from all six BrainIT centres
+in quasi-real time
+
+A
+described in [16]. review of the prediction results suggested that the BANN
+
+Journal of Clinical Monitoring and Computing (2019) 33:39-51 43
+
+3.3 Predictive accuracy: clinical studies
+Table 1 BANN model parameters
+Variable Feature After the encouraging results of the model on the BANN
+test set, the project moved to the clinical environment with
+Age Demographic a prospective study collecting data using HYPO-NET on 30
+Sex Demographic patients (Phase 1). The ROC curve for this study is shown
+Mean arterial blood pressure Mean on the left hand side of Fig. 4. The results for the clinically
+Mean arterial blood pressure Slope interesting region of false positive rate 0.3-0.4 are, unuSystolic arterial blood pressure Mean sually, slightly better than predicted on the test set despite
+Systolic arterial blood pressure Slope being conducted in a live clinical setting. Improving upon a
+Heart rate Mean training model performance in a clinical setting is unusual
+Heart rate Slope and so we felt it was important to assess the repeatability
+Heart rate Standard deviation of this result. Thus, the next task was to see if we could
+Input features for the model selected for the clinical studies. The repeat these results on another group of patients (Phase 2).
+mean, slope and standard deviation features were calculated over two Using a study design given in Hanfe

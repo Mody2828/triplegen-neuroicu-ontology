@@ -1,0 +1,368 @@
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing the EXACT, verbatim sentence fragment from the text.
+
+3. **Extraction Scope:** Extract clinical and biomedical content: conditions, physiological parameters, monitoring variables, treatments/therapies/interventions, outcomes, assessments, laboratory values, nursing interventions, surgical procedures, and clinical dataset categories when explicitly named.
+   Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+   If a sentence or paragraph is mainly about these excluded topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+6. **Label Mapping Rule:** If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+   Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+   For other abbreviations, expand to their full clinical name as used in the text.
+
+7. **Structural Completeness Rule:** When the text mentions specific clinical items, also extract their general category if the text supports it.
+   For example, if the text discusses 'ventilation, sedation, fluids' as therapies, also extract the general class 'Therapy' or 'Baseline Therapy' if the text uses that grouping.
+   Use the text's own categories and groupings — do not impose an external hierarchy.
+
+**Default priority: classes first, then relations.** Extract relations when the text clearly states a connection between two concepts — both domain and range must be extracted classes. If a phase instruction below overrides this priority, follow the phase instruction.
+
+**Completeness:** Extract every distinct clinical concept the text names — err on the side of inclusion when evidence exists.
+
+### CURRENT TASK: Phase 2 — RELATION & HIERARCHY EXTRACTION (+ supplementary classes)
+Primary task: extract semantic RELATIONS between the known classes below. Extract every relation the text explicitly supports with evidence.
+Secondary task: if you notice clinical concepts in the text that Phase 1 missed (e.g. a concept needed as domain/range), add them to the classes array with evidence.
+Also extract hierarchy (subClassOf) edges wherever the text shows parent-child relationships — look for cues like 'such as', 'includes', 'type of', 'consists of', 'categorized as', enumeration lists, or even implied groupings.
+
+### WHAT IS AN ONTOLOGY RELATION?
+An ontology relation (object property) defines a typed semantic link between two class types. The DOMAIN is the subject class; the RANGE is the object class. Think: 'Every instance of [domain] can be linked via [relation] to an instance of [range].' Relations model the SCHEMA of the domain, not individual facts.
+Example: 'has monitoring data(Patient → Monitoring Data)' means every Patient can have Monitoring Data associated with them.
+
+### RELATION EXTRACTION METHOD (Chain-of-Thought)
+For each pair of known classes, reason step by step:
+1. Do these two classes co-occur or interact in the text?
+2. What is the SEMANTIC NATURE of their link? (measurement, treatment, assessment, outcome, composition, causation, etc.)
+3. Which class is the subject (domain) and which is the object (range)?
+4. Assign a descriptive relation label from the patterns below, or create a meaningful label if none fits.
+5. Find an exact text quote that supports this relationship.
+
+### ONTOLOGY DESIGN PATTERNS (use when the text supports them)
+These are reusable structural patterns showing how clinical concepts relate.
+Match them against the text — extract every supported edge.
+
+**Pattern 1 — Clinical Monitoring:**
+  Patient --[has monitoring data]--> Monitoring Data
+  Monitoring Data --[includes]--> Parameter
+  Observation --[measures parameter]--> Parameter
+  Observation --[produced by sensor]--> Sensor
+  Observation --[has quality assessment]--> Data Quality Assessment
+  Session --[has timepoint]--> Timepoint
+  Timepoint --[has observation]--> Observation
+
+**Pattern 2 — Clinical Intervention:**
+  Patient --[receives therapy]--> Therapy
+  Therapy --[targets condition]--> Condition
+  Condition --[triggers intervention]--> Therapy
+  Patient --[has surgical procedure]--> Surgical Procedure
+  Patient --[has nursing intervention]--> Nursing Intervention
+
+**Pattern 3 — Clinical Assessment and Outcome:**
+  Patient --[has clinical assessment]--> Clinical Assessment
+  Patient --[has outcome]--> Outcome
+  Patient --[has laboratory value]--> Laboratory Values
+  Monitoring Data --[monitoring indicates condition]--> Condition
+
+**Pattern 4 — Patient Context:**
+  Patient --[has session]--> Session
+  Patient --[has demographic data]--> Demographic Data
+  Patient --[has injury mechanism]--> Injury Mechanism
+
+**Pattern 5 — Data Quality:**
+  Data Quality Assessment --[affected by treatment]--> Therapy
+  Data Quality Assessment --[associated with condition]--> Condition
+
+**Pattern 6 — Composition:**
+  Category --[includes]--> Member
+  Derived Parameter --[derived from]--> Source Parameter
+
+You SHOULD also extract other relations the text supports beyond these patterns.
+Do not invent relations not stated or clearly implied in the text.
+
+### RELATION EVIDENCE RULES
+- Each relation MUST have an 'evidence' field with an exact verbatim quote from the source text.
+- The evidence should mention or clearly imply at least one of the two endpoint classes (domain or range).
+- Use the ABSTRACT superclass as the range, not specific instances (e.g., 'Monitoring Data' not 'ICP').
+- Do NOT reuse the same evidence quote for multiple relations.
+
+### SELF-CHECK (before finalising output)
+- Do all domain and range labels match known classes from Phase 1?
+- Are there any duplicate relations (same domain-label-range)? Remove duplicates.
+- Does every evidence field contain a verbatim quote from the text?
+
+Output JSON with keys classes, relations, hierarchy.
+
+Known classes (use only these labels): High Resolution Physiological Patient Data; Comprehensive Treatment Data; EUSIG Event; Clinical Guideline Texts; Guideline Adherence Monitoring; Traumatic Brain Injury (TBI); Glucose Measurement and Regulation; Brain Trauma Foundation (BTF) Guidelines; Hypothermia Therapy; Intracranial Pressure (ICP) Monitoring
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+**REASONING STEP:** Before producing JSON, mentally scan the text for: (1) every named clinical concept, (2) explicit relations between them, (3) hierarchy cues (such as, is a, type of, include:). Then output only items with verbatim evidence.
+
+---
+--- Retrieved examples (3) ---
+
+Text: The minimum minute by minute monitoring data required for inclusion in the BrainIT Database include: Heart Rate, Respiration Rate, Mean Arterial Pressure, ICP, SaO2 and Temperature. Data is collected from patients every minute.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Patient",
+      "evidence": "patients"
+    },
+    {
+      "label": "Monitoring Data",
+      "evidence": "monitoring data"
+    },
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate"
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate"
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature"
+    }
+  ],
+  "relations": [
+    {
+      "label": "has monitoring data",
+      "domain": "Patient",
+      "range": "Monitoring Data",
+      "evidence": "Data is collected from patients every minute"
+    },
+    {
+      "label": "includes",
+      "domain": "Monitoring Data",
+      "range": "Heart Rate",
+      "evidence": "monitoring data include: Heart Rate"
+    },
+    {
+      "label": "includes",
+      "domain": "Monitoring Data",
+      "range": "Temperature",
+      "evidence": "monitoring data include: Heart Rate, Respiration Rate, Mean Arterial Pressure, ICP, SaO2 and Temperature"
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+
+Text: Adherence to traumatic brain injury guidelines was calculated automatically from physiological and treatment data. The system measures guideline adherence for hypotension management, ICP management, and CPP management. Intensive care management protocols define target ranges for these parameters.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Guideline Adherence",
+      "evidence": "Adherence to traumatic brain injury guidelines"
+    },
+    {
+      "label": "Intensive Care Management",
+      "evidence": "Intensive care management protocols"
+    },
+    {
+      "label": "Hypotension",
+      "evidence": "hypotension management"
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "ICP management"
+    },
+    {
+      "label": "Cerebral Perfusion Pressure (CPP)",
+      "evidence": "CPP management"
+    }
+  ],
+  "relations": [
+    {
+      "label": "has guideline adherence",
+      "domain": "Intensive Care Management",
+      "range": "Guideline Adherence",
+      "evidence": "Intensive care management protocols define target ranges...adherence was calculated automatically"
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+
+Text: BPs (systolic blood pressure) and BPm (mean arterial pressure) both indicate hypotensive events, but the trigger characteristics differ. BPs events were often preceded by a steady downward trend in systolic pressure, while BPm events showed more abrupt onset. Each hypotensive event was classified according to the Edinburgh University Secondary Insult Grades (EUSIG).
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Systolic Blood Pressure (SBP)",
+      "evidence": "BPs (systolic blood pressure)"
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "BPm (mean arterial pressure)"
+    },
+    {
+      "label": "Hypotensive Event",
+      "evidence": "hypotensive events"
+    },
+    {
+      "label": "EUSIG Grade",
+      "evidence": "Edinburgh University Secondary Insult Grades (EUSIG)"
+    }
+  ],
+  "relations": [
+    {
+      "label": "monitoring indicates condition",
+      "domain": "Monitoring Data",
+      "range": "Condition",
+      "evidence": "BPs (systolic blood pressure) and BPm (mean arterial pressure) both indicate hypotensive events"
+    },
+    {
+      "label": "has EUSIG grade",
+      "domain": "Hypotensive Event",
+      "range": "EUSIG Grade",
+      "evidence": "Each hypotensive event was classified according to the Edinburgh University Secondary Insult Grades"
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+TEXT TO ANALYZE:
+2.2 Applied Technology
+Based on the considerations above concerning
+critical care data, the general technical data
+requirements to achieve this can be identified as
+follows:
+▪ High resolution physiological patient data
+▪ Accurate and comprehensive treatment data
+▪ The ability to combine these into a formalised
+process expression
+▪ The ability to compare this formalised
+expression with other similar entities (such as
+guidelines, study protocols, institutional
+procedure, etc) Figure 1: High-level schematic of guideline adherence
+system design.
+Whilst the pool of potential technological
+solutions for this type of problem space is large, the The classification of pressure events using
+following criteria - after accuracy and validity - EUSIG parameters has a well-established precedent,
+were deemed the most important when choosing a particularly in the field of TBI (Jones et al. 1994).
+solution: The central idea behind this step is that an event can
+▪ Simplicity of implementation be classified as having several EUSIG "parameters"
+▪ Minimising points of "assumed knowledge" - e.g. event hold-down, threshold, duration - then
+▪ Correspondence of solution output with real this pattern is searched for in the physiological data.
+clinical situations Once an event is found, a time-window is laid over it
+▪ The ability to inhabit a real clinical work-flow and clinical treatment events are searched for (figure
+"invisibly" 2 shows a schematic of a EUSIG event pattern). The
+full detail of the conversion of the data-sets used in
+After researching different technologies that this work from raw physiological and treatment
+potentially meet these criteria, the following output to their corresponding event logs can be
+combination of processes was put together as a found in (Stell et al. 2014).
+framework:
+▪ The classification of events in physiological
+output known as EUSIG events (Edinburgh
+University Secondary Insult Grade) (Jones et al.
+1994), and compilation of an event log from this
+▪ The expression of those event logs as process
+models
+▪ The extraction of clinical guideline texts into
+process models
+▪ The comparison of two process models using
+complex similarity/distance algorithms
+Together, these processes form the framework
+through which the possibility of quantitative, real- Figure 2: Event definition for a given time-series
+time guideline adherence monitoring can be physiological output (in this case ICP). A threshold
+explored. Figure 1 shows a high-level schematic of crossed for a specific period (the hold-down) indicates that
+the framework steps to convert ICU data and an event has started. Clear hold-down indicates that the
+guideline text into comparable data-sets. event has finished. Also shown are a treatment at a
+Examining these processes in more detail, event specific time-point and a time window overlaid for
+detection and representation are common methods of association of that treatment with the event.
+data analysis in medicine.
+The other components of the framework concern
+the use of process models, which are a construct
+borrowed from the field of business process
+management - most commonly used to describe
+
+corporate efficiency. There have been projects where intervention by trained specialist), general education
+process models have been applied to medical (documents, leaflets, etc) and clinical reminders
+problems, but these appear to mainly concern the (automated interventions). These all had different
+administration and logistics of hospitals and other effects on adherence, with the nurse facilitator being
+large-scale corporate structures (where the fact that the most successful. (Rood et al. 2005) indicated that
+these structures are medical in nature is largely a study of glucose measurement and regulation
+incidental). improves greatly when dissemination is provided
+Similar in nature to flow-charts, a process model through computer-assisted means rather than
+is a directed or undirected graph with a collection of through paper-based means.
+edges and nodes. They can be expressed using A systematic review of guideline dissemination
+various notations, each with slightly different strategies (Prior et al. 2008) showed that the (non-)
+characteristics - e.g. UML (www.uml.org) or BPMN effectiveness of passive dissemination is a
+(Chinosi & Trombetta 2012). Depending on the significant result. Similar to the (Ansari et al. 2003)
+notation used, the edges and nodes represent various study, where direct intervention is taken by a person
+actions and states that can be generalised to the or automated method, the adherence rate is markedly
+specific context being described (in this case, the better than if the guideline document and
+medical output observed from a neurological ICU information is published passively (e.g. using
+bedside machine). conferences, websites or didactic lectures).
+The translation to a process model in this work Other studies (Grol 2016) similarly show that
+comes from two sources: evaluation of an event log targeted and behaviourally "disruptive" methods are
+for the physiological/treatment data and the best for disseminating information and influencing
+evaluation of semantic text from the guideline. This clinical practice. Therefore, understanding the
+latter source is a manual step in this work, and is effectiveness of these different methods of
+interpretations of medical text information (Kaiser & tools to improve awareness and therefore adherence.
+Miksch 2009). Comparison of the two resulting When considering TBI specifically, the gold
+process models builds on the work conducted in standard in guidelines is the 1994 Brain Trauma
+(Dijkman et al. 2009), with the notions of similarity Foundation (BTF) initiative to formulate treatments
+encapsulated by the similarity of individual nodes for brain injury, which have since become
+and edges combined with relevant weighting to standardised, internationally-recognised guidelines
+represent the significance of certain aspects. (Bullock et al. 1996). Several studies have been
+To apply these business process analysis tools - conducted that show dropping mortality rates and
+expression of medical output as process models and improved long-term outcomes since the adoption
+the use of comparison and distance calculations in and spread of use of these guidelines (Bratton &
+this context - in this particular way are believed to Chestnut 2006). In the last decade, this improvement
+be a unique feature of this work. in TBI management has continued, leading to
+studies indicating that overall improvements in
+outcome due to adherence to the BTF guidelines
+3 RELATED LITERATURE have also been apparent (Tarapore et al. 2016) and
+in similar studies conducted four years apart (Ghajar
+2000) and (Fakhry et al. 2004).
+A review of related literature covers several areas:
+However, significantly, adherence to the BTF
+issues of adherence to clinical guidelines in general
+and specifically in the TBI domain, novel attempts guidelines is not universal - many studies outline
+their potential deficiency in various aspects such as
+to improve adherence, and the relevance and utility
+of the chosen technology. hypothermia (Clifton et al. 2001) and the need for
+ICP monitoring (Chesnut et al. 2012).
+3.1 Clinical/TBI Guideline Adherence
+3.2 Novel Attempts to Improve
+Issues of communication appear as a common thread Adherence
+when evaluating adherence to clinical guidelines.
+(Ansari et al. 2003) looked at beta-blocker use in Evident from this discussion is the fact that
+heart failure and showed various methods and guideline adherence is subject to great variation.
+channels of disseminating the guideline information. There are many reasons for non-adherence, but these
+---

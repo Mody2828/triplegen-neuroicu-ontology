@@ -1,0 +1,355 @@
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing the EXACT, verbatim sentence fragment from the text.
+
+3. **Extraction Scope:** Extract clinical and biomedical content: conditions, physiological parameters, monitoring variables, treatments/therapies/interventions, outcomes, assessments, laboratory values, nursing interventions, surgical procedures, and clinical dataset categories when explicitly named.
+   Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+   If a sentence or paragraph is mainly about these excluded topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+6. **Label Mapping Rule:** If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+   Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+   For other abbreviations, expand to their full clinical name as used in the text.
+
+7. **Structural Completeness Rule:** When the text mentions specific clinical items, also extract their general category if the text supports it.
+   For example, if the text discusses 'ventilation, sedation, fluids' as therapies, also extract the general class 'Therapy' or 'Baseline Therapy' if the text uses that grouping.
+   Use the text's own categories and groupings — do not impose an external hierarchy.
+
+**Default priority: classes first, then relations.** Extract relations when the text clearly states a connection between two concepts — both domain and range must be extracted classes. If a phase instruction below overrides this priority, follow the phase instruction.
+
+**Completeness:** Extract every distinct clinical concept the text names — err on the side of inclusion when evidence exists.
+
+### CURRENT TASK: Phase 3 — HIERARCHY EXTRACTION
+Extract subclass/superclass (is-a) edges supported by the text. A hierarchy edge means one class is a TYPE, SUBTYPE, CATEGORY MEMBER, or SPECIFIC INSTANCE of another. Extract every edge the text explicitly supports with evidence.
+
+### HIERARCHY DETECTION METHOD
+Look for ALL of these patterns in the text:
+  1. Explicit cues: 'such as', 'is a', 'type of', 'kind of', 'form of'
+  2. Enumeration: 'include:', 'includes:', 'consists of', 'comprises'
+  3. Category grouping: 'categorized as', 'classified as', 'grouped into'
+  4. List patterns: items listed under a heading or category name
+  5. Implicit grouping: when several specific items are mentioned alongside a general category (e.g., 'therapy: ventilation, sedation' implies both are subclasses of Therapy; 'core parameters: HR, ICP, MAP' implies all three are subclasses of Core Monitoring Parameter)
+  6. Definitional: 'X is a Y', 'X, a type of Y', 'X (a form of Y)'
+  7. Context-based: if the text organises items into sections or tables, each section heading implies a parent class for the items listed under it
+  8. Medical knowledge: TBI is a type of Brain Injury, Hypotension is a type of Secondary Insult — extract these when the text discusses them together
+
+For enumeration patterns (e.g. 'include: X, Y, Z'), extract EACH listed item as a subclass of the parent category.
+IMPORTANT: If X 'includes' Y, model it as: Y subClassOf X (a hierarchy edge). Do NOT output 'includes' as a relation label — it belongs in the hierarchy.
+
+### CHAIN-OF-THOUGHT
+For each pair of known classes, reason:
+1. Does the text describe one class as a specialization of another?
+2. Does the text list one class under another as a member/subtype?
+3. Even if not explicitly stated, does medical context clearly imply a parent-child relationship?
+4. What text evidence supports this parent-child link?
+
+Be thorough: extract every parent-child relationship the text supports. Aim for at least one hierarchy edge per class if possible.
+If the text lists items under a category heading, EACH item is a subClassOf that category. For example, if 'core monitoring' is followed by 'heart rate, ICP, MAP', then each is a subClassOf Core Monitoring Parameter.
+Use ONLY the known classes below for subClass and superClass labels.
+
+### SELF-CHECK (before finalising output)
+- Are there any circular edges (A subClassOf B AND B subClassOf A)? Remove them.
+- Are subClass and superClass labels from the known-classes list?
+- Does every evidence field contain a verbatim quote from the text?
+
+Output JSON with keys classes, relations, hierarchy. Set classes and relations to empty arrays.
+
+Known classes (use only these for subclass/superclass): Core Dataset; Demographic Information; Clinical Information; Time-Series Data; Bedside Monitoring Data; Motor Score; Secondary Insult; Associated Major Injuries; Missing Data; Feasibility
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+**REASONING STEP:** Before producing JSON, mentally scan the text for: (1) every named clinical concept, (2) explicit relations between them, (3) hierarchy cues (such as, is a, type of, include:). Then output only items with verbatim evidence.
+
+---
+--- Retrieved examples (3) ---
+
+Text: This is the minimum minute by minute monitoring data required for inclusion in the BrainIT Database and include: Heart Rate, Respiration Rate, Mean Arterial Pressure, mean ICP, SaO2 and Temperature.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Monitoring Data",
+      "evidence": "minute by minute monitoring data"
+    },
+    {
+      "label": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required"
+    },
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate"
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate"
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "Mean Arterial Pressure"
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "mean ICP"
+    },
+    {
+      "label": "SaO2",
+      "evidence": "SaO2"
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature"
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Heart Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required...include: Heart Rate"
+    },
+    {
+      "subClass": "Respiration Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Heart Rate, Respiration Rate"
+    },
+    {
+      "subClass": "Mean Arterial Pressure (MAP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Mean Arterial Pressure"
+    },
+    {
+      "subClass": "Intracranial Pressure (ICP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: mean ICP"
+    },
+    {
+      "subClass": "SaO2",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: SaO2"
+    },
+    {
+      "subClass": "Temperature",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Temperature"
+    }
+  ]
+}
+
+---
+
+Text: Intensive care management information. Types of data include: GCS scores, pupil scores, ventilation settings, sedation levels, fluid input and output, nutrition, use of vasopressors, antibiotics. These constitute baseline therapy — routine ICU management delivered to all patients.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Intensive Care Management",
+      "evidence": "Intensive care management information"
+    },
+    {
+      "label": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management"
+    },
+    {
+      "label": "Ventilation",
+      "evidence": "ventilation settings"
+    },
+    {
+      "label": "Sedation",
+      "evidence": "sedation levels"
+    },
+    {
+      "label": "Fluids",
+      "evidence": "fluid input and output"
+    },
+    {
+      "label": "Nutrition",
+      "evidence": "nutrition"
+    },
+    {
+      "label": "Vasopressors",
+      "evidence": "use of vasopressors"
+    },
+    {
+      "label": "Antibiotics",
+      "evidence": "antibiotics"
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Ventilation",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: ventilation settings"
+    },
+    {
+      "subClass": "Sedation",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: sedation levels"
+    },
+    {
+      "subClass": "Fluids",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: fluid input and output"
+    },
+    {
+      "subClass": "Nutrition",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: nutrition"
+    },
+    {
+      "subClass": "Vasopressors",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: use of vasopressors"
+    },
+    {
+      "subClass": "Antibiotics",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: antibiotics"
+    }
+  ]
+}
+
+---
+
+Text: Artefact is a specific type of data quality issue identified in physiological monitoring signals. ECG-derived heart rate is a core monitoring parameter. Pulse pressure, calculated as the difference between systolic and diastolic blood pressure, is a derived parameter.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Artefact",
+      "evidence": "Artefact is a specific type of data quality issue"
+    },
+    {
+      "label": "Electrocardiogram (ECG)",
+      "evidence": "ECG-derived heart rate"
+    },
+    {
+      "label": "Pulse Pressure",
+      "evidence": "Pulse pressure, calculated as the difference between systolic and diastolic"
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Artefact",
+      "superClass": "Data Quality Assessment",
+      "evidence": "Artefact is a specific type of data quality issue"
+    },
+    {
+      "subClass": "Electrocardiogram (ECG)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "ECG-derived heart rate is a core monitoring parameter"
+    },
+    {
+      "subClass": "Pulse Pressure",
+      "superClass": "Derived Parameter",
+      "evidence": "Pulse pressure is a derived parameter"
+    }
+  ]
+}
+
+---
+TEXT TO ANALYZE:
+Paper based feasibility exercise
+Having met and defined a core dataset, the group next performed a
+paper based feasibility exercise. The intention being to determine if the
+core data elements can be collected from the majority of centres. If only
+
+The Brain Monitoring with Information
+Technology (BrainIT) group: concept and core dataset definition
+
+10% of centres routinely collect a given data element - then it is not
+feasible to collect that item in all centres.
+Specially designed forms to collect the core dataset demographic and
+clinical information as well as sample the time-series data elements (see
+Fig. 2) were distributed by both email and standard mail to 22 Brain Monitoring with Information
+Technology (BrainIT)
+centres. A deadline of six weeks was set to receive completed forms
+back from centres and all results were presented and discussed at the
+next Brain Monitoring with Information
+Technology (BrainIT) group meeting.
+Eighteen centres (82%) returned completed forms by the set deadline. Overall the feasibility for collection of the core data elements
+
+was high with only 10 of the 64 questions (16%) showed missing
+data. Of those 10 fields with missing data, the average number of
+centres not responding to those questions was 12% and the median
+6%. The maximum percentage of missing data was associated with the
+question on ''Associated Major Injuries'' with a missing error rate of
+33%. However, from the group discussion of the data pilot results, it
+became clear that the question wording was not optimal and a field for
+responding ''none'' was omitted. So it was not clear if the field was
+left blank due to missing data, or there were NO associated major
+injuries.
+
+I. Piper et al.
+System type
+
+Use networked Use RS232=AD Need
+Total
+solution
+solution
+interface
+
+Phillips medical
+Marquette
+Siemens
+Datex
+Spacelabs
+Hellege
+
+Totals
+
+As an example of the type of responses achieved, the bar chart in Fig. 4
+gives the distribution of centre responses for two questions: a) Motor
+score on arrival at the neurosurgical hospital b) Evidence of hypoxia at
+the accident scene.
+Group members were also invited to make comments on the form on
+data elements which they felt the instructions either needed clarification
+or the categories required modification. The comments were summarised
+at a Brain Monitoring with Information
+Technology (BrainIT) group meeting. In particular, it was decided that all questions should have fields for ''not testable'' and ''unknown''.
+
+Monitoring based feasibility exercise
+
+Fig. 4. Paper based Data Collection Results. Plot giving example
+exercise
+
+Table 1 summarises the bedside monitoring types found across centres
+and Fig. 5 shows which types of monitoring data were collected and
+summarised in terms of frequency of channel types. Of the 22 Brain Monitoring with Information
+Technology (BrainIT)
+centres polled: 17 (77%) were able to return example minute by minute
+bedside monitoring data by the imposed deadline. Of the remaining 5
+centres: two centres have either new monitoring systems being installed
+
+Fig. 5. Monitoring Pilot Collection results. Plot showing which types of monitoring data were collected as part of the feasibility exercise. Data is
+summarised in terms of frequency of channel types
+---

@@ -1,0 +1,857 @@
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix brainit: <http://purl.org/brainit/core#> .
+
+# =============================================================================
+# BrainIT Combined Ontology  –  v2.0
+#
+# Sources:
+#   [P1] Piper et al. (2003) "The BrainIT group: concept and core dataset
+#        definition."  Acta Neurochir 145(7):615-629.
+#        DOI: 10.1007/s00701-003-0066-6
+#
+#   [P2] Moss, Corsar, Piper & Kinsella (2013) "Trusting Intensive Care Unit
+#        (ICU) Medical Data: A Semantic Web Approach."
+#        AIME 2013, LNAI 7885, pp. 68-72.
+#
+# Authored as a BrainIT ontology expert synthesis of both papers.
+# Replaces the 2003-only single-paper edition (v1.0).
+# =============================================================================
+
+brainit: a owl:Ontology ;
+    rdfs:label "BrainIT Combined Ontology" ;
+    rdfs:comment "Expert synthesis of the BrainIT core dataset ontology (Piper et al. 2003) extended with the ICU data-quality and observation framework (Moss et al. 2013)." ;
+    owl:versionInfo "2.0" .
+
+
+# =============================================================================
+# SECTION 1 – Core Patient Entities
+# =============================================================================
+
+brainit:Patient a owl:Class ;
+    rdfs:label "Patient" ;
+    rdfs:comment "Individual receiving neurointensive care for traumatic brain injury (TBI)." .
+
+brainit:DemographicData a owl:Class ;
+    rdfs:label "Demographic Data" ;
+    rdfs:comment "Demographic and clinical admission data collected at enrolment: age, sex, injury classification, medical history, GCS scores, pupil assessment, and CT-Scan assessment. [P1]" .
+
+brainit:Session a owl:Class ;
+    rdfs:label "Session" ;
+    rdfs:comment "A continuous monitoring session for a patient in the ICU, comprising an ordered sequence of timepoints. [P2]" .
+
+brainit:Timepoint a owl:Class ;
+    rdfs:label "Timepoint" ;
+    rdfs:comment "A discrete moment in the minute-by-minute monitoring time-series, associated with a set of sensor readings. BrainIT collects at 1-sample/minute minimum. [P1, P2]" .
+
+
+# =============================================================================
+# SECTION 2 – Monitoring Data  (abstract superclass hierarchy)
+# =============================================================================
+
+brainit:MonitoringData a owl:Class ;
+    rdfs:label "Monitoring Data" ;
+    rdfs:comment "Abstract superclass for all physiological monitoring parameters recorded in the BrainIT dataset." .
+
+brainit:CoreMonitoringParameter a owl:Class ;
+    rdfs:label "Core Monitoring Parameter" ;
+    rdfs:comment "Minimum required minute-by-minute monitoring parameters for BrainIT Database inclusion. All participating centres must provide these. [P1]" ;
+    rdfs:subClassOf brainit:MonitoringData .
+
+brainit:OptionalMonitoringParameter a owl:Class ;
+    rdfs:label "Optional Monitoring Parameter" ;
+    rdfs:comment "Extended monitoring parameters included in the BrainIT Database whenever monitored as part of a centre's routine clinical management. [P1]" ;
+    rdfs:subClassOf brainit:MonitoringData .
+
+brainit:DerivedParameter a owl:Class ;
+    rdfs:label "Derived Parameter" ;
+    rdfs:comment "Monitoring parameter computed from other measured parameters (e.g. CPP = MAP − ICP). [P1]" ;
+    rdfs:subClassOf brainit:MonitoringData .
+
+
+# =============================================================================
+# SECTION 3 – Core Monitoring Parameters  (minute-by-minute, mandatory)
+# =============================================================================
+
+brainit:HeartRate a owl:Class ;
+    rdfs:label "Heart Rate" ;
+    rdfs:comment "Core BrainIT parameter. Source: ECG or Pulse Oximetry. [P1]" ;
+    rdfs:subClassOf brainit:CoreMonitoringParameter .
+
+brainit:RespirationRate a owl:Class ;
+    rdfs:label "Respiration Rate" ;
+    rdfs:comment "Core BrainIT parameter. Source: impedance plethysmography or ventilator. [P1]" ;
+    rdfs:subClassOf brainit:CoreMonitoringParameter .
+
+brainit:MeanArterialPressure a owl:Class ;
+    rdfs:label "Mean Arterial Pressure (MAP)" ;
+    rdfs:comment "Core BrainIT parameter. Key determinant of Cerebral Perfusion Pressure. Inter-centre zero-reference standardisation is critical. [P1]" ;
+    rdfs:subClassOf brainit:CoreMonitoringParameter .
+
+brainit:IntracranialPressure a owl:Class ;
+    rdfs:label "Intracranial Pressure (ICP)" ;
+    rdfs:comment "Core BrainIT parameter. Monitoring site: intraventricular, intraparenchymal, or subdural. Technology: catheter-tip or fluid-filled catheter-transducer. [P1]" ;
+    rdfs:subClassOf brainit:CoreMonitoringParameter .
+
+brainit:SaO2 a owl:Class ;
+    rdfs:label "SaO2" ;
+    rdfs:comment "Core BrainIT parameter. Arterial oxygen saturation by Pulse Oximetry. [P1]" ;
+    rdfs:subClassOf brainit:CoreMonitoringParameter .
+
+brainit:Temperature a owl:Class ;
+    rdfs:label "Temperature" ;
+    rdfs:comment "Core BrainIT parameter. Source: rectal, oesophageal, bladder, or skin. [P1]" ;
+    rdfs:subClassOf brainit:CoreMonitoringParameter .
+
+
+# =============================================================================
+# SECTION 4 – Optional Monitoring Parameters
+# =============================================================================
+
+brainit:CVP a owl:Class ;
+    rdfs:label "CVP" ;
+    rdfs:comment "Central Venous Pressure. Optional BrainIT parameter. [P1]" ;
+    rdfs:subClassOf brainit:OptionalMonitoringParameter .
+
+brainit:EtCO2 a owl:Class ;
+    rdfs:label "EtCO2" ;
+    rdfs:comment "End-tidal CO2. Optional BrainIT parameter. [P1]" ;
+    rdfs:subClassOf brainit:OptionalMonitoringParameter .
+
+brainit:SjO2 a owl:Class ;
+    rdfs:label "SjO2" ;
+    rdfs:comment "Jugular venous oxygen saturation. Optional BrainIT parameter. [P1]" ;
+    rdfs:subClassOf brainit:OptionalMonitoringParameter .
+
+brainit:TCD a owl:Class ;
+    rdfs:label "TCD" ;
+    rdfs:comment "Transcranial Doppler. Optional BrainIT parameter. [P1]" ;
+    rdfs:subClassOf brainit:OptionalMonitoringParameter .
+
+brainit:PbrO2 a owl:Class ;
+    rdfs:label "PbrO2" ;
+    rdfs:comment "Brain tissue oxygen partial pressure. Optional BrainIT parameter. [P1]" ;
+    rdfs:subClassOf brainit:OptionalMonitoringParameter .
+
+brainit:BrainTemperature a owl:Class ;
+    rdfs:label "Brain Temperature" ;
+    rdfs:comment "Cerebral temperature. Optional BrainIT parameter. [P1]" ;
+    rdfs:subClassOf brainit:OptionalMonitoringParameter .
+
+brainit:Microdialysis a owl:Class ;
+    rdfs:label "Microdialysis" ;
+    rdfs:comment "Cerebral microdialysis. Optional BrainIT parameter. [P1]" ;
+    rdfs:subClassOf brainit:OptionalMonitoringParameter .
+
+brainit:PeripheralTemperature a owl:Class ;
+    rdfs:label "Peripheral Temperature" ;
+    rdfs:comment "Peripheral (skin/tympanic) temperature. Optional BrainIT parameter. [P1]" ;
+    rdfs:subClassOf brainit:OptionalMonitoringParameter .
+
+brainit:CardiacOutput a owl:Class ;
+    rdfs:label "Cardiac Output" ;
+    rdfs:comment "Cardiac output monitoring. Optional BrainIT parameter. [P1]" ;
+    rdfs:subClassOf brainit:OptionalMonitoringParameter .
+
+brainit:NIBP a owl:Class ;
+    rdfs:label "NIBP" ;
+    rdfs:comment "Non-invasive blood pressure. Optional BrainIT parameter. [P1]" ;
+    rdfs:subClassOf brainit:OptionalMonitoringParameter .
+
+
+# =============================================================================
+# SECTION 5 – Derived Parameters
+# =============================================================================
+
+brainit:CerebralPerfusionPressure a owl:Class ;
+    rdfs:label "Cerebral Perfusion Pressure (CPP)" ;
+    rdfs:comment "Derived: CPP = MAP − ICP. Critical threshold ~70 mmHg. CPP-targeted therapy is a key BrainIT secondary-insult management concept. [P1]" ;
+    rdfs:subClassOf brainit:DerivedParameter .
+
+brainit:PressureReactivityIndex a owl:Class ;
+    rdfs:label "Pressure Reactivity Index (PRx)" ;
+    rdfs:comment "Derived index reflecting cerebrovascular pressure reactivity: moving correlation coefficient between slow waves of ABP and ICP. [P1]" ;
+    rdfs:subClassOf brainit:DerivedParameter .
+
+
+# =============================================================================
+# SECTION 6 – Therapy  (abstract hierarchy)
+# =============================================================================
+
+brainit:Therapy a owl:Class ;
+    rdfs:label "Therapy" ;
+    rdfs:comment "Any patient therapy or clinical intervention administered during the ICU stay. Abstract superclass." .
+
+brainit:BaselineTherapy a owl:Class ;
+    rdfs:label "Baseline Therapy" ;
+    rdfs:comment "Routine ICU management delivered to all TBI patients. Collected as Intensive Care Management data with start/end times. [P1]" ;
+    rdfs:subClassOf brainit:Therapy .
+
+brainit:SecondaryInsultTherapy a owl:Class ;
+    rdfs:label "Secondary Insult Therapy" ;
+    rdfs:comment "Non-surgical medical management specifically given to treat secondary insults. Each therapy must be assigned a therapy target from a standardised drop-down list. [P1]" ;
+    rdfs:subClassOf brainit:Therapy .
+
+# ── Baseline therapies ─────────────────────────────────────────────────────
+
+brainit:Ventilation a owl:Class ;
+    rdfs:label "Ventilation" ;
+    rdfs:comment "Mechanical ventilation settings and management. Baseline therapy. [P1]" ;
+    rdfs:subClassOf brainit:BaselineTherapy .
+
+brainit:Sedation a owl:Class ;
+    rdfs:label "Sedation" ;
+    rdfs:comment "Sedation level management. Baseline therapy. [P1]" ;
+    rdfs:subClassOf brainit:BaselineTherapy .
+
+brainit:Fluids a owl:Class ;
+    rdfs:label "Fluids" ;
+    rdfs:comment "Fluid input and output management. Baseline therapy. [P1]" ;
+    rdfs:subClassOf brainit:BaselineTherapy .
+
+brainit:Nutrition a owl:Class ;
+    rdfs:label "Nutrition" ;
+    rdfs:comment "Nutritional support. Baseline therapy. [P1]" ;
+    rdfs:subClassOf brainit:BaselineTherapy .
+
+brainit:Vasopressors a owl:Class ;
+    rdfs:label "Vasopressors" ;
+    rdfs:comment "Vasopressor agents used to raise arterial pressure. Applied both as baseline therapy and as secondary insult therapy targeting systemic hypotension or reduced CPP. [P1]" ;
+    rdfs:subClassOf brainit:BaselineTherapy .
+
+brainit:Antibiotics a owl:Class ;
+    rdfs:label "Antibiotics" ;
+    rdfs:comment "Antibiotic therapy. Baseline therapy. [P1]" ;
+    rdfs:subClassOf brainit:BaselineTherapy .
+
+brainit:Analgesia a owl:Class ;
+    rdfs:label "Analgesia" ;
+    rdfs:comment "Analgesic therapy. Baseline therapy. [P1]" ;
+    rdfs:subClassOf brainit:BaselineTherapy .
+
+brainit:Paralysis a owl:Class ;
+    rdfs:label "Paralysis" ;
+    rdfs:comment "Neuromuscular paralysis agents. Baseline therapy. [P1]" ;
+    rdfs:subClassOf brainit:BaselineTherapy .
+
+brainit:AntiHypertensives a owl:Class ;
+    rdfs:label "Anti-hypertensives" ;
+    rdfs:comment "Anti-hypertensive therapy. Baseline therapy. [P1]" ;
+    rdfs:subClassOf brainit:BaselineTherapy .
+
+brainit:AntiPyretics a owl:Class ;
+    rdfs:label "Anti-pyretics" ;
+    rdfs:comment "Anti-pyretic therapy. Baseline therapy. [P1]" ;
+    rdfs:subClassOf brainit:BaselineTherapy .
+
+brainit:HypothermiaTherapy a owl:Class ;
+    rdfs:label "Hypothermia Therapy" ;
+    rdfs:comment "Therapeutic hypothermia / induced cooling. Baseline therapy. [P1]" ;
+    rdfs:subClassOf brainit:BaselineTherapy .
+
+# ── Specific vasoactive agents (from ICU domain knowledge, [P2]) ───────────
+
+brainit:Noradrenaline a owl:Class ;
+    rdfs:label "Noradrenaline" ;
+    rdfs:comment "Noradrenaline (norepinephrine). Specific vasopressor whose administration contextualises out-of-range heart rate readings during data quality assessment. [P2]" ;
+    rdfs:subClassOf brainit:Vasopressors .
+
+brainit:Adrenaline a owl:Class ;
+    rdfs:label "Adrenaline" ;
+    rdfs:comment "Adrenaline (epinephrine). Specific vasopressor whose administration contextualises out-of-range heart rate and blood pressure readings. [P2]" ;
+    rdfs:subClassOf brainit:Vasopressors .
+
+# ── Secondary insult therapies ─────────────────────────────────────────────
+
+brainit:SecondaryInsultTreatment a owl:Class ;
+    rdfs:label "Secondary Insult Treatment" ;
+    rdfs:comment "Coded therapy category with an assigned therapy target (e.g. arterial pressors targeting systemic hypotension or reduced CPP). [P1]" ;
+    rdfs:subClassOf brainit:SecondaryInsultTherapy .
+
+brainit:ArterialPressors a owl:Class ;
+    rdfs:label "Arterial Pressors" ;
+    rdfs:comment "Arterial pressure agents used in secondary insult therapy. Therapy target: systemic hypotension OR reduced CPP secondary to raised ICP. [P1]" ;
+    rdfs:subClassOf brainit:SecondaryInsultTherapy .
+
+brainit:Osmotics a owl:Class ;
+    rdfs:label "Osmotics" ;
+    rdfs:comment "Osmotic agents (mannitol, hypertonic saline). Secondary insult therapy. [P1]" ;
+    rdfs:subClassOf brainit:SecondaryInsultTherapy .
+
+brainit:Barbiturates a owl:Class ;
+    rdfs:label "Barbiturates" ;
+    rdfs:comment "Barbiturate therapy (thiopental). Secondary insult therapy. [P1]" ;
+    rdfs:subClassOf brainit:SecondaryInsultTherapy .
+
+brainit:Steroids a owl:Class ;
+    rdfs:label "Steroids" ;
+    rdfs:comment "Corticosteroid therapy. Secondary insult therapy. [P1]" ;
+    rdfs:subClassOf brainit:SecondaryInsultTherapy .
+
+
+# =============================================================================
+# SECTION 6b – Surgical Procedures
+# =============================================================================
+
+brainit:SurgicalProcedure a owl:Class ;
+    rdfs:label "Surgical Procedure" ;
+    rdfs:comment "Neurosurgical procedure performed on the patient during ICU stay. [P1]" .
+
+brainit:ICPSensorPlacement a owl:Class ;
+    rdfs:label "ICP Sensor Placement" ;
+    rdfs:comment "Placement of ICP monitoring sensor (intraventricular, intraparenchymal, or subdural). [P1]" ;
+    rdfs:subClassOf brainit:SurgicalProcedure .
+
+brainit:EvacuationOfMassLesion a owl:Class ;
+    rdfs:label "Evacuation of Mass Lesion" ;
+    rdfs:comment "Surgical evacuation of intracranial mass lesion (craniotomy). [P1]" ;
+    rdfs:subClassOf brainit:SurgicalProcedure .
+
+brainit:SkullFractureElevation a owl:Class ;
+    rdfs:label "Skull Fracture Elevation" ;
+    rdfs:comment "Surgical elevation of depressed skull fracture. [P1]" ;
+    rdfs:subClassOf brainit:SurgicalProcedure .
+
+brainit:ExtraVentricularDrainPlacement a owl:Class ;
+    rdfs:label "Extra Ventricular Drain Placement" ;
+    rdfs:comment "Placement of external ventricular drain (EVD) for CSF drainage. [P1]" ;
+    rdfs:subClassOf brainit:SurgicalProcedure .
+
+brainit:DecompressiveCraniectomy a owl:Class ;
+    rdfs:label "Decompressive Craniectomy" ;
+    rdfs:comment "Decompressive craniectomy to relieve intracranial pressure. [P1]" ;
+    rdfs:subClassOf brainit:SurgicalProcedure .
+
+brainit:RemovalOfForeignBody a owl:Class ;
+    rdfs:label "Removal of Foreign Body" ;
+    rdfs:comment "Surgical removal of intracranial foreign body. [P1]" ;
+    rdfs:subClassOf brainit:SurgicalProcedure .
+
+brainit:AnteriorFossaRepair a owl:Class ;
+    rdfs:label "Anterior Fossa Repair" ;
+    rdfs:comment "Anterior fossa repair for CSF leak. [P1]" ;
+    rdfs:subClassOf brainit:SurgicalProcedure .
+
+
+# =============================================================================
+# SECTION 7 – Clinical Conditions  (abstract hierarchy)
+# =============================================================================
+
+brainit:Condition a owl:Class ;
+    rdfs:label "Condition" ;
+    rdfs:comment "Abstract superclass for all clinical conditions: secondary insults, medical disorders, and physiological states monitored or treated during ICU care." .
+
+brainit:SecondaryInsult a owl:Class ;
+    rdfs:label "Secondary Insult" ;
+    rdfs:comment "Adverse physiological event occurring in TBI patients during ICU management despite baseline care. Over 90% of TBI patients exhibit one or more insults during their stay. [P1]" ;
+    rdfs:subClassOf brainit:Condition .
+
+brainit:IntracranialHypertension a owl:Class ;
+    rdfs:label "Intracranial Hypertension" ;
+    rdfs:comment "Raised ICP constituting a secondary insult. Drives CPP-targeted therapy. [P1]" ;
+    rdfs:subClassOf brainit:SecondaryInsult .
+
+brainit:SystemicHypotension a owl:Class ;
+    rdfs:label "Systemic Hypotension" ;
+    rdfs:comment "Reduced systemic blood pressure. Secondary insult in TBI; targeted by arterial pressor therapy. [P1]" ;
+    rdfs:subClassOf brainit:SecondaryInsult .
+
+brainit:ArterialHypotension a owl:Class ;
+    rdfs:label "Arterial Hypotension" ;
+    rdfs:comment "Low arterial blood pressure; closely related to systemic hypotension in the TBI secondary insult framework. [P1]" ;
+    rdfs:subClassOf brainit:SystemicHypotension .
+
+brainit:JugularVenousDesaturation a owl:Class ;
+    rdfs:label "Jugular Venous Desaturation" ;
+    rdfs:comment "SjO2 < 50%. A secondary insult associated with aggressive CPP management (>70 mmHg). [P1]" ;
+    rdfs:subClassOf brainit:SecondaryInsult .
+
+brainit:AcuteRespiratoryDistressSyndrome a owl:Class ;
+    rdfs:label "Acute Respiratory Distress Syndrome" ;
+    rdfs:comment "ARDS. Secondary complication linked to aggressive CPP-targeted therapy in TBI. [P1]" ;
+    rdfs:subClassOf brainit:SecondaryInsult .
+
+brainit:Hypertension a owl:Class ;
+    rdfs:label "Hypertension" ;
+    rdfs:comment "Elevated blood pressure. Medical disorder that can contextualise out-of-range readings and reclassify probable errors to possible errors in ICU data quality assessment. 91% reclassification rate in general ICU. [P2]" ;
+    rdfs:subClassOf brainit:Condition .
+
+brainit:Hypotension a owl:Class ;
+    rdfs:label "Hypotension" ;
+    rdfs:comment "Low blood pressure. Medical disorder relevant to ICU data quality assessment. 80.5–85.6% of out-of-range values in TBI and general ICU datasets may be affected. [P2]" ;
+    rdfs:subClassOf brainit:Condition .
+
+brainit:Sepsis a owl:Class ;
+    rdfs:label "Sepsis" ;
+    rdfs:comment "Systemic infection response. Provides clinical context: an HR of 120 that appears erroneous may be a genuine symptom of sepsis, reclassifying the error. [P2]" ;
+    rdfs:subClassOf brainit:Condition .
+
+
+# =============================================================================
+# SECTION 8 – Clinical Assessment
+# =============================================================================
+
+brainit:ClinicalAssessment a owl:Class ;
+    rdfs:label "Clinical Assessment" ;
+    rdfs:comment "Structured clinical evaluation performed at admission and during the ICU stay. Abstract superclass. [P1]" .
+
+brainit:GCSAssessment a owl:Class ;
+    rdfs:label "GCS Assessment" ;
+    rdfs:comment "Glasgow Coma Scale. Collected at pre-neurosurgical hospital admission and at neurosurgical admission. Also collected as time-series in the ICU management dataset. [P1]" ;
+    rdfs:subClassOf brainit:ClinicalAssessment .
+
+brainit:PupilAssessment a owl:Class ;
+    rdfs:label "Pupil Assessment" ;
+    rdfs:comment "Pupil size (small / normal / large) and responsiveness (reacting / unreacting) recorded individually for each eye. [P1]" ;
+    rdfs:subClassOf brainit:ClinicalAssessment .
+
+brainit:CTScanAssessment a owl:Class ;
+    rdfs:label "CT Scan Assessment" ;
+    rdfs:comment "CT scan classification using TCDB nomenclature. Both first and worst CT collected. Covers main lesion type, volume (>/<25 ml), and cistern state. [P1]" ;
+    rdfs:subClassOf brainit:ClinicalAssessment .
+
+
+# =============================================================================
+# SECTION 9 – Outcome
+# =============================================================================
+
+brainit:Outcome a owl:Class ;
+    rdfs:label "Outcome" ;
+    rdfs:comment "Patient outcome measure. Abstract superclass. [P1]" .
+
+brainit:GOSeOutcome a owl:Class ;
+    rdfs:label "GOSe Outcome" ;
+    rdfs:comment "Extended Glasgow Outcome Scale (8-point) at 6 months post-discharge from the neurosurgical centre. Collected by structured interview with patient, relative, or GP. [P1]" ;
+    rdfs:subClassOf brainit:Outcome .
+
+
+# =============================================================================
+# SECTION 10 – Laboratory Values  (ICU management)
+# =============================================================================
+
+brainit:LaboratoryValues a owl:Class ;
+    rdfs:label "Laboratory Values" ;
+    rdfs:comment "Routine laboratory tests performed during ICU management. Includes blood gases, biochemistry, and haematology. Recorded daily alongside minute-by-minute monitoring. [P1]" .
+
+brainit:BloodGases a owl:Class ;
+    rdfs:label "Blood Gases" ;
+    rdfs:comment "Arterial blood gas analysis. Recorded routinely in ICU management data. [P1]" ;
+    rdfs:subClassOf brainit:LaboratoryValues .
+
+brainit:Biochemistry a owl:Class ;
+    rdfs:label "Biochemistry" ;
+    rdfs:comment "Daily biochemistry panel: Sodium (Na), Potassium (K+), Glucose. [P1]" ;
+    rdfs:subClassOf brainit:LaboratoryValues .
+
+brainit:Haematology a owl:Class ;
+    rdfs:label "Haematology" ;
+    rdfs:comment "Daily haematology panel: Haemoglobin, White Blood Cell Count, Haematocrit. [P1]" ;
+    rdfs:subClassOf brainit:LaboratoryValues .
+
+brainit:Sodium a owl:Class ;
+    rdfs:label "Sodium" ;
+    rdfs:comment "Serum sodium (Na). Daily biochemistry value. [P1]" ;
+    rdfs:subClassOf brainit:Biochemistry .
+
+brainit:Potassium a owl:Class ;
+    rdfs:label "Potassium" ;
+    rdfs:comment "Serum potassium (K+). Daily biochemistry value. [P1]" ;
+    rdfs:subClassOf brainit:Biochemistry .
+
+brainit:Glucose a owl:Class ;
+    rdfs:label "Glucose" ;
+    rdfs:comment "Blood glucose. Daily biochemistry value. [P1]" ;
+    rdfs:subClassOf brainit:Biochemistry .
+
+brainit:Haemoglobin a owl:Class ;
+    rdfs:label "Haemoglobin" ;
+    rdfs:comment "Haemoglobin concentration. Daily haematology value. [P1]" ;
+    rdfs:subClassOf brainit:Haematology .
+
+brainit:WhiteBloodCellCount a owl:Class ;
+    rdfs:label "White Blood Cell Count" ;
+    rdfs:comment "White cell count (WBC). Daily haematology value. [P1]" ;
+    rdfs:subClassOf brainit:Haematology .
+
+brainit:Haematocrit a owl:Class ;
+    rdfs:label "Haematocrit" ;
+    rdfs:comment "Packed cell volume. Daily haematology value. [P1]" ;
+    rdfs:subClassOf brainit:Haematology .
+
+
+# =============================================================================
+# SECTION 11 – Nursing Interventions and Bedside Activities
+# =============================================================================
+
+brainit:NursingIntervention a owl:Class ;
+    rdfs:label "Nursing Intervention" ;
+    rdfs:comment "Routine nursing care, physiotherapy, or bedside clinical activities annotated in the ICU management time-series. [P1]" .
+
+brainit:RoutineNursingCare a owl:Class ;
+    rdfs:label "Routine Nursing Care" ;
+    rdfs:comment "Eye/mouth care, ET tube suction, bed care. Coded and annotated in ICU management data. [P1]" ;
+    rdfs:subClassOf brainit:NursingIntervention .
+
+brainit:Physiotherapy a owl:Class ;
+    rdfs:label "Physiotherapy" ;
+    rdfs:comment "Physiotherapy sessions annotated in ICU management data. [P1]" ;
+    rdfs:subClassOf brainit:NursingIntervention .
+
+brainit:BedsideIntervention a owl:Class ;
+    rdfs:label "Bedside Intervention" ;
+    rdfs:comment "Line insertion/renewal, transducer calibration, x-ray. Annotated in ICU management data. [P1]" ;
+    rdfs:subClassOf brainit:NursingIntervention .
+
+brainit:PatientTransport a owl:Class ;
+    rdfs:label "Patient Transport" ;
+    rdfs:comment "Transport to and from Theatre or CT-Scan. Annotated in ICU management data. [P1]" ;
+    rdfs:subClassOf brainit:NursingIntervention .
+
+
+# =============================================================================
+# SECTION 12 – ICU Management  (data category)
+# =============================================================================
+
+brainit:IntensiveCareManagement a owl:Class ;
+    rdfs:label "Intensive Care Management" ;
+    rdfs:comment "ICU management data category. Baseline medical management and monitoring of clinical status occurring more than once during the patient's ICU stay. Collected by menu-driven PC software with start/end times. [P1]" .
+
+
+# =============================================================================
+# SECTION 13 – Observation and Sensor Model  (Moss et al. 2013)
+# =============================================================================
+
+brainit:Observation a owl:Class ;
+    rdfs:label "Observation" ;
+    rdfs:comment "A single measurement or reading recorded at a Timepoint for a given Parameter. Linked to the Sensor that produced it and assessable for data quality. [P2]" .
+
+brainit:Parameter a owl:Class ;
+    rdfs:label "Parameter" ;
+    rdfs:comment "A physiological or clinical variable that is measured and recorded (e.g. Heart Rate, ICP, MAP). Corresponds to pd:Parameter in the Patient Data ontology. [P2]" .
+
+brainit:Sensor a owl:Class ;
+    rdfs:label "Sensor" ;
+    rdfs:comment "A machine or sensor used to record physiological parameters. Described by its sensing process, the property it observes, and its measurement capability (accuracy, sampling rate). [P2]" .
+
+
+# =============================================================================
+# SECTION 14 – Data Quality Assessment  (Moss et al. 2013)
+# =============================================================================
+
+brainit:DataQualityAssessment a owl:Class ;
+    rdfs:label "Data Quality Assessment" ;
+    rdfs:comment "Automated evaluation of ICU data quality using semantic web technologies, considering acceptable value ranges, sensor accuracy, data completeness, and clinical context (medical disorders and treatments). [P2]" .
+
+brainit:PossibleError a owl:Class ;
+    rdfs:label "Possible Error" ;
+    rdfs:comment "PoE: a reading outside acceptable range that is contextually explained by a concurrent medical disorder or recent treatment (reclassified from PrE). [P2]" ;
+    rdfs:subClassOf brainit:DataQualityAssessment .
+
+brainit:ProbableError a owl:Class ;
+    rdfs:label "Probable Error" ;
+    rdfs:comment "PrE: a reading outside its acceptable range with no contextual clinical explanation from disorders or treatments. More likely a genuine data error. [P2]" ;
+    rdfs:subClassOf brainit:DataQualityAssessment .
+
+
+# =============================================================================
+# SECTION 15 – Object Properties  (Relations)
+# =============================================================================
+
+# ── Core clinical relations  [P1] ──────────────────────────────────────────
+
+brainit:hasDemographicData a owl:ObjectProperty ;
+    rdfs:label "has demographic data" ;
+    rdfs:comment "A Patient has demographic and clinical admission data. [P1]" ;
+    rdfs:domain brainit:Patient ;
+    rdfs:range brainit:DemographicData .
+
+brainit:hasSurgicalProcedure a owl:ObjectProperty ;
+    rdfs:label "has surgical procedure" ;
+    rdfs:comment "A Patient undergoes a surgical procedure. [P1]" ;
+    rdfs:domain brainit:Patient ;
+    rdfs:range brainit:SurgicalProcedure .
+
+brainit:hasMonitoringData a owl:ObjectProperty ;
+    rdfs:label "has monitoring data" ;
+    rdfs:comment "A Patient has recorded monitoring data (physiological parameters) during ICU monitoring. [P1]" ;
+    rdfs:domain brainit:Patient ;
+    rdfs:range brainit:MonitoringData .
+
+brainit:receivesTherapy a owl:ObjectProperty ;
+    rdfs:label "receives therapy" ;
+    rdfs:comment "A Patient receives a therapy or clinical intervention. [P1]" ;
+    rdfs:domain brainit:Patient ;
+    rdfs:range brainit:Therapy .
+
+brainit:targetsCondition a owl:ObjectProperty ;
+    rdfs:label "targets condition" ;
+    rdfs:comment "A Therapy is assigned a therapy target — a specific Condition or secondary insult it is intended to treat. [P1]" ;
+    rdfs:domain brainit:Therapy ;
+    rdfs:range brainit:Condition .
+
+brainit:monitoringIndicatesCondition a owl:ObjectProperty ;
+    rdfs:label "monitoring indicates condition" ;
+    rdfs:comment "Monitoring Data indicates the presence or onset of a clinical Condition or secondary insult. [P1]" ;
+    rdfs:domain brainit:MonitoringData ;
+    rdfs:range brainit:Condition .
+
+# ── Clinical assessment, outcome and management relations  [P1] ────────────
+
+brainit:hasClinicalAssessment a owl:ObjectProperty ;
+    rdfs:label "has clinical assessment" ;
+    rdfs:comment "A Patient undergoes a structured clinical assessment (GCS, pupil, CT scan). [P1]" ;
+    rdfs:domain brainit:Patient ;
+    rdfs:range brainit:ClinicalAssessment .
+
+brainit:hasOutcome a owl:ObjectProperty ;
+    rdfs:label "has outcome" ;
+    rdfs:comment "A Patient has a recorded outcome measure (GOSe at 6 months). [P1]" ;
+    rdfs:domain brainit:Patient ;
+    rdfs:range brainit:Outcome .
+
+brainit:hasLaboratoryValue a owl:ObjectProperty ;
+    rdfs:label "has laboratory value" ;
+    rdfs:comment "A Patient has recorded laboratory values (blood gases, biochemistry, haematology). [P1]" ;
+    rdfs:domain brainit:Patient ;
+    rdfs:range brainit:LaboratoryValues .
+
+brainit:hasNursingIntervention a owl:ObjectProperty ;
+    rdfs:label "has nursing intervention" ;
+    rdfs:comment "A Patient has a recorded nursing or bedside intervention annotated in the ICU management dataset. [P1]" ;
+    rdfs:domain brainit:Patient ;
+    rdfs:range brainit:NursingIntervention .
+
+# ── Time-series and observation relations  [P2] ────────────────────────────
+
+brainit:hasSession a owl:ObjectProperty ;
+    rdfs:label "has session" ;
+    rdfs:comment "A Patient has one or more monitoring sessions in the ICU. [P2]" ;
+    rdfs:domain brainit:Patient ;
+    rdfs:range brainit:Session .
+
+brainit:hasTimepoint a owl:ObjectProperty ;
+    rdfs:label "has timepoint" ;
+    rdfs:comment "A monitoring Session comprises an ordered sequence of Timepoints (one per minute minimum). [P2]" ;
+    rdfs:domain brainit:Session ;
+    rdfs:range brainit:Timepoint .
+
+brainit:hasObservation a owl:ObjectProperty ;
+    rdfs:label "has observation" ;
+    rdfs:comment "A Timepoint is associated with a set of Observations (one per recorded parameter). [P2]" ;
+    rdfs:domain brainit:Timepoint ;
+    rdfs:range brainit:Observation .
+
+brainit:measuresParameter a owl:ObjectProperty ;
+    rdfs:label "measures parameter" ;
+    rdfs:comment "An Observation records the value of a specific physiological Parameter. [P2]" ;
+    rdfs:domain brainit:Observation ;
+    rdfs:range brainit:Parameter .
+
+brainit:producedBySensor a owl:ObjectProperty ;
+    rdfs:label "produced by sensor" ;
+    rdfs:comment "An Observation is produced by a specific machine or Sensor (provenance). [P2]" ;
+    rdfs:domain brainit:Observation ;
+    rdfs:range brainit:Sensor .
+
+brainit:hasQualityAssessment a owl:ObjectProperty ;
+    rdfs:label "has quality assessment" ;
+    rdfs:comment "An Observation is evaluated by a Data Quality Assessment, resulting in a PossibleError or ProbableError flag. [P2]" ;
+    rdfs:domain brainit:Observation ;
+    rdfs:range brainit:DataQualityAssessment .
+
+brainit:associatedWithCondition a owl:ObjectProperty ;
+    rdfs:label "associated with condition" ;
+    rdfs:comment "A Data Quality Assessment is contextualised by a medical Condition (e.g. an elevated HR may be associated with sepsis, reclassifying a PrE to PoE). [P2]" ;
+    rdfs:domain brainit:DataQualityAssessment ;
+    rdfs:range brainit:Condition .
+
+brainit:affectedByTreatment a owl:ObjectProperty ;
+    rdfs:label "affected by treatment" ;
+    rdfs:comment "A Data Quality Assessment is contextualised by a Treatment administered prior to the reading (e.g. noradrenaline or adrenaline affecting heart rate values). [P2]" ;
+    rdfs:domain brainit:DataQualityAssessment ;
+    rdfs:range brainit:Therapy .
+
+
+# =============================================================================
+# SECTION 16 – Data Properties
+# =============================================================================
+
+# ── Patient demographics ───────────────────────────────────────────────────
+
+brainit:patientID a owl:DatatypeProperty ;
+    rdfs:label "patient ID" ;
+    rdfs:comment "Anonymised patient identifier. Cannot be traceable to individual or originating centre. [P1]" ;
+    rdfs:domain brainit:Patient ;
+    rdfs:range xsd:string .
+
+brainit:age a owl:DatatypeProperty ;
+    rdfs:label "age" ;
+    rdfs:comment "Age as decimal years (calculated by software from date of birth and date of injury). [P1]" ;
+    rdfs:domain brainit:Patient ;
+    rdfs:range xsd:decimal .
+
+brainit:sex a owl:DatatypeProperty ;
+    rdfs:label "sex" ;
+    rdfs:domain brainit:Patient ;
+    rdfs:range xsd:string .
+
+brainit:injuryVariable a owl:DatatypeProperty ;
+    rdfs:label "injury variable" ;
+    rdfs:comment "Injury classification from fixed categories. Includes associated major injuries. [P1]" ;
+    rdfs:domain brainit:Patient ;
+    rdfs:range xsd:string .
+
+brainit:medicalHistory a owl:DatatypeProperty ;
+    rdfs:label "medical history" ;
+    rdfs:comment "Focused on previous neurological injury, substance abuse, and associated injuries. [P1]" ;
+    rdfs:domain brainit:Patient ;
+    rdfs:range xsd:string .
+
+# ── GCS Assessment ────────────────────────────────────────────────────────
+
+brainit:gcsScore a owl:DatatypeProperty ;
+    rdfs:label "GCS score" ;
+    rdfs:domain brainit:GCSAssessment ;
+    rdfs:range xsd:integer .
+
+brainit:gcsScorePreNeurosurgicalAdmission a owl:DatatypeProperty ;
+    rdfs:label "GCS score (pre-neurosurgical admission)" ;
+    rdfs:comment "GCS at Emergency Medical Services or Emergency Centre. Post-resuscitation/pre-intubation at place of injury. [P1]" ;
+    rdfs:domain brainit:GCSAssessment ;
+    rdfs:range xsd:integer .
+
+brainit:gcsScoreNeurosurgicalAdmission a owl:DatatypeProperty ;
+    rdfs:label "GCS score (neurosurgical admission)" ;
+    rdfs:comment "GCS at admission to the hospital with Neurosurgery. [P1]" ;
+    rdfs:domain brainit:GCSAssessment ;
+    rdfs:range xsd:integer .
+
+# ── Pupil Assessment ──────────────────────────────────────────────────────
+
+brainit:pupilSize a owl:DatatypeProperty ;
+    rdfs:label "pupil size" ;
+    rdfs:comment "Per-eye pupil size: small / normal / large. [P1]" ;
+    rdfs:domain brainit:PupilAssessment ;
+    rdfs:range xsd:string .
+
+brainit:pupilResponsiveness a owl:DatatypeProperty ;
+    rdfs:label "pupil responsiveness" ;
+    rdfs:comment "Per-eye responsiveness: reacting / unreacting. [P1]" ;
+    rdfs:domain brainit:PupilAssessment ;
+    rdfs:range xsd:string .
+
+# ── CT Scan Assessment ────────────────────────────────────────────────────
+
+brainit:ctMainLesionType a owl:DatatypeProperty ;
+    rdfs:label "CT main lesion type" ;
+    rdfs:comment "TCDB: none / subdural / extradural / intraparenchymal. [P1]" ;
+    rdfs:domain brainit:CTScanAssessment ;
+    rdfs:range xsd:string .
+
+brainit:ctMainLesionVolume a owl:DatatypeProperty ;
+    rdfs:label "CT main lesion volume" ;
+    rdfs:comment ">25 ml or <25 ml (largest hyper-intense lesion). [P1]" ;
+    rdfs:domain brainit:CTScanAssessment ;
+    rdfs:range xsd:string .
+
+brainit:ctCisternState a owl:DatatypeProperty ;
+    rdfs:label "CT cistern state" ;
+    rdfs:comment "Basal cistern state: present / compressed / absent. [P1]" ;
+    rdfs:domain brainit:CTScanAssessment ;
+    rdfs:range xsd:string .
+
+brainit:ctTCDBClassification a owl:DatatypeProperty ;
+    rdfs:label "CT TCDB classification" ;
+    rdfs:comment "Worst CT abnormality recorded as mass lesion of mixed or high density >25 ml. [P1]" ;
+    rdfs:domain brainit:CTScanAssessment ;
+    rdfs:range xsd:string .
+
+# ── Outcome ───────────────────────────────────────────────────────────────
+
+brainit:goseScore a owl:DatatypeProperty ;
+    rdfs:label "GOSe score" ;
+    rdfs:comment "8-point Extended Glasgow Outcome Scale at 6 months. [P1]" ;
+    rdfs:domain brainit:GOSeOutcome ;
+    rdfs:range xsd:string .
+
+brainit:goseInterviewMethod a owl:DatatypeProperty ;
+    rdfs:label "GOSe interview method" ;
+    rdfs:comment "Interview preference order: direct/telephone patient → relative → postal → GP telephone. [P1]" ;
+    rdfs:domain brainit:GOSeOutcome ;
+    rdfs:range xsd:string .
+
+# ── Monitoring source metadata ─────────────────────────────────────────────
+
+brainit:heartRateSource a owl:DatatypeProperty ;
+    rdfs:label "heart rate source" ;
+    rdfs:comment "ECG or Pulse Oximetry. [P1]" ;
+    rdfs:domain brainit:HeartRate ;
+    rdfs:range xsd:string .
+
+brainit:respirationRateSource a owl:DatatypeProperty ;
+    rdfs:label "respiration rate source" ;
+    rdfs:comment "Impedance plethysmography or ventilator. [P1]" ;
+    rdfs:domain brainit:RespirationRate ;
+    rdfs:range xsd:string .
+
+brainit:temperatureSource a owl:DatatypeProperty ;
+    rdfs:label "temperature source" ;
+    rdfs:comment "Rectal / oesophageal / bladder / skin. [P1]" ;
+    rdfs:domain brainit:Temperature ;
+    rdfs:range xsd:string .
+
+# ── Therapy ───────────────────────────────────────────────────────────────
+
+brainit:therapyTarget a owl:DatatypeProperty ;
+    rdfs:label "therapy target" ;
+    rdfs:comment "Standardised therapy target chosen from a drop-down list (e.g. systemic hypotension, reduced CPP). [P1]" ;
+    rdfs:domain brainit:SecondaryInsultTherapy ;
+    rdfs:range xsd:string .
+
+brainit:administrationMode a owl:DatatypeProperty ;
+    rdfs:label "administration mode" ;
+    rdfs:comment "Drug delivery mode: continuous infusion or bolus. [P1]" ;
+    rdfs:domain brainit:Therapy ;
+    rdfs:range xsd:string .
+
+brainit:startTime a owl:DatatypeProperty ;
+    rdfs:label "start time" ;
+    rdfs:comment "Start datetime for therapy, monitoring state change, or clinical event. [P1]" ;
+    rdfs:domain brainit:Therapy ;
+    rdfs:range xsd:dateTime .
+
+brainit:endTime a owl:DatatypeProperty ;
+    rdfs:label "end time" ;
+    rdfs:comment "End datetime for therapy, monitoring state change, or clinical event. [P1]" ;
+    rdfs:domain brainit:Therapy ;
+    rdfs:range xsd:dateTime .
+
+# ── Timepoint and Observation ─────────────────────────────────────────────
+
+brainit:timestamp a owl:DatatypeProperty ;
+    rdfs:label "timestamp" ;
+    rdfs:comment "UTC datetime of the monitoring timepoint. Minimum 1/minute in BrainIT. [P1, P2]" ;
+    rdfs:domain brainit:Timepoint ;
+    rdfs:range xsd:dateTime .
+
+brainit:observationValue a owl:DatatypeProperty ;
+    rdfs:label "observation value" ;
+    rdfs:comment "Numeric value recorded for a physiological reading at a timepoint. [P2]" ;
+    rdfs:domain brainit:Observation ;
+    rdfs:range xsd:decimal .
+
+# ── Sensor ────────────────────────────────────────────────────────────────
+
+brainit:samplingRate a owl:DatatypeProperty ;
+    rdfs:label "sampling rate" ;
+    rdfs:comment "Samples per minute for the sensor recording configuration. BrainIT minimum: 1 sample/minute. [P1, P2]" ;
+    rdfs:domain brainit:Sensor ;
+    rdfs:range xsd:integer .
+
+brainit:sensorAccuracy a owl:DatatypeProperty ;
+    rdfs:label "sensor accuracy" ;
+    rdfs:comment "+/- accuracy value or percentage used in Acceptable Range quality assessment rules. [P2]" ;
+    rdfs:domain brainit:Sensor ;
+    rdfs:range xsd:decimal .

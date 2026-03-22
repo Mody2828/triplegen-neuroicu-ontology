@@ -1,0 +1,412 @@
+### TASK: Relation Extraction
+You are a clinical ontology engineer. Your task is to find semantic RELATIONS between the classes listed below, using the source text as evidence. Extract every relation the text explicitly supports.
+
+### WHAT IS AN ONTOLOGY RELATION?
+An ontology relation (object property) defines a typed semantic link between two classes. The DOMAIN is the subject; the RANGE is the object.
+Model the SCHEMA of the domain — not individual facts. Think:
+'Every instance of [domain] can be linked via [relation] to an instance of [range].'
+
+### RELATION EXTRACTION METHOD
+Systematically examine class pairs and reason step by step:
+1. Scan the text for sentences where two or more classes co-occur.
+2. For each co-occurrence, determine: what is the semantic nature of the link?
+   (measurement, treatment, assessment, outcome, composition, causation, etc.)
+3. Decide which class is domain (subject) and which is range (object).
+4. Assign a clear, descriptive relation label.
+5. Provide an exact verbatim quote from the text as evidence.
+
+### RELATION PATTERNS
+Patient-centric:
+  - has monitoring data: Patient → Monitoring Data
+  - receives therapy: Patient → Therapy
+  - has outcome: Patient → Outcome
+  - has clinical assessment: Patient → Clinical Assessment
+  - has laboratory value: Patient → Laboratory Values
+  - has nursing intervention: Patient → Nursing Intervention
+  - has surgical procedure: Patient → Surgical Procedure
+  - has session: Patient → Session
+  - has demographic data: Patient → Demographic Data
+Clinical process:
+  - monitoring indicates condition: Monitoring Data → Condition
+  - targets condition: Therapy → Condition
+  - triggers intervention: Condition → Therapy
+  - affected by treatment: Data Quality Assessment → Therapy
+  - associated with condition: Data Quality Assessment → Condition
+Structural:
+  - has observation: Timepoint → Observation
+  - has timepoint: Session → Timepoint
+  - measures parameter: Observation → Parameter
+  - produced by sensor: Observation → Sensor
+  - has quality assessment: Observation → Data Quality Assessment
+  - includes: Category → Member
+  - derived from: DerivedParameter → SourceParameter
+You SHOULD also discover relations not in this list if the text supports them.
+
+### CLASSES IN THE ONTOLOGY
+  - Active Insult
+  - Autoregulation Insults
+  - Autoregulation Monitoring
+  - Autoregulatory State
+  - Barbiturate Administration
+  - Brain Tissue Oxygen Pressure Reactivity
+  - CPP
+  - Cerebral Perfusion Pressure
+  - Cerebral Perfusion Pressure Threshold
+  - Cerebrovascular Autoregulation
+  - Cerebrovascular Autoregulation Impairment
+  - Cumulative ICP Burden
+  - Decompressive Craniectomy
+  - Derived Parameter
+  - Functional Outcome
+  - GCS Assessment
+  - GOS Outcome
+  - GOSe Outcome
+  - ICP
+  - ICP Insult
+  - ICU Stay
+  - Intracranial Hypertension
+  - Intracranial Pressure (ICP) Insults
+  - Intracranial Pressure Monitoring
+  - Intracranial Pressure-Time Burden
+  - Mean Arterial Pressure (MAP)
+  - Modified GOSe Outcome
+  - Monitoring Data
+  - Mortality
+  - Neurological Outcome
+  - Outcome
+  - Paediatric TBI
+  - Passive Insult
+  - Pressure and Time Burden
+  - Pupil Assessment
+  - Secondary Brain Injury
+  - Secondary Injury
+  - Severe Traumatic Brain Injury
+  - Severely Disabled
+  - Therapy
+  - Traumatic Brain Injury
+  - Unfavourable Neurological Outcome
+  - Unfavourable Outcome
+  - Vegetative State
+
+### CLASSES WITH NO RELATIONS (high priority — find connections!)
+  - Active Insult
+  - Autoregulation Insults
+  - Autoregulatory State
+  - Brain Tissue Oxygen Pressure Reactivity
+  - Cerebral Perfusion Pressure
+  - Cerebrovascular Autoregulation Impairment
+  - GCS Assessment
+  - Intracranial Pressure-Time Burden
+  - Modified GOSe Outcome
+  - Paediatric TBI
+  - Passive Insult
+  - Pressure and Time Burden
+  - Pupil Assessment
+  - Severe Traumatic Brain Injury
+  - Severely Disabled
+  - Traumatic Brain Injury
+  - Vegetative State
+
+### EXISTING RELATIONS (do NOT duplicate these)
+  - has monitoring data(Patient → Monitoring Data)
+  - targets condition(Therapy → Intracranial Hypertension)
+  - monitoring indicates condition(Monitoring Data → Secondary Injury)
+  - has outcome(Patient → Outcome)
+  - has clinical assessment(Patient → GOSe Outcome)
+  - derived from(Derived Parameter → ICP)
+  - computed as correlation(Derived Parameter → ICP)
+  - computed as correlation(Derived Parameter → Mean Arterial Pressure (MAP))
+  - has monitoring data(ICU Stay → Monitoring Data)
+  - includes(Monitoring Data → Derived Parameter)
+  - has outcome(ICP Insult → Outcome)
+  - has outcome(ICP Insult → Unfavourable Neurological Outcome)
+  - associated with(Intracranial Pressure (ICP) Insults → Unfavourable Outcome)
+  - associated with(Intracranial Pressure (ICP) Insults → Mortality)
+  - associated with(Cerebrovascular Autoregulation → Intracranial Pressure (ICP) Insults)
+  - associated with(CPP → Intracranial Pressure (ICP) Insults)
+  - associated with(Cumulative ICP Burden → Neurological Outcome)
+  - monitoring indicates condition(Monitoring Data → Secondary Brain Injury)
+  - targets condition(Therapy → ICP)
+  - has outcome(Patient → GOS Outcome)
+  - monitoring indicates condition(Monitoring Data → Cerebrovascular Autoregulation)
+  - targets condition(Barbiturate Administration → ICP)
+  - has surgical procedure(Patient → Decompressive Craniectomy)
+  - has monitoring data(Patient → Intracranial Pressure Monitoring)
+  - monitoring indicates condition(Intracranial Pressure Monitoring → Intracranial Hypertension)
+  - has outcome(Patient → Functional Outcome)
+  - has clinical assessment(Patient → Autoregulation Monitoring)
+  - associated with(Cerebral Perfusion Pressure Threshold → Outcome)
+
+### EVIDENCE RULES (CRITICAL)
+- The 'evidence' field MUST be an exact verbatim quote from the SOURCE TEXT.
+- Evidence should mention or imply at least one endpoint class.
+- Do NOT reuse the same evidence for multiple relations.
+- Do NOT invent or paraphrase — if no supporting text exists, skip.
+- Use the abstract superclass as the range (e.g., 'Monitoring Data' not 'ICP').
+
+### OUTPUT FORMAT (JSON only, no commentary)
+{
+  "relations": [{"label": "rel_name", "domain": "DomainClass", "range": "RangeClass", "evidence": "exact quote from text"}]
+}
+
+Extract as many valid relations as the text supports. Be thorough — especially for the classes that currently have NO relations.
+
+### SOURCE TEXT
+Fabian Güiza
+Bart Depreitere
+Visualizing the pressure and time burden
+Ian Piper of intracranial hypertension in adult
+Giuseppe Citerio
+Iain Chambers and paediatric traumatic brain injury
+Patricia A. Jones
+Tsz-Yan Milly Lo
+Per Enblad
+Pelle Nillson
+Bart Feyen
+Philippe Jorens
+Andrew Maas
+Martin U. Schuhmann
+Rob Donald
+Laura Moss
+Greet Van den Berghe
+Geert Meyfroidt
+
+I. Piper R. Donald
+ESICM 2015 G. Citerio L. Moss
+San Gerardo Hospital, Monza, Italy Department of Clinical Physics and
+F. Güiza and B. Depreitere contributed Bioengineering, NHS Greater Glasgow &
+equally. I. Chambers Clyde, Glasgow, UK
+James Cook University Hospital, Medical
+Take-home message: In adult and Physics, Middlesbroughnza, UK
+paediatric patients suffering from severe Abstract Purpose: To assess the
+traumatic brain injury, an approximately
+exponential curve describes the relationship
+P. A. Jones impact of the duration and intensity
+between intensity and duration of episodes Department of Paediatric Neurology, Royal of episodes of increased intracranial
+of increased intracranial pressure (ICP) and Hospital for Sick Children, Edinburgh, UK pressure on 6-month neurological
+worse clinical outcomes. In children, outcome in adult and paediatric traucompared to adults, this occurs at lower ICP T.-Y. M. Lo
+thresholds of shorter duration. Department of Paediatric Intensive Care, matic brain injury.
+Royal Hospital for Sick Children, Methods: Analysis of prospectively
+to authorized users. paediatric traumatic brain injury pa-
+Uppsala, Sweden
+tients from multiple European
+B. Feyen A. Maas centres. The relationship of episodes
+Department of Neurosurgery, Antwerp of elevated intracranial pressure (deF. Güiza G. Van den Berghe University Hospital, Edegem, Belgium fined as a pressure above a certain
+G. Meyfroidt ()) threshold during a certain time) with
+Department of Intensive Care Medicine, P. Jorens 6-month Glasgow Outcome Scale
+University Hospitals Leuven, Herestraat 49, Department of Intensive Care Medicine, was visualized in a colour-coded plot.
+3000 Leuven, Belgium Antwerp University Hospital, Edegem,
+Belgium
+Results: The colour-coded plot ile-mail: geert.meyfroidt@uzleuven.be
+Tel.: ?32 16 344021 lustrates the intuitive concept that
+M. U. Schuhmann episodes of higher intracranial presB. Depreitere Klinik für Neurochirurgie, sure can only be tolerated for shorter
+Department of Neurosurgery, University Universitätsklinikum Tübingen, Tübingen, durations: the curve that delineates
+Hospitals Leuven, Leuven, Belgium Germany the duration and intensity of those
+
+intracranial pressure episodes associ- intracranial pressure-time burden is lower intracranial pressure thresholds
+ated with worse outcome is an independently associated with mor- as compared to adults. Impaired
+approximately exponential decay tality. When cerebrovascular cerebrovascular autoregulation recurve. In children, the curve resem- autoregulation, assessed with the low- duces the ability to tolerate
+bles that of adults, but the delineation frequency autoregulation index, is intracranial pressure insults. Thus,
+between episodes associated with impaired, the ability to tolerate 50 mmHg might be the lower acworse outcome occurs at lower in- elevated intracranial pressures is re- ceptable threshold for cerebral
+tracranial pressure thresholds. duced. When the cerebral perfusion perfusion pressure.
+Intracranial pressures above pressure is below 50 mmHg, all in20 mmHg lasting longer than 37 min tracranial pressure insults, regardless Keywords Traumatic brain injury
+in adults, and longer than 8 min in of duration, are associated with worse Adults Children Intracranial
+children, are associated with worse outcome. Conclusions: The in- pressure Cerebral perfusion
+outcomes. In a multivariate model, tracranial pressure-time burden pressure Cerebrovascular
+together with known baseline risk associated with worse outcome is vi- autoregulation
+factors for outcome in severe trau- sualised in a colour-coded plot. In
+matic brain injury, the cumulative children, secondary injury occurs at
+
+Introduction superiority of a TBI management strategy with ICP
+monitoring and treatment at 20 mmHg, versus a purely
+Traumatic brain injury (TBI) remains one of the most clinical and radiological management strategy. Notwithimportant health care problems worldwide [1], even when standing these results, ICP monitoring is still considered
+advancements in TBI management have led to improve- to provide important information to detect and prevent
+ments in outcome over the past decades [2-4]. secondary injury after severe TBI [22-24]. The BESTIntracranial pressure (ICP) monitoring, first described in TRIP trial has fostered a renewed interest in the definition
+the 1950s [5], was introduced as a monitoring tool for of secondary insults and therapeutic thresholds for ICP
+severe TBI in the 1960s [6]. The most recent version of and CPP.
+mends monitoring of ICP in every salvageable patient analysis on prospective data from continuously monitored
+with severe TBI [7]. Although these guidelines ac- adult and paediatric TBI patients to assess the impact of
+knowledge a lack of level I evidence, the recommended duration and intensity of ICP insults, on 6 months neutreatment threshold for ICP-lowering therapies is rological outcome. In addition, we will assess the impact
+20 mmHg, based mainly on observational data [8-12]. An of cerebrovascular autoregulation and CPP on the caincreased ICP is an independent risk factor for mortality pacity to tolerate these insults. This research has been
+[13, 14], and the total burden of ICP derangements, cal- presented before, in part, at the 2014 International Symculated as the area under the ICP curve (measured over posium on Intensive Care and Emergency Medicine
+time) above 20 mmHg, is an independent predictor of (ISICEM, Brussels) [25], and at the 2014 European Soworse outcome in adults [15, 16] and children [17]. ciety of Intensive Care Medicine Congress (ESICM,
+Paediatric guidelines on ICP/cerebral perfusion pressure Barcelona) [26].
+(CPP) management [18] have largely followed those for
+adults. An observational study of 81 children with TBI
+demonstrated that the ICP threshold associated with
+worse outcomes is lower, and differs in three age bands
+[17].
+Aggressive ICP management is not free of risk [19]. In Patients and data
+the Decompressive Craniectomy in Patients with Severe
+TBI (DECRA) trial [20], early decompressive craniecto- The adult cohort comprised 261 TBI patients, aged
+my when ICP rose above 20 mmHg resulted in a higher 16 years and older.
+proportion of patients with poor neurological outcome as
+compared to standard care; however, after correction of • From the European Union Brain-IT project [27, 28],
+baseline group imbalance (pupil reactivity), the outcomes 166 patients admitted to 22 neuro-ICUs in 11 European
+were not different in the two groups. The multicentre countries between March 2003 and July 2005 were
+Evidence from South American Trials: Treatment of In- for Scotland (MREC/02/0/9) granted the use of these
+tracranial Pressure) [21] could not demonstrate the data for scientific purposes on 14 February 2002.
+
+• Data of the remaining 95 adult patients were collected database was recorded and stored every second; the me-
+from the ICUs of four centres: 38 patients from the San dian value of each minute interval was taken to obtain a
+Gerardo Hospital Monza, Italy, between March 2010 minute-by-minute value. In all data sets, minute-by-min-
+and April 2013; 25 patients from the University ute signals were reviewed independently by two clinicians
+Hospitals Leuven, Belgium, between September 2010 in Leuven (GM, BDP), and artefacts that were obvious
+and September 2013; 20 patients from the University through visual inspection of the time series were removed
+Hospital Edegem (Antwerp), Belgium, as part of the and not used for further analysis (ESM Table 10).
+'Individualized targeted monitoring in neurocritical
+care' (NEMO) project, between May 2010 and June
+2013 [29]; and 12 patients from University Hospital
+Tübingen, Germany, between February and December
+2009. All data referring to the identity of these patients
+The univariate association between ICP insults and GOS
+were removed; ethical committee approval was ob-
+at 6 months was done using the visualization method
+tained in all centres to use these data for analysis.
+explained in Fig. 1. First, each time series of minute-by-
+The paediatric cohort consisted of 99 TBI patients, minute ICP data was segmented into different episodes,
+aged between 2 and 16 years. called 'ICP insults'. ICP insults were defined according to
+their intensity (I) and duration (D). Intensity thresholds
+• 81 patients were part of a study on TBI in children, from 10 to 40 mmHg on the X-axis and duration thresh-
+recruited during 62 non-consecutive months up to July olds from 5 to 360 min on the Y-axis were considered. For
+2003, from two paediatric centres in Edinburgh and every ICP insult, the Pearson correlation coefficient be-
+Newcastle, UK [17]. The study had local ethics tween GOS and the average number of these types of ICP
+committee and management approval in both centres insults per patient in each GOS category was computed.
+• The remaining 18 paediatric patients were part of the measures the degree of linear dependency: a negative
+Brain-IT database. value indicates that the particular ICP insult occurs more
+frequently with lower GOS; a positive correlation indi-
+Patients were managed according to BTF guidelines cates that the particular ICP insult is more frequent with
+[30]. Data collection in both cohorts included baseline higher GOS. A contour plot showing lines of equal corrisk factors (age, gender, admission GCS, admission pupil relation was derived from the grid and colour coded:
+reactivity), minute-by-minute ICP and mean arterial correlations of -1 and ?1 are shown in dark red and dark
+blood pressure (MAP) monitoring data, and Glasgow blue, respectively. The contour for zero correlation was
+Outcome Score (GOS) at 6 months [Electronic Supple- highlighted in black, and defined as the 'transition curve',
+mentary Material (ESM) Table 1]. For the paediatric because it indicates the transition into the region of insult
+patients, a modified GOS was used, as described in the types that occur more frequently in patients with lower
+original paper [17]. Monitoring data in the NEMO GOS.
+
+Fig. 1 Visualization methodology. The average number of insults correlation between GOS and the average number of insults per
+of ICP above an intensity threshold I (in mmHg), lasting for at least GOS category is computed for all I and D combinations (b) and
+a duration threshold D (in minutes) is computed for each GOS given a colour according to a predefined colour map ranging from
+
+The contour for zero correlation was
+Outcome Score (GOS) at 6 months [Electronic Supple- highlighted in black, and defined as the 'transition curve',
+mentary Material (ESM) Table 1]. For the paediatric because it indicates the transition into the region of insult
+patients, a modified GOS was used, as described in the types that occur more frequently in patients with lower
+original paper [17]. Monitoring data in the NEMO GOS.
+
+Role of cerebrovascular autoregulation using as co-variates the total percentage of total
+monitoring time each patient experienced one or more
+The low-frequency autoregulation index (LAx) is com- ICP insults associated with worse GOS (indicated on the
+puted as a moving minute-by-minute correlation of graph as the red zone), together with the IMPACT model
+previous values of ICP and MAP [31]. The LAx ranges in core variables [32, 33] (age, admission motor GCS,
+value from -1 to ?1 and was calculated for every minute pupils).
+of the patients' ICU stay. This allowed one to compute the All analyses were done in Matlab 2014b (The
+average autoregulatory state during each ICP insult. An MathWorks, Natick, MA, USA).
+insult was classified as 'active' if its average LAx was
+negative or zero, and 'passive' if the average LAx was
+positive. The visualization method described above was
+repeated considering active and passive episodes Results
+separately.
+The colour-coded plots visualizing the correlations be-
+tween GOS at 6 months and the average number of
+Role of CPP different types of ICP insults are shown in Fig. 2. Two
+clear overall regions emerge: a predominantly blue zone,
+The association between ICP insults and outcome was indicating types of ICP insults that occur more frequently
+visualized for three different thresholds of CPP: 50, 60 in patients with higher GOS; and a predominantly red
+and 70 mmHg. zone, indicating types of ICP insults that occur more
+frequently in patients with lower GOS. The transition
+curve between the blue and red zone is approximately
+occurs at shorter insult durations and, conversely, for
+In order to assess the independent association of the cu- lower insult intensities the transition occurs at longer inmulative dose of ICP insults with outcome, multivariate sult durations. In adults, the duration above which ICP
+unfavourable neurological outcome [defined as death, worse outcome is 223, 37, 12 and 8 min, respectively. In
+vegetative or severely disabled (GOS 1-3)] were built, children, at intensity thresholds of 15 and 20 mmHg, the
+
+Fig. 2 Visualization of correlation between GOS and average ICP intensity and duration thresholds) with outcome is colournumber of ICP insults per GOS category. Left adult cohort coded according to the scale in Fig. 1c. Dark red episodes mean
+(n = 261). Right paediatric cohort (n = 99). Each colour-coded that such ICP insults, on average, are associated with worse
+point in the graph refers to a number of episodes of ICP, defined by outcome (lower GOS categories); dark blue episodes mean that
+a certain ICP intensity threshold (X-axis), and a certain duration such ICP insults, on average, are associated with better outcome
+threshold (Y-axis). Such an episode is called an ICP insult. The (higher GOS categories). The contour of zero correlation is
+univariate correlation of each type of ICP insult (characterized by highlighted in black, and is called the transition curve
+
+In
+vegetative or severely disabled (GOS 1-3)] were built, children, at intensity thresholds of 15 and 20 mmHg, the
+
+p \ 0.050] cohorts. The percentage of monitoring time in
+the red zone was also a significant predictor of un-
+favourable outcome in adults [OR 3.97 (95 % CI
+1.30-12.1); p = 0.014] (ESM Tables 2-5). The percent-
+age of monitoring time in the red zone during the first day
+only was a significant independent predictor of mortality
+[OR 2.90 (95 % CI 1.03-8.14); p = 0.039], but not of
+6-month unfavourable outcome [OR 1.80 (95 % CI
+0.78-4.18); p = 0.16] in adults. In paediatric TBI pa-
+tients, there was a trend towards significance for the
+percentage of monitoring time in the red zone during the
+first day only, for both mortality [OR 266 9 101 (95 % CI
+0.564-126 9 105); p = 0.062] and unfavourable out-
+come [OR 5.82 (95 % CI 0.861-39.4); p = 0.065] (ESM
+Tables 6-9).
+Figure 4 shows the transition curves resulting from
+visualizations of active and passive autoregulation insults
+(the corresponding colour-coded plots are available in the
+ESM Fig. 1, the percentages of active and passive insults
+in each cohort in the ESM Table 10). In the adult as well
+as in the paediatric population, the transition curve for
+Fig. 3 Comparison of transition curves in adult (black) and passive insults shifts towards the left, and the transition
+paediatric (purple) cohorts. Transition curves are the lines of zero
+correlation between ICP insults and outcome. Episodes above and curve for active insults shifts towards the right, with reto the right of this transition curve are associated with worse spect to the 'all insults' curve. In adults, episodes above
+outcomes 20 mmHg when cerebrovascular autoregulation is active
+had a duration of 233 min before they were associated
+respective transitions occur at shorter durations of 48 and with worse outcome, versus 19 min when autoregulation
+8 min. The transition curves of the two cohorts are shown was passive. Duration thresholds derived from the active
+together in Fig. 3. and passive transition curves for commonly used intensity
+monitoring time spent by each patient in the red zone was Finally, the association of ICP insults and outcome
+an independent significant predictor of death, both in was plotted for three different levels of CPP. In adults as
+adults [OR 9.91 (95 % CI 2.67-36.8); p \ 0.001] as in well as in children, when CPP was below 50 mmHg, alchildren [OR 178 9 103 (95 % CI 1.02-309 9 108); most all ICP insults were associated with worse outcome,
+
+Fig. 4 Transition curve visualizations according to cerebrovascular Right paediatric cohort (n = 99). Transition curves are the lines of
+autoregulatory status. The transition curves for all insults (irre- zero correlation between ICP insults and outcome. Episodes above
+spective of autoregulation) are drawn in blue, while the transition and to the right of this transition curve are associated with worse
+curves for autoregulation active insults are shown in green and for outcomes
+autoregulation passive insults in red. Left adult cohort (n = 261).
+
+Fig. 5 Visualization of correlation between GOS and average explanation of this colour-coded plot, refer to the legend of
+number of ICP insults per GOS category according to a cerebral Fig. 1. Left panel CPP B50 mmHg. Right panel CPP [50 mmHg.
+perfusion pressure (CPP) threshold of 50 mmHg. For an Above adult cohort (n = 261). Below paediatric cohort (n = 99)
+
+In adults as
+adults [OR 9.91 (95 % CI 2.67-36.8); p \ 0.001] as in well as in children, when CPP was below 50 mmHg, alchildren [OR 178 9 103 (95 % CI 1.02-309 9 108); most all ICP insults were associated with worse outcome,
+
+regardless of duration and intensity (Fig. 5). When CPP represent the cumulative time/pressure dose per patient,
+was above 50 mmHg, the transition curve shifted to the but per type of insult, characterized by duration and inright as compared to the 'all insults' curve. At CPPs of 60tensity. The cumulative ICP burden per patient (defined as
+and 70 mmHg there was a further small rightward shift of the percentage of time in the red zone) was assessed
+sociated with mortality at 6 months.
+The main finding is the emergence of clearly distinct
+insult intensity and duration thresholds that occur more
+Discussion frequently in patients with lower 6-month GOS, delin-
+eated by an approximately exponential transition curve.
+In this study, the univariate relationship between 6-month This supports the 'dose of ICP' concept, which has been
+neurological outcome and insults of raised ICP is sum- proposed earlier as the proportion of hourly measuremarized in colour-coded plots. These plots do not ments above 20 mmHg [12], or the area under the curve
+
+Fig. 6 Transition curves of ICP
+insults according to three
+different thresholds of cerebral
+perfusion pressure (CPP). For
+an explanation of transition
+curves, refer to the legend of
+Fig. 4. All insults irrespective
+of CPP (black); insults with
+CPP [50 mmHg (red); with
+CPP [60 mmHg (green) and
+with CPP [70 mmHg (blue).
+Left panel adult cohort
+(n = 261). Right panel
+paediatric cohort (n = 99)
+
+These plots do not ments above 20 mmHg [12], or the area under the curve
+
+of hourly values above 20 mmHg [15]. The present study autoregulation is intact, the transition curve shifts to the
+builds further on this concept. First, the use of minute-by- right. Conversely, with impaired autoregulation, there is a
+minute monitoring data allows for a more precise dramatic shift to the left in the transition curves, sugdefinition of the concept 'dose'. Second, by considering gesting a higher vulnerability to raised ICP (Fig. 4; ESM
+all intensity thresholds above 10 mmHg, the 'dose' is not Table 11). This is in line with the findings from a recent
+limited to the 20-mmHg threshold. 

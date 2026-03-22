@@ -1,0 +1,447 @@
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing the EXACT, verbatim sentence fragment from the text.
+
+3. **Extraction Scope:** Extract clinical and biomedical content: conditions, physiological parameters, monitoring variables, treatments/therapies/interventions, outcomes, assessments, laboratory values, nursing interventions, surgical procedures, and clinical dataset categories when explicitly named.
+   Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+   If a sentence or paragraph is mainly about these excluded topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+6. **Label Mapping Rule:** If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+   Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+   For other abbreviations, expand to their full clinical name as used in the text.
+
+7. **Structural Completeness Rule:** When the text mentions specific clinical items, also extract their general category if the text supports it.
+   For example, if the text discusses 'ventilation, sedation, fluids' as therapies, also extract the general class 'Therapy' or 'Baseline Therapy' if the text uses that grouping.
+   Use the text's own categories and groupings — do not impose an external hierarchy.
+
+**Default priority: classes first, then relations.** Extract relations when the text clearly states a connection between two concepts — both domain and range must be extracted classes. If a phase instruction below overrides this priority, follow the phase instruction.
+
+**Completeness:** Extract every distinct clinical concept the text names — err on the side of inclusion when evidence exists.
+
+### CURRENT TASK: Phase 2 — RELATION & HIERARCHY EXTRACTION (+ supplementary classes)
+Primary task: extract semantic RELATIONS between the known classes below. Extract every relation the text explicitly supports with evidence.
+Secondary task: if you notice clinical concepts in the text that Phase 1 missed (e.g. a concept needed as domain/range), add them to the classes array with evidence.
+Also extract hierarchy (subClassOf) edges wherever the text shows parent-child relationships — look for cues like 'such as', 'includes', 'type of', 'consists of', 'categorized as', enumeration lists, or even implied groupings.
+
+### WHAT IS AN ONTOLOGY RELATION?
+An ontology relation (object property) defines a typed semantic link between two class types. The DOMAIN is the subject class; the RANGE is the object class. Think: 'Every instance of [domain] can be linked via [relation] to an instance of [range].' Relations model the SCHEMA of the domain, not individual facts.
+Example: 'has monitoring data(Patient → Monitoring Data)' means every Patient can have Monitoring Data associated with them.
+
+### RELATION EXTRACTION METHOD (Chain-of-Thought)
+For each pair of known classes, reason step by step:
+1. Do these two classes co-occur or interact in the text?
+2. What is the SEMANTIC NATURE of their link? (measurement, treatment, assessment, outcome, composition, causation, etc.)
+3. Which class is the subject (domain) and which is the object (range)?
+4. Assign a descriptive relation label from the patterns below, or create a meaningful label if none fits.
+5. Find an exact text quote that supports this relationship.
+
+### ONTOLOGY DESIGN PATTERNS (use when the text supports them)
+These are reusable structural patterns showing how clinical concepts relate.
+Match them against the text — extract every supported edge.
+
+**Pattern 1 — Clinical Monitoring:**
+  Patient --[has monitoring data]--> Monitoring Data
+  Monitoring Data --[includes]--> Parameter
+  Observation --[measures parameter]--> Parameter
+  Observation --[produced by sensor]--> Sensor
+  Observation --[has quality assessment]--> Data Quality Assessment
+  Session --[has timepoint]--> Timepoint
+  Timepoint --[has observation]--> Observation
+
+**Pattern 2 — Clinical Intervention:**
+  Patient --[receives therapy]--> Therapy
+  Therapy --[targets condition]--> Condition
+  Condition --[triggers intervention]--> Therapy
+  Patient --[has surgical procedure]--> Surgical Procedure
+  Patient --[has nursing intervention]--> Nursing Intervention
+
+**Pattern 3 — Clinical Assessment and Outcome:**
+  Patient --[has clinical assessment]--> Clinical Assessment
+  Patient --[has outcome]--> Outcome
+  Patient --[has laboratory value]--> Laboratory Values
+  Monitoring Data --[monitoring indicates condition]--> Condition
+
+**Pattern 4 — Patient Context:**
+  Patient --[has session]--> Session
+  Patient --[has demographic data]--> Demographic Data
+  Patient --[has injury mechanism]--> Injury Mechanism
+
+**Pattern 5 — Data Quality:**
+  Data Quality Assessment --[affected by treatment]--> Therapy
+  Data Quality Assessment --[associated with condition]--> Condition
+
+**Pattern 6 — Composition (model as HIERARCHY, not relation):**
+  If X includes/comprises Y → extract as hierarchy: Y subClassOf X
+  Derived Parameter --[derived from]--> Source Parameter
+
+You SHOULD also extract other relations the text supports beyond these patterns.
+Do not invent relations not stated or clearly implied in the text.
+
+### CRITICAL: DO NOT USE 'includes' AS A RELATION LABEL
+If X includes Y, or Y is a type/kind/member of X, model it as HIERARCHY (Y subClassOf X), NOT as a relation. For example:
+  - 'Monitoring Data includes Heart Rate' → Heart Rate subClassOf Monitoring Data (hierarchy)
+  - 'Third-tier Treatment includes Barbiturates' → Barbiturates subClassOf Third-tier Treatment (hierarchy)
+The labels 'includes', 'consists of', 'comprises', 'is a type of' are NOT valid relation labels.
+
+### RELATION EVIDENCE RULES
+- Each relation MUST have an 'evidence' field with an exact verbatim quote from the source text.
+- The evidence should mention or clearly imply at least one of the two endpoint classes (domain or range).
+- Use the ABSTRACT superclass as the range, not specific instances (e.g., 'Monitoring Data' not 'ICP').
+- Do NOT reuse the same evidence quote for multiple relations.
+
+### SELF-CHECK (before finalising output)
+- Do all domain and range labels match known classes from Phase 1?
+- Are there any duplicate relations (same domain-label-range)? Remove duplicates.
+- Does every evidence field contain a verbatim quote from the text?
+
+Output JSON with keys classes, relations, hierarchy.
+
+Known classes (use only these labels): Brain Monitoring with Information Technology (BrainIT) Database; Core Dataset; Demographic and Clinical Information; Minute by Minute Monitoring Information; Intensive Care Management Information; Secondary Insult Treatment Information; Blood Pressure (BP); Intracranial Pressure (ICP); Central Venous Pressure (CVP); Glasgow Coma Scale (GCS); Computed Tomography (CT) Scan; Glasgow Outcome Scale (GOSe)
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+**REASONING STEP:** Before producing JSON, mentally scan the text for: (1) every named clinical concept, (2) explicit relations between them, (3) hierarchy cues (such as, is a, type of, include:). Then output only items with verbatim evidence.
+
+---
+--- Retrieved examples (3) ---
+
+Text: The minimum minute by minute monitoring data required for inclusion in the BrainIT Database include: Heart Rate, Respiration Rate, Mean Arterial Pressure, ICP, SaO2 and Temperature. Data is collected from patients every minute.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Patient",
+      "evidence": "patients"
+    },
+    {
+      "label": "Monitoring Data",
+      "evidence": "monitoring data"
+    },
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate"
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate"
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature"
+    }
+  ],
+  "relations": [
+    {
+      "label": "has monitoring data",
+      "domain": "Patient",
+      "range": "Monitoring Data",
+      "evidence": "Data is collected from patients every minute"
+    },
+    {
+      "label": "includes",
+      "domain": "Monitoring Data",
+      "range": "Heart Rate",
+      "evidence": "monitoring data include: Heart Rate"
+    },
+    {
+      "label": "includes",
+      "domain": "Monitoring Data",
+      "range": "Temperature",
+      "evidence": "monitoring data include: Heart Rate, Respiration Rate, Mean Arterial Pressure, ICP, SaO2 and Temperature"
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+
+Text: Patient outcome is assessed using the Extended Glasgow Outcome Scale (GOSe) at 6 months post-discharge. GOSe is collected by structured interview with the patient, a relative, or a GP.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Patient",
+      "evidence": "Patient outcome"
+    },
+    {
+      "label": "Outcome",
+      "evidence": "Patient outcome is assessed"
+    },
+    {
+      "label": "GOSe Outcome",
+      "evidence": "Extended Glasgow Outcome Scale (GOSe) at 6 months post-discharge"
+    }
+  ],
+  "relations": [
+    {
+      "label": "has outcome",
+      "domain": "Patient",
+      "range": "Outcome",
+      "evidence": "Patient outcome is assessed using the Extended Glasgow Outcome Scale (GOSe)"
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+
+Text: Each patient undergoes structured clinical assessments: GCS scores collected at pre-neurosurgical admission and neurosurgical admission, pupil size and responsiveness assessed for each eye, and CT scan classification using TCDB nomenclature.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Patient",
+      "evidence": "Each patient"
+    },
+    {
+      "label": "Clinical Assessment",
+      "evidence": "structured clinical assessments"
+    },
+    {
+      "label": "GCS Assessment",
+      "evidence": "GCS scores collected at pre-neurosurgical admission"
+    },
+    {
+      "label": "Pupil Assessment",
+      "evidence": "pupil size and responsiveness assessed for each eye"
+    },
+    {
+      "label": "CT Scan Assessment",
+      "evidence": "CT scan classification using TCDB nomenclature"
+    }
+  ],
+  "relations": [
+    {
+      "label": "has clinical assessment",
+      "domain": "Patient",
+      "range": "Clinical Assessment",
+      "evidence": "Each patient undergoes structured clinical assessments: GCS scores"
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+TEXT TO ANALYZE:
+1. They (the non-profit external research organisation)
+
+11. Downloaded data for a specific and declared
+analysis must not be used for another analysis. 12. The database either whole or in part must not be
+sold to any organisation. I. Piper et al.
+
+Guidelines for Non-Profit External Research
+Organisations or Individual members
+wishing to Access the Brain Monitoring with Information
+Technology (BrainIT) Database
+
+Non profit making external research organisations or
+they may gain in-direct access through collaborating
+with a centre PI provided:
+
+are themselves registered as Brain Monitoring with Information
+Technology (BrainIT) group individual
+members AND:
+2. They (the non-profit external research organisation)
+have also agreed and signed to the same Database
+access criteria (Internet Based) presented to the
+centre PI with whom they are collaborating.
+In such a collaboration, the centre PI remains responsible for access to the database and for tracking any analyses resulting from the collaboration with Non profit
+making external research organisations or individuals
+In the event of any conflict between a centre PI and
+whether the database can be accessed and whether the
+intended analyses can be performed.
+A. If any data from the joint database was used in the
+analyses which subsequently formed part of a
+published abstract or manuscript - reference to the
+''Brain Monitoring with Information
+Technology (BrainIT) Group'' must be given in the Author's citation. e.g.: A. Author1, A. Author2. . .& ''on behalf of
+the Brain Monitoring with Information
+Technology (BrainIT) Group''.
+B. As part of the normal Brain Monitoring with Information
+Technology (BrainIT) review process, all
+members from centres contributing data will be
+invited to both review and to contribute towards
+any abstract or manuscript produced prior to submission to a meeting or for publication. Those members
+who made a significant contribution to the design,
+analysis or writing of the abstract=manuscript will
+also be named co-authors on the abstract or manuscript. Where there is uncertainty over whether a
+significant contribution was made by a given data
+contributor - a final decision will be made by the
+Attempts at publishing analyses of data from the database without adhering to all the above criteria will result
+
+The major resource cost of the Brain Monitoring with Information
+Technology (BrainIT) group is for
+will, for the most part, remain the predominate source
+of support, however, other sources of support are being
+considered including by industry and public donation.
+As the group expands and more project groups form
+and bring in their own funding, it may be possible to
+create a central Data Validation (DV) staff resource fund based upon a
+fixed percentage of project funding.
+Part B: core data set definition
+Defining a core dataset
+In December 2000, the Brain Monitoring with Information
+Technology (BrainIT) group received EEC
+research infrastructure support under the Quality of Life
+and Management of Living Resources Programme. This
+support enabled the group to meet to discuss the definition of a core dataset and to define and implement a
+mechanism for determining the feasibility for collection
+of the core data set from all current Brain Monitoring with Information
+Technology (BrainIT) group
+centres (see Appendix A).
+A meeting was held in Glasgow and 25 participants
+from 9 countries attended. Representatives were also
+present from the European Brain Injury Consortium
+The aim was to define a minimum or core dataset to
+be collected from all head injured patients which would
+be common to all future research projects. Individual
+projects would then either draw from the core-dataset
+or append new data elements to the core dataset on a
+project-by-project basis. To facilitate discussion, the
+core dataset was sub-divided into four logical groups:
+a) Demographic and Clinical Information b) Minute by
+Minute monitoring information c) Intensive care management information d) Secondary insult treatment
+information. The meeting participants assigned themselves to one of these four groups and each group was
+assigned a chairperson responsible for guiding discussion towards a consensus. Each group was given a draft
+list of data elements which could potentially be included
+in the core-dataset. At the completion of discussions, the
+
+The Brain Monitoring with Information
+Technology (BrainIT) group: concept and core dataset definition
+
+patient was on ventilation from 22:40 to end of the time period, was sedated from 22:00 to 03:50, and again from 04:10 to the end of the period. The
+patient was suctioned every hour at 5 minutes past the hour. Time of Blood Pressure (BP), Intracranial Pressure (ICP) and central venous pressure (CVP) monitoring is also indicated
+
+chairperson presented the results of their group's consensus on the data elements to be included in the core
+dataset. The meeting chairman led general discussion
+towards a consensus on any data element which raised
+questions as to whether it should be included in the core
+dataset.
+Testing the feasibility of collecting
+the core dataset
+A paper form was designed to test the feasibility for
+collecting the core dataset from all centres. Although the
+contents of a core dataset was agreed at a Brain Monitoring with Information
+Technology (BrainIT)
+meeting, it is important to test whether those data can be
+collected. For example, if only 10% of centres regularly
+collect a given data element - there is little point in
+collecting that data as a core data component.
+Centres were asked to fill in the core data elements for
+one head injured patient with at least arterial blood
+pressure (BP) and intracranial pressure monitoring in
+place for 8 hours or more. As this exercise was to test
+the feasibility for collecting the core data, rather than
+determining the accuracy of data collection, for the more
+time consuming minute by minute data collection we
+designed a graphical form which bed side nursing staff
+could indicate, by a simple tick, once every 15 minutes,
+whether the physiological channels were still being
+monitored. Figure 2 shows an example chart indicating
+the time-series collection of monitoring data from one
+centre.
+
+Testing the feasibility of collecting the PC
+based monitoring data
+The collection of the bedside minute-by-minute physiological monitoring data is the most challenging. This is
+due in part to the large variation in hardware monitoring
+available between centres. To test the feasibility for collecting the core minute by minute physiological monitoring data from each centre, a request went out to all centres
+to collect, anonymise and transfer to the Brain Monitoring with Information
+Technology (BrainIT) coordinating centre in Glasgow a short sample (at least 10 minutes of minute by minute data) of the typical range of
+bedside physiological monitoring that is performed in
+their typical head injured patient. This data was collected
+and summarised in terms of frequency of channel types.
+Core dataset definition
+The full core dataset definition is attached as an appendix and can also
+be downloaded from the Brain Monitoring with Information
+Technology (BrainIT) website (go to core dataset link at:
+www.brainit.org).
+For the core dataset, the emphasis was upon collection of data which
+would normally be collected as part of routine patient management. In
+the following text, we highlight, within each data collection category,
+specific examples which either prompted group discussion or we felt
+required further explanation.
+
+Demographic and clinical data
+This group contains data elements which are only collected once per
+patient and as such are not considered time-series data. Examples being
+the age and sex of the patient. To ease adherence to national and
+
+international guidelines on patient data anonymity, we chose to record
+and transfer a patients age as an absolute decimal number: e.g.: 53.4
+years. This number is calculated by software from the patient's date of
+birth and knowing the date of injury.
+The usual description of injury variables are collected with users
+offered a choice from fixed categories. Medical history is focused upon
+identifying previous neurological injury, substance abuse and associated
+injuries.
+Data elements are then collected describing the clinical status of the
+patient (e.g.: Glasgow Coma Scale (GCS) scores) at both pre-neurosurgical hospital admission
+and at admission to the hospital with Neurosurgery. Pre-neurosurgical
+hospital admission encompasses the sources of data from the Emergency
+Medical Services and the Emergency=Casualty Center of the admitting
+hospital (if not the hospital with neurosurgery). If data is available from
+more than one source for the pre-hospital care, the data most indicative
+of the patient's post-resuscitation=pre-intubation condition at the place
+of injury is chosen for the pre-neurosurgical hospital admission data.
+Group discussion lead to a simplification of the scoring system for
+recording pupil size and responsiveness. Both eyes are recorded individually and responsiveness classed as reacting or un-reacting. Pupil size
+is recorded as small, normal or large.
+Computed Tomography (CT)-Scan data:
+and worst Computed Tomography (CT)-Scan information is collected. Classification is based upon
+the Traumatic Coma Databank (TCDB) nomenclature. A selection
+between a ''Main Lesion'' (none, subdural, extradural, intraparenchymal) is made and using the normal in-house methods an estimate is
+made as to whether the main lesion (largest hyper-intense lesion) is
+greater than or less than 25 ml in volume. Cistern state (present, compressed, absent) is also noted. The usual Classification is based upon
+the Traumatic Coma Databank (TCDB) classification is applied
+but to avoid interpretation difficulties in the ''Evacuated=Non Evacuated
+Mass lesion'' categories - a consensus to record the worst Computed Tomography (CT) abnormality as only a ''Mass Lesion of mixed or high density of > 25 ml.
+Although, by definition not part of the core-dataset, an option exists
+on a project-by-project basis for collection of copies of the main Computed Tomography (CT) scan
+images for central reading.
+Discharge status:
+Consensus was achieved to collect from all patients the Extended 8point Glasgow Outcome Scale (GOSe) at 6 months post discharge from
+the neurosurgical centre.
+A structured questionnaire (downloadable from the Web site: http:==
+www.brainit.org) is used for scoring the Glasgow Outcome Scale (GOSe).
+Information will also be obtained on the interview method used: in
+order of preference:
+1. Direct (face to face) or telephone interview with patient.
+2. Direct (face to face) or telephone interview with relative.
+3. Postal questionnaire to Patient=Relative - if no phone number
+known
+4. Telephone interview with GP.
+We also will collect information on who was the ''respondent'' to the
+interview: patient, relative=carer, patient þ relative=carer. Also an indication of what the ''most important factor in the patients outcome is due to'':
+a) head injury, b) illness or injury to other parts of body, c) a mixture of
+both.
+---

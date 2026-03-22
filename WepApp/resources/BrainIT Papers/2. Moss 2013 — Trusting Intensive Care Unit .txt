@@ -1,0 +1,238 @@
+     Trusting Intensive Care Unit (ICU) Medical
+          Data: A Semantic Web Approach
+
+         Laura Moss1,2,3 , David Corsar1, Ian Piper3 , and John Kinsella2
+1
+    Department of Computing Science, University of Aberdeen, Aberdeen, AB24 3FX
+          2
+            School of Medicine, University of Glasgow, Glasgow, G12 8QQ
+     3
+       Department of Clinical Physics, University of Glasgow, Glasgow, G12 8QQ
+
+
+
+       Abstract. The Intensive Care Unit (ICU) domain generates large vol-
+       umes of patient data which can be used in medical research. However,
+       inaccuracies often exist in this data and due to the data’s size and do-
+       main complexity, automated approaches are required to associate a level
+       of quality and trust with the data. We describe a computational frame-
+       work to perform such assessments based on semantic web technologies.
+       Linked data enables integration with other datasets, which can be used
+       along with details of the data’s provenance and medical domain knowl-
+       edge from appropriate ontologies. We have successfully applied the frame-
+       work to two types of ICUs: general medical and traumatic brain injury.
+
+       Keywords: Data Quality, Semantic Web, Ontologies, Critical Care.
+
+
+1     Introduction
+Increasing use of patient monitoring equipment in medicine is generating large
+repositories of patient data, which are recorded manually and/or automatically.
+Trusting this data is important: along with being used for medical decision mak-
+ing, the data is often stored for oﬄine analysis. However, error rates of between
+2.3% and 26.9% are common [5]. Various methods have been proposed to im-
+prove the quality of medical data (e.g.[6]), which may help avoid certain errors
+(e.g. physiologically impossible values). However, detailed domain knowledge and
+human judgement is often required to identify other, more subtle errors, e.g. a
+recorded heart rate of 120 may be identiﬁed as an error by a simple threshold
+based rule, but if the patient was suﬀering from sepsis at the same time, then
+the value may actually be a symptom of that disorder.
+    Recently, interlinked datasets have been made openly available on the Web
+of Linked Data. These datasets are described by ontologies, published according
+to a set of principles, and linked through the use of technologies such as URIs,
+HTTP, and RDF. This enables provision of contextual information about any
+piece of data, along with enabling machines to access, browse, and reason with
+it1 . Most existing approaches to assessing the quality of linked data focus on
+the application of simple rules or policies; e.g. the WIQA framework, which
+1
+    http://www.w3.org/DesignIssues/LinkedData.html
+
+N. Peek, R. Marı́n Morales, and M. Peleg (Eds.): AIME 2013, LNAI 7885, pp. 68–72, 2013.
+
+c Springer-Verlag Berlin Heidelberg 2013
+                          Trusting Intensive Care Unit (ICU) Medical Data       69
+
+adopts the “fitness for use” perspective to data quality, applies a set of policies
+to ﬁlter RDF data that does not meet requirements [1]. In contrast, the SWIQA
+framework adopts the “free of defects” perspective, using a series of rules to
+perform common data quality checks on RDF datasets including: completeness
+(e.g. provision of mandatory values), syntactic and semantic accuracy, timeliness,
+and uniqueness [3]. However, we argue these assessments do not consider the
+complexities of real world datasets and need to be extended to include context
+dependent assessments.
+   In this paper, Section 2 describes our novel approach and framework that
+applies Semantic Web technologies to assess the quality of medical datasets, by
+considering the data, its provenance, and relevant clinical knowledge; Section
+3 describes the application of our framework to two diﬀerent medical domains;
+and Section 4 concludes by discussing our ﬁndings and future work plans.
+
+
+2   Approach
+
+Our approach consists of three stages: converting the medical data into RDF;
+optionally annotating the data with provenance information; and ﬁnally, assess-
+ing the data (Figure 1). Ideally, all of the datasets we describe below would be
+reused from the Web of Linked Data or open data repositories. However, some
+of the required information is not available; in these cases we have created our
+own datasets, which we intend to contribute to the Linked Open Data cloud.
+
+
+
+
+           Fig. 1. Overview of the approach to medical data assessment
+
+
+
+  Data Conversion. In this stage an RDF version of the medical data, expressed
+against the Patient Data and Medical Observations ontologies is created. For
+the two case studies described in this paper, we have developed a program that
+generates a series of SPARQL update statements to produce the desired RDF
+dataset; RDB2RDF was considered but was not appropriate for how a case study
+dataset was represented (as a spreadsheet). The Patient Data (pd) ontology [2]
+70     L. Moss et al.
+
+provides classes for representing Patients, Sessions, and Timepoints. Each Time-
+point is associated with a set of Readings which refer to the Parameter being
+observed and its value. The Medical Observations ontology deﬁnes a series of
+axioms that integrate our patient ontology with the W3C Semantic Sensor Net-
+work (ssn) Incubator Group’s sensor ontology [4] and allows the pd:Readings to
+be linked to the machines/sensors that produced them. We deﬁne pd:Reading
+as a subclass of ssn:ObservationValue (which represents the value produced by
+some sensing process); pd:Parameter (representing things that were recorded) as
+a subclass of ssn:Property; and pd:Patient as a ssn:FeatureOfInterest. To repre-
+sent a pd:Timepoint as a set of observations, we use the Observation Collection
+pattern [4], deﬁning pd:Timepoint as a subclass of mo:ObservationCollection,
+which has an associated set of ssn:Observations.
+   Provenance Annotation. This optional, semi-automatic stage involves anno-
+tating the patient observations with provenance, considered as “a description
+of the entities and processes involved in producing ... that resource” [4]. Pro-
+viding provenance information increases the available types of assessments com-
+pared to solely using the observations. In this framework, we capture details
+of the sensors that were responsible for producing the pd:Readings. Our Med-
+ical Machine/Sensor ontology (mms), extends the SSN ontology with classes
+and individuals representing the machines used in our medical evaluation. We
+have deﬁned mms:Machine as a subclass of ssn:Platform, and various sub-
+classes of ssn:Sensor for the diﬀerent types of sensors on the machine. Each
+sensor is then described in terms of the ssn:Sensing process that is imple-
+ments, the ssn:Property it observes, and its ssn:MeasurementCapability. The
+machine recording settings annotate the observations with knowledge about
+how the sensors were conﬁgured to record the data; this knowledge is provided
+by the Conﬁguration ontology (c). For example, the speciﬁcation of the sam-
+pling rate is described using the c:MachineConﬁguration class, which references
+a set of c:RecordingConﬁgurations, which, in turn, describe the mms:Machine
+or ssn:Sensor used to record a parameter between two timepoints in a session.
+   Data Checking. This component evaluates the medical data using the avail-
+able information and assessment rules represented as SPARQL queries (Table
+1). For each patient, a single temporary assessment dataset is created consist-
+ing of the patient observations RDF dataset, the medical domain ontology, the
+SSN ontology, and provenance annotations. A program then loads and executes
+each assessment query, storing the results in a separate ﬁle which is used later
+to generate a summary of the analysis. If a value is identiﬁed as an error it is
+annotated with ‘Possible Error’ (PoE) or a ‘Probable Error’ (PrE); where PrE
+is more likely to be an error than PoE. Deﬁnitions of acceptable values, sen-
+sor accuracies, and medical conditions & treatments are provided by ontologies,
+enabling reuse of existing knowledge and as the rules are expressed at the onto-
+logical level, their reuse across multiple domains without modiﬁcation; whereas
+other approaches e.g. complex event processing and rule engines do not easily
+allow for this. RDF also provides a common representational formalism, allowing
+data to be provided in a proprietary format, e.g. database or spreadsheet.
+                              Trusting Intensive Care Unit (ICU) Medical Data           71
+
+                              Table 1. Example assessments
+
+      Name                            Details of Rule                         Conclusion
+      Missing    If, for every sequential pair of readings, the time period      PrE
+      Data 3           between them does not equal the sampling rate
+    Acceptable If the recorded value is less than the min. acceptable value       PrE
+     Range 1
+    Acceptable If the recorded value is greater than the max. acceptable          PrE
+     Range 2                                value
+    Acceptable       If an accuracy value (deﬁning a +/- value or %) is           PoE
+     Range 3    associated with the sensor AND the recorded value minus
+                      accuracy value is below the min. acceptable value
+    Acceptable       If an accuracy value (deﬁning a +/- value or %) is       No longer an
+     Range 4 associated with the sensor AND the recorded value plus the           error
+                      accuracy value is above the min. acceptable value
+    Acceptable       If an accuracy value (deﬁning a +/- value or %) is           PoE
+     Range 5 associated with the sensor AND the recorded value plus the
+                     accuracy value is above the max. acceptable value
+     Medical   If the recorded value is outwith its acceptable range AND        Reclassify
+     Disorders   is associated with a symptom of a disorder, AND at the       from PrE to
+      Rule 1     same time other symptoms associated with the disorder            PoE
+    Treatments If the recorded value is outwith its acceptable range AND        Reclassify
+      Rule 1       is associated with an eﬀect of a treatment AND that        from PrE to
+                     treatment was administered previous to that value            PoE
+
+
+
+3      Evaluation
+
+We have applied our framework to data taken from two types of ICUs: general
+medical and traumatic brain injury (TBI)2 . In both cases, time series physio-
+logical data was collected from patient monitoring equipment, but the machines
+used, parameters recorded, and frequency of data collection diﬀers. We were able
+to reuse the same clinical domain ontology for both evaluations. For the Medical
+Disorders rule, we created speciﬁc queries for hypotension and hypertension; and
+for the Treatments rule, queries for eﬀects of noradrenaline and adrenaline.
+   For the TBI domain, we used data consisting of 37 patients, 595,439 distinct
+timepoints, 4,467,949 observations for 14 parameters, and the resulting RDF
+consists of 52,093,104 triples. Glasgow Royal Inﬁrmary’s (GRI) general medical
+ICU dataset consisted of 209 patients, 68,142 distinct timepoints, 687,393 obser-
+vations for 14 parameters, and the resulting RDF consists of 41,819,163 triples.
+In both domains, data is collected every minute, exported every minute in the
+TBI domain, and exported hourly in the GRI domain; the machine recording
+and export conﬁguration tools were set accordingly.
+   Missing Data Rule 3 found 27,002 (≥0.6%) and 64,307 (≥9.4%) sequences
+of missing data points for the TBI and GRI datasets respectively. In the TBI
+dataset, 376,389 (9.4%) values were found to be less than the min. acceptable for
+a parameter, and 1,386,262 (31%) were found to be higher than the max.; when
+2
+    Further evaluation results are available at: http://www.abdn.ac.uk/~ csc316
+72        L. Moss et al.
+
+sensor accuracies were considered 18,839 additional errors were found and 19,604
+of the original errors removed. In the GRI dataset, 129,716 (18.9%) values were
+found to be less than the min. acceptable for a parameter, and 189,601 (27.6%)
+were found to be higher than the max.; when sensor accuracies were considered
+272,357 additional errors were found and 159,219 of the original errors removed.
+In the GRI dataset, a number of readings identiﬁed by Acceptable Range Rules
+1 & 2 may have been aﬀected by hypertension (91%), hypotension (85.6%),
+noradrenaline (24.2%) and adrenaline (6.7%)3 . A number of TBI values may
+also be aﬀected by hypertension (92.1%) and hypotension (80.5%).
+
+4      Discussion and Future Work
+We have shown that our approach can be successfully applied to assess medical
+data and illustrates the beneﬁt of additional contextual information provided by
+linking data. Using a simple approach, a large number of acceptable range errors
+are identiﬁed; however, when the context of the data is considered, many are re-
+classiﬁed or new errors are identiﬁed. In the future we plan to investigate: further
+context dependent rules; detection of interventions that have been carried out on
+a patient but not recorded; and using High Performance Computing to improve
+performance times, e.g. it took 2 hours 8 mins to apply the Medical Disorders
+rules which clearly would not be practical if used regularly in a clinical setting.
+
+Acknowledgements. The staﬀ and patients of the ICU Unit, GRI. This work
+was an extension of the routine audit process in GRI’s ICU; requirements for
+further Ethical Committee Approval have been waved. The authors would like
+to acknowledge the work of the BrainIT group investigators and participating
+centres to the BrainIT dataset.
+
+References
+1. Bizer, C., Cyganiak, R.: Quality-driven information ﬁltering using the WIQA policy
+   framework. Journal of Web Semantics 7(1), 1–10 (2009)
+2. Corsar, D., Moss, L., Sleeman, D., Sim, M.: Supporting the Development of Medical
+   Ontologies. In: Frontiers in Artiﬁcial Intelligence and Applications: Formal Ontolo-
+   gies Meet Industry, pp. 114–125 (2009)
+3. Furber, C., Hepp, M.: SWIQA - A Semantic Web Information Quality Assessment
+   Framework. In: Proc. of ECIS (2011)
+4. Gil, Y., Cheney, J., Groth, P., Hartig, O., Miles, S., Moreau, L., Pinheiro da Silva, P.
+   (eds.): Provenance xg ﬁnal report. W3C Incubator Group Report (December 2010)
+5. Goldberg, S.I., Niemierko, A., Turchin, A.: Analysis of data errors in clinical research
+   databases. In: AMIA Annu. Symp. Proc., vol. 6, pp. 242–246 (2008)
+6. Hogan, W.R., Wagner, M.M.: Accuracy of Data in Computer-based Patient Records.
+   J. Am. Med. Inform. Assoc. 4(5), 342–355 (1997)
+
+3
+     The rule was not applied to the TBI dataset as it contains sparsely collected treat-
+     ment information.
+

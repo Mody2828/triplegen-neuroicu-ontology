@@ -1,0 +1,193 @@
+============================================================
+RUN SUMMARY  —  TripleGen Ontology Engineering Framework
+============================================================
+
+--- Metadata ---
+Run ID:          20260316-121255-f5df80d8
+Timestamp (UTC): 2026-03-16T12:19:54.233764
+Method:          Few-Shot
+Pipeline mode:   Strict
+LLM provider:    openai gpt-4o-mini
+Improvements:    Text-grounded completion (built-in)
+Eval settings:   Scope filter (clinical-only chunks)
+
+--- Input paper(s) ---
+  • 1.Pipre 2003 - The BrainIT group concept and core dataset definition.txt
+
+--- Improvement counts (for ablation / fairness) ---
+  Text-grounded completion (built-in): classes_added=7, relations_added=8, hierarchy_added=56
+  Built-in cleanup (always active): includes_to_hierarchy=1, relation_labels_normalized=5, relations_range_normalized=6, classes_removed_dedupe=0, relations_removed_dedupe=4, hierarchy_removed_dedupe=3, out_of_scope_classes_removed=29, abstract_data_classes_removed=1, broad_contextual_classes_removed=0, classes_removed_evidence=0, endpoints_auto_added=3, relations_pruned_scope=0, hierarchy_pruned_scope=0, hierarchy_pruned_dangling=0, relations_pruned=0, relations_removed_evidence=0, hierarchy_fragments_removed=0, hierarchy_edges_corrected=4, hierarchy_scaffolded=0, hierarchy_removed_axiom=0, relations_removed_axiom=0, hierarchy_cycles_removed=0, hierarchy_completeness={'orphan_count': 18, 'total_classes': 51, 'orphan_rate': 0.353, 'orphan_rate_warning': False}, hierarchy_added=0, orphans_removed=0
+  Orphan Rescue (connect isolated classes): orphans_found=8, relations_added=1, hierarchy_added=4
+  Post-orphan scope cleanup: out_of_scope_removed=0
+  LLM CoT Refinement (semantic quality review): classes_removed=0, relations_removed=0, hierarchy_removed=0, hierarchy_corrected=0
+
+
+  Text-grounded completion (built-in): +7 classes, +8 relations, +56 hierarchy edges recovered from source text in second-pass extraction.
+
+  Orphan Rescue: 8 orphaned classes found → +1 relations, +4 hierarchy edges inferred from source text.
+
+--- Metrics summary (final ontology) ---
+  Coverage:        36.56%
+  Precision:       66.67%
+  Recall:          36.56%
+  Errors:          hallucinations=0, schema_violations=0, omissions=0
+  Structural:      hierarchy_edges=60, hierarchy_coverage=0.94, relation_domain_range_rate=1.00
+  Clinical-only:   coverage=36.56%, precision=66.67%, recall=36.56%
+  Relations:       precision=55.56%, recall=22.22%, n_generated=18, n_gold=18
+  Hierarchy:       precision=23.33%, recall=18.42%, matched=14, n_generated=60, n_gold=76
+
+--- Metrics at extraction only (pre-improvement baseline) ---
+  Coverage:        33.33%
+  Precision:       43.66%
+  Recall:          33.33%
+  Structural:      hierarchy_edges=27, hierarchy_coverage=0.39, relation_domain_range_rate=1.00
+  Relations:       precision=30.00%, recall=22.22%, n_generated=50
+
+--- Per-stage ablation (pipeline progression) ---
+  Stage                   Classes   Rels   Hier   Coverage  Precision     Recall
+  --------------------------------------------------------------------------
+  Extraction                   71     50     27     33.33%     43.66%     33.33%
+  + Text-grounded              78     58     83     37.63%     44.87%     37.63%
+  + Cleanup                    51     17     56     36.56%     66.67%     36.56%
+  + Orphan Rescue              51     18     60     36.56%     66.67%     36.56%
+  + LLM Refinement             51     18     60     36.56%     66.67%     36.56%
+
+--- Concept counts (final ontology) ---
+  Classes:         51
+  Relations:       18
+  Hierarchy edges: 60
+
+--- Classes ---
+  • Traumatic Brain Injury
+  • Head Injury
+  • Monitoring Data
+  • Cerebral Perfusion Pressure
+  • Mean Arterial Pressure
+  • Secondary Insult
+  • Patient
+  • Intracranial Pressure
+  • Central Venous Pressure
+  • GCS Assessment
+  • Computed Tomography (CT) Scan
+  • GOSe Outcome
+  • Heart Rate
+  • Respiration Rate
+  • Arterial Oxygen Saturation
+  • Temperature
+  • End-Tidal Carbon Dioxide
+  • Jugular Venous Oxygen Saturation
+  • Transcranial Doppler
+  • Brain Tissue Oxygen
+  • Brain Temperature
+  • Microdialysis
+  • Intensive Care Management
+  • Pupil Assessment
+  • Ventilation
+  • Sedation
+  • Fluids
+  • Vasopressors
+  • Laboratory Values
+  • Blood Gases
+  • Biochemistry
+  • Haematology
+  • Therapy
+  • Systemic Hypotension
+  • Glasgow Coma Scale (GCS) Assessment
+  • Demographic Data
+  • Acute Respiratory Distress Syndrome
+  • Pharmacological Therapy
+  • Brain Injury
+  • Admission Data
+  • Treatment Data
+  • Outcome Data
+  • Core Monitoring Parameter
+  • Electrocardiogram (ECG)
+  • Antibiotics
+  • Assessment Data
+  • Condition
+  • Outcome
+  • Arterial Hypotension
+  • Intracranial Hypertension
+  • EtCO2
+
+--- Relations ---
+  • is associated with secondary insults(Traumatic Brain Injury → Secondary Insult)
+  • has monitoring data(Patient → Monitoring Data)
+  • assesses(Patient → GCS Assessment)
+  • has outcome(Patient → Outcome)
+  • receives therapy(Patient → Therapy)
+  • targets condition(Therapy → Condition)
+  • targets condition(Therapy → Cerebral Perfusion Pressure)
+  • has evidence of(Patient → Secondary Insult)
+  • has outcome(Traumatic Brain Injury → Acute Respiratory Distress Syndrome)
+  • has admission data(Brain Injury → Admission Data)
+  • has monitoring data(Brain Injury → Monitoring Data)
+  • has treatment data(Brain Injury → Treatment Data)
+  • has outcome(Brain Injury → Outcome Data)
+  • has admission data(Head Injury → Admission Data)
+  • has monitoring data(Head Injury → Monitoring Data)
+  • has treatment data(Head Injury → Treatment Data)
+  • has outcome(Head Injury → Outcome Data)
+  • has admission data(Brain Injury → Demographic Data)
+
+--- Hierarchy (subclass → superclass) ---
+  • Heart Rate ⊑ Core Monitoring Parameter
+  • Respiration Rate ⊑ Core Monitoring Parameter
+  • Mean Arterial Pressure (MAP) ⊑ Monitoring Data
+  • ICP ⊑ Monitoring Data
+  • SaO2 ⊑ Monitoring Data
+  • Temperature ⊑ Core Monitoring Parameter
+  • CVP ⊑ Monitoring Data
+  • EtCO2 ⊑ Monitoring Data
+  • Jugular Venous Oxygen Saturation ⊑ Monitoring Data
+  • Transcranial Doppler ⊑ Monitoring Data
+  • PbrO2 ⊑ Monitoring Data
+  • Brain Temperature ⊑ Monitoring Data
+  • Microdialysis ⊑ Monitoring Data
+  • Glasgow Coma Scale (GCS) Assessment ⊑ Intensive Care Management
+  • Pupil Assessment ⊑ Intensive Care Management
+  • Ventilation ⊑ Intensive Care Management
+  • Sedation ⊑ Intensive Care Management
+  • Fluids ⊑ Intensive Care Management
+  • Vasopressors ⊑ Intensive Care Management
+  • Antibiotics ⊑ Intensive Care Management
+  • Electrocardiogram (ECG) ⊑ Monitoring Data
+  • Intracranial Hypertension ⊑ Secondary Insult
+  • Arterial Hypotension ⊑ Secondary Insult
+  • Patient ⊑ Secondary Insult
+  • Systemic Hypotension ⊑ Secondary Insult
+  • Blood Gases ⊑ Laboratory Values
+  • Biochemistry ⊑ Laboratory Values
+  • Haematology ⊑ Laboratory Values
+  • Core Monitoring Parameter ⊑ Monitoring Data
+  • Mean Arterial Pressure (MAP) ⊑ Core Monitoring Parameter
+  • ICP ⊑ Core Monitoring Parameter
+  • CVP ⊑ Core Monitoring Parameter
+  • EtCO2 ⊑ Core Monitoring Parameter
+  • Jugular Venous Oxygen Saturation ⊑ Core Monitoring Parameter
+  • Transcranial Doppler ⊑ Core Monitoring Parameter
+  • PbrO2 ⊑ Core Monitoring Parameter
+  • Brain Temperature ⊑ Core Monitoring Parameter
+  • Microdialysis ⊑ Core Monitoring Parameter
+  • SaO2 ⊑ Core Monitoring Parameter
+  • Electrocardiogram (ECG) ⊑ Core Monitoring Parameter
+  • Treatment Data ⊑ Intensive Care Management
+  • Fluids ⊑ Treatment Data
+  • Sedation ⊑ Treatment Data
+  • Ventilation ⊑ Treatment Data
+  • Vasopressors ⊑ Treatment Data
+  • Antibiotics ⊑ Treatment Data
+  • Assessment Data ⊑ Intensive Care Management
+  • Glasgow Coma Scale (GCS) Assessment ⊑ Assessment Data
+  • Pupil Assessment ⊑ Assessment Data
+  • Traumatic Brain Injury ⊑ Condition
+  • Acute Respiratory Distress Syndrome ⊑ Secondary Insult
+  • Brain Injury ⊑ Traumatic Brain Injury
+  • Head Injury ⊑ Traumatic Brain Injury
+  • GOSe Outcome ⊑ Outcome
+  • Pharmacological Therapy ⊑ Therapy
+  • Secondary Insult ⊑ Condition
+  • Mean Arterial Pressure ⊑ Monitoring Data
+  • Central Venous Pressure ⊑ Monitoring Data
+  • End-Tidal Carbon Dioxide ⊑ Monitoring Data
+  • Intracranial Pressure ⊑ Monitoring Data

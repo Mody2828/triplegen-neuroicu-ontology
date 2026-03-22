@@ -1,0 +1,167 @@
+============================================================
+RUN SUMMARY  —  TripleGen Ontology Engineering Framework
+============================================================
+
+--- Metadata ---
+Run ID:          20260316-120818-4d0731de
+Timestamp (UTC): 2026-03-16T12:12:55.430020
+Method:          One-Shot (MMR-1)
+Pipeline mode:   Strict
+LLM provider:    openai gpt-4o-mini
+Improvements:    Text-grounded completion (built-in)
+Eval settings:   Scope filter (clinical-only chunks)
+
+--- Input paper(s) ---
+  • 1.Pipre 2003 - The BrainIT group concept and core dataset definition.txt
+
+--- Improvement counts (for ablation / fairness) ---
+  Text-grounded completion (built-in): classes_added=6, relations_added=6, hierarchy_added=58
+  Built-in cleanup (always active): includes_to_hierarchy=9, relation_labels_normalized=19, relations_range_normalized=14, classes_removed_dedupe=0, relations_removed_dedupe=12, hierarchy_removed_dedupe=4, out_of_scope_classes_removed=29, abstract_data_classes_removed=1, broad_contextual_classes_removed=1, classes_removed_evidence=0, endpoints_auto_added=3, relations_pruned_scope=0, hierarchy_pruned_scope=0, hierarchy_pruned_dangling=0, relations_pruned=0, relations_removed_evidence=3, hierarchy_fragments_removed=0, hierarchy_edges_corrected=5, hierarchy_scaffolded=0, hierarchy_removed_axiom=0, relations_removed_axiom=0, hierarchy_cycles_removed=25, hierarchy_completeness={'orphan_count': 40, 'total_classes': 60, 'orphan_rate': 0.667, 'orphan_rate_warning': True}, hierarchy_added=0, orphans_removed=0
+  Orphan Rescue (connect isolated classes): orphans_found=31, relations_added=2, hierarchy_added=4
+  Post-orphan scope cleanup: out_of_scope_removed=0
+  LLM CoT Refinement (semantic quality review): classes_removed=4, relations_removed=0, hierarchy_removed=1, hierarchy_corrected=0
+
+
+  Text-grounded completion (built-in): +6 classes, +6 relations, +58 hierarchy edges recovered from source text in second-pass extraction.
+
+  Orphan Rescue: 31 orphaned classes found → +2 relations, +4 hierarchy edges inferred from source text.
+
+  LLM CoT Refinement: -4 classes, -0 relations, -1 hierarchy removed; 0 hierarchy edges corrected.
+
+--- Metrics summary (final ontology) ---
+  Coverage:        40.86%
+  Precision:       66.67%
+  Recall:          40.86%
+  Errors:          hallucinations=0, schema_violations=0, omissions=0
+  Structural:      hierarchy_edges=24, hierarchy_coverage=0.49, relation_domain_range_rate=1.00
+  Clinical-only:   coverage=40.86%, precision=66.67%, recall=40.86%
+  Relations:       precision=75.00%, recall=22.22%, n_generated=20, n_gold=18
+  Hierarchy:       precision=37.50%, recall=11.84%, matched=9, n_generated=24, n_gold=76
+
+--- Metrics at extraction only (pre-improvement baseline) ---
+  Coverage:        37.63%
+  Precision:       42.68%
+  Recall:          37.63%
+  Structural:      hierarchy_edges=12, hierarchy_coverage=0.18, relation_domain_range_rate=1.00
+  Relations:       precision=42.59%, recall=11.11%, n_generated=54
+
+--- Per-stage ablation (pipeline progression) ---
+  Stage                   Classes   Rels   Hier   Coverage  Precision     Recall
+  --------------------------------------------------------------------------
+  Extraction                   82     54     12     37.63%     42.68%     37.63%
+  + Text-grounded              88     60     70     43.01%     45.45%     43.01%
+  + Cleanup                    60     18     21     39.78%     61.67%     39.78%
+  + Orphan Rescue              61     20     25     40.86%     62.30%     40.86%
+  + LLM Refinement             57     20     24     40.86%     66.67%     40.86%
+
+--- Concept counts (final ontology) ---
+  Classes:         57
+  Relations:       20
+  Hierarchy edges: 24
+
+--- Classes ---
+  • Traumatic Brain Injury
+  • Head Injury
+  • Monitoring Data
+  • Cerebral Perfusion Pressure
+  • Individual Patients
+  • Patient
+  • GCS Assessment
+  • Computed Tomography (CT) Scan
+  • GOSe Outcome
+  • Mean Arterial Pressure
+  • Intracranial Pressure
+  • Central Venous Pressure
+  • Heart Rate
+  • Respiration Rate
+  • Arterial Oxygen Saturation
+  • Temperature
+  • End-Tidal Carbon Dioxide
+  • Jugular Venous Oxygen Saturation
+  • Transcranial Doppler
+  • Brain Tissue Oxygen
+  • Brain Temperature
+  • Microdialysis
+  • Intensive Care Management
+  • Pupil Assessment
+  • Ventilation Settings
+  • Sedation
+  • Fluids
+  • Vasopressors
+  • Routine Nursing
+  • Physiotherapy
+  • Bedside Interventions
+  • Patient Transport
+  • Blood Gases
+  • Daily Laboratory Values
+  • Biochemistry
+  • Haematology
+  • Therapy
+  • Arterial Pressors
+  • Systemic Hypotension
+  • Demographic Data
+  • Evidence of Hypoxia
+  • Secondary Insult
+  • Arterial Hypotension
+  • Intracranial Hypertension
+  • Acute Respiratory Distress Syndrome
+  • Brain Injury
+  • Treatment Data
+  • Outcome Data
+  • Core Monitoring Parameter
+  • Optional Monitoring Parameter
+  • Baseline Therapy
+  • Condition
+  • Outcome
+  • Electrocardiogram (ECG)
+  • Bedside Monitoring
+  • EtCO2
+  • SaO2
+
+--- Relations ---
+  • has monitoring data(Patient → Monitoring Data)
+  • has monitoring data(Patient → Intracranial Pressure)
+  • assesses(Patient → GCS Assessment)
+  • assesses(Patient → GOSe Outcome)
+  • has monitoring data(Monitoring Data → Intracranial Pressure)
+  • has monitoring data(Monitoring Data → Transcranial Doppler)
+  • targets condition(Intensive Care Management → GCS Assessment)
+  • targets condition(Intensive Care Management → Pupil Assessment)
+  • targets condition(Intensive Care Management → Ventilation Settings)
+  • targets condition(Intensive Care Management → Sedation)
+  • targets condition(Intensive Care Management → Fluids)
+  • targets condition(Intensive Care Management → Vasopressors)
+  • targets(Therapy → Systemic Hypotension)
+  • targets(Therapy → Cerebral Perfusion Pressure)
+  • targets condition(Therapy → Condition)
+  • monitors condition(Monitoring Data → Secondary Insult)
+  • has outcome(Patient → Outcome Data)
+  • has clinical assessment(Patient → GCS Assessment)
+  • has monitoring data(Monitoring Data → Cerebral Perfusion Pressure)
+  • has clinical assessment(Patient → GOSe Outcome)
+
+--- Hierarchy (subclass → superclass) ---
+  • GCS Assessment ⊑ Intensive Care Management
+  • Secondary Insult ⊑ Condition
+  • Intracranial Hypertension ⊑ Secondary Insult
+  • Arterial Hypotension ⊑ Secondary Insult
+  • Patient ⊑ Secondary Insult
+  • Systemic Hypotension ⊑ Secondary Insult
+  • Baseline Therapy ⊑ Therapy
+  • Ventilation Settings ⊑ Baseline Therapy
+  • Sedation ⊑ Baseline Therapy
+  • Traumatic Brain Injury ⊑ Condition
+  • Acute Respiratory Distress Syndrome ⊑ Secondary Insult
+  • Brain Injury ⊑ Traumatic Brain Injury
+  • Head Injury ⊑ Traumatic Brain Injury
+  • Secondary Insult ⊑ Traumatic Brain Injury
+  • GOSe Outcome ⊑ Outcome
+  • Routine Nursing ⊑ Intensive Care Management
+  • Physiotherapy ⊑ Intensive Care Management
+  • Therapy ⊑ Intensive Care Management
+  • Fluids ⊑ Baseline Therapy
+  • Vasopressors ⊑ Baseline Therapy
+  • Arterial Pressors ⊑ Baseline Therapy
+  • SaO2 ⊑ Monitoring Data
+  • Blood Gases ⊑ Biochemistry
+  • Daily Laboratory Values ⊑ Monitoring Data

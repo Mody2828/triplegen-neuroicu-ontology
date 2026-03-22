@@ -1,0 +1,347 @@
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing the EXACT, verbatim sentence fragment from the text.
+
+3. **Extraction Scope:** Extract clinical and biomedical content: conditions, physiological parameters, monitoring variables, treatments/therapies/interventions, outcomes, assessments, laboratory values, nursing interventions, surgical procedures, and clinical dataset categories when explicitly named.
+   Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+   If a sentence or paragraph is mainly about these excluded topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+6. **Label Mapping Rule:** If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+   Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+   For other abbreviations, expand to their full clinical name as used in the text.
+
+7. **Structural Completeness Rule:** When the text mentions specific clinical items, also extract their general category if the text supports it.
+   For example, if the text discusses 'ventilation, sedation, fluids' as therapies, also extract the general class 'Therapy' or 'Baseline Therapy' if the text uses that grouping.
+   Use the text's own categories and groupings — do not impose an external hierarchy.
+
+**Default priority: classes first, then relations.** Extract relations when the text clearly states a connection between two concepts — both domain and range must be extracted classes. If a phase instruction below overrides this priority, follow the phase instruction.
+
+**Completeness:** Extract every distinct clinical concept the text names — err on the side of inclusion when evidence exists.
+
+### CURRENT TASK: Phase 1 — COMPREHENSIVE CLASS EXTRACTION
+Extract all clinical and biomedical classes mentioned in the text.
+
+### CHAIN-OF-THOUGHT (follow these steps before producing output)
+1. Read each paragraph and identify every clinical noun phrase (conditions, parameters, therapies, assessments, outcomes, devices, data categories).
+2. For each candidate, classify it: Is it a clinical condition? A physiological parameter? A treatment? An assessment? A laboratory value? A nursing intervention? A data category? A device or sensor?
+3. Check: does the text provide a verbatim phrase you can cite as evidence?
+4. If yes, include it. If the concept is purely organisational, governance, or publication metadata, skip it.
+
+### CONCEPT TYPES TO LOOK FOR
+  - Clinical conditions, diseases, injuries, syndromes, secondary insults
+  - Physiological parameters and monitoring variables (e.g. ICP, MAP, HR, SpO2)
+  - Treatments, therapies, interventions, drugs, medications
+  - Surgical procedures and clinical procedures
+  - Clinical assessments, scores, and scales (e.g. GCS, GOSe, pupil assessment)
+  - Patient outcomes and outcome measures
+  - Laboratory values and test categories (e.g. blood gases, biochemistry)
+  - Nursing interventions and bedside care (e.g. suctioning, sedation)
+  - Medical devices and sensors
+  - Data categories and abstract grouping classes (e.g. Monitoring Data, Therapy, Condition, Outcome, Core Monitoring Parameter, Optional Monitoring Parameter, Baseline Therapy, Demographic Data, Admission Data, Treatment Data, Outcome Data)
+  - Clinical guidelines and management protocols
+
+### LABEL GUIDANCE
+  - Use short, clean noun-phrase labels.
+  - Expand common abbreviations: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+  - For other abbreviations, expand to their full clinical name.
+
+### STRUCTURAL COMPLETENESS
+When the text mentions specific clinical items, also extract their general category if the text supports it. Use the text's own categories and groupings. For example, if the text lists 'heart rate, ICP, MAP' under 'core monitoring parameters', extract BOTH the individual parameters AND 'Core Monitoring Parameter' as a class.
+
+### EXTRACTION PRINCIPLE
+Extract every clinical concept the text explicitly names. Do not invent concepts not present in the text. Each concept needs a verbatim evidence quote from the source.
+
+### SELF-CHECK (before finalising output)
+- Is every label a clinical TYPE (not an instance or a person's name)?
+- Are there any duplicate or synonym labels? Merge them.
+- Does every evidence field contain a verbatim quote from the text?
+
+Output JSON with keys classes, relations, hierarchy. Set relations and hierarchy to empty arrays.
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+**REASONING STEP:** Before producing JSON, mentally scan the text for: (1) every named clinical concept, (2) explicit relations between them, (3) hierarchy cues (such as, is a, type of, include:). Then output only items with verbatim evidence.
+
+---
+--- Retrieved examples (3) ---
+
+Text: This is the minimum minute by minute monitoring data required for inclusion in the BrainIT Database and include: Heart Rate (specifying source: ECG or Pulse Oximetry), Respiration Rate (sources: impedance plethmography or ventilator), Mean Arterial Pressure, mean ICP, Pulse Oximetry (SaO2) and Temperature (sources: rectal=oesophageal= bladder=skin.) However, additional variables: Central Venous Pressure (CVP), EtCO2, SjO2, TCD, PbrO2, Brain Temperature, Microdialysis. . . will also be included in the database if they are monitored, in a given patient, as part of their usual clinical management.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate (specifying source: ECG or Pulse Oximetry)"
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate (sources: impedance plethmography or ventilator)"
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "Mean Arterial Pressure"
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "mean ICP"
+    },
+    {
+      "label": "SaO2",
+      "evidence": "Pulse Oximetry (SaO2)"
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature (sources: rectal=oesophageal= bladder=skin.)"
+    },
+    {
+      "label": "CVP",
+      "evidence": "Central Venous Pressure (CVP)"
+    },
+    {
+      "label": "EtCO2",
+      "evidence": "EtCO2"
+    },
+    {
+      "label": "SjO2",
+      "evidence": "SjO2"
+    },
+    {
+      "label": "TCD",
+      "evidence": "TCD"
+    },
+    {
+      "label": "PbrO2",
+      "evidence": "PbrO2"
+    },
+    {
+      "label": "Brain Temperature",
+      "evidence": "Brain Temperature"
+    },
+    {
+      "label": "Microdialysis",
+      "evidence": "Microdialysis"
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+
+Text: For the TBI domain, we used data consisting of 37 patients, 595,439 distinct timepoints, 4,467,949 observations for 14 parameters. In both domains, data is collected every minute. For the Medical Disorders rule, we created specific queries for hypotension and hypertension; and for the Treatments rule, queries for effects of noradrenaline and adrenaline.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Patient",
+      "evidence": "37 patients"
+    },
+    {
+      "label": "Timepoint",
+      "evidence": "595,439 distinct timepoints"
+    },
+    {
+      "label": "Observation",
+      "evidence": "4,467,949 observations"
+    },
+    {
+      "label": "Parameter",
+      "evidence": "observations for 14 parameters"
+    },
+    {
+      "label": "Monitoring Data",
+      "evidence": "observations for 14 parameters"
+    },
+    {
+      "label": "Condition",
+      "evidence": "hypotension and hypertension"
+    },
+    {
+      "label": "Hypotension",
+      "evidence": "hypotension"
+    },
+    {
+      "label": "Hypertension",
+      "evidence": "hypertension"
+    },
+    {
+      "label": "Noradrenaline",
+      "evidence": "effects of noradrenaline"
+    },
+    {
+      "label": "Adrenaline",
+      "evidence": "effects of noradrenaline and adrenaline"
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+
+Text: Intensive care management information. Types of data include: GCS scores, pupil scores, ventilation settings, sedation levels, fluid input and output, nutrition, use of vasopressors, antibiotics. Routine blood gases and daily laboratory values will also be recorded – Biochemistry (Na, K+, Glucose), Haematology (Haemoglobin, White Cell Count, Haematocrit).
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Intensive Care Management",
+      "evidence": "Intensive care management information"
+    },
+    {
+      "label": "GCS Assessment",
+      "evidence": "GCS scores"
+    },
+    {
+      "label": "Pupil Assessment",
+      "evidence": "pupil scores"
+    },
+    {
+      "label": "Ventilation",
+      "evidence": "ventilation settings"
+    },
+    {
+      "label": "Sedation",
+      "evidence": "sedation levels"
+    },
+    {
+      "label": "Fluids",
+      "evidence": "fluid input and output"
+    },
+    {
+      "label": "Nutrition",
+      "evidence": "nutrition"
+    },
+    {
+      "label": "Vasopressors",
+      "evidence": "use of vasopressors"
+    },
+    {
+      "label": "Antibiotics",
+      "evidence": "antibiotics"
+    },
+    {
+      "label": "Laboratory Values",
+      "evidence": "daily laboratory values"
+    },
+    {
+      "label": "Blood Gases",
+      "evidence": "Routine blood gases"
+    },
+    {
+      "label": "Biochemistry",
+      "evidence": "Biochemistry (Na, K+, Glucose)"
+    },
+    {
+      "label": "Haematology",
+      "evidence": "Haematology (Haemoglobin, White Cell Count, Haematocrit)"
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+TEXT TO ANALYZE:
+RDF also provides a common representational formalism, allowing
+data to be provided in a proprietary format, e.g. database or spreadsheet. Trusting Intensive Care Unit (ICU) Medical Data 71
+
+Name Details of Rule Conclusion
+Missing If, for every sequential pair of readings, the time period PrE
+Data 3 between them does not equal the sampling rate
+Acceptable If the recorded value is less than the min. acceptable value PrE
+Range 1
+Acceptable If the recorded value is greater than the max. acceptable PrE
+Range 2 value
+Acceptable If an accuracy value (defining a +/- value or %) is PoE
+Range 3 associated with the sensor AND the recorded value minus
+accuracy value is below the min. acceptable value
+Acceptable If an accuracy value (defining a +/- value or %) is No longer an
+Range 4 associated with the sensor AND the recorded value plus the error
+accuracy value is above the min. acceptable value
+Acceptable If an accuracy value (defining a +/- value or %) is PoE
+Range 5 associated with the sensor AND the recorded value plus the
+accuracy value is above the max. acceptable value
+Medical If the recorded value is outwith its acceptable range AND Reclassify
+Disorders is associated with a symptom of a disorder, AND at the from PrE to
+Rule 1 same time other symptoms associated with the disorder PoE
+Treatments If the recorded value is outwith its acceptable range AND Reclassify
+Rule 1 is associated with an effect of a treatment AND that from PrE to
+treatment was administered previous to that value PoE
+
+3 Evaluation
+
+We have applied our framework to data taken from two types of ICUs: general
+medical and traumatic brain injury (TBI)2 . In both cases, time series physiological data was collected from patient monitoring equipment, but the machines
+used, parameters recorded, and frequency of data collection differs. We were able
+to reuse the same clinical domain ontology for both evaluations. For the Medical
+Disorders rule, we created specific queries for hypotension and hypertension; and
+for the Treatments rule, queries for effects of noradrenaline and adrenaline.
+For the Traumatic Brain Injury (TBI) domain, we used data consisting of 37 patients, 595,439 distinct
+timepoints, 4,467,949 observations for 14 parameters, and the resulting RDF
+consists of 52,093,104 triples. Glasgow Royal Infirmary's (GRI) general medical
+Trusting Intensive Care Unit (ICU) dataset consisted of 209 patients, 68,142 distinct timepoints, 687,393 observations for 14 parameters, and the resulting RDF consists of 41,819,163 triples.
+In both domains, data is collected every minute, exported every minute in the
+Traumatic Brain Injury (TBI) domain, and exported hourly in the GRI domain; the machine recording
+and export configuration tools were set accordingly.
+Missing Data Rule 3 found 27,002 (≥0.6%) and 64,307 (≥9.4%) sequences
+of missing data points for the Traumatic Brain Injury (TBI) and GRI datasets respectively. In the Traumatic Brain Injury (TBI)
+dataset, 376,389 (9.4%) values were found to be less than the min. acceptable for
+a parameter, and 1,386,262 (31%) were found to be higher than the max.; when
+Further evaluation results are available at: http://www.abdn.ac.uk/~ csc316
+
+72 L. Moss et al.
+
+sensor accuracies were considered 18,839 additional errors were found and 19,604
+of the original errors removed. In the GRI dataset, 129,716 (18.9%) values were
+found to be less than the min. acceptable for a parameter, and 189,601 (27.6%)
+were found to be higher than the max.; when sensor accuracies were considered
+272,357 additional errors were found and 159,219 of the original errors removed.
+In the GRI dataset, a number of readings identified by Acceptable Range Rules
+1 & 2 may have been affected by hypertension (91%), hypotension (85.6%),
+noradrenaline (24.2%) and adrenaline (6.7%)3 . A number of Traumatic Brain Injury (TBI) values may
+also be affected by hypertension (92.1%) and hypotension (80.5%).
+
+4 Discussion and Future Work
+We have shown that our approach can be successfully applied to assess medical
+data and illustrates the benefit of additional contextual information provided by
+linking data. Using a simple approach, a large number of acceptable range errors
+are identified; however, when the context of the data is considered, many are reclassified or new errors are identified. In the future we plan to investigate: further
+context dependent rules; detection of interventions that have been carried out on
+a patient but not recorded; and using High Performance Computing to improve
+performance times, e.g. it took 2 hours 8 mins to apply the Medical Disorders
+rules which clearly would not be practical if used regularly in a clinical setting.
+
+Acknowledgements. The staff and patients of the Trusting Intensive Care Unit (ICU) Unit, GRI. This work
+was an extension of the routine audit process in GRI's Trusting Intensive Care Unit (ICU); requirements for
+further Ethical Committee Approval have been waved. The authors would like
+centres to the BrainIT dataset.
+---

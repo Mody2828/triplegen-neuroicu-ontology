@@ -1,0 +1,1444 @@
+{% extends "base.html" %}
+
+{% block title %}Run comparison · TripleGen{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+{% endblock %}
+
+{% block content %}
+<style>
+  #comparison-runs-table tbody tr:hover { background-color: var(--tg-surface-hover); }
+  /* Result modal: needs readable text on dark glass background */
+  #compResultModalBody { color: var(--tg-text); }
+  #compResultModalBody pre { color: var(--tg-text-secondary); background: rgba(4,10,26,0.7); border: 1px solid var(--tg-border); padding: 0.75rem; border-radius: var(--tg-radius-sm); }
+  /* Analysis modals */
+  #compAnalysisModalBody { color: var(--tg-text); }
+  #compAnalysisModalBody .table { color: var(--tg-text-secondary); }
+  #compAnalysisModalBody h6 { color: var(--tg-text); }
+  #compSelectedAnalyzeModalBody { color: var(--tg-text); }
+  #compSelectedAnalyzeModalBody .table { color: var(--tg-text-secondary); }
+  #compSelectedAnalyzeModalBody h6 { color: var(--tg-text); }
+  /* Chart areas — glass panels using theme variables */
+  #compAnalysisChartWrap,
+  #compSelectedAnalyzeChartWrap,
+  #compAnalyzeScatterWrap,
+  #compAnalyzeTopBarWrap {
+    background: var(--tg-glass-bg);
+    backdrop-filter: blur(var(--tg-blur-sm));
+    color: var(--tg-text);
+    padding: 0.75rem;
+    border-radius: var(--tg-radius-sm);
+    border: 1px solid var(--tg-border);
+    box-shadow: var(--tg-inner-glow);
+  }
+  #compAnalysisChartWrap { height: 220px; margin-bottom: 1rem; }
+  #compSelectedAnalyzeChartWrap { height: 220px; margin-bottom: 1rem; }
+  #compSelectedAnalyzeChartWrap.chart-many-runs { height: 420px; }
+  #compAnalyzeScatterWrap { height: 320px; margin-bottom: 1rem; }
+  #compAnalyzeTopBarWrap { height: 380px; margin-bottom: 1rem; }
+  /* Summary cards — theme-aligned */
+  .comp-analyze-dashboard .summary-card { min-width: 10rem; background: var(--tg-surface); border: 1px solid var(--tg-border); color: var(--tg-text); border-radius: var(--tg-radius-sm); }
+  .comp-analyze-dashboard .summary-card .small { color: var(--tg-text-secondary); }
+  .comp-analyze-dashboard .summary-card .small.text-muted { color: var(--tg-text); font-weight: 600; }
+  .comp-analyze-dashboard .summary-card .fw-bold { color: var(--tg-text); }
+  .comp-analyze-dashboard .summary-card.border-success { border-color: var(--tg-eval); box-shadow: 0 0 14px var(--tg-eval-glow); }
+  .comp-analyze-dashboard .summary-card.border-primary { border-color: var(--tg-accent-1); box-shadow: 0 0 14px var(--tg-accent-glow); }
+  .comp-analyze-dashboard .summary-card.border-warning { border-color: var(--tg-warning); box-shadow: 0 0 14px var(--tg-llm-glow); }
+  .comp-analyze-dashboard .summary-card:not(.border-success):not(.border-primary):not(.border-warning) { border-color: var(--tg-property); box-shadow: 0 0 14px var(--tg-property-glow); }
+  .comp-run-name { max-width: 20rem; font-size: 0.8rem; word-break: break-word; }
+  .comp-analyze-dashboard .table th { cursor: pointer; user-select: none; white-space: nowrap; }
+  .comp-analyze-dashboard .table th:hover { background: var(--tg-surface-hover); color: var(--tg-accent-1); }
+  .comp-analyze-dashboard .table th[data-sort-dir]:after { margin-left: 0.25rem; opacity: .8; }
+  .comp-analyze-dashboard .table th[data-sort-dir="asc"]:after { content: "\2191"; }
+  .comp-analyze-dashboard .table th[data-sort-dir="desc"]:after { content: "\2193"; }
+  /* Analysis modal tables — dark glass */
+  #compAnalysisModalBody .table,
+  #compSelectedAnalyzeModalBody .table {
+    background: var(--tg-surface);
+    color: var(--tg-text-secondary);
+    border-color: var(--tg-border);
+  }
+  #compAnalysisModalBody .table th,
+  #compSelectedAnalyzeModalBody .table th {
+    color: var(--tg-text);
+    background: var(--tg-glass-bg-strong);
+    border-color: var(--tg-border);
+    font-weight: 700;
+  }
+  #compAnalysisModalBody .table td,
+  #compSelectedAnalyzeModalBody .table td { border-color: var(--tg-border); }
+  #compAnalysisModalBody .table .badge.bg-success,
+  #compSelectedAnalyzeModalBody .table .badge.bg-success { background: var(--tg-eval) !important; color: #051020; }
+  #compAnalysisModalBody .btn-outline-tech,
+  #compSelectedAnalyzeModalBody .btn-outline-tech { border-color: var(--tg-accent-1); color: var(--tg-accent-1); }
+  #compAnalysisModalBody .btn-outline-tech:hover,
+  #compSelectedAnalyzeModalBody .btn-outline-tech:hover { background: var(--tg-accent-glow); color: var(--tg-text); }
+  #compSelectedAnalyzeModalBody .comp-analyze-dashboard .form-control { background: var(--tg-surface); border-color: var(--tg-border); color: var(--tg-text); }
+  #compSelectedAnalyzeModalBody .comp-analyze-dashboard .form-control::placeholder { color: var(--tg-text-secondary); }
+  #compSelectedAnalyzeModalBody .comp-analyze-dashboard .btn-outline-secondary { border-color: var(--tg-border-mid); color: var(--tg-text-secondary); }
+  #compSelectedAnalyzeModalBody .comp-analyze-dashboard .btn-outline-secondary:hover,
+  #compSelectedAnalyzeModalBody .comp-analyze-dashboard .btn-outline-secondary.active { background: var(--tg-surface-hover); color: var(--tg-text); border-color: var(--tg-accent-1); }
+  /* Responsive: Last result & analysis modals — scroll and wrap on small screens */
+  #compResultModalBody pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+  @media (max-width: 575.98px) {
+    #compResultModal .modal-footer,
+    #compAnalysisModal .modal-footer,
+    #compSelectedAnalyzeModal .modal-footer {
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    #compResultModal .modal-footer .me-auto { margin-right: 0 !important; }
+    #compResultModal .modal-footer .btn,
+    #compAnalysisModal .modal-footer .btn,
+    #compSelectedAnalyzeModal .modal-footer .btn {
+      flex: 1 1 auto;
+      min-width: 8rem;
+    }
+    #compResultModalBody,
+    #compAnalysisModalBody,
+    #compSelectedAnalyzeModalBody {
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+</style>
+<div class="page-hero">
+  <h1 class="mb-0"><i class="bi bi-columns-gap tg-semantic-eval"></i> Run comparison</h1>
+  <p class="mb-0 mt-1 text-muted">Configure runs below, add them to the list, then run the batch. Same corpus and LLM provider for all runs; each run has its own prompting, enhancements, and optional Reasoning LLM.</p>
+</div>
+
+{% if error %}
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+  <i class="bi bi-exclamation-circle me-2"></i>{{ error }}
+  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+
+<form id="comparison-form" method="post" action="{{ url_for('run_comparison') }}" enctype="multipart/form-data">
+  <input type="hidden" name="from_page" value="comparison_dashboard">
+  <input type="hidden" name="comparison_runs" id="comparison_runs" value="">
+
+  <div class="card mb-4">
+    <div class="card-header tg-card-corpus">
+      <i class="bi bi-file-text"></i> Corpus input
+    </div>
+    <div class="card-body">
+      <div class="mb-3">
+        <div class="form-check mb-2">
+          <input type="checkbox" class="form-check-input" name="use_default_paper" id="comp_use_default_paper" checked>
+          <label class="form-check-label" for="comp_use_default_paper">Use default paper</label>
+        </div>
+        <label class="form-label">Input method</label>
+        <div class="btn-group w-100" role="group" aria-label="Input method">
+          <input type="radio" class="btn-check" name="input_method" id="comp_input_paste" value="paste" checked>
+          <label class="btn btn-outline-primary" for="comp_input_paste"><i class="bi bi-clipboard"></i> Paste text</label>
+          <input type="radio" class="btn-check" name="input_method" id="comp_input_upload" value="upload">
+          <label class="btn btn-outline-primary" for="comp_input_upload"><i class="bi bi-upload"></i> Upload file</label>
+        </div>
+      </div>
+      <div id="comp_paste_section">
+        <label for="comp_text_input" class="form-label">Paste Neuro-ICU / BrainIT corpus text</label>
+        <textarea id="comp_text_input" name="text_input" class="form-control" rows="8" placeholder=""></textarea>
+        <div class="mt-2">
+          <label for="comp_paper_name" class="form-label small text-muted mb-1">
+            <i class="bi bi-tag"></i> Paper title <span class="fw-light">(optional — shown in run summaries)</span>
+          </label>
+          <input type="text" id="comp_paper_name" name="paper_name" class="form-control form-control-sm"
+                 placeholder="e.g. BrainIT 2003 core dataset">
+        </div>
+      </div>
+      <div id="comp_upload_section" style="display: none;">
+        <label for="comp_file_input" class="form-label">Upload one or more papers (.txt or .pdf)</label>
+        <input type="file" id="comp_file_input" name="file_input" class="form-control" accept=".txt,.pdf" multiple>
+      </div>
+    </div>
+  </div>
+
+  <!-- Run configuration (mirrors Run experiment design: strategy + 4-mode pipeline + LLM + eval + advanced) -->
+  <div class="card mb-4">
+    <div class="card-header tg-card-config">
+      <i class="bi bi-gear-wide-connected"></i> Run configuration
+    </div>
+    <div class="card-body">
+
+      <!-- Hidden flag inputs set by pipeline mode JS -->
+      <input type="hidden" id="comp_hid_scope_filter"            value="on">
+      <input type="hidden" id="comp_hid_prompt_vocab_guardrails" value="on">
+      <input type="hidden" id="comp_hid_candidate_terms"         value="">
+      <input type="hidden" id="comp_hid_medical_ner_anchor"      value="">
+      <input type="hidden" id="comp_hid_schema_guided_completion" value="">
+      <input type="hidden" id="comp_hid_symbolic_reasoner"       value="">
+      <input type="hidden" id="comp_improvements_llm_provider"   value="openai">
+      <input type="hidden" id="comp_improvements_llm_model"      value="">
+      <input type="hidden" id="comp_llm_model"                   value="gpt-4o-mini">
+      <input type="hidden" id="comp_hid_paper_id"                value="">
+
+      <div class="row g-4">
+
+        <!-- ── Prompting method ── -->
+        <div class="col-12">
+          <div class="fw-semibold mb-2 section-title-gradient">
+            <i class="bi bi-sliders me-2 icon-gradient-accent"></i>Prompting method
+          </div>
+          <select id="comp_add_strategy" class="visually-hidden">
+            <option value="">Select…</option>
+            <option value="baseline">baseline</option>
+            <option value="one_shot">one_shot</option>
+            <option value="phased_3step" selected>phased_3step</option>
+          </select>
+          <div id="comp_add_strategy_switches" class="pt-1 d-flex flex-wrap gap-3" role="group">
+            <div class="form-check form-check-inline">
+              <input class="form-check-input comp-add-strategy" type="radio" name="comp_add_strategy_r" id="comp_add_s_baseline" value="baseline">
+              <label class="form-check-label" for="comp_add_s_baseline">Zero-Shot</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input comp-add-strategy" type="radio" name="comp_add_strategy_r" id="comp_add_s_one_shot" value="one_shot">
+              <label class="form-check-label" for="comp_add_s_one_shot">One-Shot</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input comp-add-strategy" type="radio" name="comp_add_strategy_r" id="comp_add_s_phased_3step" value="phased_3step" checked>
+              <label class="form-check-label" for="comp_add_s_phased_3step">Few-Shot</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Pipeline mode ── -->
+        <div class="col-12">
+          <div class="fw-semibold mb-2 section-title-gradient">
+            <i class="bi bi-layers me-2 icon-gradient-accent"></i>Pipeline mode
+          </div>
+          <div id="comp-pipeline-mode-group" class="d-flex flex-wrap gap-2" role="group" aria-label="Pipeline mode">
+            <label class="comp-pipeline-mode-card" data-mode="1" for="comp_pm_1" tabindex="0" role="button">
+              <input type="radio" class="comp-pipeline-mode-radio visually-hidden" name="comp_pipeline_mode_ui" id="comp_pm_1" value="1">
+              <span class="pm-num-sm">1</span>
+              <span class="pm-title-sm">Strict</span>
+            </label>
+            <label class="comp-pipeline-mode-card" data-mode="2" for="comp_pm_2" tabindex="0" role="button">
+              <input type="radio" class="comp-pipeline-mode-radio visually-hidden" name="comp_pipeline_mode_ui" id="comp_pm_2" value="2">
+              <span class="pm-num-sm">2</span>
+              <span class="pm-title-sm">Guided</span>
+            </label>
+            <label class="comp-pipeline-mode-card comp-pm-active" data-mode="3" for="comp_pm_3" tabindex="0" role="button">
+              <input type="radio" class="comp-pipeline-mode-radio visually-hidden" name="comp_pipeline_mode_ui" id="comp_pm_3" value="3" checked>
+              <span class="pm-num-sm">3</span>
+              <span class="pm-title-sm">Schema-Completed</span>
+            </label>
+          </div>
+          <div class="text-muted mt-2" style="font-size:0.72rem;">
+            1: Scope+Vocab · 2: +Candidates+M.NER · 3: +Schema-guided+Rule-based · Text-grounded completion runs in all modes
+          </div>
+        </div>
+
+        <!-- ── Paper selection ── -->
+        <div class="col-12">
+          <div class="fw-semibold mb-2 section-title-gradient">
+            <i class="bi bi-journal-richtext me-2 icon-gradient-accent"></i>Paper
+          </div>
+          <select id="comp_paper_select" class="form-select form-select-sm" style="max-width: 22rem;">
+            <option value="">Default corpus (paste / upload / default)</option>
+            {% for p in paper_options %}
+            <option value="{{ p.id }}">{{ p.label }}</option>
+            {% endfor %}
+          </select>
+          <div class="text-muted mt-1" style="font-size:0.72rem;">
+            Select a BrainIT paper to use for this run, or leave as "Default" to use the shared corpus input above.
+          </div>
+        </div>
+
+        <!-- ── LLM provider ── -->
+        <div class="col-12">
+          <div class="fw-semibold mb-2 section-title-gradient">
+            <i class="bi bi-cpu me-2 icon-gradient-accent"></i>LLM provider
+          </div>
+          <select id="comp_llm_provider" class="visually-hidden">
+            <option value="openai" selected>openai</option>
+            <option value="anthropic">anthropic</option>
+            <option value="google">google</option>
+            <option value="groq">groq</option>
+            <option value="huggingface">huggingface</option>
+            <option value="deepseek">deepseek</option>
+          </select>
+          <div class="pt-1 d-flex flex-wrap gap-3" role="group" aria-label="LLM provider">
+            <div class="form-check form-check-inline">
+              <input class="form-check-input comp-llm-provider-radio" type="radio" name="comp_llm_provider_r" id="comp_llm_provider_openai" value="openai" data-model="gpt-4o-mini" checked>
+              <label class="form-check-label" for="comp_llm_provider_openai">GPT‑4o‑mini</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input comp-llm-provider-radio" type="radio" name="comp_llm_provider_r" id="comp_llm_provider_openai4o" value="openai" data-model="gpt-4o">
+              <label class="form-check-label" for="comp_llm_provider_openai4o">GPT‑4o</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input comp-llm-provider-radio" type="radio" name="comp_llm_provider_r" id="comp_llm_provider_anthropic" value="anthropic" data-model="claude-haiku-4-5">
+              <label class="form-check-label" for="comp_llm_provider_anthropic">Claude Haiku 4.5</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input comp-llm-provider-radio" type="radio" name="comp_llm_provider_r" id="comp_llm_provider_google" value="google" data-model="gemini-2.0-flash">
+              <label class="form-check-label" for="comp_llm_provider_google">Gemini 2.0 Flash</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input comp-llm-provider-radio" type="radio" name="comp_llm_provider_r" id="comp_llm_provider_groq" value="groq" data-model="llama-3.1-8b-instant">
+              <label class="form-check-label" for="comp_llm_provider_groq">Llama 3.1 8B</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input comp-llm-provider-radio" type="radio" name="comp_llm_provider_r" id="comp_llm_provider_huggingface" value="huggingface" data-model="mistralai/Mistral-7B-Instruct-v0.1">
+              <label class="form-check-label" for="comp_llm_provider_huggingface">Mistral 7B</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input comp-llm-provider-radio" type="radio" name="comp_llm_provider_r" id="comp_llm_provider_deepseek" value="deepseek" data-model="deepseek-chat">
+              <label class="form-check-label" for="comp_llm_provider_deepseek">DeepSeek‑V3</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Evaluation settings ── -->
+        <div class="col-12">
+          <div class="fw-semibold mb-2 section-title-gradient">
+            <i class="bi bi-clipboard-data me-2 icon-gradient-accent"></i>Evaluation settings
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" id="comp_eval_restrict_to_gold" value="on" checked>
+            <label class="form-check-label" for="comp_eval_restrict_to_gold">Gold-vocabulary-only</label>
+          </div>
+        </div>
+
+        <!-- ── Advanced / Experimental ── -->
+        <div class="col-12">
+          <button type="button" class="cfg-help-btn w-100 justify-content-between px-0" id="comp-adv-toggle" aria-expanded="false" aria-controls="comp-adv-panel">
+            <span><i class="bi bi-gear me-1"></i>Advanced / Experimental</span>
+            <i class="bi bi-chevron-down comp-adv-chevron" style="font-size:0.75rem;transition:transform 0.2s ease;"></i>
+          </button>
+          <div id="comp-adv-panel" style="max-height:0;overflow:hidden;transition:max-height 0.3s ease;">
+            <div class="pt-3">
+              <div class="fw-semibold mb-2" style="font-size:0.8rem;color:var(--tg-text-secondary);">
+                <i class="bi bi-lightning-charge me-1"></i>Reasoning LLM <span style="font-size:0.7rem;">(for Modes 3 &amp; 4)</span>
+              </div>
+              <div class="d-flex flex-wrap gap-3">
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input comp-add-reasoning-llm" type="radio" name="comp_add_reasoning_llm" id="comp_add_rl_openai" data-provider="openai" data-model="" checked>
+                  <label class="form-check-label" for="comp_add_rl_openai">OpenAI (GPT‑4o‑mini) <span class="badge bg-secondary ms-1" style="font-size:0.6rem;">default</span></label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input comp-add-reasoning-llm" type="radio" name="comp_add_reasoning_llm" id="comp_add_rl_openai4o" data-provider="openai" data-model="gpt-4o">
+                  <label class="form-check-label" for="comp_add_rl_openai4o">OpenAI (GPT‑4o)</label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input comp-add-reasoning-llm" type="radio" name="comp_add_reasoning_llm" id="comp_add_rl_deepseek" data-provider="deepseek" data-model="deepseek-reasoner">
+                  <label class="form-check-label" for="comp_add_rl_deepseek">DeepSeek Reasoner</label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /.row -->
+
+      <div class="mt-3 pt-3 border-top d-flex flex-wrap align-items-center gap-2">
+        <button type="button" class="btn btn-primary" id="comp-add-run-btn">
+          <i class="bi bi-plus-lg me-2"></i>Add run
+        </button>
+        <button type="button" class="btn btn-outline-secondary" id="comp-reset-config-btn" title="Reset to defaults">
+          <i class="bi bi-arrow-counterclockwise me-2"></i>Reset
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pipeline mode card styles (compact for comparison dashboard) -->
+  <style>
+    .comp-pipeline-mode-card {
+      display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;
+      padding: 0.4rem 0.65rem; border: 1px solid var(--tg-border); border-radius: var(--tg-radius-sm);
+      background: rgba(255,255,255,0.03);
+      transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
+      user-select: none;
+    }
+    .comp-pipeline-mode-card:hover { border-color: rgba(34,211,238,0.4); background: rgba(34,211,238,0.06); }
+    .comp-pipeline-mode-card:has(.comp-pipeline-mode-radio:checked),
+    .comp-pipeline-mode-card.comp-pm-active:has(.comp-pipeline-mode-radio:checked) {
+      border-color: var(--tg-accent-1); background: rgba(34,211,238,0.1);
+      box-shadow: 0 0 0 1px var(--tg-accent-1) inset;
+    }
+    .pm-num-sm {
+      width: 1.2rem; height: 1.2rem; min-width: 1.2rem;
+      border-radius: 50%; background: rgba(34,211,238,0.12);
+      color: var(--tg-accent-1); font-size: 0.65rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .comp-pipeline-mode-card:has(.comp-pipeline-mode-radio:checked) .pm-num-sm {
+      background: var(--tg-accent-1); color: #0d1117;
+    }
+    .pm-title-sm { font-size: 0.8rem; font-weight: 600; color: var(--tg-text); }
+  </style>
+
+  <div class="card mb-4">
+    <div class="card-header tg-card-eval">
+      <i class="bi bi-list-check"></i> Run configurations
+    </div>
+    <div class="card-body">
+      <p class="text-muted small mb-3">Runs you added. Each run uses the same corpus, LLM model, and Improvements (set in Run configuration above). Use "Add run" to append a configuration. Remove rows you do not need.</p>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" id="comparison-runs-table">
+          <thead>
+            <tr class="text-muted small">
+              <th style="width: 2.5rem;"><input type="checkbox" class="form-check-input" id="comp-select-all-runs" title="Select all"></th>
+              <th style="width: 2rem;">#</th>
+              <th>Run name</th>
+              <th>Strategy</th>
+              <th>Pipeline mode</th>
+              <th>LLM</th>
+              <th>Eval settings</th>
+              <th>Advanced</th>
+              <th>Paper</th>
+              <th style="width: 8rem;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="comparison-runs-tbody">
+          </tbody>
+          <tfoot>
+            <tr class="text-muted small">
+              <th style="width: 2.5rem;"><input type="checkbox" class="form-check-input" id="comp-select-all-runs-bottom" title="Select all"></th>
+              <th colspan="9"></th><!-- 9 cols: #, run name, strategy, mode, llm, eval, advanced, paper, actions -->
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <p class="text-muted small mt-2 mb-0" id="comp-runs-empty-msg">No runs yet. Configure options above and click "Add run".</p>
+      <div class="d-flex align-items-center mt-3 gap-3 flex-wrap">
+        <button type="submit" class="btn btn-run" id="comp-run-selected-btn">
+          <i class="bi bi-play-fill me-2"></i>Run selected
+        </button>
+        <button type="button" class="btn btn-outline-primary" id="comp-analyze-selected-btn" title="Compare last result of each selected run">
+          <i class="bi bi-graph-up-arrow me-2"></i>Analyze selected
+        </button>
+        <span class="text-muted small" id="comp-selected-count">0 selected</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <div><i class="bi bi-award"></i> Gold standard</div>
+      <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#compGoldCollapse" aria-expanded="false">
+        <i class="bi bi-chevron-down"></i>
+      </button>
+    </div>
+    <div id="compGoldCollapse" class="collapse">
+      <div class="card-body">
+        <label for="comp_gold_mode" class="form-label">Mode</label>
+        <select id="comp_gold_mode" name="gold_mode" class="form-select mb-3">
+          <option value="public">Public (surrogate)</option>
+          <option value="restricted" selected>Restricted (provided path)</option>
+          <option value="isolated">Isolated (gold corpus text)</option>
+        </select>
+        <label for="comp_gold_path" class="form-label">Gold standard path <span class="text-muted small">(restricted only)</span></label>
+        <input type="text" id="comp_gold_path" name="gold_path" class="form-control mb-3" value="{{ default_gold_path or '' }}" placeholder="Path to .ttl or .json">
+        <label for="comp_gold_text" class="form-label">Gold corpus text <span class="text-muted small">(isolated only)</span></label>
+        <textarea id="comp_gold_text" name="gold_text_input" class="form-control" rows="4" placeholder=""></textarea>
+      </div>
+    </div>
+  </div>
+</form>
+
+<div class="mb-4">
+  <a href="{{ url_for('index') }}" class="btn btn-outline-tech"><i class="bi bi-arrow-left me-1"></i>Back to Run experiment</a>
+</div>
+
+<!-- Modal: Last result (summary) for this config -->
+<div class="modal fade" id="compResultModal" tabindex="-1" aria-labelledby="compResultModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="compResultModalLabel"><i class="bi bi-journal-text me-2"></i>Last result</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="compResultModalBody">
+        <p class="text-muted mb-0">Loading…</p>
+      </div>
+      <div class="modal-footer">
+        <a href="#" id="compResultModalLink" class="btn btn-outline-tech btn-sm me-auto" target="_blank" rel="noopener" style="display: none;">
+          <i class="bi bi-box-arrow-up-right me-1"></i>Open full results
+        </a>
+        <button type="button" class="btn btn-tg-ghost" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Analysis (all runs) for this config -->
+<div class="modal fade" id="compAnalysisModal" tabindex="-1" aria-labelledby="compAnalysisModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="compAnalysisModalLabel"><i class="bi bi-graph-up-arrow me-2"></i>Analysis</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="compAnalysisModalBody">
+        <p class="text-muted mb-0">Loading…</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-tg-ghost" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Analyze selected (last result per selected config) -->
+<div class="modal fade" id="compSelectedAnalyzeModal" tabindex="-1" aria-labelledby="compSelectedAnalyzeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="compSelectedAnalyzeModalLabel"><i class="bi bi-graph-up-arrow me-2"></i>Analyze selected</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="compSelectedAnalyzeModalBody">
+        <p class="text-muted mb-0">Loading…</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-tg-ghost" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="application/json" id="paper-catalog">{{ paper_options | tojson }}</script>
+
+<script type="application/json" id="comparison-initial-runs">[
+  {% for combo in comparison_combinations %}
+  {% set rc = {'label': combo.label, 'strategy': combo.strategy, 'medical_ner_anchor': combo.medical_ner_anchor, 'candidate_terms': combo.candidate_terms, 'llm_provider': combo.get('llm_provider') or 'openai', 'llm_model': combo.get('llm_model'), 'schema_guided_completion': combo.get('schema_guided_completion', False), 'symbolic_reasoner': combo.get('symbolic_reasoner', False), 'prompt_vocab_guardrails': combo.get('prompt_vocab_guardrails', True), 'eval_restrict_to_gold': combo.get('eval_restrict_to_gold', True), 'scope_filter': combo.get('scope_filter', True), 'improvements_llm_provider': combo.get('improvements_llm_provider'), 'improvements_llm_model': combo.get('improvements_llm_model')} %}
+  {{ {"config": rc, "checked": true} | tojson }}{% if not loop.last %},{% endif %}
+  {% endfor %}
+]</script>
+
+<script>
+(function() {
+  const form = document.getElementById('comparison-form');
+  const comparisonRunsInput = document.getElementById('comparison_runs');
+  const runBtn = document.getElementById('comp-run-selected-btn');
+  const analyzeSelectedBtn = document.getElementById('comp-analyze-selected-btn');
+  const countEl = document.getElementById('comp-selected-count');
+  const tbody = document.getElementById('comparison-runs-tbody');
+  const emptyMsg = document.getElementById('comp-runs-empty-msg');
+
+  const strategyLabels = { baseline: 'Zero-Shot', one_shot: 'One-Shot', phased_3step: 'Few-Shot',
+    simple_fewshot: 'Few-Shot I (legacy)', phased_2step: 'Few-Shot II (legacy)' };
+  const providerLabels = { openai: 'GPT‑4o‑mini', 'openai-4o': 'GPT‑4o', anthropic: 'Anthropic', google: 'Google', groq: 'Groq', huggingface: 'Hugging Face', deepseek: 'DeepSeek', local: 'Local' };
+  const modelLabels = { 'gpt-4o-mini': 'GPT‑4o‑mini', 'gpt-4o': 'GPT‑4o', 'claude-3-haiku': 'Claude 3 Haiku', 'claude-haiku-4-5': 'Claude Haiku 4.5', 'gemini-2.0-flash': 'Gemini 2.0 Flash', 'llama-3.1-8b-instant': 'Llama 3.1 8B', 'mistralai/Mistral-7B-Instruct-v0.1': 'Mistral 7B', 'deepseek-chat': 'DeepSeek‑V3' };
+
+  var paperCatalog = {};
+  try {
+    var paperCatalogRaw = JSON.parse(document.getElementById('paper-catalog').textContent || '[]');
+    paperCatalogRaw.forEach(function(p) { paperCatalog[String(p.id)] = p; });
+  } catch (e) {}
+
+  function paperLabel(config) {
+    var pid = config.paper_id;
+    if (pid == null || pid === '' || pid === 0 || pid === '0') return '';
+    var entry = paperCatalog[String(pid)];
+    return entry ? entry.short + '(' + pid + ')' : 'Paper ' + pid;
+  }
+
+  // Derive pipeline mode name from config flags.
+  // NER is NOT part of the mode — it belongs in advancedLabel (Advanced column).
+  // Must stay in sync with Python _pipeline_mode_label() and comparison_progress.html pipelineModeLabel()
+  function pipelineModeLabel(config) {
+    var cleanupKeys = ['cleanup_dedupe','cleanup_scope_pruning','cleanup_evidence_pruning','cleanup_structural','cleanup_axioms'];
+    var hasCustomCleanup = cleanupKeys.some(function(k) { return k in config && config[k] !== true; });
+    var hasTgcOff = config.text_grounded_completion === false;
+    if (hasCustomCleanup || hasTgcOff) return 'Controlled';
+    var sgc = config.schema_guided_completion,
+        sym = config.symbolic_reasoner;
+    if (sgc || sym)  return 'Schema-Completed';
+    return 'Strict';
+  }
+
+  // Derive eval settings label
+  function evalSettingsLabel(config) {
+    return config.eval_restrict_to_gold ? 'Gold-vocab' : 'None';
+  }
+
+  // Derive advanced label (reasoning LLM + Medical NER)
+  function advancedLabel(config) {
+    var parts = [];
+    var ip = (config.improvements_llm_provider || '').trim();
+    var im = (config.improvements_llm_model || '').toString().toLowerCase();
+    var hasLlmImp = config.schema_guided_completion;
+    if (hasLlmImp) {
+      if (ip === 'deepseek' && im.indexOf('reasoner') !== -1) parts.push('DSR');
+      // OpenAI is the default — not shown explicitly to keep it clean
+    }
+    return parts.length ? parts.join('+') : 'None';
+  }
+
+  // NEW format: Strategy - PipelineMode - LLM - EvalSettings - Advanced[ - Paper]
+  // e.g.  Few-Shot - Schema-Completed - GPT‑4o‑mini - Gold-vocab - None - Piper 2010(3)
+  function formatRunName(config) {
+    var strategy = strategyLabels[config.strategy] || config.strategy || '—';
+    var mode = pipelineModeLabel(config);
+    var modelId = (config.llm_model || '').trim();
+    var llm = (modelId && modelLabels[modelId]) ? modelLabels[modelId]
+              : (config.llm_provider === 'openai' ? 'GPT‑4o‑mini' : (providerLabels[config.llm_provider] || config.llm_provider || '—'));
+    var evalS = evalSettingsLabel(config);
+    var adv = advancedLabel(config);
+    var base = strategy + ' - ' + mode + ' - ' + llm + ' - ' + evalS + ' - ' + adv;
+    var pl = paperLabel(config);
+    return pl ? (base + ' - ' + pl) : base;
+  }
+
+  // Full tooltip version (same format, but used on hover)
+  function formatRunNameFull(config) { return formatRunName(config); }
+
+  const compAddStrategySelect = document.getElementById('comp_add_strategy');
+  document.querySelectorAll('.comp-add-strategy').forEach(function(radio) {
+    radio.addEventListener('change', function() {
+      if (compAddStrategySelect) compAddStrategySelect.value = this.value;
+    });
+  });
+  if (compAddStrategySelect) {
+    compAddStrategySelect.addEventListener('change', function() {
+      const r = document.querySelector('.comp-add-strategy[value="' + this.value + '"]');
+      if (r) r.checked = true;
+    });
+  }
+
+  const compLlmProviderSelect = document.getElementById('comp_llm_provider');
+  const compLlmModelInput = document.getElementById('comp_llm_model');
+  function setLlmModelFromRadio(radio) {
+    if (compLlmProviderSelect) compLlmProviderSelect.value = radio.value;
+    if (compLlmModelInput) compLlmModelInput.value = (radio.getAttribute('data-model') || '').trim();
+  }
+  document.querySelectorAll('.comp-llm-provider-radio').forEach(function(radio) {
+    radio.addEventListener('change', function() {
+      setLlmModelFromRadio(this);
+    });
+  });
+  if (compLlmProviderSelect) {
+    compLlmProviderSelect.addEventListener('change', function() {
+      const r = document.querySelector('.comp-llm-provider-radio[value="' + this.value + '"]');
+      if (r) { r.checked = true; setLlmModelFromRadio(r); }
+    });
+  }
+  var checkedLlmRadio = document.querySelector('.comp-llm-provider-radio:checked');
+  if (checkedLlmRadio && compLlmModelInput && !compLlmModelInput.value.trim()) {
+    compLlmModelInput.value = (checkedLlmRadio.getAttribute('data-model') || '').trim();
+  }
+
+  function getPageLlmProvider() {
+    const el = document.getElementById('comp_llm_provider');
+    return (el && el.value && el.value.trim()) ? el.value.trim() : 'openai';
+  }
+  function getPageLlmModel() {
+    const el = document.getElementById('comp_llm_model');
+    return (el && el.value && el.value.trim()) ? el.value.trim() : null;
+  }
+
+  var STORAGE_KEY = 'comparison_runs_list_v5';
+
+  function saveRunsToStorage() {
+    var list = [];
+    tbody.querySelectorAll('tr').forEach(function(tr) {
+      var raw = tr.getAttribute('data-comp-run');
+      if (!raw) return;
+      try {
+        var config = JSON.parse(raw);
+        var cb = tr.querySelector('.comp-run-check');
+        list.push({ config: config, checked: cb ? cb.checked : true });
+      } catch (e) {}
+    });
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); } catch (e) {}
+  }
+
+  function modelDisplayLabel(config) {
+    var modelId = (config.llm_model && config.llm_model.trim()) ? config.llm_model.trim() : '';
+    return (modelId && modelLabels[modelId]) ? modelLabels[modelId] : (modelId || (providerLabels[config.llm_provider] || config.llm_provider || 'None'));
+  }
+
+  function renderRunRow(config, index, checked) {
+    var strategyLabel = strategyLabels[config.strategy] || config.strategy || '—';
+    var mode = pipelineModeLabel(config);
+    var llmText = modelDisplayLabel(config);
+    var evalS = evalSettingsLabel(config);
+    var adv = advancedLabel(config);
+    var runName = formatRunName(config);
+    var pl = paperLabel(config) || '—';
+    var esc = function(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+    var tr = document.createElement('tr');
+    tr.setAttribute('data-comp-run', JSON.stringify(config));
+    tr.innerHTML =
+      '<td><input type="checkbox" class="form-check-input comp-run-check" ' + (checked ? 'checked' : '') + '></td>' +
+      '<td class="text-muted comp-run-index">' + index + '</td>' +
+      '<td class="small comp-run-name" title="' + esc(runName) + '">' + esc(runName) + '</td>' +
+      '<td><span class="badge tg-badge-class">' + esc(strategyLabel) + '</span></td>' +
+      '<td class="small">' + esc(mode) + '</td>' +
+      '<td class="small">' + esc(llmText) + '</td>' +
+      '<td class="small">' + esc(evalS) + '</td>' +
+      '<td class="small">' + esc(adv) + '</td>' +
+      '<td class="small">' + esc(pl) + '</td>' +
+      '<td class="text-nowrap">' +
+      '<button type="button" class="btn btn-outline-secondary btn-sm comp-result-run" title="Last result"><i class="bi bi-journal-text"></i></button> ' +
+      '<button type="button" class="btn btn-outline-secondary btn-sm comp-analysis-run" title="Analysis"><i class="bi bi-graph-up-arrow"></i></button> ' +
+      '<button type="button" class="btn btn-outline-danger btn-sm comp-remove-run" title="Remove run"><i class="bi bi-trash"></i></button>' +
+      '</td>';
+    return tr;
+  }
+
+  function loadRunsFromStorage() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (raw === null || raw === undefined) return false;
+      var list = JSON.parse(raw);
+      if (!Array.isArray(list)) return false;
+      tbody.innerHTML = '';
+      list.forEach(function(item, i) {
+        var tr = renderRunRow(item.config, i + 1, item.checked !== false);
+        tbody.appendChild(tr);
+      });
+      return true;
+    } catch (e) { return false; }
+  }
+
+  function loadInitialRuns() {
+    var el = document.getElementById('comparison-initial-runs');
+    if (!el || !el.textContent) return false;
+    try {
+      var list = JSON.parse(el.textContent.trim());
+      if (!Array.isArray(list) || list.length === 0) return false;
+      list.forEach(function(item, i) {
+        var tr = renderRunRow(item.config, i + 1, item.checked !== false);
+        tbody.appendChild(tr);
+      });
+      return true;
+    } catch (e) { return false; }
+  }
+
+  function renumberRunIndices() {
+    tbody.querySelectorAll('tr').forEach(function(row, i) {
+      var idxCell = row.querySelector('td.comp-run-index');
+      if (idxCell) idxCell.textContent = i + 1;
+    });
+  }
+
+  // ── Pipeline mode → hidden flag inputs (mirrors index.html) ─────────────
+  (function setupCompPipelineMode() {
+    // Mode 1 = Strict (raw: no vocab guardrails, no gold filter). Mode 2 = Guided. Mode 3 = Schema-Completed.
+    var MODES = {
+      '1': { candidate_terms: false, medical_ner_anchor: false, schema_guided_completion: false, symbolic_reasoner: false, prompt_vocab_guardrails: false, eval_restrict_to_gold: false },
+      '2': { candidate_terms: true,  medical_ner_anchor: true,  schema_guided_completion: false, symbolic_reasoner: false, prompt_vocab_guardrails: true,  eval_restrict_to_gold: true  },
+      '3': { candidate_terms: true,  medical_ner_anchor: true,  schema_guided_completion: true,  symbolic_reasoner: true,  prompt_vocab_guardrails: true,  eval_restrict_to_gold: true  },
+    };
+    var FLAG_IDS = {
+      candidate_terms:          'comp_hid_candidate_terms',
+      medical_ner_anchor:       'comp_hid_medical_ner_anchor',
+      schema_guided_completion: 'comp_hid_schema_guided_completion',
+      symbolic_reasoner:        'comp_hid_symbolic_reasoner',
+      prompt_vocab_guardrails:  'comp_hid_prompt_vocab_guardrails',
+    };
+    function applyCompMode(mode) {
+      var flags = MODES[mode]; if (!flags) return;
+      for (var flag in FLAG_IDS) {
+        var el = document.getElementById(FLAG_IDS[flag]);
+        if (el) el.value = flags[flag] ? 'on' : '';
+      }
+      var evalEl = document.getElementById('comp_eval_restrict_to_gold');
+      if (evalEl && typeof flags.eval_restrict_to_gold !== 'undefined') evalEl.checked = flags.eval_restrict_to_gold;
+      document.querySelectorAll('.comp-pipeline-mode-card').forEach(function(card) {
+        var active = card.dataset.mode === mode;
+        card.classList.toggle('comp-pm-active', active);
+      });
+    }
+    document.querySelectorAll('.comp-pipeline-mode-radio').forEach(function(radio) {
+      radio.addEventListener('change', function() { if (this.checked) applyCompMode(this.value); });
+    });
+    document.querySelectorAll('.comp-pipeline-mode-card').forEach(function(card) {
+      card.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          var radio = card.querySelector('.comp-pipeline-mode-radio');
+          if (radio) { radio.checked = true; applyCompMode(radio.value); }
+        }
+      });
+    });
+    var checked = document.querySelector('.comp-pipeline-mode-radio:checked');
+    if (checked) applyCompMode(checked.value);
+  })();
+
+  // ── Advanced panel toggle ────────────────────────────────────────────────
+  (function setupCompAdvPanel() {
+    var btn = document.getElementById('comp-adv-toggle');
+    var panel = document.getElementById('comp-adv-panel');
+    var chevron = btn && btn.querySelector('.comp-adv-chevron');
+    if (!btn || !panel) return;
+    btn.addEventListener('click', function() {
+      var open = panel.style.maxHeight && panel.style.maxHeight !== '0px';
+      panel.style.maxHeight = open ? '0' : panel.scrollHeight + 'px';
+      btn.setAttribute('aria-expanded', !open);
+      if (chevron) chevron.style.transform = open ? '' : 'rotate(180deg)';
+    });
+  })();
+
+  // ── Reasoning LLM switches → hidden inputs ───────────────────────────────
+  (function setupCompRlmSwitches() {
+    var provEl = document.getElementById('comp_improvements_llm_provider');
+    var modEl  = document.getElementById('comp_improvements_llm_model');
+    function setRlm(prov, mod) {
+      if (provEl) provEl.value = prov || 'openai';
+      if (modEl)  modEl.value  = mod  || '';
+      document.querySelectorAll('.comp-add-reasoning-llm').forEach(function(r) {
+        r.checked = (r.getAttribute('data-provider') || '') === (prov || 'openai')
+                 && (r.getAttribute('data-model')    || '') === (mod  || '');
+      });
+    }
+    document.querySelectorAll('.comp-add-reasoning-llm').forEach(function(r) {
+      r.addEventListener('change', function() {
+        if (this.checked) setRlm(this.getAttribute('data-provider'), this.getAttribute('data-model'));
+      });
+    });
+    setRlm('openai', ''); // init default
+  })();
+
+  function addRun() {
+    var strategyEl = document.getElementById('comp_add_strategy');
+    var strategy = (strategyEl && strategyEl.value && strategyEl.value.trim()) ? strategyEl.value.trim() : '';
+    if (!strategy) { alert('Please select a Prompting method.'); return; }
+
+    // Read flags from hidden inputs (set by pipeline mode JS)
+    function hidVal(id) { var el = document.getElementById(id); return el ? el.value : ''; }
+    var medicalNer        = hidVal('comp_hid_medical_ner_anchor') === 'on';
+    var candidateTerms    = hidVal('comp_hid_candidate_terms') === 'on';
+    var vocabGuardrails   = hidVal('comp_hid_prompt_vocab_guardrails') === 'on';
+    var scopeFilter       = hidVal('comp_hid_scope_filter') === 'on';
+    var schemaGuided      = hidVal('comp_hid_schema_guided_completion') === 'on';
+    var symbolicReasoner  = hidVal('comp_hid_symbolic_reasoner') === 'on';
+    var evalGold          = !!(document.getElementById('comp_eval_restrict_to_gold') && document.getElementById('comp_eval_restrict_to_gold').checked);
+    var impProvider       = hidVal('comp_improvements_llm_provider') || 'openai';
+    var impModel          = hidVal('comp_improvements_llm_model') || '';
+    var pageLlmProvider   = getPageLlmProvider();
+    var pageLlmModel      = getPageLlmModel();
+    var paperSelect       = document.getElementById('comp_paper_select');
+    var paperId           = (paperSelect && paperSelect.value) ? parseInt(paperSelect.value, 10) : null;
+    if (isNaN(paperId)) paperId = null;
+
+    var runConfig = {
+      label: strategyLabels[strategy] || strategy,
+      strategy: strategy,
+      medical_ner_anchor: medicalNer,
+      candidate_terms: candidateTerms,
+      scope_filter: scopeFilter,
+      llm_provider: pageLlmProvider || 'openai',
+      llm_model: pageLlmModel,
+      schema_guided_completion: schemaGuided,
+      symbolic_reasoner: symbolicReasoner,
+      prompt_vocab_guardrails: vocabGuardrails,
+      eval_restrict_to_gold: evalGold,
+      improvements_llm_provider: schemaGuided ? impProvider : null,
+      improvements_llm_model:    schemaGuided ? impModel : null,
+      paper_id: paperId,
+    };
+
+    var index = tbody.querySelectorAll('tr').length + 1;
+    var tr = renderRunRow(runConfig, index, true);
+    tbody.appendChild(tr);
+    if (emptyMsg) emptyMsg.style.display = 'none';
+    tr.querySelector('.comp-remove-run').addEventListener('click', function() {
+      tr.remove(); renumberRunIndices(); updateRunsState(); saveRunsToStorage();
+    });
+    updateRunsState();
+    saveRunsToStorage();
+  }
+
+  function updateRunsState() {
+    var total = tbody.querySelectorAll('tr').length;
+    var selected = tbody.querySelectorAll('.comp-run-check:checked').length;
+    countEl.textContent = selected + ' selected';
+    runBtn.disabled = selected === 0;
+    if (analyzeSelectedBtn) analyzeSelectedBtn.disabled = selected === 0;
+    if (emptyMsg) emptyMsg.style.display = total ? 'none' : 'block';
+    var selectAllTop = document.getElementById('comp-select-all-runs');
+    var selectAllBottom = document.getElementById('comp-select-all-runs-bottom');
+    [selectAllTop, selectAllBottom].forEach(function(el) {
+      if (el) {
+        el.checked = total > 0 && selected === total;
+        el.indeterminate = selected > 0 && selected < total;
+        el.title = (total > 0 && selected === total) ? 'Deselect all' : 'Select all';
+      }
+    });
+    saveRunsToStorage();
+  }
+
+  function buildRunsJson() {
+    var runs = [];
+    tbody.querySelectorAll('tr').forEach(function(tr) {
+      var cb = tr.querySelector('.comp-run-check');
+      if (!cb || !cb.checked) return;
+      var raw = tr.getAttribute('data-comp-run');
+      if (!raw) return;
+      try {
+        var run = JSON.parse(raw);
+        if (!run.llm_provider || !run.llm_provider.trim()) run.llm_provider = 'openai';
+        runs.push(run);
+      } catch (err) {}
+    });
+    return JSON.stringify(runs);
+  }
+
+  function normalizeConfigForSend(config) {
+    var c = {};
+    for (var k in config) if (config.hasOwnProperty(k)) c[k] = config[k];
+    // Ensure eval_restrict_to_gold is always a boolean so configs with/without G.V get different fingerprints
+    var gv = c.eval_restrict_to_gold;
+    c.eval_restrict_to_gold = (gv === true || gv === 'true' || gv === 1 || gv === '1');
+    return c;
+  }
+  function buildSelectedConfigsAndLabels() {
+    var configs = [];
+    var labels = [];
+    tbody.querySelectorAll('tr').forEach(function(tr) {
+      var cb = tr.querySelector('.comp-run-check');
+      if (!cb || !cb.checked) return;
+      var config = getConfigFromRow(tr);
+      if (!config) return;
+      configs.push(normalizeConfigForSend(config));
+      labels.push(formatRunName(config));
+    });
+    return { configs: configs, labels: labels };
+  }
+
+  document.getElementById('comp-add-run-btn').addEventListener('click', addRun);
+
+  var resetConfigBtn = document.getElementById('comp-reset-config-btn');
+  if (resetConfigBtn) {
+    resetConfigBtn.addEventListener('click', function() {
+      // Strategy → Few-Shot (phased_3step)
+      var fewShotRadio = document.getElementById('comp_add_s_phased_3step');
+      if (fewShotRadio) { fewShotRadio.checked = true; }
+      var strategySelect = document.getElementById('comp_add_strategy');
+      if (strategySelect) strategySelect.value = 'phased_3step';
+      // Pipeline mode → Mode 3
+      var pm3 = document.getElementById('comp_pm_3');
+      if (pm3) { pm3.checked = true; pm3.dispatchEvent(new Event('change')); }
+      // LLM → OpenAI
+      var openaiLlmRadio = document.getElementById('comp_llm_provider_openai');
+      if (openaiLlmRadio) { openaiLlmRadio.checked = true; setLlmModelFromRadio(openaiLlmRadio); }
+      // Eval settings → on
+      var evalEl = document.getElementById('comp_eval_restrict_to_gold');
+      if (evalEl) evalEl.checked = true;
+      // Advanced → reset Reasoning LLM to OpenAI
+      var rlOpenai = document.getElementById('comp_add_rl_openai');
+      if (rlOpenai) { rlOpenai.checked = true; rlOpenai.dispatchEvent(new Event('change')); }
+      // Paper → reset to default
+      var paperSel = document.getElementById('comp_paper_select');
+      if (paperSel) paperSel.value = '';
+    });
+  }
+
+  function syncSelectAll(checked) {
+    tbody.querySelectorAll('.comp-run-check').forEach(function(cb) { cb.checked = checked; });
+    var selectAllTop = document.getElementById('comp-select-all-runs');
+    var selectAllBottom = document.getElementById('comp-select-all-runs-bottom');
+    if (selectAllTop) selectAllTop.checked = checked;
+    if (selectAllBottom) selectAllBottom.checked = checked;
+    updateRunsState();
+  }
+  var selectAllTop = document.getElementById('comp-select-all-runs');
+  var selectAllBottom = document.getElementById('comp-select-all-runs-bottom');
+  if (selectAllTop) {
+    selectAllTop.addEventListener('change', function() { syncSelectAll(selectAllTop.checked); });
+  }
+  if (selectAllBottom) {
+    selectAllBottom.addEventListener('change', function() { syncSelectAll(selectAllBottom.checked); });
+  }
+  tbody.addEventListener('change', function(e) {
+    if (e.target && e.target.classList && e.target.classList.contains('comp-run-check')) updateRunsState();
+  });
+
+  if (analyzeSelectedBtn) {
+    analyzeSelectedBtn.addEventListener('click', function() {
+      var sel = buildSelectedConfigsAndLabels();
+      if (!sel.configs.length) { alert('Select at least one run.'); return; }
+      var modalBody = document.getElementById('compSelectedAnalyzeModalBody');
+      var modalEl = document.getElementById('compSelectedAnalyzeModal');
+      if (!modalBody || !modalEl) return;
+      modalBody.innerHTML = '<p class="text-muted mb-0">Loading…</p>';
+      bootstrap.Modal.getOrCreateInstance(modalEl).show();
+      fetch('{{ url_for("api_configs_last_runs") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ configs: sel.configs })
+      }).then(function(r) { return r.json(); }).then(function(data) {
+        var rows = data.rows || [];
+        var labels = sel.labels;
+        var withData = rows.filter(function(row) { return row.run_id != null; });
+        if (withData.length === 0) {
+          modalBody.innerHTML = '<p class="text-muted mb-0">No data saved for the selected runs. Run them first, then try again.</p>';
+          return;
+        }
+        var chartLabels = [];
+        var chartRows = [];
+        var runIdsSeen = {};
+        rows.forEach(function(row, i) {
+          if (row.run_id == null) return;
+          chartLabels.push(labels[i] != null ? labels[i] : 'Run ' + (i + 1));
+          chartRows.push(row);
+          runIdsSeen[row.run_id] = (runIdsSeen[row.run_id] || 0) + 1;
+        });
+        var bestF1 = -1, bestIdx = -1;
+        chartRows.forEach(function(row, i) { if (row.f1 != null && row.f1 > bestF1) { bestF1 = row.f1; bestIdx = i; } });
+        var duplicateRunIds = Object.keys(runIdsSeen).filter(function(rid) { return runIdsSeen[rid] > 1; });
+        var warningHtml = duplicateRunIds.length ? '<div class="alert alert-warning py-2 mb-2 small" role="alert"><i class="bi bi-exclamation-triangle me-1"></i>Some selected configs share the same last run. Run each config separately (e.g. one at a time) so each gets its own result, then use Analyze selected again.</div>' : '';
+
+        var DASHBOARD_THRESHOLD = 15;
+        if (chartRows.length > DASHBOARD_THRESHOLD) {
+          (function() {
+            if (window._compSelectedAnalyzeChart) { window._compSelectedAnalyzeChart.destroy(); window._compSelectedAnalyzeChart = null; }
+            if (window._compAnalyzeScatterChart) { window._compAnalyzeScatterChart.destroy(); window._compAnalyzeScatterChart = null; }
+            var items = chartRows.map(function(row, i) {
+              var f1 = row.f1 != null ? Math.round(row.f1 * 100) / 100 : 0;
+              var p = row.precision != null ? Math.round(row.precision * 100) / 100 : 0;
+              var r = row.recall != null ? Math.round(row.recall * 100) / 100 : 0;
+              var cov = row.coverage != null ? Math.round(row.coverage * 100) / 100 : 0;
+              return { label: chartLabels[i], row: row, f1: f1, p: p, r: r, cov: cov };
+            });
+            items.sort(function(a, b) { return b.f1 - a.f1; });
+            var sumF1 = 0, countF1 = 0;
+            items.forEach(function(x) { if (x.row.f1 != null) { sumF1 += x.row.f1; countF1++; } });
+            var avgF1 = countF1 ? (Math.round((sumF1 / countF1) * 100) / 100) : 0;
+            var bestP = items.reduce(function(best, x) { return (x.p > best.p) ? x : best; }, items[0] || {});
+            var bestR = items.reduce(function(best, x) { return (x.r > best.r) ? x : best; }, items[0] || {});
+            var bestF1Item = items[0];
+            var cardsHtml = '<div class="row g-2 mb-3 comp-analyze-dashboard">' +
+              '<div class="col"><div class="card summary-card border-success"><div class="card-body py-2"><div class="small text-muted">Best F1</div><div class="fw-bold">' + (bestF1Item ? bestF1Item.f1 : '—') + '</div><div class="small text-truncate" title="' + (bestF1Item ? bestF1Item.label : '') + '">' + (bestF1Item ? bestF1Item.label : '') + '</div></div></div></div>' +
+              '<div class="col"><div class="card summary-card border-primary"><div class="card-body py-2"><div class="small text-muted">Best Precision</div><div class="fw-bold">' + (bestP ? bestP.p : '—') + '</div><div class="small text-truncate">' + (bestP ? bestP.label : '') + '</div></div></div></div>' +
+              '<div class="col"><div class="card summary-card border-warning"><div class="card-body py-2"><div class="small text-muted">Best Recall</div><div class="fw-bold">' + (bestR ? bestR.r : '—') + '</div><div class="small text-truncate">' + (bestR ? bestR.label : '') + '</div></div></div></div>' +
+              '<div class="col"><div class="card summary-card"><div class="card-body py-2"><div class="small text-muted">Avg F1</div><div class="fw-bold">' + avgF1 + '</div><div class="small">' + countF1 + ' runs</div></div></div></div>' +
+              '</div>';
+            var topN = 15;
+            var topItems = items.slice(0, topN);
+            var scatterPoints = items.map(function(x, i) { return { x: x.r, y: x.p, label: x.label, f1: x.f1, run_id: x.row.run_id }; });
+            var barHtml = '<h6 class="mb-2" style="color: #EAF6FF;">Top ' + topN + ' by F1</h6><div id="compAnalyzeTopBarWrap"><canvas id="compAnalyzeTopBarChart"></canvas></div>';
+            var scatterHtml = '<h6 class="mb-2" style="color: #EAF6FF;">Precision vs Recall (all runs)</h6><div id="compAnalyzeScatterWrap"><canvas id="compAnalyzeScatterChart"></canvas></div>';
+            var tableControlHtml = '<div class="d-flex flex-wrap align-items-center gap-2 mb-2"><input type="text" id="compAnalyzeSearch" class="form-control form-control-sm" style="max-width: 14rem;" placeholder="Search run name…">' +
+              '<span class="text-muted small">Show:</span>' +
+              '<div class="btn-group btn-group-sm"><button type="button" class="btn btn-outline-secondary comp-analyze-topn" data-n="10">Top 10</button><button type="button" class="btn btn-outline-secondary comp-analyze-topn" data-n="20">Top 20</button><button type="button" class="btn btn-outline-secondary comp-analyze-topn active" data-n="0">All</button></div>' +
+              '</div>';
+            var tableHtml = '<table class="table table-sm table-hover"><thead><tr><th data-sort="label">Run</th><th data-sort="f1">F1</th><th data-sort="p">Precision</th><th data-sort="r">Recall</th><th data-sort="cov">Coverage</th><th></th></tr></thead><tbody id="compAnalyzeTableBody"></tbody></table>';
+            modalBody.innerHTML = warningHtml + cardsHtml + '<div class="mb-3">' + barHtml + '</div><div class="mb-3">' + scatterHtml + '</div><div class="comp-analyze-dashboard"><h6 class="mb-2" style="color: #EAF6FF;">Sortable results table</h6>' + tableControlHtml + tableHtml + '</div>';
+
+            var sortKey = 'f1', sortDir = 'desc', searchText = '', topNVal = 0;
+            function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+            function renderTable() {
+              var sorted = items.slice();
+              if (sortKey === 'label') sorted.sort(function(a, b) { return sortDir === 'asc' ? (a.label.localeCompare(b.label)) : (b.label.localeCompare(a.label)); });
+              else sorted.sort(function(a, b) { var va = a[sortKey], vb = b[sortKey]; return sortDir === 'asc' ? (va - vb) : (vb - va); });
+              var filtered = searchText ? sorted.filter(function(x) { return x.label.toLowerCase().indexOf(searchText.toLowerCase()) !== -1; }) : sorted;
+              var show = topNVal > 0 ? filtered.slice(0, topNVal) : filtered;
+              var tbody = document.getElementById('compAnalyzeTableBody');
+              if (!tbody) return;
+              tbody.innerHTML = show.map(function(x, i) {
+                var badge = (sortKey === 'f1' && sortDir === 'desc' && i === 0) ? ' <span class="badge bg-success">best</span>' : '';
+                return '<tr><td>' + esc(x.label) + badge + '</td><td>' + x.f1 + '</td><td>' + x.p + '</td><td>' + x.r + '</td><td>' + x.cov + '</td><td><a href="{{ url_for("results", run_id="") }}' + (x.row.run_id || '') + '" class="btn btn-outline-tech btn-sm comp-modal-view-link" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right me-1"></i>View</a></td></tr>';
+              }).join('');
+            }
+            function updateSortHeader() {
+              modalBody.querySelectorAll('.table th[data-sort]').forEach(function(th) {
+                var key = th.getAttribute('data-sort');
+                th.removeAttribute('data-sort-dir');
+                if (key === sortKey) th.setAttribute('data-sort-dir', sortDir);
+              });
+            }
+            document.getElementById('compAnalyzeSearch').addEventListener('input', function() { searchText = this.value.trim(); renderTable(); });
+            modalBody.querySelectorAll('.comp-analyze-topn').forEach(function(btn) {
+              btn.addEventListener('click', function() { topNVal = parseInt(this.getAttribute('data-n'), 10) || 0; modalBody.querySelectorAll('.comp-analyze-topn').forEach(function(b) { b.classList.remove('active'); }); this.classList.add('active'); renderTable(); });
+            });
+            modalBody.querySelectorAll('.table th[data-sort]').forEach(function(th) {
+              th.addEventListener('click', function() {
+                var key = this.getAttribute('data-sort');
+                if (sortKey === key) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+                else { sortKey = key; sortDir = (key === 'label') ? 'asc' : 'desc'; }
+                updateSortHeader();
+                renderTable();
+              });
+            });
+            updateSortHeader();
+            renderTable();
+
+            if (typeof Chart !== 'undefined') {
+              var ctxBar = document.getElementById('compAnalyzeTopBarChart');
+              if (ctxBar) {
+                window._compSelectedAnalyzeChart = new Chart(ctxBar, {
+                  type: 'bar',
+                  data: {
+                    labels: topItems.map(function(x) { return x.label.length > 35 ? x.label.slice(0, 32) + '…' : x.label; }),
+                    datasets: [{ label: 'F1', data: topItems.map(function(x) { return x.f1; }), backgroundColor: 'rgba(46, 214, 161, 0.9)', borderColor: '#2ED6A1', borderWidth: 1, borderRadius: 4 }]
+                  },
+                  options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    color: '#EAF6FF',
+                    scales: {
+                      x: { min: 0, max: 1, ticks: { color: '#7FA2BA', font: { size: 11 }, callback: function(v) { return (v * 100) + '%'; } }, grid: { color: 'rgba(120,170,210,0.12)' }, border: { color: 'rgba(120,170,210,0.18)' } },
+                      y: { grid: { display: false }, ticks: { color: '#7FA2BA', font: { size: 10 } }, border: { color: 'rgba(120,170,210,0.18)' } }
+                    },
+                    plugins: {
+                      legend: { display: false },
+                      tooltip: {
+                        backgroundColor: '#0B1E33',
+                        borderColor: '#2A5D86',
+                        borderWidth: 1,
+                        titleColor: '#EAF6FF',
+                        bodyColor: '#A8C4D8',
+                        callbacks: { label: function(ctx) { return ctx.dataset.label + ': ' + (ctx.raw * 100).toFixed(1) + '%'; } }
+                      }
+                    }
+                  }
+                });
+              }
+              var ctxScatter = document.getElementById('compAnalyzeScatterChart');
+              if (ctxScatter) {
+                var colors = scatterPoints.map(function(pt) {
+                  var f = pt.f1;
+                  if (f >= 0.7) return 'rgba(57, 198, 230, 0.9)';
+                  if (f >= 0.4) return 'rgba(245, 166, 91, 0.9)';
+                  return 'rgba(255, 107, 129, 0.9)';
+                });
+                window._compAnalyzeScatterChart = new Chart(ctxScatter, {
+                  type: 'scatter',
+                  data: {
+                    datasets: [{ label: 'Runs', data: scatterPoints.map(function(pt) { return { x: pt.x, y: pt.y }; }), backgroundColor: colors, borderColor: 'rgba(234, 246, 255, 0.6)', borderWidth: 1, pointRadius: 7, pointHoverRadius: 10 }]
+                  },
+                  options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    color: '#EAF6FF',
+                    scales: {
+                      x: { title: { display: true, text: 'Recall', color: '#A8C4D8', font: { size: 12 } }, min: 0, max: 1, ticks: { color: '#7FA2BA', font: { size: 11 }, callback: function(v) { return (v * 100) + '%'; } }, grid: { color: 'rgba(120,170,210,0.12)' }, border: { color: 'rgba(120,170,210,0.18)' } },
+                      y: { title: { display: true, text: 'Precision', color: '#A8C4D8', font: { size: 12 } }, min: 0, max: 1, ticks: { color: '#7FA2BA', font: { size: 11 }, callback: function(v) { return (v * 100) + '%'; } }, grid: { color: 'rgba(120,170,210,0.12)' }, border: { color: 'rgba(120,170,210,0.18)' } }
+                    },
+                    plugins: {
+                      legend: { display: false },
+                      tooltip: {
+                        backgroundColor: '#0B1E33',
+                        borderColor: '#2A5D86',
+                        borderWidth: 1,
+                        titleColor: '#EAF6FF',
+                        bodyColor: '#A8C4D8',
+                        callbacks: {
+                          label: function(ctx) {
+                            var pt = scatterPoints[ctx.dataIndex];
+                            return pt ? [pt.label, 'Precision: ' + (pt.y * 100).toFixed(1) + '%', 'Recall: ' + (pt.x * 100).toFixed(1) + '%', 'F1: ' + (pt.f1 * 100).toFixed(1) + '%'] : [];
+                          }
+                        }
+                      }
+                    }
+                  }
+                });
+              }
+            }
+          })();
+          return;
+        }
+
+        // Sort rows by F1 descending so the best run is always at the top
+        var sortedIndices = rows.map(function(_, i) { return i; });
+        sortedIndices.sort(function(a, b) {
+          var fa = (rows[a].f1 != null) ? rows[a].f1 : -1;
+          var fb = (rows[b].f1 != null) ? rows[b].f1 : -1;
+          return fb - fa;
+        });
+        var sortedRows = sortedIndices.map(function(i) { return rows[i]; });
+        var sortedLabels = sortedIndices.map(function(i) { return labels[i]; });
+        chartLabels = sortedIndices.filter(function(i) { return rows[i].run_id != null; }).map(function(i) { return labels[i] != null ? labels[i] : 'Run ' + (i + 1); });
+        chartRows = sortedIndices.filter(function(i) { return rows[i].run_id != null; }).map(function(i) { return rows[i]; });
+        bestIdx = 0;
+
+        var chartWrapClass = chartRows.length > 25 ? ' chart-many-runs' : '';
+        var chartHtml = '<div class="mb-3">' + warningHtml + '<h6 class="mb-2" style="color: #EAF6FF;">Last result per selected run</h6><div id="compSelectedAnalyzeChartWrap" class="' + chartWrapClass + '"><canvas id="compSelectedAnalyzeChart"></canvas></div></div>';
+        var table = '<div class="table-responsive"><table class="table table-sm table-hover"><thead><tr><th>Run</th><th>F1</th><th>Precision</th><th>Recall</th><th>Coverage</th><th></th></tr></thead><tbody>';
+        sortedRows.forEach(function(row, i) {
+          var label = (sortedLabels[i] != null ? sortedLabels[i] : 'Run ' + (i + 1));
+          var badge = (i === 0 && row.run_id) ? ' <span class="badge bg-success">best</span>' : '';
+          if (row.run_id == null) {
+            table += '<tr><td>' + label + '</td><td>—</td><td>—</td><td>—</td><td>—</td><td><span class="text-muted small">No data</span></td></tr>';
+            return;
+          }
+          var f1 = (row.f1 != null) ? (Math.round(row.f1 * 100) / 100) : '—';
+          var p = (row.precision != null) ? (Math.round(row.precision * 100) / 100) : '—';
+          var r = (row.recall != null) ? (Math.round(row.recall * 100) / 100) : '—';
+          var cov = (row.coverage != null) ? (Math.round(row.coverage * 100) / 100) : '—';
+          var viewHref2 = (row.run_id) ? '{{ url_for("results", run_id="") }}' + row.run_id : '#';
+          table += '<tr><td>' + label + badge + '</td><td>' + f1 + '</td><td>' + p + '</td><td>' + r + '</td><td>' + cov + '</td><td><a href="' + viewHref2 + '" class="btn btn-outline-tech btn-sm comp-modal-view-link" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right me-1"></i>View</a></td></tr>';
+        });
+        table += '</tbody></table></div>';
+        modalBody.innerHTML = chartHtml + table;
+        if (typeof Chart !== 'undefined' && chartRows.length) {
+          if (window._compSelectedAnalyzeChart) { window._compSelectedAnalyzeChart.destroy(); window._compSelectedAnalyzeChart = null; }
+          if (window._compAnalyzeScatterChart) { window._compAnalyzeScatterChart.destroy(); window._compAnalyzeScatterChart = null; }
+          var ctx = document.getElementById('compSelectedAnalyzeChart');
+          if (ctx) {
+            var f1Vals = chartRows.map(function(row) { return row.f1 != null ? Math.round(row.f1 * 100) / 100 : 0; });
+            var pVals = chartRows.map(function(row) { return row.precision != null ? Math.round(row.precision * 100) / 100 : 0; });
+            var rVals = chartRows.map(function(row) { return row.recall != null ? Math.round(row.recall * 100) / 100 : 0; });
+            window._compSelectedAnalyzeChart = new Chart(ctx, {
+              type: 'bar',
+              data: {
+                labels: chartLabels,
+                datasets: [
+                  { label: 'F1', data: f1Vals, backgroundColor: 'rgba(46, 214, 161, 0.9)', borderColor: '#2ED6A1', borderWidth: 1, borderRadius: 4 },
+                  { label: 'Precision', data: pVals, backgroundColor: 'rgba(57, 198, 230, 0.9)', borderColor: '#39C6E6', borderWidth: 1, borderRadius: 4 },
+                  { label: 'Recall', data: rVals, backgroundColor: 'rgba(245, 166, 91, 0.9)', borderColor: '#F5A65B', borderWidth: 1, borderRadius: 4 }
+                ]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                color: '#EAF6FF',
+                scales: {
+                  y: {
+                    min: 0,
+                    max: 1,
+                    ticks: { color: '#7FA2BA', font: { size: 11 }, callback: function(v) { return (v * 100) + '%'; } },
+                    grid: { color: 'rgba(120,170,210,0.12)' },
+                    border: { color: 'rgba(120,170,210,0.18)' }
+                  },
+                  x: { grid: { display: false }, ticks: { color: '#7FA2BA', maxRotation: 45, minRotation: 0, maxTicksLimit: chartRows.length > 40 ? 25 : undefined, font: { size: chartRows.length > 40 ? 9 : 11 } }, border: { color: 'rgba(120,170,210,0.18)' } }
+                },
+                plugins: {
+                  legend: { position: 'top', labels: { color: '#A8C4D8' } },
+                  tooltip: {
+                    backgroundColor: '#0B1E33',
+                    borderColor: '#2A5D86',
+                    borderWidth: 1,
+                    titleColor: '#EAF6FF',
+                    bodyColor: '#A8C4D8',
+                    callbacks: { label: function(ctx) { return ctx.dataset.label + ': ' + (ctx.raw * 100).toFixed(1) + '%'; } }
+                  }
+                }
+              }
+            });
+          }
+        }
+      }).catch(function() {
+        modalBody.innerHTML = '<p class="text-danger mb-0">Failed to load analysis.</p>';
+      });
+    });
+  }
+
+  form.addEventListener('submit', function(e) {
+    saveRunsToStorage();
+    var useDefaultPaper = document.getElementById('comp_use_default_paper');
+    var defaultPaperChecked = useDefaultPaper && useDefaultPaper.checked;
+    var textInput = document.getElementById('comp_text_input');
+    var inputMethod = document.querySelector('input[name="input_method"]:checked');
+
+    var runsJson = buildRunsJson();
+    var parsedRuns = [];
+    try { parsedRuns = JSON.parse(runsJson); } catch (ex) {}
+    var allHavePaper = parsedRuns.length > 0 && parsedRuns.every(function(r) { return r.paper_id != null && r.paper_id !== '' && r.paper_id !== 0; });
+
+    if (!defaultPaperChecked && !allHavePaper) {
+      if (inputMethod && inputMethod.value === 'upload') {
+        var fileInput = document.getElementById('comp_file_input');
+        if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+          e.preventDefault();
+          alert('Please paste corpus text, upload files, or select a paper for each run.');
+          return;
+        }
+      } else if (!textInput || !textInput.value.trim()) {
+        e.preventDefault();
+        alert('Please paste corpus text, upload a file, or select a paper for each run.');
+        return;
+      }
+    }
+    var selected = tbody.querySelectorAll('.comp-run-check:checked').length;
+    if (selected === 0) {
+      e.preventDefault();
+      alert('Select at least one run to execute.');
+      return;
+    }
+    comparisonRunsInput.value = runsJson;
+  });
+
+  var compDefaultPaperCheck = document.getElementById('comp_use_default_paper');
+  document.getElementById('comp_text_input')?.addEventListener('input', function() {
+    if (this.value.trim() && compDefaultPaperCheck) compDefaultPaperCheck.checked = false;
+  });
+  document.getElementById('comp_text_input')?.addEventListener('paste', function() {
+    var el = this;
+    setTimeout(function() { if (el.value.trim() && compDefaultPaperCheck) compDefaultPaperCheck.checked = false; }, 0);
+  });
+  document.getElementById('comp_file_input')?.addEventListener('change', function() {
+    if (this.files && this.files.length && compDefaultPaperCheck) compDefaultPaperCheck.checked = false;
+  });
+
+  document.querySelectorAll('input[name="input_method"]').forEach(function(radio) {
+    radio.addEventListener('change', function() {
+      document.getElementById('comp_paste_section').style.display = this.value === 'paste' ? 'block' : 'none';
+      document.getElementById('comp_upload_section').style.display = this.value === 'upload' ? 'block' : 'none';
+    });
+  });
+
+  function attachRemoveHandlers() {
+    tbody.querySelectorAll('tr').forEach(function(tr) {
+      var btn = tr.querySelector('.comp-remove-run');
+      if (btn && !btn._compAttached) {
+        btn._compAttached = true;
+        btn.addEventListener('click', function() {
+          tr.remove();
+          renumberRunIndices();
+          updateRunsState();
+          saveRunsToStorage();
+        });
+      }
+    });
+  }
+
+  function getConfigFromRow(tr) {
+    var raw = tr && tr.getAttribute('data-comp-run');
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch (e) { return null; }
+  }
+
+  tbody.addEventListener('click', function(e) {
+    var target = e.target && (e.target.closest('.comp-result-run') || e.target.closest('.comp-analysis-run'));
+    if (!target) return;
+    var tr = target.closest('tr');
+    var config = getConfigFromRow(tr);
+    if (!config) return;
+    if (target.classList.contains('comp-result-run')) {
+      var resultBody = document.getElementById('compResultModalBody');
+      var resultLink = document.getElementById('compResultModalLink');
+      var resultModal = document.getElementById('compResultModal');
+      if (!resultBody || !resultModal) return;
+      resultBody.innerHTML = '<p class="text-muted mb-0">Loading…</p>';
+      resultLink.style.display = 'none';
+      bootstrap.Modal.getOrCreateInstance(resultModal).show();
+      fetch('{{ url_for("api_config_last_summary") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config: config })
+      }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.found) {
+          resultBody.innerHTML = '<pre class="metrics-pre small mb-0" style="white-space: pre-wrap;">' + (data.summary || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</pre>';
+          resultLink.href = '{{ url_for("results", run_id="") }}' + (data.run_id || '');
+          resultLink.style.display = 'inline-block';
+        } else {
+          resultBody.innerHTML = '<p class="text-muted mb-0">' + (data.message || 'No data saved for this run.') + '</p>';
+        }
+      }).catch(function() {
+        resultBody.innerHTML = '<p class="text-danger mb-0">Failed to load result.</p>';
+      });
+    } else {
+      var analysisBody = document.getElementById('compAnalysisModalBody');
+      var analysisModal = document.getElementById('compAnalysisModal');
+      if (!analysisBody || !analysisModal) return;
+      analysisBody.innerHTML = '<p class="text-muted mb-0">Loading…</p>';
+      bootstrap.Modal.getOrCreateInstance(analysisModal).show();
+      fetch('{{ url_for("api_config_analysis") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config: config })
+      }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.found && data.rows && data.rows.length) {
+          var bestF1 = -1, bestIdx = -1;
+          data.rows.forEach(function(row, i) { if (row.f1 > bestF1) { bestF1 = row.f1; bestIdx = i; } });
+          var labels = data.rows.map(function(row, i) { return row.label || ('Run ' + (i + 1)); });
+          var chartHtml = '<div class="mb-3"><h6 class="mb-2" style="color: #EAF6FF;">Metrics across runs</h6><div id="compAnalysisChartWrap"><canvas id="compAnalysisChart"></canvas></div></div>';
+          var table = '<div class="table-responsive"><table class="table table-sm table-hover"><thead><tr><th>Run</th><th>F1</th><th>Precision</th><th>Recall</th><th>Coverage</th><th></th></tr></thead><tbody>';
+          data.rows.forEach(function(row, i) {
+            var f1 = (row.f1 != null) ? (Math.round(row.f1 * 100) / 100) : '—';
+            var p = (row.precision != null) ? (Math.round(row.precision * 100) / 100) : '—';
+            var r = (row.recall != null) ? (Math.round(row.recall * 100) / 100) : '—';
+            var cov = (row.coverage != null) ? (Math.round(row.coverage * 100) / 100) : '—';
+            var badge = (i === bestIdx) ? ' <span class="badge bg-success">best</span>' : '';
+            var viewHref = (row.run_id) ? '{{ url_for("results", run_id="") }}' + row.run_id : '#';
+            table += '<tr><td>' + (row.label || row.run_id) + badge + '</td><td>' + f1 + '</td><td>' + p + '</td><td>' + r + '</td><td>' + cov + '</td><td><a href="' + viewHref + '" class="btn btn-outline-tech btn-sm comp-modal-view-link" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right me-1"></i>View</a></td></tr>';
+          });
+          table += '</tbody></table></div>';
+          analysisBody.innerHTML = chartHtml + table;
+          if (typeof Chart !== 'undefined') {
+            if (window._compAnalysisChart) { window._compAnalysisChart.destroy(); window._compAnalysisChart = null; }
+            var ctx = document.getElementById('compAnalysisChart');
+            if (ctx) {
+              var f1Vals = data.rows.map(function(row) { return row.f1 != null ? Math.round(row.f1 * 100) / 100 : 0; });
+              var pVals = data.rows.map(function(row) { return row.precision != null ? Math.round(row.precision * 100) / 100 : 0; });
+              var rVals = data.rows.map(function(row) { return row.recall != null ? Math.round(row.recall * 100) / 100 : 0; });
+              window._compAnalysisChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                  labels: labels,
+                  datasets: [
+                    { label: 'F1', data: f1Vals, backgroundColor: 'rgba(46, 214, 161, 0.9)', borderColor: '#2ED6A1', borderWidth: 1, borderRadius: 4 },
+                    { label: 'Precision', data: pVals, backgroundColor: 'rgba(57, 198, 230, 0.9)', borderColor: '#39C6E6', borderWidth: 1, borderRadius: 4 },
+                    { label: 'Recall', data: rVals, backgroundColor: 'rgba(245, 166, 91, 0.9)', borderColor: '#F5A65B', borderWidth: 1, borderRadius: 4 }
+                  ]
+                },
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  color: '#EAF6FF',
+                  scales: {
+                    y: {
+                      min: 0,
+                      max: 1,
+                      ticks: { color: '#7FA2BA', font: { size: 11 }, callback: function(v) { return (v * 100) + '%'; } },
+                      grid: { color: 'rgba(120,170,210,0.12)' },
+                      border: { color: 'rgba(120,170,210,0.18)' }
+                    },
+                    x: { grid: { display: false }, ticks: { color: '#7FA2BA', font: { size: 11 } }, border: { color: 'rgba(120,170,210,0.18)' } }
+                  },
+                  plugins: {
+                    legend: { position: 'top', labels: { color: '#A8C4D8', font: { size: 12 } } },
+                    tooltip: {
+                      backgroundColor: '#0B1E33',
+                      borderColor: '#2A5D86',
+                      borderWidth: 1,
+                      titleColor: '#EAF6FF',
+                      bodyColor: '#A8C4D8',
+                      callbacks: { label: function(ctx) { return ctx.dataset.label + ': ' + (ctx.raw * 100).toFixed(1) + '%'; } }
+                    }
+                  }
+                }
+              });
+            }
+          }
+        } else {
+          analysisBody.innerHTML = '<p class="text-muted mb-0">' + (data.message || 'No data saved for this run.') + '</p>';
+        }
+      }).catch(function() {
+        analysisBody.innerHTML = '<p class="text-danger mb-0">Failed to load analysis.</p>';
+      });
+    }
+  });
+
+  if (loadRunsFromStorage()) {
+    attachRemoveHandlers();
+    updateRunsState();
+  } else if (loadInitialRuns()) {
+    saveRunsToStorage();
+    attachRemoveHandlers();
+    updateRunsState();
+  } else {
+    attachRemoveHandlers();
+    updateRunsState();
+  }
+
+  // ── Destroy Chart.js when modals hide (prevents resize-loop freezes) ──
+  var analysisModalEl = document.getElementById('compAnalysisModal');
+  var selectedAnalyzeModalEl = document.getElementById('compSelectedAnalyzeModal');
+  if (analysisModalEl) {
+    analysisModalEl.addEventListener('hidden.bs.modal', function() {
+      if (window._compAnalysisChart) { window._compAnalysisChart.destroy(); window._compAnalysisChart = null; }
+    });
+  }
+  if (selectedAnalyzeModalEl) {
+    selectedAnalyzeModalEl.addEventListener('hidden.bs.modal', function() {
+      if (window._compSelectedAnalyzeChart) { window._compSelectedAnalyzeChart.destroy(); window._compSelectedAnalyzeChart = null; }
+      if (window._compAnalyzeScatterChart) { window._compAnalyzeScatterChart.destroy(); window._compAnalyzeScatterChart = null; }
+    });
+  }
+})();
+</script>
+{% endblock %}

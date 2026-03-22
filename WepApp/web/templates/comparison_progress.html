@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+
+{% block title %}Comparison runs · TripleGen{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+  <h1 class="mb-0"><i class="bi bi-columns-gap tg-semantic-class"></i> Comparison runs</h1>
+  <p class="mb-0 mt-1 text-muted">Batch ID: <span class="run-id-badge" id="batch-id-badge">{{ batch_id }}</span></p>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header tg-card-eval d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <span><i class="bi bi-list-check"></i> Run status</span>
+    <button type="button" id="comparison-cancel-btn" class="btn btn-outline-danger btn-sm d-none" title="Cancel batch and delete current run's generated files" data-bs-toggle="modal" data-bs-target="#comparisonCancelModal">
+      <i class="bi bi-x-circle me-1"></i>Cancel
+    </button>
+  </div>
+  <div class="card-body">
+    <div id="comparison-table-wrap">
+      <p id="comparison-loading" class="text-muted mb-0">Loading…</p>
+      <table class="table table-borderless mb-0 d-none" id="comparison-table">
+        <thead>
+          <tr>
+            <th title="Hover over a run name for the full configuration">Run</th>
+            <th>Status</th>
+            <th>Run ID</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="comparison-tbody">
+        </tbody>
+      </table>
+    </div>
+    <div id="comparison-error" class="alert alert-danger mt-3 d-none" role="alert"></div>
+    <div id="comparison-cancelled-wrap" class="alert alert-warning mt-3 d-none" role="alert">
+      <i class="bi bi-info-circle me-2"></i><span id="comparison-cancelled-text">Batch cancelled. Current run was stopped and its generated files have been deleted.</span>
+    </div>
+    <div id="analyze-all-wrap" class="mt-4 p-3 border rounded bg-light d-none">
+      <p class="mb-2 text-muted small">Compare runs and see which configuration performed best.</p>
+      <a href="/run-comparison/{{ batch_id }}/analyze" class="btn btn-primary btn-lg">
+        <i class="bi bi-graph-up-arrow me-1"></i>Analyze all results
+      </a>
+    </div>
+    <div class="mt-3">
+      <a href="{{ url_for('comparison_dashboard') }}" class="btn btn-outline-tech">
+        <i class="bi bi-arrow-left me-1"></i>Back to comparison
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Cancel confirmation modal -->
+<div class="modal fade" id="comparisonCancelModal" tabindex="-1" aria-labelledby="comparisonCancelModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="comparisonCancelModalLabel"><i class="bi bi-x-circle me-2"></i>Cancel batch?</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        This will stop the <strong>current run</strong> and <strong>delete its generated files</strong>. Pending runs in the batch will not start.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Keep running</button>
+        <button type="button" class="btn btn-danger" id="comparison-confirm-cancel-btn">
+          <i class="bi bi-trash3 me-1"></i>Cancel batch
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const batchId = "{{ batch_id }}";
+  const statusUrl = "{{ url_for('comparison_status', batch_id=batch_id) }}";
+  const pollInterval = 1500;
+
+  const tbody = document.getElementById("comparison-tbody");
+  const table = document.getElementById("comparison-table");
+  const loading = document.getElementById("comparison-loading");
+  const errorEl = document.getElementById("comparison-error");
+
+  // Strategy / LLM labels — must match comparison_dashboard.html and app.py
+  const strategyLabels = { baseline: "Zero-Shot", one_shot: "One-Shot", phased_3step: "Few-Shot",
+    simple_fewshot: "Few-Shot I (legacy)", phased_2step: "Few-Shot II (legacy)" };
+  const modelLabels = { "gpt-4o-mini": "GPT-4o-mini", "gpt-4o": "GPT-4o", "claude-3-haiku": "Claude 3 Haiku", "claude-haiku-4-5": "Claude Haiku 4.5", "gemini-2.0-flash": "Gemini 2.0 Flash", "llama-3.1-8b-instant": "Llama 3.1 8B", "mistralai/Mistral-7B-Instruct-v0.1": "Mistral 7B", "deepseek-chat": "DeepSeek-V3" };
+  const providerLabels = { openai: "GPT-4o-mini", "openai-4o": "GPT-4o", anthropic: "Anthropic", google: "Google", groq: "Groq", huggingface: "Hugging Face", deepseek: "DeepSeek", local: "Local" };
+  const paperShortNames = { 1: "Piper 2003", 2: "Moss 2013", 3: "Stell 2018", 4: "Shaw 2024", 5: "Georgatzis 2016", 6: "G\u00fciza 2015a", 7: "Donald 2012", 8: "Depreitere 2018", 9: "Donald 2019", 10: "Decraene 2023", 11: "G\u00fciza 2015b" };
+  function paperLabel(config) {
+    var pid = config.paper_id;
+    if (pid == null || pid === "" || pid === 0 || pid === "0") return "";
+    var short = paperShortNames[parseInt(pid, 10)];
+    return short ? short + "(" + pid + ")" : "Paper " + pid;
+  }
+  function modelDisplayLabel(c) {
+    var modelId = (c.llm_model || "").trim();
+    return (modelId && modelLabels[modelId]) ? modelLabels[modelId] : (modelId || (providerLabels[c.llm_provider] || c.llm_provider || "None"));
+  }
+  // Derive pipeline mode — mirrors Python _pipeline_mode_label() and JS pipelineModeLabel()
+  // NER is NOT part of the mode; it belongs in the Advanced column.
+  function pipelineModeLabel(config) {
+    var cleanupKeys = ["cleanup_dedupe","cleanup_scope_pruning","cleanup_evidence_pruning","cleanup_structural","cleanup_axioms"];
+    var hasCustomCleanup = cleanupKeys.some(function(k) { return k in config && config[k] !== true; });
+    var hasTgcOff = config.text_grounded_completion === false;
+    if (hasCustomCleanup || hasTgcOff) return "Controlled";
+    var sgc = config.schema_guided_completion,
+        sym = config.symbolic_reasoner;
+    if (sgc || sym)  return "Schema-Completed";
+    return "Strict";
+  }
+  // Eval settings column
+  function evalSettingsLabel(config) { return config.eval_restrict_to_gold ? "Gold-vocab" : "None"; }
+  // Advanced column (Reasoning LLM if DSR). M.NER is built into Guided+ modes, not shown here.
+  function advancedLabel(config) {
+    var parts = [];
+    var ip = (config.improvements_llm_provider || "").trim();
+    var im = (config.improvements_llm_model || "").toString().toLowerCase();
+    var hasLlmImp = config.schema_guided_completion;
+    if (hasLlmImp && ip === "deepseek" && im.indexOf("reasoner") !== -1) parts.push("DSR");
+    return parts.length ? parts.join("+") : "None";
+  }
+  // Format: Strategy - PipelineMode - LLM - EvalSettings - Advanced[ - Paper]
+  // e.g.  Few-Shot - Schema-Completed - GPT-4o-mini - Gold-vocab - None - Piper 2010(3)
+  // Must stay in sync with comparison_dashboard.html formatRunName() and Python _format_run_label()
+  function formatRunName(config) {
+    var strategy = strategyLabels[config.strategy] || config.strategy || "—";
+    var mode = pipelineModeLabel(config);
+    var llm  = modelDisplayLabel(config);
+    var evalS = evalSettingsLabel(config);
+    var adv   = advancedLabel(config);
+    var base = strategy + " - " + mode + " - " + llm + " - " + evalS + " - " + adv;
+    var pl = paperLabel(config);
+    return pl ? (base + " - " + pl) : base;
+  }
+  // Full version (tooltip) — same format, already fully descriptive
+  function formatRunNameFull(config) { return formatRunName(config); }
+  function escapeAttr(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/'/g, "&#39;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  function isLikelyShortLabel(label) {
+    if (!label || typeof label !== "string") return true;
+    return !label.includes(" - ");
+  }
+
+  function poll() {
+    fetch(statusUrl)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.error && data.status === "unknown") {
+          errorEl.textContent = data.error;
+          errorEl.classList.remove("d-none");
+          loading.classList.add("d-none");
+          return;
+        }
+        loading.classList.add("d-none");
+        table.classList.remove("d-none");
+        const runIds = Array.isArray(data.run_ids) ? data.run_ids : [];
+        const labels = Array.isArray(data.labels) ? data.labels : [];
+        const runConfigs = Array.isArray(data.run_configs) ? data.run_configs : [];
+        const runStatuses = data.run_statuses || {};
+        let html = "";
+        for (let i = 0; i < runIds.length; i++) {
+          const runId = runIds[i];
+          const rawConfig = runConfigs[i] || null;
+          const config = (rawConfig && typeof rawConfig === "object" && Object.keys(rawConfig).length > 0 && rawConfig.strategy != null) ? rawConfig : null;
+          const rawLabel = labels[i] || "";
+          const fallbackRunName = "Run " + (i + 1);
+          let displayName = fallbackRunName;
+          let titleAttr = "";
+          if (config) {
+            displayName = formatRunName(config);
+            titleAttr = " title=\"" + escapeAttr(formatRunNameFull(config)) + "\"";
+          } else {
+            displayName = isLikelyShortLabel(rawLabel) ? fallbackRunName : rawLabel;
+            titleAttr = " title=\"" + escapeAttr(rawLabel || fallbackRunName) + "\"";
+          }
+          if (displayName && displayName.indexOf("OpenAI (GPT-4o-mini)") !== -1) displayName = displayName.replace(/OpenAI \(GPT-4o-mini\)/g, "GPT-4o-mini");
+          const status = runId ? (runStatuses[runId] || {}).status : "pending";
+          const message = runId && runStatuses[runId] ? (runStatuses[runId].message || "") : "";
+          const err = runId && runStatuses[runId] ? (runStatuses[runId].error || "") : "";
+          let statusBadge = "secondary";
+          if (status === "completed") statusBadge = "success";
+          else if (status === "running") statusBadge = "primary";
+          else if (status === "paused") statusBadge = "warning";
+          else if (status === "failed") statusBadge = "danger";
+          else if (status === "cancelled") statusBadge = "warning";
+          else if (status === "skipped") statusBadge = "info";
+          else if (status === "deleted") statusBadge = "secondary";
+          const statusText = status === "completed" ? "Done"
+            : status === "running" ? (message || "Running…")
+            : status === "paused" ? "Paused"
+            : status === "failed" ? ("Failed: " + (err || "error"))
+            : status === "cancelled" ? "Cancelled"
+            : status === "skipped" ? "Skipped"
+            : status === "deleted" ? "Deleted"
+            : "Pending";
+          let actions = "";
+          if (status === "running" && runId) {
+            actions = '<button class="btn btn-outline-warning btn-sm me-1 run-action-btn" data-action="pause" data-run-id="' + runId + '" title="Pause run"><i class="bi bi-pause-circle"></i></button>'
+              + '<button class="btn btn-outline-secondary btn-sm run-action-btn" data-action="skip" data-run-id="' + runId + '" title="Skip run"><i class="bi bi-skip-forward-circle"></i></button>';
+          } else if (status === "paused" && runId) {
+            actions = '<button class="btn btn-outline-success btn-sm me-1 run-action-btn" data-action="resume" data-run-id="' + runId + '" title="Resume run"><i class="bi bi-play-circle"></i></button>'
+              + '<button class="btn btn-outline-secondary btn-sm run-action-btn" data-action="skip" data-run-id="' + runId + '" title="Skip run"><i class="bi bi-skip-forward-circle"></i></button>';
+          } else if (status === "completed" && runId) {
+            actions = '<a href="/results/' + runId + '" class="btn btn-outline-tech btn-sm me-1">View results</a>'
+              + '<button class="btn btn-outline-danger btn-sm run-action-btn" data-action="delete" data-run-id="' + runId + '" title="Delete run files"><i class="bi bi-trash3"></i></button>';
+          } else if ((status === "failed" || status === "skipped") && runId) {
+            actions = '<button class="btn btn-outline-danger btn-sm run-action-btn" data-action="delete" data-run-id="' + runId + '" title="Delete run files"><i class="bi bi-trash3"></i></button>';
+          } else if (status === "deleted") {
+            actions = '<span class="text-muted small">Deleted</span>';
+          }
+          html += "<tr><td class=\"run-name-cell\"" + titleAttr + ">" + escapeAttr(displayName) + "</td><td><span class=\"badge text-bg-" + statusBadge + "\">" + statusText + "</span></td><td><code class=\"small\">" + (runId || "—") + "</code></td><td>" + actions + "</td></tr>";
+        }
+        tbody.innerHTML = html;
+        if (data.error) {
+          errorEl.textContent = data.error;
+          errorEl.classList.remove("d-none");
+        } else {
+          errorEl.classList.add("d-none");
+        }
+        if (data.status === "completed") {
+          document.getElementById("analyze-all-wrap").classList.remove("d-none");
+          document.getElementById("comparison-cancel-btn").classList.add("d-none");
+        }
+        if (data.status === "cancelled") {
+          document.getElementById("comparison-cancelled-wrap").classList.remove("d-none");
+          document.getElementById("comparison-cancel-btn").classList.add("d-none");
+        }
+        if (data.status === "running") {
+          document.getElementById("comparison-cancel-btn").classList.remove("d-none");
+        }
+        if (data.status !== "completed" && data.status !== "failed" && data.status !== "cancelled") {
+          setTimeout(poll, pollInterval);
+        }
+      })
+      .catch(function() {
+        loading.textContent = "Could not fetch status.";
+      });
+  }
+
+  var cancelUrl = "/run-comparison/" + batchId + "/cancel";
+  var cancelBtn = document.getElementById("comparison-cancel-btn");
+  var confirmCancelBtn = document.getElementById("comparison-confirm-cancel-btn");
+  if (confirmCancelBtn) {
+    confirmCancelBtn.addEventListener("click", function() {
+      if (cancelBtn) cancelBtn.disabled = true;
+      var modalEl = document.getElementById("comparisonCancelModal");
+      if (window.bootstrap && modalEl) {
+        var modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        modal.hide();
+      }
+      fetch(cancelUrl, { method: "POST", headers: { "Content-Type": "application/json" } })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.ok) {
+            poll();
+          } else {
+            if (cancelBtn) cancelBtn.disabled = false;
+            alert(data.error || "Could not cancel.");
+          }
+        })
+        .catch(function() {
+          if (cancelBtn) cancelBtn.disabled = false;
+          alert("Could not cancel.");
+        });
+    });
+  }
+
+  // Per-run action buttons (Pause / Resume / Skip / Delete) via event delegation
+  tbody.addEventListener("click", function(e) {
+    var btn = e.target.closest(".run-action-btn");
+    if (!btn) return;
+    var action = btn.getAttribute("data-action");
+    var runId = btn.getAttribute("data-run-id");
+    if (!action || !runId) return;
+    btn.disabled = true;
+    var url = "/run-comparison/" + batchId + "/run/" + runId + "/" + action;
+    fetch(url, { method: "POST", headers: { "Content-Type": "application/json" } })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (!data.ok) {
+          alert(data.error || "Action failed.");
+        }
+        poll();
+      })
+      .catch(function() {
+        alert("Could not perform action.");
+        btn.disabled = false;
+      });
+  });
+
+  poll();
+})();
+</script>
+{% endblock %}

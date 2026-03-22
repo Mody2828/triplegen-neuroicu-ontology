@@ -1,0 +1,281 @@
+You are an ontology quality reviewer for clinical and biomedical domain ontologies.
+
+You have been given a generated ontology extracted from clinical/biomedical literature.
+Your task is to review the ontology and identify ONLY items that are clearly
+NOT clinical. Be VERY CONSERVATIVE — when in doubt, KEEP the item.
+
+### CRITICAL: BE CONSERVATIVE
+- Your primary goal is to PRESERVE the ontology. Only remove items you are
+  HIGHLY CONFIDENT do not belong.
+- If a concept COULD be clinical in ANY reasonable interpretation, KEEP it.
+- Abstract grouping categories are ESSENTIAL in ontologies — they organise
+  specific concepts into meaningful hierarchies. NEVER remove a class just
+  because it is abstract or general.
+- Removing a valid class destroys all its relations and hierarchy edges,
+  causing massive cascading damage to the ontology. Err on the side of keeping.
+
+### WHAT BELONGS (KEEP these — do NOT remove)
+- Clinical conditions, diseases, injuries, syndromes
+- Physiological parameters and measurements (e.g. heart rate, ICP, blood pressure)
+- Treatments, therapies, interventions, drugs, surgical procedures
+- Clinical assessments and scores (e.g. GCS, pupil reactivity, CT scan findings)
+- Laboratory values and tests (e.g. blood gases, biochemistry, haematology)
+- Medical devices and sensors that measure clinical parameters
+- Patient-related concepts (demographics, outcomes, patient)
+- Data categories that organise clinical observations (e.g. 'Monitoring Data',
+  'Laboratory Values', 'Admission Data', 'Treatment Data', 'Outcome Data')
+- Abstract superclasses that group clinical concepts:
+  'Condition', 'Outcome', 'Observation', 'Parameter', 'Therapy',
+  'Assessment', 'Intervention', 'Core Monitoring Parameter',
+  'Optional Monitoring Parameter', 'Baseline Therapy', 'Guidelines',
+  'Guidelines for Management', etc.
+  These are VALID ontological grouping classes — do NOT remove them.
+- Clinical guidelines and management protocols
+
+### WHAT TO REMOVE (only these categories, with high confidence)
+- Research project names and consortium names (e.g. 'BrainIT Project')
+- Governance/administrative concepts (e.g. 'Steering Group', 'Membership')
+- Data infrastructure: databases, software tools, data collection tools
+- Economic or social impact concepts (e.g. 'Economic Consequences',
+  'Social Consequences') — these are about societal impact, not clinical care
+- Institution names (universities, hospitals as organisations)
+- Industry/regulatory bodies (e.g. 'Medical Device Industry', 'Health Authorities')
+- Publishing metadata: journals, authors, DOIs
+
+### HIERARCHY REVIEW (be thorough here — hierarchy errors are important)
+Carefully check EVERY hierarchy edge for semantic correctness:
+- **Nonsensical edges** (ALWAYS remove): the subclass relationship is logically
+  impossible. Examples:
+  • 'Patient ⊑ Secondary Insult' — a patient is NOT a type of insult → REMOVE
+  • 'Monitoring Data ⊑ Patient' — data is NOT a type of patient → REMOVE
+  • 'Therapy ⊑ Laboratory Values' — therapy is NOT a lab value → REMOVE
+  Test: 'Is every X a kind of Y?' If the answer is obviously NO, remove it.
+- **Clear inversions** (CORRECT, do not remove): child and parent are swapped.
+  Examples:
+  • 'Brain Injury ⊑ Traumatic Brain Injury' → CORRECT to 'TBI ⊑ Brain Injury'
+  • 'Condition ⊑ Traumatic Brain Injury' → CORRECT to 'TBI ⊑ Condition'
+  Test: 'Is every X a kind of Y, or is it the other way around?'
+- Do NOT remove hierarchy edges just because the grouping seems unusual —
+  ontologies often have domain-specific groupings.
+
+### RELATION REVIEW
+Only flag relations where BOTH endpoints are clearly non-clinical:
+- If the domain OR range is a valid clinical concept, KEEP the relation.
+- Do NOT remove relations just because the label is imprecise.
+
+### CHAIN-OF-THOUGHT
+For each item you flag, reason step by step:
+1. What does this concept refer to in the source text?
+2. Is it clearly non-clinical (governance/infrastructure/economic/publishing)?
+3. Could it have ANY clinical interpretation? If yes → KEEP.
+4. Decision: REMOVE or CORRECT (only if highly confident)
+
+### OUTPUT FORMAT
+Return ONLY a JSON object (no markdown fences) with these keys:
+```
+{
+  "classes_to_remove": [
+    {"label": "...", "reason": "..."}
+  ],
+  "relations_to_remove": [
+    {"label": "...", "domain": "...", "range": "...", "reason": "..."}
+  ],
+  "hierarchy_to_remove": [
+    {"subClass": "...", "superClass": "...", "reason": "..."}
+  ],
+  "hierarchy_corrections": [
+    {"old_sub": "...", "old_super": "...", "new_sub": "...", "new_super": "...", "reason": "..."}
+  ]
+}
+```
+If everything is correct (or you are not confident enough to remove anything),
+return empty arrays for each key. It is perfectly fine to return all empty arrays.
+Do NOT wrap the JSON in markdown code fences.
+
+### SOURCE TEXT (first 6000 chars for context)
+Brain and Spine 4 (2024) 102848
+
+Exploration of the relationship between partial pressure of brain tissue
+oxygen and intracranial pressure
+Martin Shaw a, b, *, Laura Moss a, b, Ian Piper c, Maya Kommer a, d, Richard Boulton b,
+a
+College of Medicine, Veterinary and Life Sciences, University Of Glasgow, Glasgow, United Kingdom
+b
+Dept. of Clinical Physics, NHS Greater Glasgow and Clyde, Glasgow, United Kingdom
+c
+Usher Institute of Informatics, University of Edinburgh, Edinburgh, United Kingdom
+d
+Dept. of Neurosurgery, NHS Greater Glasgow and Clyde, Glasgow, United Kingdom
+e
+Dept. of Neuroanaesthesia, NHS Greater Glasgow and Clyde, Glasgow, United Kingdom
+
+A R T I C L E I N F O A B S T R A C T
+
+Handling Editor: Dr W Peul Introduction: Partial pressure of brain tissue oxygen (PbtO2) has been shown to be a safe an effective monitoring
+modality to compliment intracranial pressure (ICP) monitoring. It is related to metabolic activity, disease
+Keywords: severity and mortality.
+Intracranial pressure Research question: Understanding the complex relationship between PbtO2 and ICP for patients with traumatic
+Partial pressure of brain tissue oxygen
+brain injury will enable better clinical decision making beyond simple threshold treatment strategies.
+Non-linear model
+Material and methods: Patients with PbtO2 monitoring were identified from the BrainIT database, a multi-centre
+dataset, containing minute by minute PbtO2 and ICP readings. Missing data was imputed and a multi-level log-
+increased correlation due to the repeated measurements. The model was adjusted for mean arterial pressure and
+the partial pressure of carbon dioxide. Non-linearity was assessed using analysis of deviance and trends using
+expected marginal means.
+Results: 11 subjects with over 82,000 readings were included. They had a median age of 38 (IQR: 37-47), 73%
+were male, a median length of stay of 11.8 (IQR: 6.6-19.7) days and a median extended Glasgow outcome scale
+of 7.00 (IQR: 5-8).
+There is a statistically significant (p < 0.001) non-linear effect of ICP on PbtO2. With an overall increase in PbtO2
+of 5.2% (95% CI 4%-6.4%, p < 0.001) for a 10 mmHg increase in ICP below 22 mmHg and a decrease of 5.5%
+(95% CI 2.7%-8.3%, p=<0.001) in PbtO2 for a 10 mmHg increase in ICP above 22 mmHg. As well as a decrease
+of 40.9% (95% CI 2.3%-64.3%, p = 0.040) in PbtO2 per day in the intensive care unit.
+Discussion and conclusion: This model demonstrates that there is a significant non-linear relationship between ICP
+and PbtO2, however, this is a small heterogeneous cohort and further validation will be required.
+
+1. Introduction (ICP) (Carney et al., 2016). To help quantify the current pathophysi­
+ology and provide information on changing injury status, a variety of
+Traumatic brain injury (TBI) is a leading cause of death and long- vital signs monitoring modalities are used concurrently in
+term disability worldwide, with 346 (interquartile range (IQR) 298, neuro-intensive care unit (ICU)s. Monitoring of ICP is indicated in the
+401) per 100,000 people injured every year (Traumatic brain injury, current neurotrauma guidelines for patients with TBI (Carney et al.,
+2022). In Europe, mortality from TBI is between 9 and 28.1 per 100,000 2016) and management protocols including ICP have also been shown to
+people with similar incidence recorded in America (Brazinova et al., have better functional outcomes (Chesnut et al., 2023). Metabolic ac­
+2021). Clinical management of this population is focused on minimising tivity, disease severity and mortality is related to the partial pressure of
+any secondary injury, such as ischemia or raised intracranial pressure brain tissue oxygen (PbtO2) (Ngwenya et al., 2016). Monitoring PbtO2
+
+M. Shaw et al. Brain and Spine 4 (2024) 102848
+
+has been shown to be safe, effective, and when used in conjunction with Table 1
+ICP monitoring, adds additional contextual information on the overall Cohort demographic and outcome summary stratified by the extended Glasgow
+patient state (Okonkwo et al., 2017). outcome scale (GOSe).
+The currently proposed treatment protocols using a combined PbtO2 Characteristic Overall, N = GOSe: 1-4, N GOSe: 5-8, N
+and ICP monitoring strategy are still using singular cut-offs, 20 mmHg 11 =3 =8
+for PbtO2 and 22 mmHg for ICP, for these parameters (Bernard et al., Gender (Male), n (%) 8 (73%) 2 (67%) 6 (75%)
+2022; BONANZA-GT, 2020). Worsening outcome driven by ICP has a Age (years), Median (IQR) 38 (37, 47) 38 (38, 51) 38 (33, 44)
+dynamic threshold that is related to time above this cut-off (Güiza et al., Type of Trauma, n (%)
+Fall 6 (60%) 1 (33%) 5 (71%)
+2015). There is also a known non-linear effect of PbtO2 on cerebral
+Sport 1 (10%) 0 (0%) 1 (14%)
+perfusion pressure (CPP) (Megjhani et al., 2023), which is the net Traffic Accident 3 (30%) 2 (67%) 1 (14%)
+pressure differential driving cerebral blood flow across the cerebrovas­ GOSe, Median (IQR)a 7.00 (4.50, 3.00 (2.00, 7.00 (6.75,
+cular bed and directly influenced by ICP. The relationship between these 7.50) 3.50) 8.00)
+two parameters has been investigated previously (Flynn et al., 2015) and pH, Median (IQR) 7.430 (7.420, 7.480 (7.460, 7.420 (7.420,
+7.450) 7.500) 7.430)
+the non-linear nature of the relationship assessed in a paediatric context pCO2 (mmHg), Median 36.0 (32.6, 34.2 (32.7, 36.0 (33.5,
+(Figaji et al., 2009; Rohlwink et al., 2012). Finally, the increased cor­ (IQR)a 37.8) 35.6) 39.3)
+relation in temporal trends between PbtO2 and ICP has been quantified paO2 (mmHg), Median 141 (108, 152 (119, 141 (120,
+and shown to improve the overall fit when accounted for (Zeiler et al., (IQR)a 311) 185) 478)
+Haematocrit (%), Median 27.50 (26.25, 23.00 (23.00, 28.00 (27.00,
+2021).
+(IQR) 29.50) 23.00) 30.00)
+The main aim of this study was to investigate the non-linear nature of Glucose (mmol/l), Median 6.16 (5.66, 5.66 (5.55, 7.41 (6.17,
+the relationship between PbtO2 and ICP whilst accounting for the (IQR) 7.60) 5.91) 8.10)
+temporal correlation over the l
+
+### CLASSES
+  - Partial pressure of brain tissue oxygen  [evidence: Partial pressure of brain tissue oxygen (PbtO2) has been shown to be a safe an effective monitoring modality]
+  - Intracranial Pressure  [evidence: 15807 (19.3%) measurements of ICP above 20 mmHg and 9777 (11.9%) above 22 mmHg]
+  - Metabolic Activity  [evidence: It is related to metabolic activity, disease severity and mortality.]
+  - Disease Severity  [evidence: It is related to metabolic activity, disease severity and mortality.]
+  - Mortality  [evidence: It is related to metabolic activity, disease severity and mortality.]
+  - Traumatic Brain Injury  [evidence: Understanding the complex relationship between PbtO2 and ICP for patients with traumatic brain injury]
+  - Mean Arterial Pressure  [evidence: The model was adjusted for mean arterial pressure]
+  - Partial Pressure of Carbon Dioxide (pCO2)  [evidence: partial pressure of carbon dioxide (PaCO2)]
+  - GOSe Outcome  [evidence: a median extended Glasgow outcome scale of 7.00 (IQR: 5-8)]
+  - Intensive Care Unit  [evidence: per day in the intensive care unit.]
+  - Secondary Injury  [evidence: Clinical management of this population is focused on minimising any secondary injury, such as ischemia or raised intracranial pressure]
+  - Condition  [evidence: secondary injury, such as ischemia or raised intracranial pressure]
+  - Vital Signs Monitoring Modalities  [evidence: a variety of vital signs monitoring modalities are used concurrently]
+  - Neurotrauma Guidelines  [evidence: Monitoring of ICP is indicated in the current neurotrauma guidelines for patients with TBI]
+  - Cerebral Perfusion Pressure  [evidence: There is also a known non-linear effect of PbtO2 on cerebral perfusion pressure (CPP)]
+  - Blood Gases  [evidence: pCO2 = Partial pressure of carbon dioxide]
+  - GCS Assessment  [evidence: GCS = Glasgow comma scale]
+  - CT Scan Assessment  [evidence: CT = Computed tomography]
+  - Neuro-ICU Stay  [evidence: over the course of the neuro-ICU stay]
+  - Demographic Data  [evidence: demographic and single episode variables]
+  - Monitoring Data  [evidence: minute by minute PbtO2 over the course of the neuro-ICU stay]
+  - Patient  [evidence: Every patient that had a minimum of 60 min of continuous PbtO2]
+  - ICU Stay  [evidence: patients ICU stay]
+  - Vital Signs Measurements  [evidence: 82060 minute by minute vital signs measurements]
+  - Cerebral Blood Flow  [evidence: is not enough to guarantee good cerebral blood flow]
+  - Oxygen Delivery  [evidence: adequate oxygen delivery]
+  - Clinical Management Strategy  [evidence: a clinical management strategy for these patients]
+  - Cerebrovascular Autoregulation  [evidence: the cerebral autoregulation status of each]
+  - Neuro-Intensive Care Unit  [evidence: over the length of stay in the neuro-intensive care unit]
+  - Hypothermia Therapy  [evidence: Therapeutic hypothermia reduces intracranial pressure and partial brain oxygen tension]
+  - Severe Traumatic Brain Injury  [evidence: patients with severe traumatic brain injury]
+  - Arterial Oxygen Pressure  [evidence: paO2 = Arterial oxygen pressure]
+  - Extradural Lesion  [evidence: CT lesion type, n (%)a Extradural 1 (9.1%)]
+  - Intraparenchymal Lesion  [evidence: CT lesion type, n (%)a Intraparenchymal 9 (82%)]
+  - Subdural Lesion  [evidence: CT lesion type, n (%)a Subdural 1 (9.1%)]
+  - Glucose  [evidence: Glucose (mmol/l), Median 6.16 (5.66, 5.91)]
+  - Haematocrit  [evidence: Haematocrit (%), Median 27.50 (26.25, 29.50)]
+  - Initial PbtO2  [evidence: Initial PbtO2 (mmHg), 15 (8, 33)]
+  - Initial ICP  [evidence: Initial ICP (mmHg), Median (IQR)a 13.0 (10.5, 17.0)]
+  - Initial ABP  [evidence: Initial ABP (mmHg), Median (IQR)a 86 (80, 98)]
+  - Length of Stay  [evidence: They had a median length of stay of 11.8 (IQR: 6.6-19.7) days]
+  - Measurement Time  [evidence: the inclusion of the temporal index, measurement time, in the modelling process]
+  - Minute-by-Minute Monitoring  [evidence: minute by minute vital signs measurements were included in the final analysis]
+  - Non-linear Relationship  [evidence: This model demonstrates that there is a significant non-linear relationship between ICP and PbtO2]
+  - Regression Model  [evidence: Three multi-level log-normal regression models with compound symmetry correlation structures were constructed]
+  - Temporal Correlation  [evidence: The non-linearity of this relationship is illustrated in Fig. 1 stratified at four different times in the patients ICU stay]
+  - Trauma Type  [evidence: Type of Trauma, n (%) Fall 6 (60%) Sport 1 (10%) Traffic Accident 3 (30%)]
+  - Brain Injury  [evidence: Implicit: referenced as relation/hierarchy endpoint.]
+  - PbrO2  [evidence: Implicit: referenced as relation/hierarchy endpoint.]
+
+### RELATIONS
+  - has monitoring data(Patient → Partial pressure of brain tissue oxygen)  [evidence: Patients with PbtO2 monitoring were identified]
+  - has monitoring data(Patient → Intracranial Pressure)  [evidence: the direct effect of ICP on PbtO2 at a given static time]
+  - monitoring indicates condition(Partial pressure of brain tissue oxygen → Metabolic Activity)  [evidence: Metabolic activity, disease severity and mortality is related to the partial pressure of brain tissue oxygen (PbtO2)]
+  - monitoring indicates condition(Partial pressure of brain tissue oxygen → Disease Severity)  [evidence: Metabolic activity, disease severity and mortality is related to the partial pressure of brain tissue oxygen (PbtO2)]
+  - monitoring indicates condition(Partial pressure of brain tissue oxygen → Mortality)  [evidence: Metabolic activity, disease severity and mortality is related to the partial pressure of brain tissue oxygen (PbtO2)]
+  - has outcome(Patient → GOSe Outcome)  [evidence: median extended Glasgow outcome scale of 7.00]
+  - has monitoring data(Patient → Mean Arterial Pressure)  [evidence: minute by minute arterial blood pressure (ABP), ICP and PbtO2]
+  - monitoring indicates condition(Intracranial Pressure → Secondary Injury)  [evidence: Clinical management of this population is focused on minimising any secondary injury, such as ischemia or raised intracranial pressure]
+  - has monitoring data(Patient → Monitoring Data)  [evidence: Every patient that had a minimum of 60 min of continuous PbtO2]
+  - has monitoring data(Patient → Vital Signs Measurements)  [evidence: Eleven subjects with 82060 minute by minute vital signs measurements]
+  - monitoring indicates condition(Intracranial Pressure → PbrO2)  [evidence: An overall increase in PbtO2 of 5.2% (95% CI 4%-6.4%, p < 0.001) was observed for a 10 mmHg increase in ICP]
+  - has session(Patient → ICU Stay)  [evidence: patients ICU stay]
+  - monitoring indicates condition(Monitoring Data → Cerebral Blood Flow)  [evidence: an ICP driven treatment plan alone, such as maintenance of intracranial pressure under 22 mmHg in adults, is not enough to guarantee good cerebral blood flow]
+  - monitoring indicates condition(Monitoring Data → Oxygen Delivery)  [evidence: an ICP driven treatment plan alone, such as maintenance of intracranial pressure under 22 mmHg in adults, is not enough to guarantee good cerebral blood flow and oxygen delivery]
+  - receives therapy(Patient → Clinical Management Strategy)  [evidence: a clinical management strategy for these patients may be more effective if it accounts explicitly for PbtO2]
+  - targets condition(Clinical Management Strategy → Condition)  [evidence: a clinical management strategy for these patients may be more effective if it accounts explicitly for PbtO2, over a solely ICP focused strategy]
+  - has monitoring data(Neuro-Intensive Care Unit → Intracranial Pressure)  [evidence: relationship between ICP and PbtO2 over the length of stay in the neuro-intensive care unit]
+  - has monitoring data(Neuro-Intensive Care Unit → PbrO2)  [evidence: relationship between ICP and PbtO2 over the length of stay in the neuro-intensive care unit]
+  - receives therapy(Severe Traumatic Brain Injury → Hypothermia Therapy)  [evidence: Therapeutic hypothermia reduces intracranial pressure and partial brain oxygen tension in patients with severe traumatic brain injury]
+  - monitoring indicates condition(Intracranial Pressure → Condition)  [evidence: impact of autoregulation on PbtO2 cannot be directly assessed]
+  - has laboratory value(Patient → Arterial Oxygen Pressure)  [evidence: paO2 = Arterial oxygen pressure]
+  - monitoring indicates condition(Partial pressure of brain tissue oxygen → Cerebral Perfusion Pressure)  [evidence: There is also a known non-linear effect of PbtO2 on cerebral perfusion pressure (CPP)]
+  - has laboratory value(Patient → Glucose)  [evidence: Glucose (mmol/l), Median 6.16 (5.66, 5.91)]
+  - has laboratory value(Patient → Haematocrit)  [evidence: Haematocrit (%), Median 27.50 (26.25, 29.50)]
+  - has laboratory value(Patient → Initial PbtO2)  [evidence: Initial PbtO2 (mmHg), 15 (8, 33)]
+  - has monitoring data(Patient → Initial ICP)  [evidence: Initial ICP (mmHg), Median (IQR)a 13.0 (10.5, 17.0)]
+  - has monitoring data(Patient → Initial ABP)  [evidence: Initial ABP (mmHg), Median (IQR)a 86 (80, 98)]
+  - has session(Patient → Length of Stay)  [evidence: They had a median length of stay of 11.8 (IQR: 6.6-19.7) days]
+  - has monitoring data(Patient → Minute-by-Minute Monitoring)  [evidence: minute by minute vital signs measurements were included in the final analysis]
+  - associated with condition(Patient → Non-linear Relationship)  [evidence: This model demonstrates that there is a significant non-linear relationship between ICP and PbtO2]
+  - has monitoring data(Patient → Temporal Correlation)  [evidence: The non-linearity of this relationship is illustrated in Fig. 1 stratified at four different times in the patients ICU stay]
+  - has injury mechanism(Patient → Trauma Type)  [evidence: Type of Trauma, n (%) Fall 6 (60%) Sport 1 (10%) Traffic Accident 3 (30%)]
+  - monitored in(Intracranial Pressure → Neuro-Intensive Care Unit)  [evidence: Monitoring of ICP is indicated in the current neurotrauma guidelines for patients with TBI.]
+  - monitored in(Partial pressure of brain tissue oxygen → Neuro-Intensive Care Unit)  [evidence: Monitoring PbtO2 has been shown to be safe, effective, and when used in conjunction with ICP monitoring, adds additional contextual information on the overall patient state.]
+  - monitoring indicates condition(Partial Pressure of Carbon Dioxide (pCO2) → Condition)  [evidence: The model was adjusted for mean arterial pressure and the partial pressure of carbon dioxide.]
+  - monitoring indicates condition(Mean Arterial Pressure → Condition)  [evidence: The model was adjusted for mean arterial pressure and the partial pressure of carbon dioxide.]
+  - has clinical assessment(Patient → GCS Assessment)  [evidence: GCS Eye, n (%)a 1 8 (80%) 2 (67%) 6 (86%)]
+  - has lesion(Patient → Extradural Lesion)  [evidence: CT lesion type, n (%)a Extradural 1 (9.1%) 0 (0%) 1 (13%)]
+  - has lesion(Patient → Intraparenchymal Lesion)  [evidence: CT lesion type, n (%)a Intraparenchymal 9 (82%) 3 (100%) 6 (75%)]
+  - has lesion(Patient → Subdural Lesion)  [evidence: CT lesion type, n (%)a Subdural 1 (9.1%) 0 (0%) 1 (13%)]
+  - has demographic data(Patient → Demographic Data)  [evidence: They had a median age of 38 (IQR: 37-47), 73% were male.]
+  - has monitoring data(Neuro-Intensive Care Unit → Vital Signs Monitoring Modalities)  [evidence: Vital signs monitoring modalities are used concurrently in neuro-intensive care unit (ICU)s.]
+  - associated with condition(Neurotrauma Guidelines → Condition)  [evidence: Monitoring of ICP is indicated in the current neurotrauma guidelines for patients with TBI.]
+  - has regression model(Condition → Regression Model)  [evidence: Three multi-level log-normal regression models with compound symmetry correlation structures were constructed with increasing non-linear complexities.]
+
+### HIERARCHY (subclass ⊑ superclass)
+  - Traumatic Brain Injury ⊑ Condition  [evidence: Traumatic brain injury (TBI) is a leading cause of death and long-term disability]
+  - Condition ⊑ Mortality  [evidence: Clinical management of this population is focused on minimising tivity, disease severity and mortality is related to the partial pressure of any secondary injury, such as ischemia or raised intracrani]
+  - Traumatic Brain Injury ⊑ Brain Injury  [evidence: in patients admitted with TBI there is a significant non-linear relationship]
+  - Neuro-Intensive Care Unit ⊑ Cerebrovascular Autoregulation  [evidence: This study has shown that there is a significant non-linear relation­ship between ICP and PbtO2 over the length of stay in the neuro-intensive care unit.]
+  - Cerebrovascular Autoregulation ⊑ Condition  [evidence: Structural: Cerebrovascular Autoregulation is a subclass of Condition.]
+  - Extradural Lesion ⊑ CT Scan Assessment  [evidence: CT lesion type, n (%)a Extradural 1 (9.1%)]
+  - Intraparenchymal Lesion ⊑ CT Scan Assessment  [evidence: CT lesion type, n (%)a Intraparenchymal 9 (82%)]
+  - Subdural Lesion ⊑ CT Scan Assessment  [evidence: CT lesion type, n (%)a Subdural 1 (9.1%)]
+  - Neuro-ICU Stay ⊑ ICU Stay  [evidence: minute by minute PbtO2 over the course of the neuro-ICU stay.]

@@ -1,0 +1,170 @@
+============================================================
+RUN SUMMARY  —  TripleGen Ontology Engineering Framework
+============================================================
+
+--- Metadata ---
+Run ID:          20260316-083140-747ae183
+Timestamp (UTC): 2026-03-16T08:36:04.739443
+Method:          Few-Shot
+Pipeline mode:   Strict
+LLM provider:    openai gpt-4o
+Improvements:    Text-grounded completion (built-in)
+Eval settings:   Scope filter (clinical-only chunks)
+
+--- Input paper(s) ---
+  • 3. Stell A, Piper I, Moss L (2018) Automated Measurement of Adherence to Traumati.txt
+
+--- Improvement counts (for ablation / fairness) ---
+  Text-grounded completion (built-in): classes_added=10, relations_added=9, hierarchy_added=2
+  Built-in cleanup (always active): relation_labels_normalized=0, relations_range_normalized=1, classes_removed_dedupe=2, relations_removed_dedupe=1, hierarchy_removed_dedupe=0, out_of_scope_classes_removed=4, abstract_data_classes_removed=0, broad_contextual_classes_removed=0, classes_removed_evidence=1, endpoints_auto_added=4, relations_pruned_scope=0, hierarchy_pruned_scope=0, hierarchy_pruned_dangling=0, relations_pruned=0, relations_removed_evidence=1, hierarchy_fragments_removed=0, hierarchy_edges_corrected=0, hierarchy_removed_axiom=0, relations_removed_axiom=0, hierarchy_cycles_removed=0, hierarchy_added=0, orphans_removed=0
+  Orphan Rescue (connect isolated classes): orphans_found=23, relations_added=0, hierarchy_added=5
+  Post-orphan scope cleanup: out_of_scope_removed=0
+  LLM CoT Refinement (semantic quality review): classes_removed=3, relations_removed=2, hierarchy_removed=0, hierarchy_corrected=0
+
+
+  Text-grounded completion (built-in): +10 classes, +9 relations, +2 hierarchy edges recovered from source text in second-pass extraction.
+
+  Orphan Rescue: 23 orphaned classes found → +0 relations, +5 hierarchy edges inferred from source text.
+
+  LLM CoT Refinement: -3 classes, -2 relations, -0 hierarchy removed; 0 hierarchy edges corrected.
+
+--- Metrics summary (final ontology) ---
+  Coverage:        17.20%
+  Precision:       26.23%
+  Recall:          17.20%
+  Errors:          hallucinations=0, schema_violations=0, omissions=0
+  Structural:      hierarchy_edges=10, hierarchy_coverage=0.30, relation_domain_range_rate=1.00
+  Clinical-only:   coverage=17.20%, precision=26.23%, recall=17.20%
+  Relations:       precision=60.61%, recall=44.44%, n_generated=33, n_gold=18
+  Hierarchy:       precision=10.00%, recall=1.32%, matched=1, n_generated=10, n_gold=76
+
+--- Metrics at extraction only (pre-improvement baseline) ---
+  Coverage:        15.05%
+  Precision:       25.00%
+  Recall:          15.05%
+  Structural:      hierarchy_edges=4, hierarchy_coverage=0.12, relation_domain_range_rate=1.00
+  Relations:       precision=47.22%, recall=33.33%, n_generated=36
+
+--- Per-stage ablation (pipeline progression) ---
+  Stage                   Classes   Rels   Hier   Coverage  Precision     Recall
+  --------------------------------------------------------------------------
+  Extraction                   56     36      4     15.05%     25.00%     15.05%
+  + Text-grounded              66     45      6     15.05%     21.21%     15.05%
+  + Cleanup                    63     35      5     16.13%     23.81%     16.13%
+  + Orphan Rescue              64     35     10     17.20%     25.00%     17.20%
+  + LLM Refinement             61     33     10     17.20%     26.23%     17.20%
+
+--- Concept counts (final ontology) ---
+  Classes:         61
+  Relations:       33
+  Hierarchy edges: 10
+
+--- Classes ---
+  • Traumatic Brain Injury
+  • Hypotension
+  • Intracranial Pressure
+  • Cerebral Perfusion Pressure
+  • Monitoring Data
+  • Pressure Event
+  • Mean Arterial Pressure
+  • Noradrenaline
+  • Adverse Event
+  • Clinical Process
+  • Outcome
+  • High Resolution Physiological Patient Data
+  • Accurate and Comprehensive Treatment Data
+  • EUSIG Event
+  • Guideline Adherence Monitoring
+  • Clinical Guideline Texts
+  • Process Models
+  • TBI Guidelines
+  • ICP Monitoring
+  • Hypothermia Therapy
+  • Beta-blocker Use in Heart Failure
+  • Glucose Measurement and Regulation
+  • Patient Intervention
+  • Medication
+  • Symptom Diary
+  • Sepsis
+  • Resuscitation Bundle
+  • Management Bundle
+  • Sepsis Guidelines
+  • Physiological Data
+  • Treatment Data
+  • Clinical Pathway
+  • Intracranial Hypertensive Episode
+  • Treatment Information
+  • Text Guidelines
+  • Non-compliance Measure
+  • Adult Respiratory Distress Syndrome (ARDS)
+  • Cerebrovascular Autoregulation
+  • Oxygenation
+  • Osmotics
+  • Cerebral Perfusion Thresholds
+  • Fluids
+  • Vasopressors
+  • Treatment
+  • Treatment Type
+  • Steroids
+  • Clinical Response Time
+  • Patient Outcome
+  • GOSe Outcome
+  • Bedside Physio/Treatment Data
+  • Pressure Event Management
+  • Bolus of Noradrenaline
+  • EUSIG Parameters
+  • Event Hold-down
+  • Threshold
+  • Duration
+  • BTF Guidelines
+  • Heart Failure
+  • Patient
+  • Guideline Adherence
+  • Timepoint
+
+--- Relations ---
+  • has guideline adherence(Traumatic Brain Injury → Guideline Adherence)
+  • targets condition(Guideline Adherence → Hypotension)
+  • targets condition(Guideline Adherence → Intracranial Pressure)
+  • targets condition(Guideline Adherence → Cerebral Perfusion Pressure)
+  • triggers intervention(Pressure Event → Noradrenaline)
+  • includes(Pressure Event → Adverse Event)
+  • has monitoring data(Patient → High Resolution Physiological Patient Data)
+  • receives therapy(Patient → Accurate and Comprehensive Treatment Data)
+  • includes(EUSIG Event → EUSIG Parameters)
+  • targets condition(Hypothermia Therapy → Traumatic Brain Injury)
+  • has guideline adherence(Guideline Adherence Monitoring → TBI Guidelines)
+  • has clinical assessment(Patient → ICP Monitoring)
+  • receives therapy(Patient → Patient Intervention)
+  • has outcome(Guideline Adherence → Sepsis)
+  • includes(Management Bundle → Resuscitation Bundle)
+  • converted into(Text Guidelines → Process Models)
+  • targets condition(Vasopressors → Cerebral Perfusion Pressure)
+  • targets condition(Fluids → Cerebral Perfusion Pressure)
+  • monitoring indicates condition(Oxygenation → Cerebral Perfusion Pressure)
+  • has guideline adherence(Pressure Event → Guideline Adherence)
+  • triggers intervention(Pressure Event → Treatment)
+  • targets condition(Treatment → Pressure Event)
+  • contraindicates(Treatment Type → Steroids)
+  • has outcome(Patient → Patient Outcome)
+  • has outcome(Patient → Outcome)
+  • provides information(Bedside Physio/Treatment Data → Pressure Event Management)
+  • provides information(Text Guidelines → Pressure Event Management)
+  • measures parameter(Mean Arterial Pressure → Mean Arterial Pressure)
+  • targets condition(Bolus of Noradrenaline → Pressure Event)
+  • targets condition(Beta-blocker Use in Heart Failure → Heart Failure)
+  • has monitoring data(Patient → Accurate and Comprehensive Treatment Data)
+  • triggers intervention(Pressure Event → Patient Intervention)
+  • associated with condition(Guideline Adherence → Traumatic Brain Injury)
+
+--- Hierarchy (subclass → superclass) ---
+  • Pressure Event ⊑ Adverse Event
+  • ICP Monitoring ⊑ BTF Guidelines
+  • Hypothermia Therapy ⊑ BTF Guidelines
+  • GOSe Outcome ⊑ Outcome
+  • Bolus of Noradrenaline ⊑ Noradrenaline
+  • Medication ⊑ Treatment
+  • Duration ⊑ Timepoint
+  • Event Hold-down ⊑ EUSIG Parameters
+  • Threshold ⊑ EUSIG Parameters
+  • Treatment Data ⊑ Accurate and Comprehensive Treatment Data

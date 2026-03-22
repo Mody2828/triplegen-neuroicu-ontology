@@ -1,0 +1,292 @@
+You are an ontology quality reviewer for clinical and biomedical domain ontologies.
+
+You have been given a generated ontology extracted from clinical/biomedical literature.
+Your task is to review the ontology and identify ONLY items that are clearly
+NOT clinical. Be VERY CONSERVATIVE — when in doubt, KEEP the item.
+
+### CRITICAL: BE CONSERVATIVE
+- Your primary goal is to PRESERVE the ontology. Only remove items you are
+  HIGHLY CONFIDENT do not belong.
+- If a concept COULD be clinical in ANY reasonable interpretation, KEEP it.
+- Abstract grouping categories are ESSENTIAL in ontologies — they organise
+  specific concepts into meaningful hierarchies. NEVER remove a class just
+  because it is abstract or general.
+- Removing a valid class destroys all its relations and hierarchy edges,
+  causing massive cascading damage to the ontology. Err on the side of keeping.
+
+### WHAT BELONGS (KEEP these — do NOT remove)
+- Clinical conditions, diseases, injuries, syndromes
+- Physiological parameters and measurements (e.g. heart rate, ICP, blood pressure)
+- Treatments, therapies, interventions, drugs, surgical procedures
+- Clinical assessments and scores (e.g. GCS, pupil reactivity, CT scan findings)
+- Laboratory values and tests (e.g. blood gases, biochemistry, haematology)
+- Medical devices and sensors that measure clinical parameters
+- Patient-related concepts (demographics, outcomes, patient)
+- Data categories that organise clinical observations (e.g. 'Monitoring Data',
+  'Laboratory Values', 'Admission Data', 'Treatment Data', 'Outcome Data')
+- Abstract superclasses that group clinical concepts:
+  'Condition', 'Outcome', 'Observation', 'Parameter', 'Therapy',
+  'Assessment', 'Intervention', 'Core Monitoring Parameter',
+  'Optional Monitoring Parameter', 'Baseline Therapy', 'Guidelines',
+  'Guidelines for Management', etc.
+  These are VALID ontological grouping classes — do NOT remove them.
+- Clinical guidelines and management protocols
+
+### WHAT TO REMOVE (only these categories, with high confidence)
+- Research project names and consortium names (e.g. 'BrainIT Project')
+- Governance/administrative concepts (e.g. 'Steering Group', 'Membership')
+- Data infrastructure: databases, software tools, data collection tools
+- Economic or social impact concepts (e.g. 'Economic Consequences',
+  'Social Consequences') — these are about societal impact, not clinical care
+- Institution names (universities, hospitals as organisations)
+- Industry/regulatory bodies (e.g. 'Medical Device Industry', 'Health Authorities')
+- Publishing metadata: journals, authors, DOIs
+
+### HIERARCHY REVIEW (be thorough here — hierarchy errors are important)
+Carefully check EVERY hierarchy edge for semantic correctness:
+- **Nonsensical edges** (ALWAYS remove): the subclass relationship is logically
+  impossible. Examples:
+  • 'Patient ⊑ Secondary Insult' — a patient is NOT a type of insult → REMOVE
+  • 'Monitoring Data ⊑ Patient' — data is NOT a type of patient → REMOVE
+  • 'Therapy ⊑ Laboratory Values' — therapy is NOT a lab value → REMOVE
+  Test: 'Is every X a kind of Y?' If the answer is obviously NO, remove it.
+- **Clear inversions** (CORRECT, do not remove): child and parent are swapped.
+  Examples:
+  • 'Brain Injury ⊑ Traumatic Brain Injury' → CORRECT to 'TBI ⊑ Brain Injury'
+  • 'Condition ⊑ Traumatic Brain Injury' → CORRECT to 'TBI ⊑ Condition'
+  Test: 'Is every X a kind of Y, or is it the other way around?'
+- Do NOT remove hierarchy edges just because the grouping seems unusual —
+  ontologies often have domain-specific groupings.
+
+### RELATION REVIEW
+Only flag relations where BOTH endpoints are clearly non-clinical:
+- If the domain OR range is a valid clinical concept, KEEP the relation.
+- Do NOT remove relations just because the label is imprecise.
+
+### CHAIN-OF-THOUGHT
+For each item you flag, reason step by step:
+1. What does this concept refer to in the source text?
+2. Is it clearly non-clinical (governance/infrastructure/economic/publishing)?
+3. Could it have ANY clinical interpretation? If yes → KEEP.
+4. Decision: REMOVE or CORRECT (only if highly confident)
+
+### OUTPUT FORMAT
+Return ONLY a JSON object (no markdown fences) with these keys:
+```
+{
+  "classes_to_remove": [
+    {"label": "...", "reason": "..."}
+  ],
+  "relations_to_remove": [
+    {"label": "...", "domain": "...", "range": "...", "reason": "..."}
+  ],
+  "hierarchy_to_remove": [
+    {"subClass": "...", "superClass": "...", "reason": "..."}
+  ],
+  "hierarchy_corrections": [
+    {"old_sub": "...", "old_super": "...", "new_sub": "...", "new_super": "...", "reason": "..."}
+  ]
+}
+```
+If everything is correct (or you are not confident enough to remove anything),
+return empty arrays for each key. It is perfectly fine to return all empty arrays.
+Do NOT wrap the JSON in markdown code fences.
+
+### SOURCE TEXT (first 6000 chars for context)
+ORIGINAL RESEARCH
+
+Forewarning of hypotensive events using a Bayesian artificial neural
+network in neurocritical care
+Rob Donald1 · Tim Howells2 · Ian Piper3 · P. Enblad4 · P. Nilsson4 · I. Chambers5 · B. Gregson6 · G. Citerio7 ·
+
+Traumatically brain injured (TBI) patients are at risk from secondary insults. Arterial hypotension, critically low blood
+pressure, is one of the most dangerous secondary insults and is related to poor outcome in patients. The overall aim of this
+study was to get proof of the concept that advanced statistical techniques (machine learning) are methods that are able to
+provide early warning of impending hypotensive events before they occur during neuro-critical care. A Bayesian artificial
+neural network (BANN) model predicting episodes of hypotension was developed using data from 104 patients selected
+from the BrainIT multi-center database. Arterial hypotension events were recorded and defined using the Edinburgh University Secondary Insult Grades (EUSIG) physiological adverse event scoring system. The BANN was trained on a random
+selection of 50% of the available patients (n = 52) and validated on the remaining cohort. A multi-center prospective pilot
+study (Phase 1, n = 30) was then conducted with the system running live in the clinical environment, followed by a second
+validation pilot study (Phase 2, n = 49). From these prospectively collected data, a final evaluation study was done on 69 of
+these patients with 10 patients excluded from the Phase 2 study because of insufficient or invalid data. Each data collection
+phase was a prospective non-interventional observational study conducted in a live clinical setting to test the data collection
+systems and the model performance. No prediction information was available to the clinical teams during a patient's stay in
+the ICU. The final cohort (n = 69), using a decision threshold of 0.4, and including false positive checks, gave a sensitivity
+of 39.3% (95% CI 32.9-46.1) and a specificity of 91.5% (95% CI 89.0-93.7). Using a decision threshold of 0.3, and false
+positive correction, gave a sensitivity of 46.6% (95% CI 40.1-53.2) and specificity of 85.6% (95% CI 82.3-88.8). With a
+decision threshold of 0.3, > 15 min warning of patient instability can be achieved. We have shown, using advanced machine
+learning techniques running in a live neuro-critical care environment, that it would be possible to give neurointensive teams
+early warning of potential hypotensive events before they emerge, allowing closer monitoring and earlier clinical assessment
+in an attempt to prevent the onset of hypotension. The multi-centre clinical infrastructure developed to support the clinical
+studies provides a solid base for further collaborative research on data quality, false positive correction and the display of
+early warning data in a clinical setting.
+
+Keywords Traumatic brain injury · Neuro-intensive care · Bayesian prediction · Clinical study results
+
+1 Introduction complications during neurocritical care (NCC) known as
+secondary insults [2]. The secondary insults can be both
+One of the primary aims in treating emergency admission intracranial and systemic. The intracranial insults predomipatients with physical trauma is to stabilise vital physiologi- nantly result from high intracranial pressure caused by
+cal systems [1]. It is also recognised that patients who have mass lesions and ischaemic mechanisms resulting in brain
+suffered a traumatic brain injury (TBI) are at risk of having swelling. One of the most critical types of systemic sectheir "primary" brain damage exacerbated from a class of ondary insult is arterial hypotension, defined as abnormally
+low arterial blood pressure. Research has shown [3] that
+increased incidence of hypotensive episodes is related to
+* Ian Piper
+ian.piper@brainit.org poor neurological outcome. The physiological vital func-
+tions are extensively monitored in critical care and alarms
+Extended author information available on the last page of the article
+
+Vol.:(0123456789)
+
+40 Journal of Clinical Monitoring and Computing (2019) 33:39-51
+
+are sent out when a secondary insult, e.g. an hypotensive generation as well as the development and testing of new
+event, occurs so effective treatment can be initiated immedi- data analysis methods. The group defined a core data set [5]
+ately without delay to reduce the development of secondary and then collected a database of over 200 patients containing
+injuries. The ideal situation in the future would be to have a demographic data (e.g. age, gender, time of injury, initial
+monitoring system that sends out alarms before a secondary admission data both at pre-neurosurgical and neurosurgical
+insult will take place so relevant precautions can be insti- admission), episodic data (e.g. treatments given, lab results
+tuted to avoid the secondary event completely. from routine blood samples and nursing procedures) and
+The overall aim of this study was to get proof of the con- minute-by-minute physiological data from bedside monicept that advanced statistical techniques (machine learning) tors [6]. The BANN was constructed using data from 104
+are methods that are not only able to provide early warn- patients from the BrainIT database, which was recruited
+ing of impending hypotensive events before they occur, but from 22 European neuro-intensive care centers between
+can do so prospectively in a live neuro-critical care envi- March 2003 and June 2005 [6, 7].
+ronment. This project had two specific aims: to develop a To support a pilot study of the prediction system, 30
+prediction of hypotensive events; and to run a prospective 2009 and October 2010 from six BrainIT centres (Prospecmulti-centre clinical study to test the system in a real clinical tive Phase I Dataset): Uppsala, Sweden; Glasgow, Scotland;
+environment. For the clinical study a secure software and Vilnius, Lithuania; Heidelberg, Germany; Monza, Italy;
+hardware infrastructure was developed and used for collec- and B
+
+### CLASSES
+  - Traumatic Brain Injury  [evidence: Traumatically brain injured (TBI) patients]
+  - Secondary Insult  [evidence: secondary insults]
+  - Arterial Hypotension  [evidence: there is no universally accepted definition of arterial hypotension used during the clinical management of TBI patients]
+  - Outcome  [evidence: baseline mean arterial pressure and patient age were significant predictors of outcome]
+  - Neurocritical Care  [evidence: neuro-critical care]
+  - Physiological Data  [evidence: minute-by-minute physiological data from bedside monitors]
+  - Demographic Data  [evidence: demographic data (e.g. age, gender, time of injury, initial admission data)]
+  - Episodic Data  [evidence: episodic data (e.g. treatments given, lab results from routine blood samples and nursing procedures)]
+  - Neuro-intensive Care  [evidence: neuro-intensive care]
+  - TBI Patient  [evidence: collect high resolution physiological and clinical data from TBI patients]
+  - Continuous Monitoring Data  [evidence: 24 h of continuous monitoring data]
+  - Patient Demographics  [evidence: In terms of patient demographics, the median age was 40 years, range 16 to 83.]
+  - Injury Type  [evidence: There were two main types of injury: fall (30) and road traffic accident (25).]
+  - GCS Assessment  [evidence: The GCS scores, where complete, were obtained from two time-points]
+  - Hypotension  [evidence: hypotension definitions that are markedly more severe in terms of the depth of hypotension and their combined duration]
+  - EUSIG Grade  [evidence: the Edinburgh University Secondary Insult Grading (EUSIG) system was used]
+  - Heart Rate  [evidence: trend values of heart rate incorporated in our model is a crude measure of heart-rate variability]
+  - Mean Arterial Pressure  [evidence: both systolic and mean arterial pressure should be monitored and considered in the definition of hypotension]
+  - End-Tidal Carbon Dioxide  [evidence: Additional parameters (e.g. ETCO2, temperature, SAO2, admission time to ICU)]
+  - Temperature  [evidence: Additional parameters (e.g. ETCO2, temperature, SAO2, admission time to ICU)]
+  - Arterial Oxygen Saturation  [evidence: Additional parameters (e.g. ETCO2, temperature, SAO2, admission time to ICU)]
+  - Admission Time to ICU  [evidence: Additional parameters (e.g. ETCO2, temperature, SAO2, admission time to ICU)]
+  - Pulse Pressure  [evidence: pulse pressure (BPs-BPd)]
+  - Demographic Variables  [evidence: Two demographic variables; age and sex]
+  - Physiological Features  [evidence: seven physiological features based on mean and systolic blood pressure and heart rate]
+  - Mean Blood Pressure  [evidence: mean blood pressure]
+  - Predictive Accuracy  [evidence: Predictive accuracy: bann test set]
+  - ICU Nurse  [evidence: Staff ICU nurse log patient's onto local information systems.]
+  - Research Nurse  [evidence: Research Nurse log patient's onto a patient study via the ward web app (WWA).]
+  - Laboratory Data  [evidence: parse clinical, laboratory and monitoring data]
+  - Monitoring Data  [evidence: parse clinical, laboratory and monitoring data]
+  - Age  [evidence: Age Demographic]
+  - Sex  [evidence: Sex Demographic]
+  - Systolic Arterial Blood Pressure  [evidence: Systolic arterial blood pressure Mean]
+  - Sepsis  [evidence: medical management of sepsis]
+  - Patient  [evidence: 49 patients were recruited]
+  - Heart-Rate Variability  [evidence: heart-rate variability can be used as a predictor of hypotension]
+  - Warning Time  [evidence: the average hypotension warning time was 15 min or greater]
+  - Haemodialysis Treatment  [evidence: predictor of hypotension during haemodialysis treatment]
+  - Mortality  [evidence: increase in in-hospital mortality]
+  - Intensive Care Management  [evidence: cost of intensive care management]
+  - Intensive Care Unit  [evidence: management in the ICU]
+  - Blood Pressure Measurement System  [evidence: Blood pressure measurement systems]
+  - Nursing Procedure  [evidence: nursing and medical procedures]
+  - Bedside Intervention  [evidence: blood sampling]
+  - Routine Patient Hygiene  [evidence: routine patient hygiene]
+  - Pressure Area Care  [evidence: pressure area care]
+  - BP Data  [evidence: artefact detection and removal from BP data]
+  - Medical Management  [evidence: influence medical management]
+  - Patient Outcome  [evidence: patient outcome]
+  - Critical Care  [evidence: management of patients within critical care]
+  - Electronic Health Record  [evidence: patient data captured in electronic health records]
+  - User Interface  [evidence: user interface]
+  - Medical Device  [evidence: medical devices surrounding the patient]
+  - Risk Warning  [evidence: respond to the increased risk warning]
+  - Randomised Clinical Trial  [evidence: randomised clinical trial on the technology]
+  - Clinical Setting  [evidence: live clinical setting]
+  - Acute Hypotensive Episode  [evidence: Prediction of acute hypotensive episodes]
+  - Peripheral Arterial Blood Pressure Waveform  [evidence: based on a peripheral arterial blood pressure waveform]
+  - Data  [evidence: 45 min of data are required]
+  - Intracranial Pressure  [evidence: intracranial insults predominantly result from high intracranial pressure]
+  - Mass Lesions  [evidence: high intracranial pressure caused by mass lesions]
+  - Ischaemic Mechanisms  [evidence: ischaemic mechanisms resulting in brain swelling]
+  - Condition  [evidence: ischaemic mechanisms resulting in brain swelling]
+  - EtCO2  [evidence: Implicit: referenced as relation/hierarchy endpoint.]
+  - Injury Mechanism  [evidence: Implicit: referenced as relation/hierarchy endpoint.]
+  - Prediction  [evidence: Implicit: referenced as relation/hierarchy endpoint.]
+
+### RELATIONS
+  - at risk from(Traumatic Brain Injury → Secondary Insult)  [evidence: patients who have suffered a traumatic brain injury (TBI) are at risk of having their 'primary' brain damage exacerbated from a class of secondary insults]
+  - associated with condition(Arterial Hypotension → Outcome)  [evidence: increased incidence of hypotensive episodes is related to poor neurological outcome]
+  - has monitoring data(TBI Patient → Continuous Monitoring Data)  [evidence: collect high resolution physiological and clinical data from TBI patients]
+  - has demographic data(TBI Patient → Patient Demographics)  [evidence: In terms of patient demographics, the median age was 40 years]
+  - has injury mechanism(TBI Patient → Injury Type)  [evidence: There were two main types of injury: fall (30) and road traffic accident (25).]
+  - has clinical assessment(TBI Patient → GCS Assessment)  [evidence: The GCS scores, where complete, were obtained from two time-points]
+  - monitoring indicates condition(Continuous Monitoring Data → Hypotension)  [evidence: hypotension as systolic arterial pressure (BPs) ≤ 90 mmHg or mean arterial pressure (BPm) ≤ 70 mmHg]
+  - has EUSIG grade(Hypotension → EUSIG Grade)  [evidence: the Edinburgh University Secondary Insult Grading (EUSIG) system was used]
+  - has monitoring data(TBI Patient → Heart Rate)  [evidence: more than 24 h of data for heart-rate]
+  - has monitoring data(TBI Patient → Mean Arterial Pressure)  [evidence: systolic arterial pressure (BPs) ≤ 90 mmHg]
+  - has monitoring data(TBI Patient → EtCO2)  [evidence: Additional parameters (e.g. ETCO2, temperature, SAO2, admission time to ICU)]
+  - has monitoring data(TBI Patient → Temperature)  [evidence: Additional parameters (e.g. ETCO2, temperature, SAO2, admission time to ICU)]
+  - has monitoring data(TBI Patient → Arterial Oxygen Saturation)  [evidence: Additional parameters (e.g. ETCO2, temperature, SAO2, admission time to ICU)]
+  - has monitoring data(TBI Patient → Admission Time to ICU)  [evidence: Additional parameters (e.g. ETCO2, temperature, SAO2, admission time to ICU)]
+  - monitoring indicates condition(Pulse Pressure → Condition)  [evidence: if the pulse pressure (BPs-BPd) is < 10 mmHg, this potentially indicates a fault within the pressure measuring system resulting as often found in an over-damped trace and therefore any warnings that o]
+  - includes(Demographic Variables → Physiological Features)  [evidence: Two demographic variables; age and sex are included. Additionally seven physiological features based on mean and systolic blood pressure and heart rate]
+  - has demographic data(Patient → Age)  [evidence: Age Demographic]
+  - has demographic data(Patient → Sex)  [evidence: Sex Demographic]
+  - has monitoring data(Patient → Mean Arterial Pressure)  [evidence: Mean arterial blood pressure Mean]
+  - has monitoring data(Patient → Systolic Arterial Blood Pressure)  [evidence: Systolic arterial blood pressure Mean]
+  - has monitoring data(Patient → Heart Rate)  [evidence: Heart rate Mean]
+  - monitoring indicates condition(Monitoring Data → Hypotension)  [evidence: early warning of the onset of hypotension]
+  - monitoring indicates condition(Monitoring Data → Sepsis)  [evidence: the medical management of sepsis]
+  - includes(Hypotension → Mean Arterial Pressure)  [evidence: systolic and mean arterial pressure should be monitored and considered in the definition of hypotension]
+  - derived from(Heart-Rate Variability → Heart Rate)  [evidence: trend values of heart rate incorporated in our model is a crude measure of heart-rate variability]
+  - monitoring indicates condition(Mean Arterial Pressure → Outcome)  [evidence: baseline mean arterial pressure and patient age were significant predictors of outcome]
+  - includes(Nursing Procedure → Routine Patient Hygiene)  [evidence: routine patient hygiene or pressure area care]
+  - includes(Nursing Procedure → Pressure Area Care)  [evidence: routine patient hygiene or pressure area care]
+  - has outcome(Medical Management → Patient Outcome)  [evidence: medical management and patient outcome]
+  - produced by sensor(BP Data → Blood Pressure Measurement System)  [evidence: artefact detection and removal from BP data]
+  - based on(Prediction → Peripheral Arterial Blood Pressure Waveform)  [evidence: Forecasting acute hypotensive episodes in intensive care patients based on a peripheral arterial blood pressure waveform]
+  - requires(Prediction → Data)  [evidence: 45 min of data are required]
+  - at risk from(TBI Patient → Secondary Insult)  [evidence: patients who have suffered a traumatic brain injury (TBI) are at risk of having their 'primary' brain damage exacerbated from a class of complications during neurocritical care (NCC) known as secondar]
+  - associated with condition(Intracranial Pressure → Mass Lesions)  [evidence: intracranial insults predominantly result from high intracranial pressure caused by mass lesions]
+  - resulting in(Ischaemic Mechanisms → Condition)  [evidence: ischaemic mechanisms resulting in brain swelling]
+  - defined as(Arterial Hypotension → Mean Arterial Pressure)  [evidence: hypotension as systolic arterial pressure (BPs) ≤ 90 mmHg]
+  - has physiological data(Patient → Physiological Data)  [evidence: a database of over 200 patients containing ... minute-by-minute physiological data from bedside monitors]
+  - has outcome(Neuro-intensive Care → Patient Outcome)  [evidence: Research has shown [3] that increased incidence of hypotensive episodes is related to poor neurological outcome.]
+  - has clinical assessment(Neuro-intensive Care → GCS Assessment)  [evidence: The GCS scores, where complete, were obtained from two time-points: at admission to the pre-neurosurgery hospital, median GCS = 8 (range 3-15; complete n = 51); at admission to the neurosurgery ICU, m]
+  - has monitoring data(Neuro-intensive Care → Continuous Monitoring Data)  [evidence: minute-by-minute physiological data from bedside monitors]
+  - occurs in(Acute Hypotensive Episode → Neurocritical Care)  [evidence: The overall aim of this study was to get proof of the concept that advanced statistical techniques (machine learning) are methods that are able to provide early warning of impending hypotensive events]
+  - occurs in(Acute Hypotensive Episode → Intensive Care Unit)  [evidence: Each data collection phase was a prospective non-interventional observational study conducted in a live clinical setting to test the data collection systems and the model performance.]
+  - has monitoring data(Patient → End-Tidal Carbon Dioxide)  [evidence: Additional parameters (e.g. ETCO2, temperature, SAO2, admission time to ICU) were tried but they did not produce models with better sensitivity.]
+  - has monitoring data(Patient → Episodic Data)  [evidence: The ideal situation in the future would be to have a monitoring system that sends out alarms before a secondary insult will take place so relevant precautions can be instituted to avoid the secondary ]
+  - has demographic data(Patient → Demographic Data)  [evidence: The group defined a core data set [5] and then collected a database of over 200 patients containing demographic data (e.g. age, gender, time of injury, initial admission data both at pre-neurosurgical]
+  - occurs in(Haemodialysis Treatment → Clinical Setting)  [evidence: Each data collection phase was a prospective non-interventional observational study conducted in a live clinical setting to test the data collection systems and the model performance.]
+  - works in(ICU Nurse → Intensive Care Unit)  [evidence: The Phase I study was successful, with the prediction results matching the results from the test on the retrospective data in the BrainIT database.]
+  - works in(Research Nurse → Clinical Setting)  [evidence: Research Nurse log patient's onto a patient study via the ward web app (WWA).]
+  - used in(Electronic Health Record → Clinical Setting)  [evidence: The multi-centre clinical infrastructure developed to support the clinical studies provides a solid base for further collaborative research on data quality, false positive correction and the display o]
+  - used in(User Interface → Clinical Setting)  [evidence: The multi-centre clinical infrastructure developed to support the clinical studies provides a solid base for further collaborative research on data quality, false positive correction and the display o]
+
+### HIERARCHY (subclass ⊑ superclass)
+  - Arterial Hypotension ⊑ Secondary Insult  [evidence: One of the most critical types of systemic secondary insult is arterial hypotension]
+  - Injury Mechanism ⊑ Injury Type  [evidence: There were two main types of injury: fall (30) and road traffic accident (25).]
+  - Outcome ⊑ Hypotension  [evidence: This was a conwith TBI there is compelling evidence that even "minute servative approach and possibly sub-optimal given available by minute" hypotension events cumulatively can influence techniques su]
+  - Heart Rate ⊑ Heart-Rate Variability  [evidence: trend values of heart rate incorporated in our model is a crude measure of heart-rate variability]
+  - Mortality ⊑ Outcome  [evidence: Structural: Mortality is a subclass of Outcome.]
+  - Mean Arterial Pressure (MAP) ⊑ Arterial Hypotension  [evidence: hypotension as systolic arterial pressure (BPs) ≤ 90 mmHg]
+  - Secondary Insult ⊑ Condition  [evidence: Structural: Secondary Insult is a subclass of Condition.]
+  - Neurocritical Care ⊑ Critical Care  [evidence: The overall aim of this study was to get proof of the concept that advanced statistical techniques (machine learning) are methods that are able to provide early warning of impending hypotensive events]
+  - Intensive Care Management ⊑ Critical Care  [evidence: The physiological vital functions are extensively monitored in critical care and alarms are sent out when a secondary insult, e.g. an hypotensive event, occurs so effective treatment can be initiated ]
+  - Intensive Care Unit ⊑ Clinical Setting  [evidence: For the clinical study a secure software and hardware infrastructure was developed and used for collection of anonymised data from hospital intensive care units (ICUs).]
+  - Laboratory Data ⊑ Data  [evidence: episodic data (e.g. treatments given, lab results from routine blood samples and nursing procedures)]
+  - Mean Blood Pressure ⊑ BP Data  [evidence: A cohort of suitable patients (n = 104) having more than 24 h of data for heart-rate and mean and systolic blood pressure was extracted from the BrainIT database.]
+  - Warning Time ⊑ Risk Warning  [evidence: With a decision threshold of 0.3, > 15 min warning of patient instability can be achieved.]

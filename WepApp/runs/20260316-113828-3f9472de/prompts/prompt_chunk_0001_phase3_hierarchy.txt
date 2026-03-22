@@ -1,0 +1,363 @@
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing the EXACT, verbatim sentence fragment from the text.
+
+3. **Extraction Scope:** Extract clinical and biomedical content: conditions, physiological parameters, monitoring variables, treatments/therapies/interventions, outcomes, assessments, laboratory values, nursing interventions, surgical procedures, and clinical dataset categories when explicitly named.
+   Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+   If a sentence or paragraph is mainly about these excluded topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+6. **Label Mapping Rule:** If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+   Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+   For other abbreviations, expand to their full clinical name as used in the text.
+
+7. **Structural Completeness Rule:** When the text mentions specific clinical items, also extract their general category if the text supports it.
+   For example, if the text discusses 'ventilation, sedation, fluids' as therapies, also extract the general class 'Therapy' or 'Baseline Therapy' if the text uses that grouping.
+   Use the text's own categories and groupings — do not impose an external hierarchy.
+
+**Default priority: classes first, then relations.** Extract relations when the text clearly states a connection between two concepts — both domain and range must be extracted classes. If a phase instruction below overrides this priority, follow the phase instruction.
+
+**Completeness:** Extract every distinct clinical concept the text names — err on the side of inclusion when evidence exists.
+
+### CURRENT TASK: Phase 3 — HIERARCHY EXTRACTION
+Extract subclass/superclass (is-a) edges supported by the text. A hierarchy edge means one class is a TYPE, SUBTYPE, CATEGORY MEMBER, or SPECIFIC INSTANCE of another. Extract every edge the text explicitly supports with evidence.
+
+### HIERARCHY DETECTION METHOD
+Look for ALL of these patterns in the text:
+  1. Explicit cues: 'such as', 'is a', 'type of', 'kind of', 'form of'
+  2. Enumeration: 'include:', 'includes:', 'consists of', 'comprises'
+  3. Category grouping: 'categorized as', 'classified as', 'grouped into'
+  4. List patterns: items listed under a heading or category name
+  5. Implicit grouping: when several specific items are mentioned alongside a general category (e.g., 'therapy: ventilation, sedation' implies both are subclasses of Therapy; 'core parameters: HR, ICP, MAP' implies all three are subclasses of Core Monitoring Parameter)
+  6. Definitional: 'X is a Y', 'X, a type of Y', 'X (a form of Y)'
+  7. Context-based: if the text organises items into sections or tables, each section heading implies a parent class for the items listed under it
+  8. Medical knowledge: TBI is a type of Brain Injury, Hypotension is a type of Secondary Insult — extract these when the text discusses them together
+
+For enumeration patterns (e.g. 'include: X, Y, Z'), extract EACH listed item as a subclass of the parent category.
+IMPORTANT: If X 'includes' Y, model it as: Y subClassOf X (a hierarchy edge). Do NOT output 'includes' as a relation label — it belongs in the hierarchy.
+
+### CHAIN-OF-THOUGHT
+For each pair of known classes, reason:
+1. Does the text describe one class as a specialization of another?
+2. Does the text list one class under another as a member/subtype?
+3. Even if not explicitly stated, does medical context clearly imply a parent-child relationship?
+4. What text evidence supports this parent-child link?
+
+Be thorough: extract every parent-child relationship the text supports. Aim for at least one hierarchy edge per class if possible.
+If the text lists items under a category heading, EACH item is a subClassOf that category. For example, if 'core monitoring' is followed by 'heart rate, ICP, MAP', then each is a subClassOf Core Monitoring Parameter.
+Use ONLY the known classes below for subClass and superClass labels.
+
+### SELF-CHECK (before finalising output)
+- Are there any circular edges (A subClassOf B AND B subClassOf A)? Remove them.
+- Are subClass and superClass labels from the known-classes list?
+- Does every evidence field contain a verbatim quote from the text?
+
+Output JSON with keys classes, relations, hierarchy. Set classes and relations to empty arrays.
+
+Known classes (use only these for subclass/superclass): Patient; Session; Timepoint; Reading; Parameter; Observation; Sensor; Machine; Provenance; Configuration; Assessment; Error; Possible Error; Probable Error
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+**REASONING STEP:** Before producing JSON, mentally scan the text for: (1) every named clinical concept, (2) explicit relations between them, (3) hierarchy cues (such as, is a, type of, include:). Then output only items with verbatim evidence.
+
+---
+--- Retrieved examples (3) ---
+
+Text: This is the minimum minute by minute monitoring data required for inclusion in the BrainIT Database and include: Heart Rate, Respiration Rate, Mean Arterial Pressure, mean ICP, SaO2 and Temperature.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Monitoring Data",
+      "evidence": "minute by minute monitoring data"
+    },
+    {
+      "label": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required"
+    },
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate"
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate"
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "Mean Arterial Pressure"
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "mean ICP"
+    },
+    {
+      "label": "SaO2",
+      "evidence": "SaO2"
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature"
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Heart Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required...include: Heart Rate"
+    },
+    {
+      "subClass": "Respiration Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Heart Rate, Respiration Rate"
+    },
+    {
+      "subClass": "Mean Arterial Pressure (MAP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Mean Arterial Pressure"
+    },
+    {
+      "subClass": "Intracranial Pressure (ICP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: mean ICP"
+    },
+    {
+      "subClass": "SaO2",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: SaO2"
+    },
+    {
+      "subClass": "Temperature",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Temperature"
+    }
+  ]
+}
+
+---
+
+Text: Each observation is evaluated by a data quality assessment. Errors are classified as either a Possible Error (PoE), where a reading is outside an acceptable range, or a Probable Error (PrE), where the error is confirmed by clinical context. A PrE may be reclassified as PoE if contextualised by a medical disorder such as sepsis or hypertension, or by a recent treatment such as noradrenaline or adrenaline.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Data Quality Assessment",
+      "evidence": "data quality assessment"
+    },
+    {
+      "label": "Possible Error",
+      "evidence": "Possible Error (PoE)"
+    },
+    {
+      "label": "Probable Error",
+      "evidence": "Probable Error (PrE)"
+    },
+    {
+      "label": "Condition",
+      "evidence": "medical disorder such as sepsis or hypertension"
+    },
+    {
+      "label": "Sepsis",
+      "evidence": "sepsis"
+    },
+    {
+      "label": "Hypertension",
+      "evidence": "hypertension"
+    },
+    {
+      "label": "Noradrenaline",
+      "evidence": "noradrenaline"
+    },
+    {
+      "label": "Adrenaline",
+      "evidence": "adrenaline"
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Possible Error",
+      "superClass": "Data Quality Assessment",
+      "evidence": "data quality assessment...classified as either a Possible Error (PoE)"
+    },
+    {
+      "subClass": "Probable Error",
+      "superClass": "Data Quality Assessment",
+      "evidence": "data quality assessment...or a Probable Error (PrE)"
+    },
+    {
+      "subClass": "Sepsis",
+      "superClass": "Condition",
+      "evidence": "medical disorder such as sepsis"
+    },
+    {
+      "subClass": "Hypertension",
+      "superClass": "Condition",
+      "evidence": "medical disorder such as sepsis or hypertension"
+    },
+    {
+      "subClass": "Noradrenaline",
+      "superClass": "Vasopressors",
+      "evidence": "treatment such as noradrenaline"
+    },
+    {
+      "subClass": "Adrenaline",
+      "superClass": "Vasopressors",
+      "evidence": "treatment such as noradrenaline or adrenaline"
+    }
+  ]
+}
+
+---
+
+Text: Intensive care management information. Types of data include: GCS scores, pupil scores, ventilation settings, sedation levels, fluid input and output, nutrition, use of vasopressors, antibiotics. These constitute baseline therapy — routine ICU management delivered to all patients.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Intensive Care Management",
+      "evidence": "Intensive care management information"
+    },
+    {
+      "label": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management"
+    },
+    {
+      "label": "Ventilation",
+      "evidence": "ventilation settings"
+    },
+    {
+      "label": "Sedation",
+      "evidence": "sedation levels"
+    },
+    {
+      "label": "Fluids",
+      "evidence": "fluid input and output"
+    },
+    {
+      "label": "Nutrition",
+      "evidence": "nutrition"
+    },
+    {
+      "label": "Vasopressors",
+      "evidence": "use of vasopressors"
+    },
+    {
+      "label": "Antibiotics",
+      "evidence": "antibiotics"
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Ventilation",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: ventilation settings"
+    },
+    {
+      "subClass": "Sedation",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: sedation levels"
+    },
+    {
+      "subClass": "Fluids",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: fluid input and output"
+    },
+    {
+      "subClass": "Nutrition",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: nutrition"
+    },
+    {
+      "subClass": "Vasopressors",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: use of vasopressors"
+    },
+    {
+      "subClass": "Antibiotics",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: antibiotics"
+    }
+  ]
+}
+
+---
+TEXT TO ANALYZE:
+Ideally, all of the datasets we describe below would be
+of the required information is not available; in these cases we have created our
+own datasets, which we intend to contribute to the Linked Open Data cloud.
+
+Data Conversion. In this stage an RDF version of the medical data, expressed
+against the Patient Data and Medical Observations ontologies is created. For
+the two case studies described in this paper, we have developed a program that
+dataset; RDB2RDF was considered but was not appropriate for how a case study
+dataset was represented (as a spreadsheet). The Patient Data (pd) ontology [2]
+
+70 L. Moss et al.
+
+provides classes for representing Patients, Sessions, and Timepoints. Each Timepoint is associated with a set of Readings which refer to the Parameter being
+observed and its value. The Medical Observations ontology defines a series of
+axioms that integrate our patient ontology with the W3C Semantic Sensor Network (ssn) Incubator Group's sensor ontology [4] and allows the pd:Readings to
+be linked to the machines/sensors that produced them. We define pd:Reading
+as a subclass of ssn:ObservationValue (which represents the value produced by
+some sensing process); pd:Parameter (representing things that were recorded) as
+a subclass of ssn:Property; and pd:Patient as a ssn:FeatureOfInterest. To represent a pd:Timepoint as a set of observations, we use the Observation Collection
+pattern [4], defining pd:Timepoint as a subclass of mo:ObservationCollection,
+which has an associated set of ssn:Observations.
+Provenance Annotation. This optional, semi-automatic stage involves annotating the patient observations with provenance, considered as "a description
+of the entities and processes involved in producing ... that resource" [4]. Providing provenance information increases the available types of assessments compared to solely using the observations. In this framework, we capture details
+of the sensors that were responsible for producing the pd:Readings. Our Medical Machine/Sensor ontology (mms), extends the SSN ontology with classes
+and individuals representing the machines used in our medical evaluation. We
+have defined mms:Machine as a subclass of ssn:Platform, and various subclasses of ssn:Sensor for the different types of sensors on the machine. Each
+sensor is then described in terms of the ssn:Sensing process that is implements, the ssn:Property it observes, and its ssn:MeasurementCapability. The
+machine recording settings annotate the observations with knowledge about
+how the sensors were configured to record the data; this knowledge is provided
+by the Configuration ontology (c). For example, the specification of the sampling rate is described using the c:MachineConfiguration class, which references
+a set of c:RecordingConfigurations, which, in turn, describe the mms:Machine
+or ssn:Sensor used to record a parameter between two timepoints in a session.
+Data Checking. This component evaluates the medical data using the available information and assessment rules represented as SPARQL queries (Table
+1). For each patient, a single temporary assessment dataset is created consisting of the patient observations RDF dataset, the medical domain ontology, the
+SSN ontology, and provenance annotations. A program then loads and executes
+each assessment query, storing the results in a separate file which is used later
+to generate a summary of the analysis. If a value is identified as an error it is
+annotated with 'Possible Error' (PoE) or a 'Probable Error' (PrE); where PrE
+is more likely to be an error than PoE. Definitions of acceptable values, sensor accuracies, and medical conditions & treatments are provided by ontologies,
+enabling reuse of existing knowledge and as the rules are expressed at the ontological level, their reuse across multiple domains without modification; whereas
+other approaches e.g. complex event processing and rule engines do not easily
+allow for this. RDF also provides a common representational formalism, allowing
+data to be provided in a proprietary format, e.g. database or spreadsheet.
+
+Trusting Intensive Care Unit (ICU) Medical Data 71
+
+Table 1. Example assessments
+---

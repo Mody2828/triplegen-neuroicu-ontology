@@ -1,0 +1,305 @@
+Use ONLY the following class labels:
+Acute Respiratory Distress Syndrome; Adrenaline; Analgesia; Anterior Fossa Repair; Anti-hypertensives; Anti-pyretics; Antibiotics; Arterial Hypotension; Arterial Pressors; Barbiturates; Baseline Therapy; Bedside Intervention; Biochemistry; Blood Gases; Brain Temperature; CT Scan Assessment; CVP; Cardiac Output; Cerebral Perfusion Pressure (CPP); Clinical Assessment; Condition; Core Monitoring Parameter; Data Quality Assessment; Decompressive Craniectomy; Demographic Data; Derived Parameter; EtCO2; Evacuation of Mass Lesion; Extra Ventricular Drain Placement; Fluids; GCS Assessment; GOSe Outcome; Glucose; Haematocrit; Haematology; Haemoglobin; Heart Rate; Hypertension; Hypotension; Hypothermia Therapy; ICP Sensor Placement; Intensive Care Management; Intracranial Hypertension; Intracranial Pressure (ICP); Jugular Venous Desaturation; Laboratory Values; Mean Arterial Pressure (MAP); Microdialysis; Monitoring Data; NIBP; Noradrenaline; Nursing Intervention; Nutrition; Observation; Optional Monitoring Parameter; Osmotics; Outcome; Paralysis; Parameter; Patient; Patient Transport; PbrO2; Peripheral Temperature; Physiotherapy; Possible Error; Potassium; Pressure Reactivity Index (PRx); Probable Error; Pupil Assessment; Removal of Foreign Body; Respiration Rate; Routine Nursing Care; SaO2; Secondary Insult; Secondary Insult Therapy; Secondary Insult Treatment; Sedation; Sensor; Sepsis; Session; SjO2; Skull Fracture Elevation; Sodium; Steroids; Surgical Procedure; Systemic Hypotension; TCD; Temperature; Therapy; Timepoint; Vasopressors; Ventilation; White Blood Cell Count
+
+Use ONLY the following relation labels with the stated domain and range:
+affected by treatment(Data Quality Assessment->Therapy); associated with condition(Data Quality Assessment->Condition); has clinical assessment(Patient->Clinical Assessment); has laboratory value(Patient->Laboratory Values); has monitoring data(Patient->Monitoring Data); has nursing intervention(Patient->Nursing Intervention); has observation(Timepoint->Observation); has outcome(Patient->Outcome); has quality assessment(Observation->Data Quality Assessment); has session(Patient->Session); has surgical procedure(Patient->Surgical Procedure); has timepoint(Session->Timepoint); measures parameter(Observation->Parameter); monitoring indicates condition(Monitoring Data->Condition); produced by sensor(Observation->Sensor); receives therapy(Patient->Therapy); targets condition(Therapy->Condition)
+
+If an item is not supported by the text and does not match the allowed labels above, omit it.
+
+Leaf-first rule (important):
+Prefer the most specific allowed class labels explicitly supported by the text.
+Do not stop at broad container classes such as Monitoring Data, Therapy, or Condition if the text names more specific allowed concepts.
+Broad classes may be included only when directly supported by the text or when needed as valid endpoints for a clearly supported relation.
+If multiple distinct allowed leaf concepts are explicitly named, extract each of them separately with its own evidence.
+Do not treat research methods, feasibility workflow, organisational process, or guideline-adherence calculations as Therapy, Monitoring Data, or other clinical ontology classes.
+
+Suggested concepts (pre-identified by biomedical NER in this text): hypothermia, hypotension.
+These are entity mentions detected in this chunk. Use them as additional evidence that a concept is present, but only extract labels from the allowed class list above.
+
+Candidate domain terms (contextual hints only — use only if explicitly supported by the text):
+cpp; hypotension; icp; intracranial pressure; monitoring; outcome; secondary insult; secondary; secondary insults; et al; injured; injured patients
+
+SYSTEM ROLE
+
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+CORE CONSTRAINTS
+
+Source fidelity
+Extract information stated or clearly implied in the current text.
+You may use standard medical knowledge to recognise parent-child relationships
+(e.g. TBI is a type of Brain Injury) when the text discusses both concepts.
+Do not invent concepts that are not mentioned in the text.
+
+Evidence anchor
+Every extracted class, relation, and hierarchy edge must include an evidence field.
+Evidence must be an exact verbatim phrase or sentence fragment from the text.
+
+Extraction scope
+Extract ALL clinical and biomedical content: conditions, diseases, injuries, syndromes, secondary insults, physiological parameters, monitoring variables, treatments/therapies/interventions/drugs, outcomes, assessments, scores, laboratory values, nursing interventions, surgical procedures, medical devices, sensors, clinical guidelines, management protocols, and data categories (Monitoring Data, Demographic Data, Admission Data, Treatment Data, Outcome Data, Core Monitoring Parameter, Optional Monitoring Parameter, Baseline Therapy, etc.).
+Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+If a sentence or paragraph is mainly about these excluded topics, ignore it unless it contains a clearly named clinical concept.
+
+Priority rule
+Classes are the priority.
+Extract relations when the text clearly supports the connection and both endpoints are extracted classes.
+Extract hierarchy only when there is an explicit lexical cue.
+
+Confidence rule
+If a clinical concept is clearly named in the text, include it even if mentioned briefly.
+Omit only genuinely non-clinical items.
+
+Hierarchy rule
+Extract hierarchy edges generously. Look for:
+- Explicit cues: is a, type of, kind of, such as, include:, includes:, consists of, comprises
+- Implicit grouping: items listed under a heading or category (e.g. 'core parameters: HR, ICP, MAP')
+- Medical knowledge: when the text discusses both concepts and one is clearly a subtype
+  (e.g. TBI is a type of Brain Injury, Hypotension is a Secondary Insult)
+
+Label mapping rule
+If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+For other abbreviations, expand to their full clinical name as used in the text.
+
+Structural completeness rule
+When the text mentions specific clinical items, also extract their general category if the text supports it.
+For example, if the text discusses ventilation, sedation, fluids as therapies, also extract the general class Therapy or Baseline Therapy if the text uses that grouping.
+Use the text’s own categories and groupings — do not impose an external hierarchy.
+
+Anti-anchoring rule
+Use the retrieved example below as format and behaviour guidance only.
+Do not copy labels, relations, or hierarchy from the example unless the current text explicitly supports them.
+Your text may contain concept types NOT represented in the example — extract them all.
+
+REASONING STEP
+Before producing JSON, mentally scan the text for:
+(1) every named clinical concept,
+(2) explicit relations between them,
+(3) hierarchy cues (such as, is a, type of, include:).
+Then output only items with verbatim evidence.
+
+OUTPUT FORMAT (JSON ONLY)
+
+Return only valid JSON.
+Do not include markdown code fences, explanations, notes, or commentary.
+
+Structure:
+{
+  "classes": [
+    {"label": "string", "evidence": "string"}
+  ],
+  "relations": [
+    {"label": "string", "domain": "string", "range": "string", "evidence": "string"}
+  ],
+  "hierarchy": [
+    {"subClass": "string", "superClass": "string", "evidence": "string"}
+  ]
+}
+
+OUTPUT RULES
+
+Use short, clean noun-phrase labels for classes.
+Do not output duplicate items.
+Every relation must have a valid domain, range, and exact evidence.
+Domain and range must be class labels supported by the text.
+If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+Do not create hierarchy from thresholds, values, long clause fragments, or procedural text.
+If no valid relations or hierarchy are supported, return empty arrays for them.
+Extract EVERY distinct clinical concept the text names — err on the side of INCLUSION.
+Do not invent concepts, relations, or hierarchy edges not supported by the text.
+
+NON-GOAL EXAMPLE
+The following sentence should produce NO extraction:
+Text: "The study was funded by the BrainIT Group and data were collected from 22 centres across 11 countries."
+Expected output: {"classes": [], "relations": [], "hierarchy": []}
+Reason: Funding, governance, study logistics, and multi-centre coordination are out of scope — only extract clinical concepts.
+
+SELF-CHECK (before finalising output)
+- Is every label a clinical TYPE (not an instance or a person’s name)?
+- Are there any duplicate or synonym labels? Merge them.
+- Do all relation domain/range labels match extracted class labels?
+- Are there any circular hierarchy edges? Remove them.
+- Does every evidence field contain a verbatim quote from the text?
+
+--- Retrieved example ---
+Text: Secondary insults such as intracranial hypertension, systemic hypotension, arterial hypotension, jugular venous desaturation, and acute respiratory distress syndrome (ARDS) occur frequently in head injured patients despite baseline intensive care management. Secondary insult treatment covers non-surgical therapy specifically given to treat secondary insults. For example, arterial pressors may be given to treat systemic hypotension or to treat reduced cerebral perfusion pressure (CPP) secondary to raised ICP. The minute by minute monitoring data allows clinicians to detect these conditions.
+Output (JSON):
+{{
+  "classes": [
+    {{
+      "label": "Secondary Insult",
+      "evidence": "Secondary insults such as intracranial hypertension"
+    }},
+    {{
+      "label": "Condition",
+      "evidence": "adverse physiological events that occur frequently in head injured patients"
+    }},
+    {{
+      "label": "Intracranial Hypertension",
+      "evidence": "intracranial hypertension"
+    }},
+    {{
+      "label": "Systemic Hypotension",
+      "evidence": "systemic hypotension"
+    }},
+    {{
+      "label": "Arterial Hypotension",
+      "evidence": "arterial hypotension"
+    }},
+    {{
+      "label": "Jugular Venous Desaturation",
+      "evidence": "jugular venous desaturation"
+    }},
+    {{
+      "label": "Acute Respiratory Distress Syndrome",
+      "evidence": "acute respiratory distress syndrome (ARDS)"
+    }},
+    {{
+      "label": "Secondary Insult Treatment",
+      "evidence": "Secondary insult treatment covers non-surgical therapy"
+    }},
+    {{
+      "label": "Therapy",
+      "evidence": "non-surgical therapy specifically given to treat secondary insults"
+    }},
+    {{
+      "label": "Arterial Pressors",
+      "evidence": "arterial pressors"
+    }},
+    {{
+      "label": "Cerebral Perfusion Pressure (CPP)",
+      "evidence": "reduced cerebral perfusion pressure (CPP)"
+    }},
+    {{
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "raised ICP"
+    }},
+    {{
+      "label": "Monitoring Data",
+      "evidence": "minute by minute monitoring data"
+    }}
+  ],
+  "relations": [
+    {{
+      "label": "targets condition",
+      "domain": "Therapy",
+      "range": "Condition",
+      "evidence": "arterial pressors may be given to treat systemic hypotension"
+    }},
+    {{
+      "label": "monitoring indicates condition",
+      "domain": "Monitoring Data",
+      "range": "Condition",
+      "evidence": "monitoring data allows clinicians to detect these conditions"
+    }}
+  ],
+  "hierarchy": [
+    {{
+      "subClass": "Secondary Insult",
+      "superClass": "Condition",
+      "evidence": "Secondary insults such as intracranial hypertension...occur frequently in head injured patients"
+    }},
+    {{
+      "subClass": "Intracranial Hypertension",
+      "superClass": "Secondary Insult",
+      "evidence": "Secondary insults such as intracranial hypertension"
+    }},
+    {{
+      "subClass": "Systemic Hypotension",
+      "superClass": "Secondary Insult",
+      "evidence": "Secondary insults such as systemic hypotension"
+    }},
+    {{
+      "subClass": "Arterial Hypotension",
+      "superClass": "Secondary Insult",
+      "evidence": "Secondary insults such as arterial hypotension"
+    }},
+    {{
+      "subClass": "Jugular Venous Desaturation",
+      "superClass": "Secondary Insult",
+      "evidence": "Secondary insults such as jugular venous desaturation"
+    }},
+    {{
+      "subClass": "Acute Respiratory Distress Syndrome",
+      "superClass": "Secondary Insult",
+      "evidence": "Secondary insults such as acute respiratory distress syndrome"
+    }}
+  ]
+}}
+
+--- TEXT TO ANALYZE ---
+Neurosurgery, Vilnius University Hospital, Vilnius, Lithuania
+Universitatskliniken des Saarlandes, Homburg, Germany
+Ruprecht-Karls-Universit€at-Heidelberg, Germany
+Neurosurgery, H^opital Gabriel Montpied, Clermont-Ferrand, France
+Neurosurgery, Hospital 12 Octubre, Madrid, Spain
+Ospedale Molinette, Torino, Italy. I. Piper et al.
+
+Neurosurgery, University Hospital Leipzig, Leipzig, Germany
+Neurosurgery, University Hospital Lund, Lund, Sweden
+Kaunas Medical University Hospital, Kaunas, Lithuania
+University Hospital, Gothenburg, Sweden
+Vall d'Hebron University Hospitals Barcelona, Barcelona, Spain
+Terapia Intensiva Neuroscienze, Milan, Italy
+Universitatsspital Zurich, Zurich, Switzerland
+University Hospital Mannheim, Manheim, Germany
+Neurosurgery, National Hospital, Queen Square, London, UK
+Clinical Neurosciences, Western General Hospital, Edinburgh, UK
+UCI Quirurgica, Hospital Clinic Barcelona, Barcelona, Spain
+
+improved treatment of head and spinal cord injuries. J Emer
+Med 11: 63-67
+output and cerebral blood flow in patients with intact and with
+impaired autoregulation. J Neurosurg 73: 368-374
+3. American Association of Neurological Surgeons, BrainTrauma Foundation - Guidelines for the management of
+head injury (1995) Chicago, http==:www.Ohsu.edu=som-surgery=
+Neurosurgery=guidelines
+incidence of secondary insults in severely head-injured adults and
+children. Brit J Neurosurg 14(5): 424-431
+moderate hypothermia in severe brain injury. J Neurotrauma 10:
+263-271
+6. Corrie J, Piper IR, Housley A, Tocher JL, Jones PA, Anderson SI,
+Midgley S, Dearden NM, Miller JD (1993) Microcomputer based
+data recording improves identification of secondary insults during
+acute management of head injured patients. Br J Intensive Care 3:
+225-233
+19: 306-322
+head injured patients in the United States. Crit Care Med 23:
+560-567
+9. Guidelines for the initial triage and management of head injuries
+(1998) Recommendations from the society of British Neurological
+Surgeons. B J Neurosurg 14(4)
+10. Hydrostatic Fluid Columns, Influence upon calculated CPP.
+www.brainit.org=brainit=hydrostatic.htm
+severely head injured patients in the United Kingdom. BMJ 312:
+944-947
+12. Jones PA, Andrews PJD, Midgley S, Anderson SI, Piper IR,
+Tocher JL, Housley AM, Corrie JA, Slattery J, Dearden NM, Miller
+JD (1994) Measuring the burden of secondary insults in head
+injured patients during intensive care. J Neurosurg Anaesth 6(1):
+4-14
+for management of severe head injury in adults. European Brain
+Injury Consortium. Acta Neurochir (Wien) 139: 286-294
+14. Marmarou A, Anderson RL, Ward JD et al (1991) Impact of ICP
+instability and hypotension on outcome in patients with severe head
+trauma. J Neurosurg 75: S59-S66
+
+aggressive treatment in severe head injuries. I. The significance of
+intracranial pressure monitoring. J Neurosurg 50: 20-25
+80 mmHg is more beneficial. In Hoff JT, Betz AL (eds) Intracranial
+pressure VII. Springer Berlin Heidelberg New York Tokyo,
+pp 839-841
+survey of non-neurosurgical centres in the United Kingdom. BJ
+Neurosurg 12(1): 7-14
+intensive care. Brit J Inten Care 1(2): 73-78
+secondary insults after head injury. In proceedings of the 10th
+International Symposium on Intracranial Pressure. In: Marmarou
+A et al (eds) Williamsburg, pp 03-13
+flow, AVDO2, and neurologic outcome in head-injured patients. J
+Neurotrauma 9: S349-S358
+survival using simple clinical variables: a case study in traumatic
+brain injury. J Neurol Neurosurg Psychiat 66: 20-31
+solus satis sapit: nobody knows enough alone. Acta Neurochir
+(Wien) 139: 797-803
+---

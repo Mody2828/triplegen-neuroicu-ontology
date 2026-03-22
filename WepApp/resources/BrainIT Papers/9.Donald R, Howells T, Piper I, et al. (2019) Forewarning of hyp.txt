@@ -1,0 +1,833 @@
+Journal of Clinical Monitoring and Computing (2019) 33:39–51
+https://doi.org/10.1007/s10877-018-0139-y
+
+ ORIGINAL RESEARCH
+
+
+
+Forewarning of hypotensive events using a Bayesian artificial neural
+network in neurocritical care
+Rob Donald1 · Tim Howells2 · Ian Piper3 · P. Enblad4 · P. Nilsson4 · I. Chambers5 · B. Gregson6 · G. Citerio7 ·
+K. Kiening8 · J. Neumann8 · A. Ragauskas9 · J. Sahuquillo10 · R. Sinnott11 · A. Stell12 on behalf of the BrainIT Group
+
+Received: 22 July 2017 / Accepted: 14 March 2018 / Published online: 24 May 2018
+© Springer Science+Business Media B.V., part of Springer Nature 2018
+
+
+Abstract
+Traumatically brain injured (TBI) patients are at risk from secondary insults. Arterial hypotension, critically low blood
+pressure, is one of the most dangerous secondary insults and is related to poor outcome in patients. The overall aim of this
+study was to get proof of the concept that advanced statistical techniques (machine learning) are methods that are able to
+provide early warning of impending hypotensive events before they occur during neuro-critical care. A Bayesian artificial
+neural network (BANN) model predicting episodes of hypotension was developed using data from 104 patients selected
+from the BrainIT multi-center database. Arterial hypotension events were recorded and defined using the Edinburgh Uni-
+versity Secondary Insult Grades (EUSIG) physiological adverse event scoring system. The BANN was trained on a random
+selection of 50% of the available patients (n = 52) and validated on the remaining cohort. A multi-center prospective pilot
+study (Phase 1, n = 30) was then conducted with the system running live in the clinical environment, followed by a second
+validation pilot study (Phase 2, n = 49). From these prospectively collected data, a final evaluation study was done on 69 of
+these patients with 10 patients excluded from the Phase 2 study because of insufficient or invalid data. Each data collection
+phase was a prospective non-interventional observational study conducted in a live clinical setting to test the data collection
+systems and the model performance. No prediction information was available to the clinical teams during a patient’s stay in
+the ICU. The final cohort (n = 69), using a decision threshold of 0.4, and including false positive checks, gave a sensitivity
+of 39.3% (95% CI 32.9–46.1) and a specificity of 91.5% (95% CI 89.0–93.7). Using a decision threshold of 0.3, and false
+positive correction, gave a sensitivity of 46.6% (95% CI 40.1–53.2) and specificity of 85.6% (95% CI 82.3–88.8). With a
+decision threshold of 0.3, > 15 min warning of patient instability can be achieved. We have shown, using advanced machine
+learning techniques running in a live neuro-critical care environment, that it would be possible to give neurointensive teams
+early warning of potential hypotensive events before they emerge, allowing closer monitoring and earlier clinical assessment
+in an attempt to prevent the onset of hypotension. The multi-centre clinical infrastructure developed to support the clinical
+studies provides a solid base for further collaborative research on data quality, false positive correction and the display of
+early warning data in a clinical setting.
+
+Keywords Traumatic brain injury · Neuro-intensive care · Bayesian prediction · Clinical study results
+
+
+1 Introduction                                                              complications during neurocritical care (NCC) known as
+                                                                            secondary insults [2]. The secondary insults can be both
+One of the primary aims in treating emergency admission                     intracranial and systemic. The intracranial insults predomi-
+patients with physical trauma is to stabilise vital physiologi-             nantly result from high intracranial pressure caused by
+cal systems [1]. It is also recognised that patients who have               mass lesions and ischaemic mechanisms resulting in brain
+suffered a traumatic brain injury (TBI) are at risk of having               swelling. One of the most critical types of systemic sec-
+their “primary” brain damage exacerbated from a class of                    ondary insult is arterial hypotension, defined as abnormally
+                                                                            low arterial blood pressure. Research has shown [3] that
+                                                                            increased incidence of hypotensive episodes is related to
+* Ian Piper
+  ian.piper@brainit.org                                                     poor neurological outcome. The physiological vital func-
+                                                                            tions are extensively monitored in critical care and alarms
+Extended author information available on the last page of the article
+
+
+                                                                                                                              13
+                                                                                                                         Vol.:(0123456789)
+40                                                                           Journal of Clinical Monitoring and Computing (2019) 33:39–51
+
+
+are sent out when a secondary insult, e.g. an hypotensive           generation as well as the development and testing of new
+event, occurs so effective treatment can be initiated immedi-       data analysis methods. The group defined a core data set [5]
+ately without delay to reduce the development of secondary          and then collected a database of over 200 patients containing
+injuries. The ideal situation in the future would be to have a      demographic data (e.g. age, gender, time of injury, initial
+monitoring system that sends out alarms before a secondary          admission data both at pre-neurosurgical and neurosurgical
+insult will take place so relevant precautions can be insti-        admission), episodic data (e.g. treatments given, lab results
+tuted to avoid the secondary event completely.                      from routine blood samples and nursing procedures) and
+   The overall aim of this study was to get proof of the con-       minute-by-minute physiological data from bedside moni-
+cept that advanced statistical techniques (machine learning)        tors [6]. The BANN was constructed using data from 104
+are methods that are not only able to provide early warn-           patients from the BrainIT database, which was recruited
+ing of impending hypotensive events before they occur, but          from 22 European neuro-intensive care centers between
+can do so prospectively in a live neuro-critical care envi-         March 2003 and June 2005 [6, 7].
+ronment. This project had two specific aims: to develop a              To support a pilot study of the prediction system, 30
+Bayesian artificial neural network (BANN) based system for          patients were prospectively recruited between September
+prediction of hypotensive events; and to run a prospective          2009 and October 2010 from six BrainIT centres (Prospec-
+multi-centre clinical study to test the system in a real clinical   tive Phase I Dataset): Uppsala, Sweden; Glasgow, Scotland;
+environment. For the clinical study a secure software and           Vilnius, Lithuania; Heidelberg, Germany; Monza, Italy;
+hardware infrastructure was developed and used for collec-          and Barcelona, Spain. Then in support of this data, 49 more
+tion of anonymised data from hospital intensive care units          patients were prospectively recruited from the same centers
+(ICUs).                                                             between December 2010 and July 2011 (Prospective Phase
+                                                                    II dataset). The Phase II prospective study used a “Hanfelt”
+                                                                    two stage design consisting of an initial collection of 13
+2 Materials and methods                                            patients (Phase II—Stage 1) followed by a subsequent 36
+                                                                    patients (Phase II—Stage 2). The Hanfelt design is used to
+2.1 Patient data                                                   minimise the recruitment of patients in Phase II trials [14].
+                                                                    See Fig. 1 outlining the design and timing of the clinical
+In 1997 an international group of clinicians and clinical sci-      studies.
+entists set up the BrainIT consortium [4] with an aim to               In the final analysis reported here the initial Phase I and
+collect high resolution physiological and clinical data from        repeat Phase II cohorts were combined. Ten patients had
+TBI patients in a standardized manner, and to use that data to      to be excluded due to excessive missing or invalid data
+undertake further research in this domain through hypothesis        (seven patients did not have the required minimum of 24 h
+
+
+Fig. 1  Graphical representa-
+tion of the clinical study design
+broken down by testing stage
+
+
+
+
+13
+Journal of Clinical Monitoring and Computing (2019) 33:39–51                                                                   41
+
+of continuous monitoring data and three patients from one          2.4 BANN construction and testing
+centre had technical data capture issues resulting in unre-
+coverable corrupted data), leaving a total of 69 patients for      The inputs to the model were built from a series of mov-
+analysis. Of these 52 (75%) were male and 17 (25%) female.         ing windows (based upon minute by minute data sampling)
+In terms of patient demographics, the median age was 40            configured across the data.
+years, range 16 to 83. There were two main types of injury:           Inputs for the neural network were taken from the demo-
+fall (30) and road traffic accident (25). The remaining 14         graphic database or formed by extracting features such as
+injuries were in the categories: pedestrian (4); unknown (4);      mean, standard deviation, and slope from the physiological
+assault (3); and sports related (3). The GCS scores, where         data over a time window or a series of windows prior to the
+complete, were obtained from two time-points: at admission         prediction. The slope feature is the slope of a linear trend
+to the pre-neurosurgery hospital, median GCS = 8 (range            line with a least-squares fit over the data in the given time
+3–15; complete n = 51); at admission to the neurosurgery           window. A set of BANNs were constructed using clinical
+ICU, median GCS = 8 (range 3–14; complete n = 24).                 parameters selected through a combination of clinical guid-
+                                                                   ance and exploratory modelling for the selection of input
+                                                                   features.
+2.2 Hypotension definition
+                                                                      A cohort of suitable patients (n = 104) having more than
+                                                                   24 h of data for heart-rate and mean and systolic blood
+Although other studies have assessed machine learning
+                                                                   pressure was extracted from the BrainIT database [6]. A
+approaches to hypotension prediction [19–25], these use
+                                                                   total of 33 models were trained on the data from 52 ran-
+hypotension definitions that are markedly more severe
+                                                                   domly selected patients (the ‘training’ set) and tested on
+in terms of the depth of hypotension and their combined
+                                                                   the remainder (the unseen ‘test’ set) all 33 models and their
+duration (often > 30 min). In the management of patients
+                                                                   parameters are summarised in Appendix. This was a con-
+with TBI there is compelling evidence that even “minute
+                                                                   servative approach and possibly sub-optimal given available
+by minute” hypotension events cumulatively can influence
+                                                                   techniques such as cross validation to make best use of a
+patient outcome [2]. Thus, in order to quantify the occur-
+                                                                   relatively small data set. However, given the cautious nature
+rence of hypotension the Edinburgh University Secondary
+                                                                   of the clinical community, one which is more likely to feel
+Insult Grading (EUSIG) system was used, which defines
+                                                                   comfortable with a prediction model based on incorporat-
+hypotension as systolic arterial pressure (BPs) ≤ 90 mmHg
+                                                                   ing pertinent physiological parameters derived from clinical
+or mean arterial pressure (BPm) ≤ 70 mmHg sustained
+                                                                   guidance, it was felt that this approach to creating a model
+for at least 5 min. This definition has been shown to be a
+                                                                   for early warning of hypotensive events would be easier to
+clinically relevant measure when assessing the burden of
+                                                                   gain acceptance clinically.
+hypotension [2]. The EUSIG definition requires that blood
+                                                                      The model with the best performance on the test set and
+pressure return to above threshold for at least 5 min before
+                                                                   good coverage with respect to completeness of data within
+the hypotension event is considered to have ended. For the
+                                                                   the BrainIT database was selected as the predictive model
+purposes of these studies we have increased this “switch off
+                                                                   to be used in the Phase I and repeat Phase II clinical studies.
+time” to 15 min, because we found that otherwise we created
+                                                                   The model selected used demographic parameters of age
+clusters of closely related events that were better considered
+                                                                   and gender with the physiological variables of heart rate,
+as a single episode.
+                                                                   systolic and mean blood pressure. Models including param-
+                                                                   eters other than blood pressure and heart rate were tested.
+2.3 Bayesian artificial neural networks (BANN)                    Additional parameters (e.g. ETCO2, temperature, SAO2,
+                                                                   admission time to ICU) were tried but they did not produce
+The term artificial neural network incorporates a variety          models with better sensitivity. Often, due to missing data,
+of techniques, but most often (and in the present case)            these models could only be trained and tested on subsets of
+describes a form of nonlinear regression. Neural networks          the complete training and test sets.
+are very general and powerful models, capable of modelling
+any continuous function [8]. They have consistently proved         2.5 Clinical study methodology
+to be among the best techniques for difficult problems in
+statistical pattern recognition [9, 10]. Bayesian analysis can     Figure 1 below summarises the clinical study design. A
+be used to estimate error bars for neural network predic-          Phase 1 study of 30 patients was conducted to ensure that the
+tions, and to mitigate problems like over-fitting that can arise   data acquisition and prediction software could be installed
+due to the power of the models [11, 12]. We have adapted           in the clinical environment and produce predictions on live
+a Bayesian system designed and implemented by Radford              clinical data being collected from the patient monitors, con-
+Neal that utilizes a hybrid Monte-Carlo technique [12].            sidering all the data quality issues that are present in an
+
+                                                                                                                       13
+42                                                                          Journal of Clinical Monitoring and Computing (2019) 33:39–51
+
+operational setting. Details of the participating hospitals and    2.9 HYPO‑NET
+their hardware and software infrastructure can be found in
+[13].                                                              HYPO-NET—a previously developed data collection frame-
+   The Phase I study was successful, with the prediction           work was used for testing of the BANN models in real-time
+results matching the results from the test on the retrospective    in a live clinical environment [13] (Fig. 2). To be clinically
+data in the BrainIT database. Therefore we began a repeat          useful, not only do predictive models need to be developed
+study (Phase 2), using the methods detailed in the paper by        with appropriate prediction accuracy, but it must also be
+Hanfelt [14] which is a modification of the paper by Simon         shown that it is feasible to develop a data collection platform
+[15].                                                              capable of running these BANN models in real time in a live
+                                                                   clinical setting. It is one thing to show that predictive mod-
+                                                                   els have good accuracy on cleaned retrospective data and
+2.6 Sample size analysis                                          another to show that the same models perform equally well
+                                                                   in a live clinical environment particularly one as technically
+Our end-point was defined as the sensitivity of true predic-       challenging as an intensive care unit.
+tions of hypotensive events. In order to minimise the recruit-
+ment of patients, we opted for an oftenused Phase II trial         2.10 Study ethics
+design based upon the “Hanfelt design” modified from the
+method first described by Simon et al. This required a stage 1     Each local hospital ethics and R&D committee’s approved
+sample size of 13 and, assuming a positive outcome in stage        the patient recruitment protocol and consent documentation.
+1 of the study, a second stage of 36 patients to give an overall   As patients in coma are considered “Vulnerable Individu-
+minimum sample size of 49. The sample size calculations            als”, Local ethics committee approval was obtained at each
+and supporting tables are fully described in the referenced        centre. Patient “assent” was required for every patient by
+paper by Hanfelt et al. [14].                                      interview with patients relatives or next of kin.
+
+
+2.7 False positive correction                                     3 Results
+
+To minimise false positives, two checks were per-                  3.1 Model selection
+formed on the arterial blood pressure readings: (i) BP
+pulse < 10 mmHg, if the pulse pressure (BPs-BPd) is <              The model selected for prospective testing is described in
+10 mmHg, this potentially indicates a fault within the pres-       Table 1 below. Two demographic variables; age and sex are
+sure measuring system resulting as often found in an over-         included. Additionally seven physiological features based
+damped trace and therefore any warnings that occurred              on mean and systolic blood pressure and heart rate were
+under this condition are ignored. (ii) BPm > 90 mmHg, if the       extracted from two sub-windows of 15 min of data starting
+mean arterial blood pressure is > 90 mmHg when the warn-           at 15 and 30 min before the prediction time. This gives a
+ing was generated a hypotensive event is unlikely to occur in      total of 16 inputs to the neural network for each prediction.
+the near future and therefore this warning can be discounted.
+The false positive correction (FPC) was not used during            3.2 Predictive accuracy: bann test set
+BANN model development. The various models developed
+during the research phase were assessed on their sensitivity/      In the next sections we present results using a standard
+specificity scores. While true the post-hoc processing influ-      visual technique to assess the trade off between true posi-
+ences the real-world results, it is valid as exploratory analy-    tive identifications of episode starts and false alarms, a plot
+ses of how to improve the clinical applicability for future        known as a receiver operating characteristic (ROC) curve.
+projects. In reality, the FPC corrections although improv-         The ROC curve plots the specificity (false positive rate)
+ing the prediction performance, did not make a significant         on the x-axis and the sensitivity (true positive rate) on the
+improvement at the decision thresholds used.                       y-axis. The cross markings on the plot indicate probabil-
+                                                                   ity decision thresholds and move from a decision setting of
+                                                                   probability zero (we will accept all predictions) at the top
+2.8 ROC confidence intervals                                      right of the plot, to a probability of one at the bottom left of
+                                                                   the plot (we would reject all predictions).
+Confidence intervals were calculated for sensitivity and              The ROC curve for the BANN test set results (data from
+specificity estimates using the bootstrap methodology              the retrospective BrainIT database) is shown in Fig. 3. A
+described in [16].                                                 review of the prediction results suggested that the BANN
+
+13
+Journal of Clinical Monitoring and Computing (2019) 33:39–51                                                                        43
+
+Fig. 2  HYPO-NET system
+architecture in one of six
+BrainIT centres. Staff ICU nurse
+log patient’s onto local informa-
+tion systems. Research Nurse
+log patient’s onto a patient study
+via the ward web app (WWA).
+This triggers “Clinical Client”
+software to parse clinical, labo-
+ratory and monitoring data from
+local hospital based systems and
+push data onto a local HypoNet
+SQL database. Non-hospital
+Research data is entered via
+the WWA program. Analysis
+software calculates project spe-
+cific derived indices from data
+acquired from the local SQL
+database. Once per hour “Data
+Push” software anonymises
+local data and pushes clinical,
+monitoring and status log files
+out of hospital firewalls and up
+to a central SQL database sitting
+at the National eScience (NeSC)
+centre in Glasgow University. A
+trial monitor can view and run
+queries on HypoNet data arriv-
+ing from all six BrainIT centres
+in quasi-real time
+
+
+
+
+                                                                        3.3 Predictive accuracy: clinical studies
+Table 1  BANN model parameters
+Variable                                           Feature              After the encouraging results of the model on the BANN
+                                                                        test set, the project moved to the clinical environment with
+Age                                                Demographic          a prospective study collecting data using HYPO-NET on 30
+Sex                                                Demographic          patients (Phase 1). The ROC curve for this study is shown
+Mean arterial blood pressure                       Mean                 on the left hand side of Fig. 4. The results for the clinically
+Mean arterial blood pressure                       Slope                interesting region of false positive rate 0.3–0.4 are, unu-
+Systolic arterial blood pressure                   Mean                 sually, slightly better than predicted on the test set despite
+Systolic arterial blood pressure                   Slope                being conducted in a live clinical setting. Improving upon a
+Heart rate                                         Mean                 training model performance in a clinical setting is unusual
+Heart rate                                         Slope                and so we felt it was important to assess the repeatability
+Heart rate                                         Standard deviation   of this result. Thus, the next task was to see if we could
+Input features for the model selected for the clinical studies. The     repeat these results on another group of patients (Phase 2).
+mean, slope and standard deviation features were calculated over two    Using a study design given in Hanfelt [14], 49 patients were
+sequential time windows for the seven physiological variables: from     recruited. Data from ten patients was excluded due to prob-
+30 to 15 min before the prediction time, and from 15 min before up      lems with data collection. The results of the repeat study
+to the prediction time. This produced two demographic and 14 physi-
+ological variables as inputs to the neural network                      (Phase 2) are shown on the right hand side of Fig. 4. Again,
+                                                                        the results are slightly better than the model test set and
+                                                                        similar to the Phase 1 study.
+                                                                           We note that the AUC scores for the two clinical studies
+could achieve a target for sensitivity of 30% with specific-            are less than the training set. This is a criticism of using
+ity at around 90%. Using the ROCR (R) package, an area                  the AUC metric and is noted in the literature [34, 35] that
+under curve value of 0.74 was generated.                                there are problems in comparing classifier performance
+
+
+                                                                                                                            13
+44                                                                                                   Journal of Clinical Monitoring and Computing (2019) 33:39–51
+
+
+                          ROC Plot, BANN Test Set                                              Figure 6 shows the ROC curve over the decision thresh-
+                                                                                            old range of 0.2–0.5 with point estimates and confidence
+              1.0                                                                           intervals as error bars on the results trace. It can be seen
+                                                                                            from Fig. 6 that using a decision threshold of 0.4, with false
+                                                                                            positive techniques applied, the target sensitivity (> 30%)
+              0.8                                                                           and specificity (> 90%) was achieved.
+
+                                                                                            3.4 Precision recall plot: clinical data
+              0.6
+Sensitivity
+
+
+
+
+                                                                                            An alternative presentation of the predictive performance
+                                                                                            of the model is shown in Fig. 7. This plot shows precision
+                                                                                            aka: positive predictive value (PPV), defined as true posi-
+              0.4
+                                                                                            tives/(true positives + false positives) on the y axis versus
+                                                                                            recall aka: sensitivity, defined as true positives/(true posi-
+                                                                                            tives + false negatives) on the x-axis. Although Fig. 7 indi-
+              0.2
+                                                                                            cates low values of precision in the likely operating range of
+                                                                AUC: 0.74                   0.3–0.4 for recall (sensitivity), the plot, similar to the ROC
+                                                                                            presentation also suggests that > 30% of the warnings would
+              0.0                                                                           be clinically relevant.
+                    0.0   0.2         0.4                 0.6         0.8       1.0
+                                                                                            3.5 Episode warning time: clinical data
+                          False Positive Rate (1−Specificity)
+
+                                                                                            Finally, Fig. 8 below presents the warning time for patients
+Fig. 3  Predictive accuracy from BANN test set. The decision thresh-
+old settings are marked with the crossed circles. The decision thresh-                      where the system was able to provide early warning of the
+olds shown start at 0.1 at the upper most mark and increase to 0.4 in                       onset of hypotension.
+the lower left part of the trace. Using the ROCR (R) package, an area
+under curve value of 0.74 was generated
+                                                                                            4 Discussion
+particularly when the ROC curves cross. For our purposes
+we are interested in false positive rates of between 0.3                                    It is known that the cumulative duration of arterial hypoten-
+and 0.4.                                                                                    sive events is a prognostic factor for their clinical outcome
+   Combining the prediction data from the prospective                                       following a head injury [2, 3]. The importance of reducing
+pilot (Phase 1) and repeat pilot (Phase 2) studies produces                                 the burden of hypotension is not restricted to the TBI popu-
+the ROC curve plotted in Fig. 5.                                                            lation; for with the medical management of sepsis, it has
+                                                                                            been shown that duration of hypotension before initiation
+
+
+Fig. 4  ROC plots from clinical                                              Phase 1, n=30                                                   Phase 2, n=39
+studies. The solid line with
+filled circles show the results                           1.0                                                              1.0
+obtained with no false positive
+correction (FPC) applied. The
+dashed line with filled triangles                         0.8                                                              0.8
+show the results when FPC
+techniques are used. This results                                                             NoFPC                                                          NoFPC
+                                            Sensitivity
+
+
+
+
+                                                                                                             Sensitivity
+
+
+
+
+in a better sensitivity for a given                       0.6                                                              0.6
+                                                                                              WithFPC                                                        WithFPC
+decision threshold. The BANN
+test set results are shown with                           0.4                                                              0.4
+the dashed dot line and crossed
+circles for comparison                                                                 AUC                                                              AUC
+                                                          0.2                          TestSet: 0.74                       0.2                          TestSet: 0.74
+                                                                                       NoFPC: 0.67                                                      NoFPC: 0.64
+                                                          0.0                          WithFPC: 0.68                       0.0                          WithFPC: 0.67
+
+                                                                0.0    0.2     0.4    0.6      0.8    1.0                        0.0   0.2     0.4    0.6     0.8    1.0
+                                                                  False Positive Rate (1−Specificity)                              False Positive Rate (1−Specificity)
+
+
+13
+Journal of Clinical Monitoring and Computing (2019) 33:39–51                                                                                                             45
+
+
+                          ROC Plot, Combined Phase 1 and 2 Data                                          ROC Plot, Combined Phase 1 and 2 Data
+
+              1.0                                                                            0.7         FPC
+                                                                                                               NoFPC
+              0.8                                                                            0.6               WithFPC
+
+
+
+              0.6
+                                                                                             0.5                                                      0.2 DT
+Sensitivity
+
+
+
+
+                                                                              Sensitivity
+                                                        FPC
+                                                              NoFPC                          0.4
+              0.4
+                                                              WithFPC
+
+
+                                                        AUC                                  0.3
+              0.2                                       TestSet: 0.74
+                                                        NoFPC: 0.65
+                                                                                             0.2                            0.5 DT
+                                                        WithFPC: 0.68
+              0.0
+
+                    0.0       0.2      0.4        0.6          0.8      1.0
+                                                                                                   0.0                0.1           0.2             0.3              0.4
+                             False Positive Rate (1−Specificity)
+                                                                                                               False Positive Rate (1−Specificity)
+
+Fig. 5  ROC plot from clinical data. The decision threshold mark-
+ers indicate settings from 0 in the top right to 1 at the bottom left.        Fig. 6  ROC plot with error bars. Using combined phase 1 and 2 clini-
+The step size is 0.1. Decision threshold markers: crossed circles for         cal data, this plot is a zoomed in version of Fig. 4 showing error bars
+BANN test set data; solid circle for clinical data with no false positive     for the decision threshold (DT) settings of 0.2–0.5
+correction (FPC); solid triangle for clinical data with false positive
+correction
+                                                                                                                 AvertIT Precision Recall Plot
+
+                                                                                                                                                 False Positive Checks
+of effective antimicrobial therapy is the critical determinant                              0.6
+                                                                                                                                                     NoFPC
+of survival [17].
+                                                                              Precision
+
+
+
+
+                                                                                            0.4                                                      WithFPC
+   There is no universally accepted definition of arterial
+hypotension used during the clinical management of TBI                                      0.2
+
+patients. Bijker et al. found almost 50 definitions being
+                                                                                            0.0
+quoted in the surgical literature [18], many of these use                                          0.1          0.2         0.3            0.4      0.5        0.6
+hypotension definitions that are markedly more severe in                                                                          Recall
+terms of the depth of hypotension and their combined dura-
+tion (often > 30 min) than those considered relevant in the                   Fig. 7  Precision recall plot. An alternative visualization of prediction
+neuro-critical care of TBI patients. We carried out our own                   performance. This plot indicates low values of precision in the likely
+survey of the current practices within the participating cen-                 operating range of 0.3–0.4 for recall (sensitivity), the plot, similar
+                                                                              to the ROC presentation also suggests that > 30% of the warnings
+tres, which indicated that both systolic and mean arterial                    would be clinically relevant
+pressure should be monitored and considered in the defini-
+tion of hypotension and therefore it was decided to use the
+published Edinburgh University Secondary Insult Grading                       trend values of heart rate incorporated in our model is a
+(EUSIG) definition [2], which requires both measurements.                     crude measure of heart-rate variability.
+   Our results and the predictive variables selected (Table 1)                   The choice of a neural network model is supported by
+are generally consistent with previous work. A study of                       the results of a competition sponsored by the PhysioNet
+hypotensive episodes during general anesthesia found that                     group [20] that tested the ability of various models to pre-
+baseline mean arterial pressure and patient age were sig-                     dict hypotension in intensive care patients. A neural network
+nificant predictors of outcome [6]. Several studies have                      entry won this challenge [21], although optimized rule-based
+found that heart-rate variability can be used as a predictor                  approaches also worked well [22, 23]. An earlier study also
+of hypotension [19]. The standard deviation of the 1-min                      demonstrated that a neural network model was an effective
+
+
+
+                                                                                                                                                           13
+46                                                                          Journal of Clinical Monitoring and Computing (2019) 33:39–51
+
+Fig. 8  Box plot of warning time
+for varying decision thresh-
+olds. Note that in the clinically
+relevant decision threshold
+region of 0.3–0.4, the average
+hypotension warning time was
+15 min or greater
+
+
+
+
+predictor of hypotension during haemodialysis treatment            prevent the event from occurring, or, to treat it sooner and
+[24].                                                              less aggressively. In the medical management of sepsis, it
+   A distinguishing feature of this study is that predictions      has been shown that with each hour delay in treatment of
+are produced and evaluated continuously on a minute-by-            hypotension leads to an increase in in-hospital mortality of
+minute basis. Previous studies have made a single prediction       7.6% [17]. Another potential clinical outcome of this work
+for each patient based on demographic and physiological            is that fostering earlier and less aggressive intervention will
+indicators at a point in time either immediately preceding         in turn lead to a quantifiable reduction in the duration of
+a specific procedure [24–26], or chosen by the competition         average patient stay, with associated reduction in cost of
+organizers [20–23]. The single prediction was then evalu-          intensive care management (in 2005, typically estimated at
+ated based on the occurrence of hypotension during the pro-        c. £1200/patient/day) [27]. Another point worth discussion
+cedure (in the former case) or during the entire remaining         is with regards to the poorer performance of the system at
+monitoring period (in the latter case). This makes a mean-         the upper sensitivity ranges The BANN ROC is a more sim-
+ingful comparison with previous results difficult, but it also     plistic score of exact prediction of a hypotensive event in
+makes our results of special interest in terms of fielding a       15 min time whereas the scoring of the clinical data uses a
+practical intensive care system. A second distinguishing fea-      more complex decision process. Ultimately, our focus upon
+ture of this work is that a real-time system (HYPO-NET) has        the decision threshold of 0.3–0.5 is driven by clinical prag-
+been implemented and tested running live in intensive care         matism of requiring an acceptably low false-positive rate and
+units in a multi-center study. Although developed in patients      thus the poorer performance at higher sensitivities although
+with brain injury, there is every possibility that this technol-   clearly desirable is not relevant.
+ogy will also find application in general intensive care where         There is no doubt that the technology could be
+the optimal management of the patient’s blood pressure is          improved further by research into reducing the influence
+ubiquitous and paramount.                                          of false-positives (when the device claims a hypotensive
+   One could argue that a sensitivity of only 35–40% is            event is about to occur but then it does not). In this study
+low. However the ability to pick up even one potentially           we have not attempted to distinguish between good and
+emerging hypotensive event in three before it has happened         bad false-positives. Many predictions recorded as false
+is clinically important. We know from our research that on         positive closely precede, by just a few minutes, a true
+average a patient will have 8–10 hypotensive events dur-           positive prediction, for example. Further clinical stud-
+ing their management in the ICU. The system will forewarn          ies are needed in which the clinical staff can classify an
+accurately 3–4 of these events and give the nursing and            alarm as a valid warning or a nuisance. A major obstacle
+medical staff more time to assess the patient and potentially      to reducing nuisance alarms is the problem of artifactual
+
+
+13
+Journal of Clinical Monitoring and Computing (2019) 33:39–51                                                                   47
+
+and missing data. Blood pressure measurement systems                The technology used in this study has been shown to be
+are sensitive to patient movement such as that produced          capable of forewarning arterial hypotension events with >
+by nursing and medical procedures (e.g.: blood sampling,         15 min of warning. By adjusting the decision threshold within
+routine patient hygiene or pressure area care) that either       the range 0.3–0.5, which could be carried out on a patient-
+interrupt recording or cause movement of the recording           by-patient basis, an operational system could expect to pro-
+system. Automatic false positive correction is challeng-         vide warning to a clinical team somewhere between 10 and
+ing. Many authors agree on the need for systems that can         15 min in advance of a hypotensive episode. Adjustment of
+automatically detect and remove non-physiological arte-          the decision threshold would, of course, have effects on sys-
+fact, yet due to the inherent plethora of causes of artefact     tem sensitivity and specificity. As an example, with a decision
+within a clinical environment such as an intensive care          threshold of 0.4, a sensitivity of 39.3% (95% CI 32.9–46.1)
+unit, a robust general purpose system does not exist. Some       and specificity of 91.5% (95% CI 89.0–93.7) was achieved.
+authors (e.g.: Williams et al.) have successfully designed       The average warning at this setting was 14 min. This result
+and tested dynamic linear models trained on specific arte-       has been obtained from two independent patient cohorts
+fact types (such as those caused by blood sampling from          using real-time data collection in a live clinical environment.
+the arterial pressure line), but many of these approaches        Before a randomized controlled trial can be designed to test
+require relevant centre specific training data [29].             this technology to assess if the warnings delivered influence
+   The problem of invalid data may have caused the inci-         medical management and patient outcome, two areas of fur-
+dence of hypotension to be underestimated in this study.         ther research are warranted: (a) research towards implement-
+Analysis of the dataset for the presence of hypotension          ing artefact detection and removal from BP data such as that
+events using the EUSIG classification has detected 2081          developed by Williams et al. [29] and (b) research on optimis-
+hypotension events from 100 patients with full BP systolic,      ing the display of hypotensive warnings to medical staff using
+diastolic and mean data parameters. In this dataset, addition-   BANN prediction data. There is no doubt that a revolution is
+ally there were 600 “Abandoned events” defined as where          currently taking place in healthcare; technology is enabling
+an event was in the “Active” state but the next readings did     the creation and collection of vast amounts of patient data,
+not contain valid measurements for BPs, BPd or BPm. There        as part of a “Big Data” phenomenon [30]. This rapid expan-
+were also 47 “Invalid Events” defined as where the event         sion of data has the potential to transform clinical practice,
+ran to completion but there were missing time blocks of          no more so than in the management of patients within critical
+data [28]. Thus taking the worst-case scenario that all aban-    care [31–33]. Critical care is arguably one of the most tech-
+doned and invalid events would have become hypotension           nology led medical domains; sophisticated patient monitoring
+events indicates that 31% of potential hypotension events are    systems can capture large volumes of streaming physiological
+lost to detection and potentially to medical treatment. This     data which continuously report on a patient’s status and are
+is compelling evidence for the need for advanced statisti-       often combined with patient data captured in electronic health
+cal methods for coping with artifactual and missing data.        records. The potential clinical benefit of harnessing this large
+Closely aligned and following on from this study, Williams       amount of physiological data available will inevitably require
+et al. developed and tested a descrimitive switching linear      the real-time application of machine learning technology able
+dynamical system model to automatically detect both arte-        to run unattended within a live clinical environment. The suc-
+rial pressure artefact due to line interruption during blood     cess of such an approach will require the collaboration of clini-
+sampling and pressure line damping events [29]. Work such        cians, computer scientists and technologists and will depend
+as this renders the ability to run predictive models even on     upon their shared understanding of each others understanding
+physiological data channels known to be susceptible to arte-     of the areas of unmet need within their own domains. Machine
+fact, more feasible.                                             learning algorithms are crucially dependant on the quality of
+   Another area that could benefit from further research is      the data available for model training and a solid understanding
+that concerning user interface. How best to present critical     of the requirements of the busy clinician. This work has dem-
+warnings/predictions to intensive care medical staff? ICU        onstrated that machine learning algorithms can be developed
+staff are already bombarded with hundreds of buzzers, bells      and used prospectively within a live critical care environment.
+and lights from a plethora of medical devices surrounding        The next crucial step is to demonstrate their robustness and
+the patient. The technology used in this study and its ability   clinical effectiveness.
+to predict hypotension before it has emerged is only part of
+the challenge. The other part is how to ensure the medical
+staff respond to the increased risk warning and adhere to an
+expected guideline or response which can be quantified as
+part of a future randomised clinical trial on the technology
+used in this study.
+
+
+                                                                                                                      13
+48                                                                                  Journal of Clinical Monitoring and Computing (2019) 33:39–51
+
+
+5 Conclusions                                                            Kiefer, Department of Neurosurgery, Universitatsklinik des Saarlandes,
+                                                                          Kirrbergerstrasse, Gebaude 90, D-66421 Homburg-Saar, Germany.
+                                                                          Phone: +49 7841 184469, Fax: +49 6841 164480, Email: kiefer@web.
+Proof was gained of the concept that advanced statistical                 de; Professor Peter Vajkoczy, Department of Neurosurgery, University
+techniques (machine learning) are methods that are able                   Hospital Mannheim, Theodor-Kutzer-Ufer 1-3, D68167 Mannheim,
+to provide early warning of impending hypotensive events                  Germany. Phone: +49 621 3832360, Fax: +49 621 3832004, Email:
+                                                                          Peter.vajkoczy@nch.ma.uni-heidelberg.de; Dr Dirk de Jong, Depart-
+before they occur and that they can be used effectively in a              ment of Neurosurgery, University Hospital Rotterdam, Box 2040, Dr
+live clinical setting, further prospective multi-centre clinical          Molewaterplein 40, 3015GD Rotterdam, The Netherlands. Phone: +31
+work is required to demonstrate the robustness of running                 10 4087825, Fax: +31 10 4089452, Email: dejong@neuro.fgg.eur.nl;
+such a model in a live clinical setting.                                  Professor Flemming Gjerris, University Clinic of Neurosurgery, Rig-
+                                                                          shospitalet, Blegdamsvej 9, DK 2100 Copenhagen, Denmark. Phone:
+                                                                          +45 35 452390, Fax: +45 35 456575, Email: fgjerris@rh.dk; Profes-
+Acknowledgements Funding: European 2020 IST Programme - IST-
+                                                                          sor Nino Stocchetti, Servizio di Anestesia e Rianimazione, Terapia
+2007-217049; Investigators and participating centers: Barcelona,
+                                                                          Intensiva Neuroscienze, Via Francesco Sforza 35, 20122 Milano,
+Spain: Prof. Sahuquillo; Cambridge, UK: Prof. Pickard; Edinburgh,
+                                                                          Italy. Phone: +39 02 550 35517, Fax: +39 02 599 02239, Email: stoc-
+UK: Prof. Whittle; Glasgow, UK: Mr. Dunn; Gothenburg, Sweden:
+                                                                          chet@polic.cilea.it; Dr Luciana Mascia, Department of Anaesthesia
+Dr. Rydenhag; Heidelberg, Germany: Dr. Kiening; Iasi, Romania: Dr.
+                                                                          and Intensive Care Medicine, Ospedale Molinette, Corso Bramante
+Iencean; Kaunas, Lithuania: Prof. Pavalkis; Leipzig, Germany: Prof.
+                                                                          88, 10126 Torino, Italy. Email: Luciana.mascia@unito.it; Professor
+Meixensberger; Leuven, Belgium: Prof. Goffin; Mannheim, Germany:
+                                                                          Dr Reto Stocker, Division of Surgical Intensive Care, Universitasspital
+Prof. Vajkoczy; Milano, Italy: Prof. Stocchetti; Monza, Italy: Dr. Cit-
+                                                                          Zurich, B-HOF109, Ramistrasse 100, 8091 Zurich, Switzerland. Phone:
+erio; Newcastle upon Tyne, UK: Dr. Chambers; Novara, Italy: Prof.
+                                                                          +41 1 255 2376, Fax: +41 1 255 3172, Email: Reto.stocker@chi.usz.
+Della Corte; Southampton, UK: Dr. Hell; Uppsala, Sweden: Prof.
+                                                                          ch; Professor Jan Goffin, Department of Neurosurgery, University
+Enblad; Torino, Italy: Dr. Mascia; Vilnius, Lithuania: Prof. Jarzemas-
+                                                                          Hospital Gasthuisberg, Herestraat 49, 3000 Leuven, Belgium. Phone:
+kas; Zu¨rich, Switzerland: Prof. Stocker.
+                                                                          +32 16 344290, Fax: +32 16 344285, Email: Jan.goffin@uz.kuleuven.
+   BrainIT Steering Group members: IR Chambers, Newcastle upon
+                                                                          ac.be; Dr Bertil Rydenhag, Institute of Clinical Neuroscience, Depart-
+Tyne; G Citerio, Monza; P Enblad, Uppsala; BA Gregson, Newcastle
+                                                                          ment of Neurosurgery, Sahlgrenska University Hospital, Bla Straket 7,
+upon Tyne; T Howells, Uppsala; K Kiening, Heidelberg; J Mattern,
+                                                                          van 5, SE 413-45 Gothenburg, Sweden. Phone: +45 31 3421578, Fax:
+Heidelberg; P Nilsson, Uppsala; I Piper, Glasgow; A Ragauskas, Kau-
+                                                                          +45 31 416719, Email: Bertil.rydenhag@neuro.gu.se; Professor John
+nas; J Sahuquillo, Barcelona; YH Yau, Edinburgh.
+                                                                          Pickard, Academic Neurosurgical Unit, Addenbrookes Hospital, Level
+   BrainIT Group – Data Contributors: Professor Per Enblad, Depart-
+                                                                          4, A Block, Box 167, Hills Road, Cambridge CB2 2QQ, UK. Phone:
+ment of Clinical Neurosciences, Section of Neurosurgery, Uppsala
+                                                                          +44 01223 336946, Fax: +44 01223 3216926, Email: jdpsecretary@
+University Hospital, S-75185 Uppsala, Sweden. Phone: +46 18 611
+                                                                          medschl.cam.ac.uk; Dr Sue Hill, Department of Anaesthetics, South-
+0000 Fax: +46 18 558617 Email: Per.enblad@neurokir.uu.se;Dr
+                                                                          ampton General Hospital, Tremona Road, Southampton SO16 6YD,
+Karl Kiening, Department of Neurosurgery, Im Neuenheimer Feld
+                                                                          UK. Phone: +44 02380 796401, Fax: +44 02380 794843, Email: sah-
+672, 69120 Heidelberg, Germany Phone: +49 30 4505 60724, Fax:
+                                                                          neuro@aol.com; Professor Garth Cruickshank, University Department
++49 30 4505 6072, Email Karl.Kiening@med.uni-heidelberg.de; Dr
+                                                                          of Neurosurgery, Queen Elizabeth Hospital, Edgbaston, Birmingham
+Giuseppe Citerio, Dipartimento di Anestesia e Rianimazione, Azienda
+                                                                          B15 2TH, UK. Phone: +44 0121 697 8225, Fax: +44 0121 697 8248,
+Ospedaliera, Ospedale San Gerardo, Via Donizetti 106, 20052 Monza
+                                                                          Email: g.s.cruickshank@bham.ac.uk; Dr Stefan Iencean, Department
+(Milano), Italy. Phone: +39 029 233 3293, Fax: +39 029 233 3293,
+                                                                          of Neurosurgery, SF Treime Hospital, 2 Ateneului Street, 6600 Iasi,
+Email: g.citerio@hsgerardo.org; Professor Juan Sahuquillo, Depart-
+                                                                          Romania. Email: mirceasteffan@yahoo.com; Mr Lawrence Watkins,
+ment of Neurosurgery, Neurotraumatology Research Unit, Institut
+                                                                          Department of Neurosurgery, National Hospital for Neurology and
+Catala de la Salut, Paseo Vall d’Hebron, 119-129, 08035 Barcelona,
+                                                                          Neurosurgery, Queen Square, London WC1N 3BG, UK. Phone: +44
+Spain. Phone: +34 93 489 3512, Fax: +34 93 489 3513, Email: sahu-
+                                                                          0207 837 3611, Email: l.watkins@ion.ucl.ac.uk.
+quillo@wanadoo.es; Professor Arminas Ragauskas, Telematics Sci-
+ence Laboratory, Kaunas University of Technology, Studentu 50-449,
+LT3031 Kaunas, Lithuania. Phone: +370 7 736897, Fax: +370 7               Compliance with ethical standards
+736 6869, Email: telematics@tef.ktu.lt; Dr Iain Chambers, Regional
+Medical Physics Department, Newcastle General Hospital, Westgate          Conflict of interest We declare that we have no conflicts of interest.
+Road, Newcastle upon Tyne, NE4 6BE, UK. Phone: +44 191 273
+8811, Fax: +44 191 226 0970, Email: Iain.Chambers@nuth.northy.
+nhs.uk; Professor Ian Whittle, Department of Clinical Neurosciences,
+Western General Infirmary, Crewe Road, Edinburgh, UK. Phone: +44          Appendix
+131 537 2103, Fax: +44 131 537 2561, Email: irw@skul.dcn.ed.ac.
+uk; Professor David Wyper, Department of Clinical Physics, Institute
+of Neurological Sciences, Southern General Hospital, 1345 Govan           See Table 2.
+Road, Glasgow G51 4TF, UK. Phone: +44 (0) 141 201 2105, Fax:
++44 (0) 141 201 4127, Email: Gpca12@udcf.gla.ac.uk; Dr Michael
+
+
+
+
+13
+Journal of Clinical Monitoring and Computing (2019) 33:39–51                                                                                  49
+
+Table 2  Table listing the 33        Date            Group      Name                            Duration      Sensitivity    Specificity    PPV
+models and input parameters
+selected for assessment based                                                                   h:min:s       (%)            (%)            (%)
+upon clinical guidance and
+                                     2008-10-09      30_15      BasicWithETCO2                  01:14:11      43.9           85.1           23.1
+literature search
+                                     2008-10-16      30_15      BasicSlopeVar550Nets            15:56:45      43.3           88.3           31.8
+                                     2008-10-09      30_15      BasicWithSlope                  05:27:44      42.1           85.0           26.3
+                                     2008-10-07      25_10      Basic                           03:01:08      41.4           91.1           38.1
+                                     2008-10-13      30_15      BasicWithSlope16HL              02:43:39      41.3           85.4           26.6
+                                     2008-10-16      25_10      BasicSlopeVar                   07:32:14      41.2           92.9           43.3
+                                     2008-10-13      30_15      BasicSlopeVar                   07:05:21      39.6           90.2           33.7
+                                     2008-09-19      30_15      Basic                           03:05:05      38.4           88.6           28.0
+                                     2008-10-13      25_10      BasicSlopeETCO2                 03:07:07      37.0           90.5           29.4
+                                     2008-10-22      40_15      BasicWithSlopeSingleStart       08:51:31      36.0           91.9           35.0
+                                     2008-10-03      30_15      BasicWithVar                    04:53:32      34.8           93.4           40.3
+                                     2008-10-10      30_15      BasicWithSlope64HL              10:08:03      32.9           89.0           27.7
+                                     2008-10-15      30_15      BasicSlopeVarT1                 09:34:31      32.6           92.9           35.9
+                                     2008-10-16      30_15      BasicSlopeVarSaO2               11:01:24      32.3           92.2           33.3
+                                     2008-10-20      30_15      BasicSlopeVarAPA                10:54:36      31.7           91.3           31.4
+                                     2008-10-08      30_15      BasicNoDemog                    02:47:40      31.4           94.4           41.5
+                                     2008-10-13      30_15      BasicSlopeSingleStart           05:38:54      31.1           92.9           36.3
+                                     2008-09-19      30_15      Minimal                         02:38:18      30.7           93.8           38.4
+                                     2008-10-16      30_15      BasicSlopeVar15PC               05:56:57      30.3           92.1           38.1
+                                     2008-10-07      35_20      Basic                           02:58:20      28.6           93.2           34.0
+                                     2008-10-22      40_15      BasicWithSlope                  09:14:31      27.3           93.1           31.6
+                                     2008-10-24      30_15      BWSlope30win                    05:26:53      25.6           95.1           38.2
+                                     2008-09-21      30_15      MiniVariance                    02:54:09      24.5           93.9           35.2
+                                     2008-09-12      60_15      AllPhys                         Unknown       22.4           94.2           27.6
+                                     2008-10-06      45_30      BasicWithVar                    05:01:13      21.9           91.2           22.5
+                                     2008-10-22      50_15      BasicWithSlope                  13:47:41      18.5           98.3           55.2
+                                     2008-10-22      50_15      BasicWithSlopeSingleStart       13:01:40      15.0           96.3           31.6
+                                     2008-09-11      60_15      Lots-01                         04:19:32      14.5           98.0           39.3
+                                     2008-09-18      90_30      PlusDemog                       11:35:47      7.0            93.1           6.3
+                                     2008-09-15      120_30     Basic                           04:52:08      5.8            99.1           38.2
+                                     2008-09-17      90_30      First                           05:55:07      4.2            99.2           20.4
+                                     2008-09-10      60_15      Basic                           29:20:52      1.7            99.9           28.6
+                                     2008-10-23      30_20      Minimal                         02:22:34      0.7            99.8           31.3
+
+                                     There are 33 runs in the table, 6 above 40% sensitivity and 13 above 30% sensitivity. The two groups inves-
+                                     tigated the most were 30_15 and 25_10. The first digit indicates the maximum start point for a sub-window
+                                     and the second digit gives the minimum start window and is therefore an indication of the prediction win-
+                                     dow. For example the 30_15 group is using data which starts at 15 min before an event in the training/test
+                                     database but also uses a sub-window that starts at 30 min before an event. In order to determine the actual
+                                     amount of data that is required before a prediction could begin using this model you also have to consider
+                                     the sub-window size which is defined in the input vector definition file. In the case of this model the sub-
+                                     window size is 15 min, therefore 45 min of data are required (15 + 30)
+
+
+
+References                                                                 3. Marmarou A, Anderson RL, Ward JD, et al. Impact of ICP insta-
+                                                                              bility and hypotension on outcome in patients with severe head
+                                                                              trauma. J Neurosurg. 1991;75:S59–66.
+ 1. American College of Surgeons. Advanced trauma life support.
+                                                                           4. BrainIT Consortium. BrainIT. 2007.
+    2011.
+                                                                           5. BrainIT. Brain-it core dataset, manual of operations, data element
+ 2. Jones P, Andrews P, Midgley S, Anderson S, Piper I, Tocher J,
+                                                                              definitions. 2009.
+    Housley A, Corrie J, Slattery J, Dearden M, Douglas Miller J.
+                                                                           6. Piper I, Chambers I, Citerio G, Enblad P, Gregson B, Howells T,
+    Measuring the burden of secondary insults in head-injured patients
+                                                                              Kiening K, Mattern J, Nilsson P, Ragauskas A, Sahuquillo J, Don-
+    during intensive care. J Neurosurg Anesthesiol. 1994;6:4–14.
+                                                                              ald R, Sinnott R, Stell A. The brain monitoring with information
+
+
+
+                                                                                                                                     13
+50                                                                                      Journal of Clinical Monitoring and Computing (2019) 33:39–51
+
+         technology (BrainIT) collaborative network: EC feasibility study     22. Chen X, Xu D, Zhang G, Mukkamala R. Forecasting acute hypo-
+         results and future direction. Acta Neurochir. 2010;152(11):1859–         tensive episodes in intensive care patients based on a peripheral
+         71. https​://doi.org/10.1007/s0070​1-010-0719-1.                         arterial blood pressure waveform. Comput Cardiol. 2009;36:545–8.
+    7.   AvertIT. Avert-it project (FP7-217049-AVERT-IT). 2008.               23. Mneimneh MA, Povinelli RJ. A rule-based approach toward
+    8.   Funahashi K. On the approximate realization of continuous map-           the prediction of acute hypotensive episodes. Comput Cardiol.
+         pings by neural networks. Neural Networks. 1989;2(3):183–192.            2009;36:557–60.
+    9.   Bishop CM. Neural networks for pattern recognition. Oxford Uni-      24. Gabutti L, Vadilonga D, Mombelli G, Burnier M, Marone C.
+         versity Press; 1995.                                                     Artificial neural networks improve the prediction of kt/v, follow-
+10.      Ripley BR. Pattern recognition and neural networks. Cambridge            up dietary protein intake and hypotension risk in haemodialysis
+         University Press; 1996.                                                  patients. Nephrol Dial Transplant. 2004;19:1204–11.
+11.      MacKay DJC. Probable networks and plausible predictions—a            25. Reich DL, Hossain S, Krol M, Baez B, Patel P, Bernstein A,
+         review of practical bayesian methods for supervised neural net-          Bodian CA. Predictors of hypotension after induction of general
+         works. Network. 1995;6:469–505.                                          anesthesia. Anesth Analg. 2005;101(3):622–8.
+12.      Neal RM. Bayesian learning for neural networks. Springer, Lec-       26. Lehman L, Saeed M, Moody G, Mark R. Similarity-based search-
+         ture Notes in Statistics. 1996.                                          ing in multi-parameter time series databases. Comput Cardiol.
+13.      Stell A, Sinnott R, Jiang J, Donald R, Chambers I, Citerio G,            2008;35:653–6.
+         Enblad P, Gregson B, Howells T, Kiening K, Nilsson P, Ragauskas      27. Dasta JF, McLaughlin TP, Mody SH, Piech CT. Daily cost of an
+         A, Sahuquillo J, Piper I. Federating distributed clinical data for       intensive care unit day: the contribution of mechanical ventilation.
+         the prediction of adverse hypotensive events. Philos Trans R Soc.        Crit Care Med. 2005;33(6):1266–71.
+         2009;367(1898):2679–90.                                              28. Donald R, Howells T, Piper I, Chambers I, Citerio G, Enblad P,
+14.      Hanfelt JJ, Slack RS, Gehan EA. A modification of simon’s opti-          Gregson B, Kiening K, Mattern J, Nilsson P, Ragauskas A, Sahu-
+         mal design for phase ii trials when the criterion is median sample       quillo J, Sinnott R, Stell A. Trigger characteristics of EUSIG-
+         size. Control Clin Trials. 1999;20:555–66.                               defined hypotensive events. Acta Neurochir Suppl. 2012;114:45 – 9.
+15.      Simon R. Optimal two-stage designs for phase ii clinical trials.     29. Williams CKI, Georgatzis K, Hawthorne C, McMonagle P, Piper
+         Control Clin Trials. 10:1–10, 1989.                                      I, Shaw M, Lal P. Detecting artifactual events in vital signs moni-
+16.      Crawley M. The R book (Second Edition). New York: Wiley; 2012.           toring data. In: Clifton DA, editor. Machine learning for health-
+17.      Kumar A, Roberts D, Wood KE, Light B, Parrillo JE, Sharma S,             care technologies; 2016. http://homepa​ ges.inf.ed.ac.uk/ckiw/proje​
+         Suppes R, Feinstein D, Zanotti S, Taiberg L, Gurka D, Kumar A,           cts/adult​_icu/CSOre​port2​30915​.pdf.
+         Cheang M. Duration of hypotension before initiation of effective     30. Ghassemi M, Celi L,A, Stone J. State of the art review: the data
+         antimicrobial therapy is the critical determinant of survival in         revolution in critical care. Crit Care. 2015;19:118.
+         human septic shock. Crit Care Med. 2006;34(6):1589–96.               31. IBM InfoSphere, Big Data Help Toronto Hospital Monitor Pre-
+18.      Bijker JB, vanKlei WA, Vergouwe Y, .Eleveld DJ, van Wolfswin-            mature Infants. http://www.eweek​.com/enter​prise​-apps/ibm-infos​
+         kel L, Moons KGM, Kalkman CJ. Intraoperative hypotension                 phere​-big-data-help-toron​to-hospi​tal-monit​or-prema​ture-infan​ts.
+         and 1-year mortality after noncardiac surgery. Anesthesiology.       32. Docherty AB, Lone NI. Exploiting big data for critical care
+         2009;111(6):1217–26.                                                     research. Curr Opin Crit Care. 2015;21(5):467–72.
+19.      Smiley R. Fast fourier transforms as prophecy: predict-              33. Celi LA, Mark RG, Stone DJ, Montgomery RA. “Big Data” in the
+         ing hypotension during spinal anes-thesia. Anesthesiology.               intensive care unit. Closing the data loop. Am J Respir Crit Care
+         2005;102(6):1079–80.                                                     Med. 2013;187(11):1157–60.
+20.      Moody GB, Lehman LH. Predicting acute hypotensive episodes:          34. Figini S, Maggi M. Performance of credit risk prediction models
+         the10th annual physionet/computers in cardiology challenge.              via proper loss functions. Technical report, Universita di Pavia,
+         Comput Cardiol. 2009;36:541–4.                                           Department of Economics and Management, 2014.
+21.      Henriques JH, Rocha TR. Prediction of acute hypotensive epi-         35. Hand D. Assessing the performance of classification meth-
+         sodes using neural network multi-models. Comput Cardiol.                 ods. Int Stat Rev. 2012;80(3):400–14. https​://doi.org/10.111
+         2009;36:549–52.                                                          1/j.1751-5823.2012.00183​.x.
+
+
+
+
+Affiliations
+
+Rob Donald1 · Tim Howells2 · Ian Piper3 · P. Enblad4 · P. Nilsson4 · I. Chambers5 · B. Gregson6 · G. Citerio7 ·
+K. Kiening8 · J. Neumann8 · A. Ragauskas9 · J. Sahuquillo10 · R. Sinnott11 · A. Stell12 on behalf of the BrainIT Group
+                                                                              5
+         Rob Donald                                                               Department of Medical Physics, James Cook University
+         rob@statsresearch.co.uk                                                  Hospital, Middlesbrough, UK
+                                                                              6
+1                                                                                 Neurosurgical Trials Group, Newcastle University,
+         Stats Research Ltd, Dingwall, Scotland, UK
+                                                                                  Newcastle upon Tyne, UK
+2
+         Department of Neurosurgery, Uppsala University Hospital,             7
+                                                                                  Hospital San Gerardo, Neurorianimazione, Monza, Italy
+         Uppsala, Sweden
+                                                                              8
+3                                                                                 Department of Neurosurgery, Ruprecht-Karls-Universitat
+         Institute of Neurological Sciences, Queen Elizabeth
+                                                                                  Hospital, Heidelberg, Germany
+         University Hospital, Clinical Physics, Glasgow, Scotland, UK
+                                                                              9
+4                                                                                 Kaunas University of Technology, Kaunas, Lithuania
+         Section of Neurosurgery, Uppsala University, Uppsala,
+         Sweden
+
+
+
+13
+Journal of Clinical Monitoring and Computing (2019) 33:39–51                                                                 51
+
+10                                                             12
+     Department of Neurosurgery, Vall d’Hebron University           Department of Clinical Physics, University of Glasgow,
+     Hospital, Barcelona, Spain                                     Glasgow, Scotland, UK
+11
+     Department of Information Systems, University
+     of Melbourne, Parkville, Australia
+
+
+
+
+                                                                                                                        13
+

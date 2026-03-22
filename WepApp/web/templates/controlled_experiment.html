@@ -1,0 +1,628 @@
+{% extends "base.html" %}
+
+{% block title %}Controlled Experiment · TripleGen{% endblock %}
+
+{% block content %}
+<style>
+  .ctrl-section {
+    border: 1px solid var(--tg-border);
+    border-radius: var(--tg-radius-sm);
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    background: rgba(255,255,255,0.02);
+  }
+  .ctrl-section-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--tg-accent-1);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.6rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid var(--tg-border);
+  }
+  .ctrl-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0;
+    padding-left: 0;          /* override Bootstrap .form-check padding */
+  }
+  .ctrl-toggle-row .form-check-input {
+    margin-left: 0;            /* reset Bootstrap negative margin that pushes switch outside card */
+    margin-top: 0;
+    flex-shrink: 0;
+  }
+  .ctrl-toggle-row .form-check-label {
+    font-size: 0.82rem;
+    line-height: 1.35;
+  }
+  .ctrl-toggle-hint {
+    font-size: 0.7rem;
+    color: var(--tg-text-secondary);
+    margin-top: 0.05rem;
+    padding-left: 3.1rem;     /* align with label text (switch width + gap) */
+    margin-bottom: 0.15rem;
+  }
+  .cfg-info-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 1.15rem; height: 1.15rem; font-size: 0.7rem; font-weight: 700;
+    color: var(--tg-text-secondary); background: rgba(255,255,255,0.06);
+    border: 1px solid var(--tg-border); border-radius: 50%;
+    cursor: pointer; transition: color 0.2s, background 0.2s, border-color 0.2s;
+  }
+  .cfg-info-icon:hover {
+    color: var(--tg-accent-1); background: var(--tg-class-dim);
+    border-color: rgba(34,211,238,0.4);
+  }
+  body .popover.cfg-popover { background: transparent !important; border: none !important; z-index: 9999 !important; }
+  .cfg-popover .popover-body {
+    background: var(--tg-surface-solid); color: var(--tg-text);
+    border: 1px solid var(--tg-border); border-left: 3px solid var(--tg-accent-1);
+    padding: 0.5rem 0.75rem; font-size: 0.82rem; line-height: 1.4;
+  }
+  .cfg-help-btn {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.25rem 0.5rem; color: var(--tg-accent-1); background: transparent;
+    border: none; border-radius: 6px; font-size: 0.875rem; cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+  .cfg-help-btn:hover { color: var(--tg-text); background: rgba(34,211,238,0.12); }
+  main.main-content { position: relative; z-index: 0; }
+</style>
+
+<div class="page-hero page-hero-index">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+    <div>
+      <h1 class="page-hero-title"><i class="bi bi-toggles tg-semantic-class"></i> Controlled Experiment</h1>
+      <p class="page-hero-sub mb-0">Full granular control over every pipeline stage. Toggle individual preprocessing, prompt injection, and post-processing features independently.</p>
+    </div>
+    <a href="{{ url_for('pipeline_image') }}" target="_blank" rel="noopener" class="btn btn-outline-tech">
+      <i class="bi bi-box-arrow-up-right me-1"></i>View pipeline
+    </a>
+  </div>
+  <div class="pipeline-strip" role="presentation" aria-hidden="true">
+    <div class="pipeline-strip-step tg-step-corpus"><span class="pipeline-strip-icon"><i class="bi bi-file-text"></i></span><span class="pipeline-strip-label">Corpus</span></div>
+    <span class="pipeline-strip-arrow"></span>
+    <div class="pipeline-strip-step tg-step-extract"><span class="pipeline-strip-icon"><i class="bi bi-cpu"></i></span><span class="pipeline-strip-label">Extract</span></div>
+    <span class="pipeline-strip-arrow"></span>
+    <div class="pipeline-strip-step tg-step-reason"><span class="pipeline-strip-icon"><i class="bi bi-graph-up-arrow"></i></span><span class="pipeline-strip-label">Reason</span></div>
+    <span class="pipeline-strip-arrow"></span>
+    <div class="pipeline-strip-step tg-step-eval"><span class="pipeline-strip-icon"><i class="bi bi-clipboard-check"></i></span><span class="pipeline-strip-label">Evaluate</span></div>
+  </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+  <i class="bi bi-exclamation-circle me-2"></i>{{ error }}
+  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+
+<form id="run-form" method="post" action="{{ url_for('run') }}" enctype="multipart/form-data">
+  <input type="hidden" name="from_page" value="controlled_experiment">
+
+  <div class="row g-4 align-items-stretch">
+    <!-- ═══ LEFT: Corpus Input ═══ -->
+    <div class="col-lg-7 d-flex">
+      <div class="card mb-4 h-100 w-100 d-flex flex-column">
+        <div class="card-header tg-card-corpus">
+          <i class="bi bi-file-text"></i> Corpus input
+        </div>
+        <div class="card-body flex-grow-1">
+          <!-- Paper selection -->
+          <div class="mb-3">
+            <div class="fw-semibold mb-2" style="font-size:0.85rem;">
+              <i class="bi bi-journal-richtext me-2" style="opacity:0.7;"></i>BrainIT Paper
+            </div>
+            <select id="paper_select" name="paper_id" class="form-select form-select-sm" style="max-width:100%;">
+              <option value="">-- No paper (use paste / upload below) --</option>
+              {% for p in paper_options %}
+              <option value="{{ p.id }}">{{ p.label }}</option>
+              {% endfor %}
+            </select>
+            <div class="text-muted mt-1" style="font-size:0.72rem;">
+              Select a BrainIT paper, or leave blank to paste / upload your own corpus below.
+            </div>
+          </div>
+
+          <hr class="my-2">
+
+          <div class="mb-3">
+            <label class="form-label">Input method <span class="text-muted small">(when no paper selected)</span></label>
+            <div class="btn-group w-100" role="group" aria-label="Input method">
+              <input type="radio" class="btn-check" name="input_method" id="input_paste" value="paste" checked>
+              <label class="btn btn-outline-primary" for="input_paste"><i class="bi bi-clipboard"></i> Paste Text</label>
+              <input type="radio" class="btn-check" name="input_method" id="input_upload" value="upload">
+              <label class="btn btn-outline-primary" for="input_upload"><i class="bi bi-upload"></i> Upload File</label>
+            </div>
+          </div>
+
+          <div id="paste_input_section">
+            <label for="text_input" class="form-label">Paste or type Neuro-ICU / BrainIT literature</label>
+            <textarea id="text_input" name="text_input" class="form-control" rows="10" placeholder=""></textarea>
+            <div class="mt-2">
+              <label for="paper_name" class="form-label small text-muted mb-1">
+                <i class="bi bi-tag"></i> Paper title <span class="fw-light">(optional)</span>
+              </label>
+              <input type="text" id="paper_name" name="paper_name" class="form-control form-control-sm"
+                     placeholder="e.g. BrainIT 2003 core dataset">
+            </div>
+          </div>
+          <div id="upload_input_section" style="display:none;">
+            <label for="file_input" class="form-label">Upload papers (.txt or .pdf)</label>
+            <input type="file" id="file_input" name="file_input" class="form-control" accept=".txt,.pdf" multiple>
+            <p class="form-text small text-muted mt-2"><i class="bi bi-info-circle"></i> Max 10MB per file.</p>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="d-grid">
+            <button type="submit" class="btn btn-run btn-lg">
+              <i class="bi bi-play-fill me-2"></i>Run controlled experiment
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ RIGHT: Configuration Toggles ═══ -->
+    <div class="col-lg-5 d-flex">
+      <div class="card mb-4 h-100 w-100 d-flex flex-column">
+        <div class="card-header tg-card-config">
+          <i class="bi bi-toggles"></i> Pipeline controls
+        </div>
+        <div class="card-body flex-grow-1" style="overflow-y:auto; max-height:85vh;">
+
+          <!-- ════════ 1. PREPROCESSING ════════ -->
+          <div class="ctrl-section">
+            <div class="ctrl-section-title"><i class="bi bi-funnel me-1"></i> 1. Preprocessing</div>
+
+            <div class="form-check form-switch ctrl-toggle-row">
+              <input class="form-check-input" type="checkbox" id="ctrl_scope_filter" name="scope_filter" value="on" checked>
+              <label class="form-check-label" for="ctrl_scope_filter">Scope Filter (document-level)</label>
+            </div>
+            <div class="ctrl-toggle-hint">Remove admin/non-clinical sections at document load time.</div>
+
+            <div class="form-check form-switch ctrl-toggle-row">
+              <input class="form-check-input" type="checkbox" id="ctrl_chunk_clinical_filter" name="chunk_clinical_filter" value="on" checked>
+              <label class="form-check-label" for="ctrl_chunk_clinical_filter">Chunk-level Clinical Filter</label>
+            </div>
+            <div class="ctrl-toggle-hint">Drop low clinical-density chunks after chunking.</div>
+
+            <div class="form-check form-switch ctrl-toggle-row">
+              <input class="form-check-input" type="checkbox" id="ctrl_clinical_only_routing" name="clinical_only_routing" value="on" checked>
+              <label class="form-check-label" for="ctrl_clinical_only_routing">Clinical-only Routing</label>
+            </div>
+            <div class="ctrl-toggle-hint">Restrict prompt routing to clinical vocabulary paths.</div>
+
+            <div class="form-check form-switch ctrl-toggle-row">
+              <input class="form-check-input" type="checkbox" id="ctrl_require_label_in_evidence" name="require_label_in_evidence" value="on" checked>
+              <label class="form-check-label" for="ctrl_require_label_in_evidence">Require Label in Evidence</label>
+            </div>
+            <div class="ctrl-toggle-hint">Only keep extracted classes whose label (or acronym) appears in the evidence text.</div>
+          </div>
+
+          <!-- ════════ 2. PROMPT INJECTION ════════ -->
+          <div class="ctrl-section">
+            <div class="ctrl-section-title"><i class="bi bi-chat-square-text me-1"></i> 2. Prompt Injection</div>
+
+            <div class="form-check form-switch ctrl-toggle-row">
+              <input class="form-check-input" type="checkbox" id="ctrl_vocab_guardrails" name="prompt_vocab_guardrails" value="on" checked>
+              <label class="form-check-label" for="ctrl_vocab_guardrails">Vocabulary Guardrails</label>
+            </div>
+            <div class="ctrl-toggle-hint">Inject gold class/relation labels into every prompt as allowed vocabulary.</div>
+
+            <div class="form-check form-switch ctrl-toggle-row">
+              <input class="form-check-input" type="checkbox" id="ctrl_candidate_terms" name="candidate_terms" value="on">
+              <label class="form-check-label" for="ctrl_candidate_terms">Candidate Terms</label>
+            </div>
+            <div class="ctrl-toggle-hint">Add linguistics-based candidate noun phrases as optional hints.</div>
+
+            <div class="form-check form-switch ctrl-toggle-row">
+              <input class="form-check-input" type="checkbox" id="ctrl_medical_ner" name="medical_ner_anchor" value="on">
+              <label class="form-check-label" for="ctrl_medical_ner">Medical NER Anchoring</label>
+            </div>
+            <div class="ctrl-toggle-hint">Run ScispaCy BC5CDR NER and inject detected entities as suggested concepts.</div>
+
+            <div class="form-check form-switch ctrl-toggle-row">
+              <input class="form-check-input" type="checkbox" id="ctrl_filter_gold_vocab" name="filter_to_gold_vocabulary" value="on">
+              <label class="form-check-label" for="ctrl_filter_gold_vocab">Filter to Gold Vocabulary</label>
+            </div>
+            <div class="ctrl-toggle-hint">Post-parse filter: only keep classes/relations that match gold schema labels.</div>
+
+            <div class="form-check form-switch ctrl-toggle-row">
+              <input class="form-check-input" type="checkbox" id="ctrl_strict_relations" name="strict_relations" value="on">
+              <label class="form-check-label" for="ctrl_strict_relations">Strict Relations</label>
+            </div>
+            <div class="ctrl-toggle-hint">Use strict clinical reference relation set instead of core allowed relations.</div>
+          </div>
+
+          <!-- ════════ 3. POST-PROCESSING ════════ -->
+          <div class="ctrl-section">
+            <div class="ctrl-section-title"><i class="bi bi-gear-wide-connected me-1"></i> 3. Post-Processing</div>
+
+            <div class="form-check form-switch ctrl-toggle-row">
+              <input class="form-check-input" type="checkbox" id="ctrl_tgl" name="text_grounded_completion" value="on" checked>
+              <label class="form-check-label" for="ctrl_tgl">Text-Grounded Completion (TGL)</label>
+            </div>
+            <div class="ctrl-toggle-hint">Second-pass extraction: LLM reviews full document + current ontology to find missed items.</div>
+
+            <div class="form-check form-switch ctrl-toggle-row">
+              <input class="form-check-input" type="checkbox" id="ctrl_sgc" name="schema_guided_completion" value="on">
+              <label class="form-check-label" for="ctrl_sgc">Schema-Guided Completion</label>
+            </div>
+            <div class="ctrl-toggle-hint">LLM fills in gold-schema items that are missing but supported by corpus evidence.</div>
+
+            <div class="form-check form-switch ctrl-toggle-row">
+              <input class="form-check-input" type="checkbox" id="ctrl_symbolic" name="symbolic_reasoner" value="on">
+              <label class="form-check-label" for="ctrl_symbolic">Symbolic Reasoner (Rule-based)</label>
+            </div>
+            <div class="ctrl-toggle-hint">Deterministic hierarchy completion from gold schema + orphan class pruning.</div>
+
+            <hr class="my-2" style="border-color:var(--tg-border);opacity:0.4;">
+            <div class="mb-1" style="font-size:0.72rem;color:var(--tg-text-secondary);font-weight:500;">Built-in Cleanup (normally always on)</div>
+
+            <div class="form-check form-switch ctrl-toggle-row">
+              <input class="form-check-input" type="checkbox" id="ctrl_cleanup_dedupe" name="cleanup_dedupe" value="on" checked>
+              <label class="form-check-label" for="ctrl_cleanup_dedupe">Deduplication</label>
+            </div>
+            <div class="ctrl-toggle-hint">Deduplicate classes, relations, and hierarchy edges.</div>
+
+            <div class="form-check form-switch ctrl-toggle-row">
+              <input class="form-check-input" type="checkbox" id="ctrl_cleanup_scope" name="cleanup_scope_pruning" value="on" checked>
+              <label class="form-check-label" for="ctrl_cleanup_scope">Scope / Abstract Pruning</label>
+            </div>
+            <div class="ctrl-toggle-hint">Remove out-of-scope classes, abstract data labels, and overly broad contextual classes.</div>
+
+            <div class="form-check form-switch ctrl-toggle-row">
+              <input class="form-check-input" type="checkbox" id="ctrl_cleanup_evidence" name="cleanup_evidence_pruning" value="on" checked>
+              <label class="form-check-label" for="ctrl_cleanup_evidence">Evidence Pruning</label>
+            </div>
+            <div class="ctrl-toggle-hint">Drop classes/relations with weak or missing evidence text.</div>
+
+            <div class="form-check form-switch ctrl-toggle-row">
+              <input class="form-check-input" type="checkbox" id="ctrl_cleanup_structural" name="cleanup_structural" value="on" checked>
+              <label class="form-check-label" for="ctrl_cleanup_structural">Structural Validation</label>
+            </div>
+            <div class="ctrl-toggle-hint">Auto-add missing endpoints, prune dangling hierarchy, validate domain/range, fix flat hierarchy.</div>
+
+            <div class="form-check form-switch ctrl-toggle-row">
+              <input class="form-check-input" type="checkbox" id="ctrl_cleanup_axioms" name="cleanup_axioms" value="on" checked>
+              <label class="form-check-label" for="ctrl_cleanup_axioms">Axiom Constraints</label>
+            </div>
+            <div class="ctrl-toggle-hint">Enforce ontology axiom constraints (disjointness, cardinality, range restrictions).</div>
+          </div>
+
+          <hr class="my-2">
+
+          <!-- ════════ PROMPTING METHOD ════════ -->
+          <div class="fw-semibold mb-2 section-title-gradient">
+            <i class="bi bi-sliders me-2 icon-gradient-accent"></i>Prompting method
+          </div>
+          <select id="strategy" name="strategy" class="visually-hidden" required>
+            <option value="" disabled hidden></option>
+            <option value="baseline">baseline</option>
+            <option value="one_shot">one_shot</option>
+            <option value="phased_3step" selected>phased_3step</option>
+          </select>
+          <div id="strategy-switches" class="pt-1 mb-3" role="group">
+            <div class="form-check form-switch mb-2 d-flex align-items-center gap-2">
+              <input class="form-check-input strategy-switch" type="checkbox" id="strategy_baseline" data-value="baseline">
+              <label class="form-check-label" for="strategy_baseline">Zero-Shot</label>
+            </div>
+            <div class="form-check form-switch mb-2 d-flex align-items-center gap-2">
+              <input class="form-check-input strategy-switch" type="checkbox" id="strategy_one_shot" data-value="one_shot">
+              <label class="form-check-label" for="strategy_one_shot">One-Shot</label>
+            </div>
+            <div class="form-check form-switch mb-0 d-flex align-items-center gap-2">
+              <input class="form-check-input strategy-switch" type="checkbox" id="strategy_phased_3step" data-value="phased_3step" checked>
+              <label class="form-check-label" for="strategy_phased_3step">Few-Shot</label>
+            </div>
+            <div class="invalid-feedback d-none mt-2" id="strategy-feedback">Please select a prompting method.</div>
+          </div>
+
+          <!-- ════════ LLM PROVIDER ════════ -->
+          <div class="fw-semibold mb-2 section-title-gradient">
+            <i class="bi bi-cpu me-2 icon-gradient-accent"></i>LLM provider
+          </div>
+          <select id="llm_provider" name="llm_provider" class="visually-hidden" required>
+            <option value="" disabled hidden></option>
+            <option value="openai" {% if llm_provider == 'openai' and llm_model != 'gpt-4o' %}selected{% endif %}>openai</option>
+            <option value="openai" {% if llm_provider == 'openai' and llm_model == 'gpt-4o' %}selected{% endif %}>openai (GPT-4o)</option>
+            <option value="anthropic" {% if llm_provider == 'anthropic' %}selected{% endif %}>anthropic</option>
+            <option value="google" {% if llm_provider == 'google' %}selected{% endif %}>google</option>
+            <option value="groq" {% if llm_provider == 'groq' %}selected{% endif %}>groq</option>
+            <option value="huggingface" {% if llm_provider == 'huggingface' %}selected{% endif %}>huggingface</option>
+            <option value="deepseek" {% if llm_provider == 'deepseek' %}selected{% endif %}>deepseek</option>
+          </select>
+          <input type="hidden" id="llm_model" name="llm_model" value="{{ llm_model or '' }}">
+          <div id="llm-provider-switches" class="pt-1 mb-3" role="group">
+            <div class="form-check form-switch mb-2">
+              <input class="form-check-input llm-provider-switch" type="checkbox" id="provider_openai" data-value="openai" data-model="" {% if llm_provider == 'openai' and llm_model != 'gpt-4o' %}checked{% endif %}>
+              <label class="form-check-label" for="provider_openai">OpenAI <span class="text-muted">(GPT-4o-mini)</span></label>
+            </div>
+            <div class="form-check form-switch mb-2">
+              <input class="form-check-input llm-provider-switch" type="checkbox" id="provider_openai4o" data-value="openai" data-model="gpt-4o" {% if llm_provider == 'openai' and llm_model == 'gpt-4o' %}checked{% endif %}>
+              <label class="form-check-label" for="provider_openai4o">OpenAI <span class="text-muted">(GPT-4o)</span></label>
+            </div>
+            <div class="form-check form-switch mb-2">
+              <input class="form-check-input llm-provider-switch" type="checkbox" id="provider_anthropic" data-value="anthropic" data-model="claude-haiku-4-5" {% if llm_provider == 'anthropic' %}checked{% endif %}>
+              <label class="form-check-label" for="provider_anthropic">Anthropic <span class="text-muted">(Claude Haiku 4.5)</span></label>
+            </div>
+            <div class="form-check form-switch mb-2">
+              <input class="form-check-input llm-provider-switch" type="checkbox" id="provider_google" data-value="google" data-model="" {% if llm_provider == 'google' %}checked{% endif %}>
+              <label class="form-check-label" for="provider_google">Google <span class="text-muted">(Gemini 2.5 Flash)</span></label>
+            </div>
+            <div class="form-check form-switch mb-2">
+              <input class="form-check-input llm-provider-switch" type="checkbox" id="provider_groq" data-value="groq" data-model="" {% if llm_provider == 'groq' %}checked{% endif %}>
+              <label class="form-check-label" for="provider_groq">Groq <span class="text-muted">(Llama 3.1 8B)</span></label>
+            </div>
+            <div class="form-check form-switch mb-2">
+              <input class="form-check-input llm-provider-switch" type="checkbox" id="provider_huggingface" data-value="huggingface" data-model="" {% if llm_provider == 'huggingface' %}checked{% endif %}>
+              <label class="form-check-label" for="provider_huggingface">Hugging Face <span class="text-muted">(Mistral 7B)</span></label>
+            </div>
+            <div class="form-check form-switch mb-0">
+              <input class="form-check-input llm-provider-switch" type="checkbox" id="provider_deepseek" data-value="deepseek" data-model="" {% if llm_provider == 'deepseek' %}checked{% endif %}>
+              <label class="form-check-label" for="provider_deepseek">DeepSeek <span class="text-muted">(deepseek-chat)</span></label>
+            </div>
+            <div class="invalid-feedback d-none mt-2" id="llm-provider-feedback">Please select an LLM provider.</div>
+          </div>
+
+          <hr class="my-2">
+
+          <!-- ════════ EVALUATION ════════ -->
+          <div class="fw-semibold mb-2 section-title-gradient">
+            <i class="bi bi-clipboard-data me-2 icon-gradient-accent"></i>Evaluation
+          </div>
+          <div class="form-check form-switch mb-1 d-flex align-items-center gap-2">
+            <input class="form-check-input" type="checkbox" id="eval_restrict_to_gold" name="eval_restrict_to_gold" value="on" checked>
+            <label class="form-check-label" for="eval_restrict_to_gold">Gold-vocabulary-only</label>
+          </div>
+
+          <hr class="my-2">
+
+          <!-- ════════ ADVANCED ════════ -->
+          <div>
+            <button type="button" class="cfg-help-btn w-100 justify-content-between" id="adv-toggle" aria-expanded="false" aria-controls="adv-panel">
+              <span><i class="bi bi-gear me-1"></i>Advanced / Reasoning LLM</span>
+              <i class="bi bi-chevron-down adv-chevron" style="font-size:0.75rem;transition:transform 0.2s ease;"></i>
+            </button>
+            <div id="adv-panel" style="max-height:0;overflow:hidden;transition:max-height 0.3s ease;">
+              <div class="pt-3">
+                <div class="fw-semibold mb-2" style="font-size:0.8rem;color:var(--tg-text-secondary);">
+                  <i class="bi bi-lightning-charge me-1"></i>Reasoning LLM <span style="font-size:0.7rem;">(for Schema-Guided Completion)</span>
+                </div>
+                <input type="hidden" id="improvements_llm_provider" name="improvements_llm_provider" value="openai">
+                <input type="hidden" id="improvements_llm_model" name="improvements_llm_model" value="">
+                <div id="improvements-llm-switches" class="pt-1" role="group">
+                  <div class="form-check form-switch mb-2">
+                    <input class="form-check-input improvements-llm-switch" type="checkbox" id="imp_openai" data-provider="openai" data-model="" checked>
+                    <label class="form-check-label" for="imp_openai">OpenAI <span class="text-muted">(GPT-4o-mini)</span> <span class="badge bg-secondary ms-1" style="font-size:0.6rem;">default</span></label>
+                  </div>
+                  <div class="form-check form-switch mb-2">
+                    <input class="form-check-input improvements-llm-switch" type="checkbox" id="imp_openai4o" data-provider="openai" data-model="gpt-4o">
+                    <label class="form-check-label" for="imp_openai4o">OpenAI <span class="text-muted">(GPT-4o)</span></label>
+                  </div>
+                  <div class="form-check form-switch mb-0">
+                    <input class="form-check-input improvements-llm-switch" type="checkbox" id="imp_deepseek_reasoner" data-provider="deepseek" data-model="deepseek-reasoner">
+                    <label class="form-check-label" for="imp_deepseek_reasoner">DeepSeek Reasoner</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gold Standard (collapsed) -->
+  <div class="card mt-4 mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <div><i class="bi bi-award"></i> Gold Standard</div>
+      <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#goldStandardCollapse">
+        <i class="bi bi-chevron-down"></i>
+      </button>
+    </div>
+    <div id="goldStandardCollapse" class="collapse">
+      <div class="card-body">
+        <label for="gold_mode" class="form-label">Mode</label>
+        <select id="gold_mode" name="gold_mode" class="form-select mb-3">
+          <option value="public" {% if gold_mode_default == 'public' %}selected{% endif %}>Public (surrogate)</option>
+          <option value="restricted" {% if gold_mode_default == 'restricted' %}selected{% endif %}>Restricted (provided path)</option>
+          <option value="isolated">Isolated (LLM-generated from separate gold corpus)</option>
+        </select>
+        <label for="gold_path" class="form-label">Gold standard path <span class="text-muted small">(restricted only)</span></label>
+        <input type="text" id="gold_path" name="gold_path" class="form-control" value="{{ default_gold_path or '' }}">
+        <label for="gold_text_input" class="form-label mt-3">Gold corpus text <span class="text-muted small">(isolated mode only)</span></label>
+        <textarea id="gold_text_input" name="gold_text_input" class="form-control" rows="4" placeholder="Paste gold corpus text here."></textarea>
+      </div>
+    </div>
+  </div>
+</form>
+
+<script>
+  // Paper selection: when a paper is chosen, disable paste/upload
+  (function() {
+    var paperSelect = document.getElementById('paper_select');
+    var pasteSection = document.getElementById('paste_input_section');
+    var uploadSection = document.getElementById('upload_input_section');
+    if (paperSelect) {
+      paperSelect.addEventListener('change', function() {
+        var hasPaper = !!this.value;
+        if (hasPaper) {
+          pasteSection.style.opacity = '0.4';
+          uploadSection.style.opacity = '0.4';
+        } else {
+          pasteSection.style.opacity = '1';
+          uploadSection.style.opacity = '1';
+        }
+      });
+    }
+  })();
+
+  // Toggle paste / upload
+  document.querySelectorAll('input[name="input_method"]').forEach(function(radio) {
+    radio.addEventListener('change', function() {
+      document.getElementById('paste_input_section').style.display = this.value === 'paste' ? 'block' : 'none';
+      document.getElementById('upload_input_section').style.display = this.value === 'upload' ? 'block' : 'none';
+    });
+  });
+
+  // File size validation
+  document.getElementById('file_input')?.addEventListener('change', function() {
+    var maxSize = 10 * 1024 * 1024;
+    for (var i = 0; i < this.files.length; i++) {
+      if (this.files[i].size > maxSize) {
+        alert('File "' + this.files[i].name + '" exceeds 10MB.');
+        this.value = '';
+        break;
+      }
+    }
+  });
+
+  // LLM provider switches (single-select)
+  (function() {
+    var providerSelect = document.getElementById('llm_provider');
+    var modelInput = document.getElementById('llm_model');
+    var switches = Array.from(document.querySelectorAll('.llm-provider-switch'));
+    if (!providerSelect || !switches.length) return;
+    function setProvider(v, m) {
+      providerSelect.value = v || '';
+      if (modelInput) modelInput.value = (m || '').trim();
+      switches.forEach(function(sw) {
+        sw.checked = !!v && sw.getAttribute('data-value') === v && (sw.getAttribute('data-model') || '') === ((m || '').trim());
+      });
+      var fb = document.getElementById('llm-provider-feedback');
+      if (fb && v) fb.classList.add('d-none');
+    }
+    setProvider(providerSelect.value || '', (modelInput && modelInput.value) || '');
+    switches.forEach(function(sw) {
+      sw.addEventListener('change', function() {
+        if (sw.checked) setProvider(sw.getAttribute('data-value'), sw.getAttribute('data-model'));
+        else setProvider('', '');
+      });
+    });
+  })();
+
+  // Strategy switches (single-select)
+  (function() {
+    var sel = document.getElementById('strategy');
+    var switches = Array.from(document.querySelectorAll('.strategy-switch'));
+    var fb = document.getElementById('strategy-feedback');
+    if (!sel || !switches.length) return;
+    function set(v) {
+      sel.value = v || '';
+      switches.forEach(function(sw) { sw.checked = !!v && sw.getAttribute('data-value') === v; });
+      if (fb && v) fb.classList.add('d-none');
+    }
+    set(sel.value || '');
+    switches.forEach(function(sw) {
+      sw.addEventListener('change', function() {
+        if (sw.checked) set(sw.getAttribute('data-value'));
+        else set('');
+      });
+    });
+  })();
+
+  // Improvements LLM switches (single-select)
+  (function() {
+    var pi = document.getElementById('improvements_llm_provider');
+    var mi = document.getElementById('improvements_llm_model');
+    var switches = Array.from(document.querySelectorAll('.improvements-llm-switch'));
+    if (!pi || !mi || !switches.length) return;
+    function set(p, m) {
+      pi.value = p || 'openai';
+      mi.value = m || '';
+      switches.forEach(function(sw) {
+        sw.checked = sw.getAttribute('data-provider') === (p || 'openai') && (sw.getAttribute('data-model') || '') === (m || '');
+      });
+    }
+    set(pi.value, mi.value);
+    switches.forEach(function(sw) {
+      sw.addEventListener('change', function() {
+        if (sw.checked) set(sw.getAttribute('data-provider'), sw.getAttribute('data-model'));
+        else set('openai', '');
+      });
+    });
+  })();
+
+  // Advanced panel toggle
+  (function() {
+    var btn = document.getElementById('adv-toggle');
+    var panel = document.getElementById('adv-panel');
+    var chevron = btn && btn.querySelector('.adv-chevron');
+    if (!btn || !panel) return;
+    btn.addEventListener('click', function() {
+      var open = panel.style.maxHeight && panel.style.maxHeight !== '0px';
+      panel.style.maxHeight = open ? '0' : panel.scrollHeight + 'px';
+      btn.setAttribute('aria-expanded', !open);
+      if (chevron) chevron.style.transform = open ? '' : 'rotate(180deg)';
+    });
+  })();
+
+  // Init popovers
+  window.addEventListener('load', function() {
+    if (typeof bootstrap === 'undefined') return;
+    document.querySelectorAll('.cfg-info-icon[data-bs-toggle="popover"]').forEach(function(el) {
+      new bootstrap.Popover(el, { customClass: 'cfg-popover', container: 'body' });
+    });
+  });
+
+  // Submit via fetch for progress bar
+  document.getElementById('run-form').addEventListener('submit', function(e) {
+    var form = this;
+    if (form.dataset.progressSubmit === 'yes') return;
+    var paperSelect = document.getElementById('paper_select');
+    var hasPaper = paperSelect && paperSelect.value;
+    var textInput = document.getElementById('text_input');
+    var inputMethod = document.querySelector('input[name="input_method"]:checked');
+    if (!hasPaper) {
+      if (inputMethod && inputMethod.value === 'upload') {
+        var fi = document.getElementById('file_input');
+        if (!fi || !fi.files || !fi.files.length) return;
+      } else if (!textInput || !textInput.value.trim()) {
+        return;
+      }
+    }
+    e.preventDefault();
+    var providerSelect = document.getElementById('llm_provider');
+    var providerFb = document.getElementById('llm-provider-feedback');
+    if (providerSelect && (!providerSelect.value || !providerSelect.value.trim())) {
+      if (providerFb) providerFb.classList.remove('d-none');
+      return;
+    }
+    var strategySelect = document.getElementById('strategy');
+    var strategyFb = document.getElementById('strategy-feedback');
+    if (strategySelect && (!strategySelect.value || !strategySelect.value.trim())) {
+      if (strategyFb) strategyFb.classList.remove('d-none');
+      return;
+    }
+    var submitBtn = form.querySelector('button[type="submit"]');
+    var origHtml = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Starting…';
+    var fd = new FormData(form);
+    fetch(form.action, {
+      method: 'POST', body: fd,
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(function(r) {
+      if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || r.statusText); });
+      return r.json();
+    })
+    .then(function(data) {
+      if (data.error) throw new Error(data.error);
+      if (data.progress_url) window.location.href = data.progress_url;
+      else throw new Error('Unexpected response');
+    })
+    .catch(function(err) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = origHtml;
+      alert(err.message || 'Run failed.');
+      form.dataset.progressSubmit = 'yes';
+    });
+  });
+</script>
+{% endblock %}

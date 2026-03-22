@@ -1,0 +1,364 @@
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing the EXACT, verbatim sentence fragment from the text.
+
+3. **Extraction Scope:** Extract clinical and biomedical content: conditions, physiological parameters, monitoring variables, treatments/therapies/interventions, outcomes, assessments, laboratory values, nursing interventions, surgical procedures, and clinical dataset categories when explicitly named.
+   Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+   If a sentence or paragraph is mainly about these excluded topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+6. **Label Mapping Rule:** If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+   Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+   For other abbreviations, expand to their full clinical name as used in the text.
+
+7. **Structural Completeness Rule:** When the text mentions specific clinical items, also extract their general category if the text supports it.
+   For example, if the text discusses 'ventilation, sedation, fluids' as therapies, also extract the general class 'Therapy' or 'Baseline Therapy' if the text uses that grouping.
+   Use the text's own categories and groupings — do not impose an external hierarchy.
+
+**Default priority: classes first, then relations.** Extract relations when the text clearly states a connection between two concepts — both domain and range must be extracted classes. If a phase instruction below overrides this priority, follow the phase instruction.
+
+**Completeness:** Extract every distinct clinical concept the text names — err on the side of inclusion when evidence exists.
+
+### CURRENT TASK: Phase 3 — HIERARCHY EXTRACTION
+Extract subclass/superclass (is-a) edges supported by the text. A hierarchy edge means one class is a TYPE, SUBTYPE, CATEGORY MEMBER, or SPECIFIC INSTANCE of another. Extract every edge the text explicitly supports with evidence.
+
+### HIERARCHY DETECTION METHOD
+Look for ALL of these patterns in the text:
+  1. Explicit cues: 'such as', 'is a', 'type of', 'kind of', 'form of'
+  2. Enumeration: 'include:', 'includes:', 'consists of', 'comprises'
+  3. Category grouping: 'categorized as', 'classified as', 'grouped into'
+  4. List patterns: items listed under a heading or category name
+  5. Implicit grouping: when several specific items are mentioned alongside a general category (e.g., 'therapy: ventilation, sedation' implies both are subclasses of Therapy; 'core parameters: HR, ICP, MAP' implies all three are subclasses of Core Monitoring Parameter)
+  6. Definitional: 'X is a Y', 'X, a type of Y', 'X (a form of Y)'
+  7. Context-based: if the text organises items into sections or tables, each section heading implies a parent class for the items listed under it
+  8. Medical knowledge: TBI is a type of Brain Injury, Hypotension is a type of Secondary Insult — extract these when the text discusses them together
+
+For enumeration patterns (e.g. 'include: X, Y, Z'), extract EACH listed item as a subclass of the parent category.
+
+### CHAIN-OF-THOUGHT
+For each pair of known classes, reason:
+1. Does the text describe one class as a specialization of another?
+2. Does the text list one class under another as a member/subtype?
+3. Even if not explicitly stated, does medical context clearly imply a parent-child relationship?
+4. What text evidence supports this parent-child link?
+
+Be thorough: extract every parent-child relationship the text supports. Aim for at least one hierarchy edge per class if possible.
+Use ONLY the known classes below for subClass and superClass labels.
+
+### SELF-CHECK (before finalising output)
+- Are there any circular edges (A subClassOf B AND B subClassOf A)? Remove them.
+- Are subClass and superClass labels from the known-classes list?
+- Does every evidence field contain a verbatim quote from the text?
+
+Output JSON with keys classes, relations, hierarchy. Set classes and relations to empty arrays.
+
+Known classes (use only these for subclass/superclass): Decompressive Craniectomy; Bifrontal Craniectomy; Barbiturates; Cranioplasty; Glasgow Motor Score (GMS); Pupil Abnormalities; Secondary Insult; Arterial Hypotension; Non-Evacuated Mass Lesions; Extracranial Injury; IMPACT Score; CRASH Score; Therapy Intensity Level (TIL)
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+**REASONING STEP:** Before producing JSON, mentally scan the text for: (1) every named clinical concept, (2) explicit relations between them, (3) hierarchy cues (such as, is a, type of, include:). Then output only items with verbatim evidence.
+
+---
+--- Retrieved examples (3) ---
+
+Text: This is the minimum minute by minute monitoring data required for inclusion in the BrainIT Database and include: Heart Rate, Respiration Rate, Mean Arterial Pressure, mean ICP, SaO2 and Temperature.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Monitoring Data",
+      "evidence": "minute by minute monitoring data"
+    },
+    {
+      "label": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required"
+    },
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate"
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate"
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "Mean Arterial Pressure"
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "mean ICP"
+    },
+    {
+      "label": "SaO2",
+      "evidence": "SaO2"
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature"
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Heart Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required...include: Heart Rate"
+    },
+    {
+      "subClass": "Respiration Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Heart Rate, Respiration Rate"
+    },
+    {
+      "subClass": "Mean Arterial Pressure (MAP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Mean Arterial Pressure"
+    },
+    {
+      "subClass": "Intracranial Pressure (ICP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: mean ICP"
+    },
+    {
+      "subClass": "SaO2",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: SaO2"
+    },
+    {
+      "subClass": "Temperature",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Temperature"
+    }
+  ]
+}
+
+---
+
+Text: Intensive care management information. Types of data include: GCS scores, pupil scores, ventilation settings, sedation levels, fluid input and output, nutrition, use of vasopressors, antibiotics. These constitute baseline therapy — routine ICU management delivered to all patients.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Intensive Care Management",
+      "evidence": "Intensive care management information"
+    },
+    {
+      "label": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management"
+    },
+    {
+      "label": "Ventilation",
+      "evidence": "ventilation settings"
+    },
+    {
+      "label": "Sedation",
+      "evidence": "sedation levels"
+    },
+    {
+      "label": "Fluids",
+      "evidence": "fluid input and output"
+    },
+    {
+      "label": "Nutrition",
+      "evidence": "nutrition"
+    },
+    {
+      "label": "Vasopressors",
+      "evidence": "use of vasopressors"
+    },
+    {
+      "label": "Antibiotics",
+      "evidence": "antibiotics"
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Ventilation",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: ventilation settings"
+    },
+    {
+      "subClass": "Sedation",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: sedation levels"
+    },
+    {
+      "subClass": "Fluids",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: fluid input and output"
+    },
+    {
+      "subClass": "Nutrition",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: nutrition"
+    },
+    {
+      "subClass": "Vasopressors",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: use of vasopressors"
+    },
+    {
+      "subClass": "Antibiotics",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: antibiotics"
+    }
+  ]
+}
+
+---
+
+Text: Patient outcome is assessed using the Extended Glasgow Outcome Scale (GOSe) at 6 months post-discharge from the neurosurgical centre.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Outcome",
+      "evidence": "Patient outcome is assessed"
+    },
+    {
+      "label": "GOSe Outcome",
+      "evidence": "Extended Glasgow Outcome Scale (GOSe)"
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "GOSe Outcome",
+      "superClass": "Outcome",
+      "evidence": "Patient outcome is assessed using the Extended Glasgow Outcome Scale (GOSe)"
+    }
+  ]
+}
+
+---
+TEXT TO ANALYZE:
+B. Decraene et al. Injury 54 (2023) 110911
+
+signed-rank test. Data were compared between the non-RCT group and Table 2
+the surgical patients of the RESCUEicp (RCT) group. When possible, Treatment characteristics of non-RCT patients and RESCUEicp patients a.
+collected data are shown in both absolute numbers (with 'number of UHL Brain- UHL & RESCUEicp
+patients' as unit), as well as relative (fraction of patients for which it a IT Brain-IT Surgical
+certain value applies, expressed in percentages); as well as mean or group
+median values (mostly expressed as a percentage). A p-value less than Decompressive
+0.05 was considered significant. No correction for multiple testing was craniectomy 19/21 N/A N/A 109/173
+Bifrontal - no. (%) 2/21 64/173
+Statistics version 28. (9.5) (47.0)
+Barbiturates 11/21 3/16 14/37 19/201
+Results (52.4) (18.8) (37.8) (9.4)
+Barbiturate
+administration: 1/21 1/16 2/37 N/A
+Patient, injury and management characteristics
+Pre-DC - no. (%) (4.8) (6.3) (5.4)
+Post-DC - no. (%) 8/21 2/16 10/37 N/A
+Thirty-seven patients who underwent a DC in the Brain-IT database (38.1) (12.5) (27.0)
+and in the UHL cohort were eligible for inclusion (further referred to as Pre-& post-DC - 2/21 0/16 (0) 2/37 N/A
+the non-RCT group). Patient, injury and management characteristics are no. (%) (9.5) (5.4)
+Time between arrival at 67.7 18.7 51.0 N/A
+summarized in Tables 1 and 2. Four patients were aged less than 18 emergency department (110.0) (80.9) (84.6)
+years. The non-RCT group had a mean age of 39.6 years and was pre­ and DC b - h (IQR)
+dominantly male. Cranioplasty at six months 15/21 N/A N/A N/A
+The median initial Glasgow Motor Score (GMS) was 4, while 24.3% - no. (%) (71.4)
+TBI treatment & prognostic
+of all patients had a GMS below 3. Pupil abnormalities were seen in
+scores c
+34.4% of our patients. Hypoxia and arterial hypotension were found in IMPACT - median -%
+10.0% and 6.1%, respectively. Non-evacuated mass lesions according to (IQR)
+the Marshall classification were observed in 26.5% of the non-RCT Core mort. 22 27 24 N/A
+group and 45.9% presented with an additional extracranial injury. (14-30) (19-54) (15-31)
+Core unfav. 40 40 40 N/A
+37.8% of patients (14 in absolute numbers) were treated with bar­
+(22-45) (35-69) (32-50)
+biturates in combination with DC; ten of these received it only after DC, Extended Core 20 24 21 N/A
+two only before and two received it before and after DC. The patients mort. (14-26) (15-52) (14-35)
+who received pre-DC barbiturates did not significantly differ from the Extended core 32 42 37 N/A
+unfav. (30-50) (28-69) (29-53)
+group who did not receive it in terms of median mean pre-operative ICP
+Lab mort. 17 26 18 N/A
+(p = 0.571), median GMS or median total GCS (p = 0.654 and p = (11-23) (15-39) (11-31)
+Lab unfav. 33 40 35 N/A
+(20-48) (27-66) (22-58)
+Table 1 CRASH -median -%
+Patient and injury characteristics of non-RCT patients and RESCUEicp patients. (IQR)
+Mort. 11 14 12 N/A
+UHL Brain- UHL & RESCUEicp
+(6-18) (7-41) (6-34)
+IT Brain-IT Surgical
+Unfav. 44 52 46 N/A
+group
+(22-57) (29-71) (28-67)
+Number of 21 16 37 202 TIL basic - no. (%)
+patients Score 0 2/21 0/15 (0) 2/36 N/A
+Age - mean - 38.9 40.6 (17 39.6 (16 32.3 (10 - P< (9.5) (5.6)
+years (range) (16 - - 72) - 72) 65) 0.001a Score 1 1/21 4/15 5/36 N/A
+70) (4.8) (26.7) (13.9)
+Glasgow Motor P= Score 2 7/21 3/15 10/36 N/A
+Score b 3/21 6/16 9/37 96/181 0.003 (33.3) (20) (27.8)
+1 - 2 - no. (14.3) (37.5) (24.3) (53.0) Score 3 10/21 7/15 17/36 N/A
+(%) 18/21 10/16 28/37 85/181 (47.6) (46.7) (47.2)
+3 - 6 - no. (85.7) (62.5) (75.6) (47.0) Score 4 1/21 1/15 2/36 N/A
+(%) (4.8) (6.7) (5.6)
+Abnormal pupils 4/21 7/11 11/32 59/202 p= a
+c
+- no. (%) (19.0) (63.6) (34.4) (29.2) 0.70 standard deviation=SD. IQR = Interquartile range. Mort. = mortality. Unfav
+Barbiturate - no. 11/21 3/16 14/37 19/202 P< = unfavorable.
+b
+(%) (52.4) (18.8) (37.8) (9.4) 0.001 Time between arrival at the emergency department and DC could be
+Extracranial 8/21 9/16 17/37 75/202 p= calculated for 20 out of 21 UHL patients and 15 out of 16 Brain-IT patients.
+injury - no. (%) (38.1) (56.0) (45.9) (37.1) 0.41 c
+All three scoring models and submodalities could be calculated for all 21
+Hypoxia - no. (%) 3/19 0/11 (0) 3/30 49/202 p= UHL patients. For Brain-IT patients TILbasic and CRASH could be calculated for
+(15.8) (10.0) (24.3) 0.13 15 out of 16 patients, IMPACT Core for all 16 patients, IMPACT Extended for 13/
+Hypotension - no. 1/21 1/12 2/33 40/202 p=
+16 patients and IMPACT lab for 9/16 patients.
+(%) (4.8) (8.3) (6.1) (19.8) 0.10
+Marshall score p=
+Diffuse - 17/21 8/13 25/34 161/198 0.41 0.114), average age (p = 0.654) or Marshall score (p = 0.661). Also, no
+no. (%) (81.0) (61.5) (73.5) (81.3) significant differences in recorded patient and injury characteristics
+NEML - no. 4/21 5/13 9/34 37/198
+(%) (19.0) (38.5) (26.5) (18.7)
+were found between patients who received barbiturates before DC and
+those who received it after DC (data not shown).
+a
+P-values of the differences between the 'UHL&Brain-IT group' and the The median time between arrival and DC was 51.0 h. About half of
+'RESCUEicp Surgical group'.
+b
+our patients received a DC after almost all other nonsurgical measures
+The Glasgow Motors Score was used for assessing motor impairment. The
+had been exhausted (TIL 3). The TIL scores before DC were 0 in 6%, 1 in
+score ranges from 1 to 6 with lower scores indicating greater impairment.
+c 14%, 2 in 28%, 3 in 47% and 4 in 6%.
+Pupil abnormality was defined as the presence of two unreactive pupils or
+anisocoria. Of the 21 UHL patients, 19 underwent a hemicraniectomy and 2 a
+
+B. Decraene et al. Injury 54 (2023) 110911
+---

@@ -1,0 +1,384 @@
+You are an ontology quality reviewer for clinical and biomedical domain ontologies.
+
+You have been given a generated ontology extracted from clinical/biomedical literature.
+Your task is to review the ontology and identify ONLY items that are clearly
+NOT clinical. Be VERY CONSERVATIVE — when in doubt, KEEP the item.
+
+### CRITICAL: BE CONSERVATIVE
+- Your primary goal is to PRESERVE the ontology. Only remove items you are
+  HIGHLY CONFIDENT do not belong.
+- If a concept COULD be clinical in ANY reasonable interpretation, KEEP it.
+- Abstract grouping categories are ESSENTIAL in ontologies — they organise
+  specific concepts into meaningful hierarchies. NEVER remove a class just
+  because it is abstract or general.
+- Removing a valid class destroys all its relations and hierarchy edges,
+  causing massive cascading damage to the ontology. Err on the side of keeping.
+
+### WHAT BELONGS (KEEP these — do NOT remove)
+- Clinical conditions, diseases, injuries, syndromes
+- Physiological parameters and measurements (e.g. heart rate, ICP, blood pressure)
+- Treatments, therapies, interventions, drugs, surgical procedures
+- Clinical assessments and scores (e.g. GCS, pupil reactivity, CT scan findings)
+- Laboratory values and tests (e.g. blood gases, biochemistry, haematology)
+- Medical devices and sensors that measure clinical parameters
+- Patient-related concepts (demographics, outcomes, patient)
+- Data categories that organise clinical observations (e.g. 'Monitoring Data',
+  'Laboratory Values', 'Admission Data', 'Treatment Data', 'Outcome Data')
+- Abstract superclasses that group clinical concepts:
+  'Condition', 'Outcome', 'Observation', 'Parameter', 'Therapy',
+  'Assessment', 'Intervention', 'Core Monitoring Parameter',
+  'Optional Monitoring Parameter', 'Baseline Therapy', 'Guidelines',
+  'Guidelines for Management', etc.
+  These are VALID ontological grouping classes — do NOT remove them.
+- Clinical guidelines and management protocols
+
+### WHAT TO REMOVE (only these categories, with high confidence)
+- Research project names and consortium names (e.g. 'BrainIT Project')
+- Governance/administrative concepts (e.g. 'Steering Group', 'Membership')
+- Data infrastructure: databases, software tools, data collection tools
+- Economic or social impact concepts (e.g. 'Economic Consequences',
+  'Social Consequences') — these are about societal impact, not clinical care
+- Institution names (universities, hospitals as organisations)
+- Industry/regulatory bodies (e.g. 'Medical Device Industry', 'Health Authorities')
+- Publishing metadata: journals, authors, DOIs
+
+### HIERARCHY REVIEW (be thorough here — hierarchy errors are important)
+Carefully check EVERY hierarchy edge for semantic correctness:
+- **Nonsensical edges** (ALWAYS remove): the subclass relationship is logically
+  impossible. Examples:
+  • 'Patient ⊑ Secondary Insult' — a patient is NOT a type of insult → REMOVE
+  • 'Monitoring Data ⊑ Patient' — data is NOT a type of patient → REMOVE
+  • 'Therapy ⊑ Laboratory Values' — therapy is NOT a lab value → REMOVE
+  Test: 'Is every X a kind of Y?' If the answer is obviously NO, remove it.
+- **Clear inversions** (CORRECT, do not remove): child and parent are swapped.
+  Examples:
+  • 'Brain Injury ⊑ Traumatic Brain Injury' → CORRECT to 'TBI ⊑ Brain Injury'
+  • 'Condition ⊑ Traumatic Brain Injury' → CORRECT to 'TBI ⊑ Condition'
+  Test: 'Is every X a kind of Y, or is it the other way around?'
+- Do NOT remove hierarchy edges just because the grouping seems unusual —
+  ontologies often have domain-specific groupings.
+
+### RELATION REVIEW
+Only flag relations where BOTH endpoints are clearly non-clinical:
+- If the domain OR range is a valid clinical concept, KEEP the relation.
+- Do NOT remove relations just because the label is imprecise.
+
+### CHAIN-OF-THOUGHT
+For each item you flag, reason step by step:
+1. What does this concept refer to in the source text?
+2. Is it clearly non-clinical (governance/infrastructure/economic/publishing)?
+3. Could it have ANY clinical interpretation? If yes → KEEP.
+4. Decision: REMOVE or CORRECT (only if highly confident)
+
+### OUTPUT FORMAT
+Return ONLY a JSON object (no markdown fences) with these keys:
+```
+{
+  "classes_to_remove": [
+    {"label": "...", "reason": "..."}
+  ],
+  "relations_to_remove": [
+    {"label": "...", "domain": "...", "range": "...", "reason": "..."}
+  ],
+  "hierarchy_to_remove": [
+    {"subClass": "...", "superClass": "...", "reason": "..."}
+  ],
+  "hierarchy_corrections": [
+    {"old_sub": "...", "old_super": "...", "new_sub": "...", "new_super": "...", "reason": "..."}
+  ]
+}
+```
+If everything is correct (or you are not confident enough to remove anything),
+return empty arrays for each key. It is perfectly fine to return all empty arrays.
+Do NOT wrap the JSON in markdown code fences.
+
+### SOURCE TEXT (first 6000 chars for context)
+Summary
+
+Introduction. An open collaborative international network has been
+established which aims to improve inter-centre standards for collection
+of high-resolution, neurointensive care data on patients with traumatic
+brain injury. The group is also working towards the creation of an open
+meetings funded by the EEC that allowed us to define a ''Core Dataset''
+and we present the results of a feasibility exercise for collection of this
+core dataset.
+Methods. Four group meetings funded by the EEC have enabled
+definition of a ''Core Dataset'' to be collected from all centres regardless
+of specific project aim. A paper based pilot collection of data was
+conducted to determine the feasibility for collection of the core dataset.
+Specially designed forms to collect the core dataset demographic and
+clinical information as well as sample the time-series data elements were
+distributed by both email and standard mail to 22 BrainIT centres. A
+deadline of two months was set to receive completed forms back from
+monitoring data was also performed.
+Findings. A core-dataset was defined and can be downloaded from the
+BrainIT web-site (go to ''Core dataset'' link at: www.brainit.org).
+Eighteen centres (82%) returned completed forms by the set deadline.
+Overall the feasibility for collection of the core data elements was high
+with only 10 of the 64 questions (16%) showing missing data. Of those
+has been designed and is being tested. Software tools for collection of
+study.
+higher resolution data collection mechanism for research groups, organisations and the device industry to conduct multi-centre trials of new
+health care technology in patients with traumatic brain injury.
+
+Head injury has devastating economic and social consequences both to the victim and to the society that supports the victim [1]. The incidence of serious head injury
+is estimated at 1500 per 100,000 population per annum.
+On a European dimension this translates into over a
+million hospital admissions with a head injury per year.
+Head injury is a leading cause of death in young males
+and survivors have serious and long term morbidity. The
+loss of employment to the victim and the stress and
+increased burden of care to family members have significant social and economic effects upon Europe.
+When assessing head injured patients' outcome from
+new therapies or the application of new monitoring
+devices, a large number of patients are required [23].
+Recruiting patients from multiple centres will significantly
+reduce the time to assess new therapy and monitoring.
+However, despite the existence of guidelines for the management of severely head injured patients [3, 9, 13, 18, 24]
+this group of patients is subject to considerable variability
+in care [8, 11, 17]. As a first step towards improving management standards in this population, both the inter and
+intra-centre variability in the management and treatment of
+these patients needs to be assessed on a multi-national
+basis, and to do so requires a more standardised and higher
+resolution methodology for acquiring patient management
+and monitoring information.
+One consequence of the variability in management
+that probably exists both across and within centres that
+manage patients with TBI (traumatic brain injury), is its
+confounding influence upon trials of therapy. There have
+
+Keywords: Head injury; multi-centre network; health technology
+assessment.
+
+been in the last few years several multi-centre clinical
+trials of potential neuroprotective drugs targeted at
+patients with brain trauma. However, despite promising
+pre-clinical results, all have failed to show efficacy in the
+head-injured population. A number of reasons have been
+proposed for these failures which include: poor study
+design, insufficient dose of drug penetrating the blood
+brain barrier and inter-species differences in brain injury
+mechanisms.
+Another possibility, not as yet systematically examined, is the occurrence of secondary insults which are
+missed through use of inappropriate monitoring methods. Even in large scale randomised trials, an efficient
+stratification design cannot be made without a knowledge of the incidence of relevant confounding factors.
+Improving the standards and resolution for multicentre data collection will also impact upon the assessment of new medical technology of relevance to the
+medical device industry. The majority of companies that
+develop or support devices used to monitor brain injured
+device companies lack the resources to independently
+assess their devices in multi-centre studies. This severely
+limits the provision of quality evidence demonstrating
+the clinical utility of their products.
+What is required is an open, collaborative network of
+centres interested in developing higher resolution and
+more standardised methods for collection of monitoring
+and management data from patients with traumatic brain
+injury. Such an infrastructure will provide a more efficient means for assessing new and developing health
+care technology, whether it is new drugs, management
+approaches or new monitoring devices.
+The idea for the Brain Monitoring with Information
+Technology (BrainIT) group came from discussions arising during the 10th International Symposium on Raised
+Intracranial Pressure and Neuromonitoring in Brain
+Injury held in Williamsburg, USA in May 1997. A few
+participants at this meeting, with a specific interest in
+neuro-monitoring, agreed that a more open and collaborative approach to the assessment of new monitoring
+technology would be a more efficient approach then
+continuing our current practice of conducting small
+scale, single centre studies.
+Collection of minute-by-minute physiological monitoring is now common in many neuro-intensive care
+
+I. Piper et al.
+
+units. However, there are no agreed standards for
+defining the collection, summary and analysis of monitoring data, particularly pertaining to data collected
+from head injured patients. Cerebral perfusion pressure
+(CPP 1/4 BP-ICP) monitoring is a
+
+### CLASSES
+  - Outcome  [evidence: assessing head injured patients' outcome from new therapies]
+  - Secondary Insult  [evidence: occurrence of secondary insults which are missed through use of inappropriate monitoring methods]
+  - Cerebral Perfusion Pressure (CPP)  [evidence: to treat reduced cerebral perfusion pressure (CPP) secondary to raised ICP]
+  - Intensive Care Management  [evidence: Intensive care management information]
+  - Secondary Insult Treatment  [evidence: Secondary insult treatment information]
+  - Intracranial Pressure (ICP)  [evidence: intracranial pressure monitoring]
+  - Mean Arterial Pressure (MAP)  [evidence: arterial blood pressure (BP)]
+  - Patient  [evidence: patients with traumatic brain injury]
+  - Ventilation  [evidence: patient was on ventilation from 22:40 to end of the time period]
+  - CVP  [evidence: central venous pressure (CVP) monitoring]
+  - Heart Rate  [evidence: Heart Rate (specifying source: ECG or Pulse Oximetry)]
+  - Respiration Rate  [evidence: Respiration Rate (sources: impedance plethmography or ventilator)]
+  - SaO2  [evidence: Pulse Oximetry (SaO2)]
+  - Temperature  [evidence: Temperature (sources: rectal=oesophageal= bladder=skin.)]
+  - Brain Temperature  [evidence: Brain Temperature]
+  - Microdialysis  [evidence: Microdialysis]
+  - Sedation  [evidence: sedation levels]
+  - Vasopressors  [evidence: use of vasopressors]
+  - Laboratory Values  [evidence: daily laboratory values]
+  - Blood Gases  [evidence: Routine blood gases]
+  - Biochemistry  [evidence: Biochemistry (Na, K þ , Glucose)]
+  - Haematology  [evidence: Haematology (Haemaglobin, White Cell Count, Haematocrit)]
+  - Systemic Hypotension  [evidence: to treat systemic hypotension]
+  - Monitoring Data  [evidence: minute by minute bedside monitoring data]
+  - Intracranial Hypertension  [evidence: secondary insults such as intracranial hypertension]
+  - Acute Respiratory Distress Syndrome  [evidence: increased the incidence of acute respiratory distress syndrome]
+  - Therapy  [evidence: trials of new pharmacological therapy]
+  - Hypotension  [evidence: hypotension on outcome in patients with severe head trauma]
+  - Core Monitoring Parameter  [evidence: Intermediate category introduced by Chain-of-Layer taxonomy construction]
+  - Optional Monitoring Parameter  [evidence: Intermediate category introduced by Chain-of-Layer taxonomy construction]
+  - Baseline Therapy  [evidence: Intermediate category introduced by Chain-of-Layer taxonomy construction]
+  - Condition  [evidence: Intermediate category introduced by Chain-of-Layer taxonomy construction]
+  - Demographic Data  [evidence: demographic and clinical information]
+  - Session  [evidence: continuous monitoring session]
+  - Timepoint  [evidence: minute-by-minute monitoring]
+  - EtCO2  [evidence: EtCO2]
+  - SjO2  [evidence: SjO2]
+  - TCD  [evidence: TCD]
+  - PbrO2  [evidence: PbrO2]
+  - Peripheral Temperature  [evidence: skin temperature]
+  - Cardiac Output  [evidence: cardiac output]
+  - NIBP  [evidence: arterial blood pressure (BP)]
+  - Pressure Reactivity Index (PRx)  [evidence: pressure reactivity]
+  - Secondary Insult Therapy  [evidence: secondary insult therapy]
+  - Fluids  [evidence: fluid input and output]
+  - Nutrition  [evidence: nutrition]
+  - Antibiotics  [evidence: antibiotics]
+  - Analgesia  [evidence: sedated]
+  - Paralysis  [evidence: sedated]
+  - Hypothermia Therapy  [evidence: hypothermia]
+  - Noradrenaline  [evidence: vasopressors]
+  - Adrenaline  [evidence: vasopressors]
+  - Arterial Pressors  [evidence: arterial pressors]
+  - Osmotics  [evidence: osmotic agents]
+  - Barbiturates  [evidence: sedated]
+  - Steroids  [evidence: corticosteroid therapy]
+  - Surgical Procedure  [evidence: surgical evacuation]
+  - ICP Sensor Placement  [evidence: ICP monitoring sensor]
+  - Evacuation of Mass Lesion  [evidence: surgical evacuation]
+  - Skull Fracture Elevation  [evidence: surgical elevation]
+  - Extra Ventricular Drain Placement  [evidence: ventricular drain]
+  - Decompressive Craniectomy  [evidence: decompressive craniectomy]
+  - Removal of Foreign Body  [evidence: removal of intracranial foreign body]
+  - Anterior Fossa Repair  [evidence: anterior fossa repair]
+  - Arterial Hypotension  [evidence: arterial hypotension]
+  - Jugular Venous Desaturation  [evidence: jugular venous desaturations]
+  - Hypertension  [evidence: elevated blood pressure]
+  - Sepsis  [evidence: systemic infection]
+  - Clinical Assessment  [evidence: clinical evaluation]
+  - GCS Assessment  [evidence: GCS scores]
+  - Pupil Assessment  [evidence: pupil size and responsiveness]
+  - CT Scan Assessment  [evidence: CT-Scan information]
+  - GOSe Outcome  [evidence: Glasgow Outcome Scale]
+  - Sodium  [evidence: Na]
+  - Potassium  [evidence: K+]
+  - Glucose  [evidence: Glucose]
+  - Haemoglobin  [evidence: Haemoglobin]
+  - White Blood Cell Count  [evidence: White cell count]
+  - Haematocrit  [evidence: Haematocrit]
+  - Nursing Intervention  [evidence: nursing care]
+  - Routine Nursing Care  [evidence: routine nursing]
+  - Physiotherapy  [evidence: physiotherapy]
+  - Bedside Intervention  [evidence: bedside interventions]
+  - Patient Transport  [evidence: patient transport]
+  - Observation  [evidence: minute-by-minute monitoring]
+  - Parameter  [evidence: physiological parameters]
+  - Sensor  [evidence: sensor used to record]
+  - Data Quality Assessment  [evidence: data quality]
+  - Possible Error  [evidence: possible error]
+  - Probable Error  [evidence: probable error]
+  - Anti-pyretics  [evidence: Implicit: referenced as relation/hierarchy endpoint.]
+  - Derived Parameter  [evidence: Implicit: referenced as relation/hierarchy endpoint.]
+  - Anti-hypertensives  [evidence: Implicit: referenced as relation/hierarchy endpoint.]
+
+### RELATIONS
+  - targets condition(Therapy → Condition)  [evidence: the occurrence of secondary insults which are missed through use of inappropriate monitoring methods.]
+  - receives therapy(Patient → Therapy)  [evidence: patient was on ventilation from 22:40 to end of the time period]
+  - has monitoring data(Patient → Monitoring Data)  [evidence: minute by minute monitoring data required for inclusion in the BrainIT Database]
+  - has laboratory value(Patient → Laboratory Values)  [evidence: daily laboratory values will also be recorded]
+  - has demographic data(Patient → Demographic Data)  [evidence: core dataset demographic and clinical information]
+  - monitoring indicates condition(Monitoring Data → Condition)  [evidence: Measuring the burden of secondary insults in head injured patients during intensive care]
+  - receives therapy(Patient → Secondary Insult Treatment)  [evidence: the occurrence of secondary insults which are missed through use of inappropriate monitoring methods]
+  - is managed by(Patient → Intensive Care Management)  [evidence: improving management standards in this population]
+  - has monitoring data(Monitoring Data → Observation)  [evidence: Cerebral perfusion pressure (CPP 1/4 BP-ICP) monitoring is a good example.]
+  - has quality assessment(Monitoring Data → Data Quality Assessment)  [evidence: Development of standards and guidelines in this area is an important step for the future design and conduct of trials of new intensive care monitoring and treatment methods.]
+  - has timepoint(Session → Timepoint)  [evidence: A project-by-project based collection of data, where members voluntarily donate their time and effort towards collection of data for specific projects.]
+  - produced by sensor(Observation → Sensor)  [evidence: Collection of minute-by-minute physiological monitoring is now common in many neuro-intensive care units.]
+  - measures parameter(Observation → Parameter)  [evidence: However, there are no agreed standards for defining the collection, summary and analysis of monitoring data, particularly pertaining to data collected from head injured patients.]
+
+### HIERARCHY (subclass ⊑ superclass)
+  - Heart Rate ⊑ Core Monitoring Parameter  [evidence: include: Heart Rate]
+  - Respiration Rate ⊑ Core Monitoring Parameter  [evidence: include: Respiration Rate]
+  - Mean Arterial Pressure (MAP) ⊑ Core Monitoring Parameter  [evidence: include: Mean Arterial Pressure]
+  - SaO2 ⊑ Core Monitoring Parameter  [evidence: include: Pulse Oximetry (SaO2)]
+  - Temperature ⊑ Core Monitoring Parameter  [evidence: include: Temperature]
+  - GCS Assessment ⊑ Clinical Assessment  [evidence: Types of data include: GCS scores]
+  - Ventilation ⊑ Baseline Therapy  [evidence: Types of data include: ventilation settings]
+  - Sedation ⊑ Baseline Therapy  [evidence: Types of data include: sedation levels]
+  - Fluids ⊑ Baseline Therapy  [evidence: Types of data include: fluid input and output]
+  - Nutrition ⊑ Baseline Therapy  [evidence: Types of data include: nutrition]
+  - Vasopressors ⊑ Baseline Therapy  [evidence: Types of data include: use of vasopressors]
+  - Antibiotics ⊑ Baseline Therapy  [evidence: Types of data include: antibiotics]
+  - Intracranial Hypertension ⊑ Secondary Insult  [evidence: As a result, secondary insults such as intracranial hypertension, and arterial hypotension have been found to occur, in head injured patients, more frequently than previously realised with more than 9]
+  - Arterial Hypotension ⊑ Secondary Insult  [evidence: As a result, secondary insults such as intracranial hypertension, and arterial hypotension have been found to occur, in head injured patients, more frequently than previously realised with more than 9]
+  - Systemic Hypotension ⊑ Secondary Insult  [evidence: Structural: Systemic Hypotension is a subclass of Secondary Insult.]
+  - Blood Gases ⊑ Laboratory Values  [evidence: Structural: Blood Gases is a subclass of Laboratory Values.]
+  - Biochemistry ⊑ Laboratory Values  [evidence: Structural: Biochemistry is a subclass of Laboratory Values.]
+  - Haematology ⊑ Laboratory Values  [evidence: Structural: Haematology is a subclass of Laboratory Values.]
+  - Core Monitoring Parameter ⊑ Monitoring Data  [evidence: Chain-of-Layer: Core Monitoring Parameter is organized under Monitoring Data]
+  - Optional Monitoring Parameter ⊑ Monitoring Data  [evidence: Chain-of-Layer: Optional Monitoring Parameter is organized under Monitoring Data]
+  - CVP ⊑ Optional Monitoring Parameter  [evidence: Chain-of-Layer: CVP is organized under Optional Monitoring Parameter]
+  - Intracranial Pressure (ICP) ⊑ Core Monitoring Parameter  [evidence: Chain-of-Layer: ICP is organized under Optional Monitoring Parameter]
+  - Brain Temperature ⊑ Optional Monitoring Parameter  [evidence: Chain-of-Layer: Brain Temperature is organized under Optional Monitoring Parameter]
+  - Baseline Therapy ⊑ Therapy  [evidence: Chain-of-Layer: Baseline Therapy is organized under Therapy]
+  - Acute Respiratory Distress Syndrome ⊑ Secondary Insult  [evidence: Chain-of-Layer: Acute Respiratory Distress Syndrome is organized under Condition]
+  - Secondary Insult ⊑ Condition  [evidence: Chain-of-Layer: Secondary Insult is organized under Condition]
+  - Hypotension ⊑ Secondary Insult  [evidence: Chain-of-Layer: Hypotension is organized under Secondary Insult]
+  - Microdialysis ⊑ Optional Monitoring Parameter  [evidence: Structural: Microdialysis is a subclass of Optional Monitoring Parameter.]
+  - Anti-pyretics ⊑ Baseline Therapy  [evidence: baseline medical management]
+  - TCD ⊑ Optional Monitoring Parameter  [evidence: TCD]
+  - Haematocrit ⊑ Haematology  [evidence: Haematology]
+  - Cerebral Perfusion Pressure (CPP) ⊑ Core Monitoring Parameter  [evidence: Cerebral perfusion pressure (CPP 1/4 BP-ICP)]
+  - Hypothermia Therapy ⊑ Baseline Therapy  [evidence: hypothermia]
+  - Glucose ⊑ Biochemistry  [evidence: Biochemistry]
+  - CT Scan Assessment ⊑ Clinical Assessment  [evidence: CT-Scan information]
+  - Pressure Reactivity Index (PRx) ⊑ Derived Parameter  [evidence: pressure reactivity]
+  - Secondary Insult Therapy ⊑ Therapy  [evidence: secondary insult therapy]
+  - PbrO2 ⊑ Optional Monitoring Parameter  [evidence: PbrO2]
+  - SjO2 ⊑ Optional Monitoring Parameter  [evidence: SjO2]
+  - Paralysis ⊑ Baseline Therapy  [evidence: sedated]
+  - Cardiac Output ⊑ Optional Monitoring Parameter  [evidence: cardiac output]
+  - Evacuation of Mass Lesion ⊑ Surgical Procedure  [evidence: surgical evacuation]
+  - Derived Parameter ⊑ Monitoring Data  [evidence: Cerebral perfusion pressure (CPP 1/4 BP-ICP)]
+  - Routine Nursing Care ⊑ Nursing Intervention  [evidence: routine nursing]
+  - Anti-hypertensives ⊑ Baseline Therapy  [evidence: vasopressors]
+  - ICP Sensor Placement ⊑ Surgical Procedure  [evidence: ICP monitoring sensor]
+  - White Blood Cell Count ⊑ Haematology  [evidence: White cell count]
+  - Patient Transport ⊑ Nursing Intervention  [evidence: patient transport]
+  - Decompressive Craniectomy ⊑ Surgical Procedure  [evidence: decompressive craniectomy]
+  - Osmotics ⊑ Secondary Insult Therapy  [evidence: osmotic agents]
+  - Hypertension ⊑ Condition  [evidence: elevated blood pressure]
+  - Possible Error ⊑ Data Quality Assessment  [evidence: possible error]
+  - Peripheral Temperature ⊑ Optional Monitoring Parameter  [evidence: skin temperature]
+  - Noradrenaline ⊑ Vasopressors  [evidence: vasopressors]
+  - Pupil Assessment ⊑ Clinical Assessment  [evidence: pupil size and responsiveness]
+  - Physiotherapy ⊑ Nursing Intervention  [evidence: physiotherapy]
+  - Probable Error ⊑ Data Quality Assessment  [evidence: probable error]
+  - Bedside Intervention ⊑ Nursing Intervention  [evidence: bedside interventions]
+  - NIBP ⊑ Optional Monitoring Parameter  [evidence: arterial blood pressure (BP)]
+  - Arterial Pressors ⊑ Secondary Insult Therapy  [evidence: arterial pressors]
+  - Jugular Venous Desaturation ⊑ Secondary Insult  [evidence: jugular venous desaturations]
+  - Hypotension ⊑ Condition  [evidence: arterial hypotension]
+  - Anterior Fossa Repair ⊑ Surgical Procedure  [evidence: anterior fossa repair]
+  - Adrenaline ⊑ Vasopressors  [evidence: vasopressors]
+  - EtCO2 ⊑ Optional Monitoring Parameter  [evidence: EtCO2]
+  - Removal of Foreign Body ⊑ Surgical Procedure  [evidence: removal of intracranial foreign body]
+  - Potassium ⊑ Biochemistry  [evidence: K+]
+  - Barbiturates ⊑ Secondary Insult Therapy  [evidence: sedated]
+  - Extra Ventricular Drain Placement ⊑ Surgical Procedure  [evidence: ventricular drain]
+  - GOSe Outcome ⊑ Outcome  [evidence: Glasgow Outcome Scale]
+  - Sepsis ⊑ Condition  [evidence: systemic infection]
+  - Skull Fracture Elevation ⊑ Surgical Procedure  [evidence: surgical elevation]
+  - Sodium ⊑ Biochemistry  [evidence: Na]
+  - Haemoglobin ⊑ Haematology  [evidence: Haemoglobin]
+  - Analgesia ⊑ Baseline Therapy  [evidence: sedated]
+  - Steroids ⊑ Secondary Insult Therapy  [evidence: corticosteroid therapy]
+  - Parameter ⊑ Core Monitoring Parameter  [evidence: A core-dataset was defined and can be downloaded from the BrainIT web-site.]

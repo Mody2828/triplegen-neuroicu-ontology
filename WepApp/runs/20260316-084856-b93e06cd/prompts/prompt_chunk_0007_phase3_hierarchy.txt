@@ -1,0 +1,383 @@
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing the EXACT, verbatim sentence fragment from the text.
+
+3. **Extraction Scope:** Extract clinical and biomedical content: conditions, physiological parameters, monitoring variables, treatments/therapies/interventions, outcomes, assessments, laboratory values, nursing interventions, surgical procedures, and clinical dataset categories when explicitly named.
+   Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+   If a sentence or paragraph is mainly about these excluded topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+6. **Label Mapping Rule:** If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+   Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+   For other abbreviations, expand to their full clinical name as used in the text.
+
+7. **Structural Completeness Rule:** When the text mentions specific clinical items, also extract their general category if the text supports it.
+   For example, if the text discusses 'ventilation, sedation, fluids' as therapies, also extract the general class 'Therapy' or 'Baseline Therapy' if the text uses that grouping.
+   Use the text's own categories and groupings — do not impose an external hierarchy.
+
+**Default priority: classes first, then relations.** Extract relations when the text clearly states a connection between two concepts — both domain and range must be extracted classes. If a phase instruction below overrides this priority, follow the phase instruction.
+
+**Completeness:** Extract every distinct clinical concept the text names — err on the side of inclusion when evidence exists.
+
+### CURRENT TASK: Phase 3 — HIERARCHY EXTRACTION
+Extract subclass/superclass (is-a) edges supported by the text. A hierarchy edge means one class is a TYPE, SUBTYPE, CATEGORY MEMBER, or SPECIFIC INSTANCE of another. Extract every edge the text explicitly supports with evidence.
+
+### HIERARCHY DETECTION METHOD
+Look for ALL of these patterns in the text:
+  1. Explicit cues: 'such as', 'is a', 'type of', 'kind of', 'form of'
+  2. Enumeration: 'include:', 'includes:', 'consists of', 'comprises'
+  3. Category grouping: 'categorized as', 'classified as', 'grouped into'
+  4. List patterns: items listed under a heading or category name
+  5. Implicit grouping: when several specific items are mentioned alongside a general category (e.g., 'therapy: ventilation, sedation' implies both are subclasses of Therapy; 'core parameters: HR, ICP, MAP' implies all three are subclasses of Core Monitoring Parameter)
+  6. Definitional: 'X is a Y', 'X, a type of Y', 'X (a form of Y)'
+  7. Context-based: if the text organises items into sections or tables, each section heading implies a parent class for the items listed under it
+  8. Medical knowledge: TBI is a type of Brain Injury, Hypotension is a type of Secondary Insult — extract these when the text discusses them together
+
+For enumeration patterns (e.g. 'include: X, Y, Z'), extract EACH listed item as a subclass of the parent category.
+
+### CHAIN-OF-THOUGHT
+For each pair of known classes, reason:
+1. Does the text describe one class as a specialization of another?
+2. Does the text list one class under another as a member/subtype?
+3. Even if not explicitly stated, does medical context clearly imply a parent-child relationship?
+4. What text evidence supports this parent-child link?
+
+Be thorough: extract every parent-child relationship the text supports. Aim for at least one hierarchy edge per class if possible.
+Use ONLY the known classes below for subClass and superClass labels.
+
+### SELF-CHECK (before finalising output)
+- Are there any circular edges (A subClassOf B AND B subClassOf A)? Remove them.
+- Are subClass and superClass labels from the known-classes list?
+- Does every evidence field contain a verbatim quote from the text?
+
+Output JSON with keys classes, relations, hierarchy. Set classes and relations to empty arrays.
+
+Known classes (use only these for subclass/superclass): Hypotensive Event; Acute Hypotensive Episode; Peripheral Arterial Blood Pressure Waveform; Neural Network; Patient; Data
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+**REASONING STEP:** Before producing JSON, mentally scan the text for: (1) every named clinical concept, (2) explicit relations between them, (3) hierarchy cues (such as, is a, type of, include:). Then output only items with verbatim evidence.
+
+---
+--- Retrieved examples (3) ---
+
+Text: This is the minimum minute by minute monitoring data required for inclusion in the BrainIT Database and include: Heart Rate, Respiration Rate, Mean Arterial Pressure, mean ICP, SaO2 and Temperature.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Monitoring Data",
+      "evidence": "minute by minute monitoring data"
+    },
+    {
+      "label": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required"
+    },
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate"
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate"
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "Mean Arterial Pressure"
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "mean ICP"
+    },
+    {
+      "label": "SaO2",
+      "evidence": "SaO2"
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature"
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Heart Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required...include: Heart Rate"
+    },
+    {
+      "subClass": "Respiration Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Heart Rate, Respiration Rate"
+    },
+    {
+      "subClass": "Mean Arterial Pressure (MAP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Mean Arterial Pressure"
+    },
+    {
+      "subClass": "Intracranial Pressure (ICP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: mean ICP"
+    },
+    {
+      "subClass": "SaO2",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: SaO2"
+    },
+    {
+      "subClass": "Temperature",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Temperature"
+    }
+  ]
+}
+
+---
+
+Text: Secondary insults such as intracranial hypertension, systemic hypotension, arterial hypotension, jugular venous desaturation, and acute respiratory distress syndrome (ARDS) occur frequently in head injured patients despite baseline intensive care management.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Condition",
+      "evidence": "secondary insults which occur to patients"
+    },
+    {
+      "label": "Secondary Insult",
+      "evidence": "Secondary insults such as intracranial hypertension"
+    },
+    {
+      "label": "Intracranial Hypertension",
+      "evidence": "intracranial hypertension"
+    },
+    {
+      "label": "Systemic Hypotension",
+      "evidence": "systemic hypotension"
+    },
+    {
+      "label": "Arterial Hypotension",
+      "evidence": "arterial hypotension"
+    },
+    {
+      "label": "Jugular Venous Desaturation",
+      "evidence": "jugular venous desaturation"
+    },
+    {
+      "label": "Acute Respiratory Distress Syndrome",
+      "evidence": "acute respiratory distress syndrome (ARDS)"
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Secondary Insult",
+      "superClass": "Condition",
+      "evidence": "Secondary insults such as intracranial hypertension...occur frequently in head injured patients"
+    },
+    {
+      "subClass": "Intracranial Hypertension",
+      "superClass": "Secondary Insult",
+      "evidence": "Secondary insults such as intracranial hypertension"
+    },
+    {
+      "subClass": "Systemic Hypotension",
+      "superClass": "Secondary Insult",
+      "evidence": "Secondary insults such as intracranial hypertension, systemic hypotension"
+    },
+    {
+      "subClass": "Arterial Hypotension",
+      "superClass": "Secondary Insult",
+      "evidence": "Secondary insults such as arterial hypotension"
+    },
+    {
+      "subClass": "Jugular Venous Desaturation",
+      "superClass": "Secondary Insult",
+      "evidence": "Secondary insults such as jugular venous desaturation"
+    },
+    {
+      "subClass": "Acute Respiratory Distress Syndrome",
+      "superClass": "Secondary Insult",
+      "evidence": "Secondary insults such as acute respiratory distress syndrome (ARDS)"
+    }
+  ]
+}
+
+---
+
+Text: Blood pressure monitoring includes both systolic (BPs) and mean (BPm) arterial pressure as core monitoring parameters. Hypotensive events, defined by EUSIG criteria, are a specific type of secondary insult. The EUSIG grading system is a clinical assessment tool for classifying insult severity.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Systolic Blood Pressure (SBP)",
+      "evidence": "systolic (BPs)"
+    },
+    {
+      "label": "Diastolic Blood Pressure (DBP)",
+      "evidence": "arterial pressure"
+    },
+    {
+      "label": "Hypotensive Event",
+      "evidence": "Hypotensive events"
+    },
+    {
+      "label": "EUSIG Grade",
+      "evidence": "EUSIG grading system"
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Systolic Blood Pressure (SBP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "systolic (BPs) arterial pressure as core monitoring parameters"
+    },
+    {
+      "subClass": "Diastolic Blood Pressure (DBP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "arterial pressure as core monitoring parameters"
+    },
+    {
+      "subClass": "Hypotensive Event",
+      "superClass": "Secondary Insult",
+      "evidence": "Hypotensive events are a specific type of secondary insult"
+    },
+    {
+      "subClass": "EUSIG Grade",
+      "superClass": "Clinical Assessment",
+      "evidence": "EUSIG grading system is a clinical assessment tool"
+    }
+  ]
+}
+
+---
+TEXT TO ANALYZE:
+nhs.uk; Professor Ian Whittle, Department of Clinical Neurosciences,
+Western General Infirmary, Crewe Road, Edinburgh, UK. Phone: +44 Appendix
+131 537 2103, Fax: +44 131 537 2561, Email: irw@skul.dcn.ed.ac. uk; Professor David Wyper, Department of Clinical Physics, Institute
+of Neurological Sciences, Southern General Hospital, 1345 Govan See Table 2. Road, Glasgow G51 4TF, UK. Phone: +44 (0) 141 201 2105, Fax:
++44 (0) 141 201 4127, Email: Gpca12@udcf.gla.ac.uk; Dr Michael
+
+Journal of Clinical Monitoring and Computing (2019) 33:39-51 49
+
+There are 33 runs in the table, 6 above 40% sensitivity and 13 above 30% sensitivity. The two groups inves-
+tigated the most were 30_15 and 25_10. The first digit indicates the maximum start point for a sub-window
+and the second digit gives the minimum start window and is therefore an indication of the prediction win-
+dow. For example the 30_15 group is using data which starts at 15 min before an event in the training/test
+database but also uses a sub-window that starts at 30 min before an event. In order to determine the actual
+amount of data that is required before a prediction could begin using this model you also have to consider
+the sub-window size which is defined in the input vector definition file. In the case of this model the sub-
+window size is 15 min, therefore 45 min of data are required (15 + 30)
+
+References 3. Marmarou A, Anderson RL, Ward JD, et al. Impact of ICP insta-
+bility and hypotension on outcome in patients with severe head
+trauma. J Neurosurg. 1991;75:S59-66.
+1. American College of Surgeons. Advanced trauma life support.
+4. BrainIT Consortium. BrainIT. 2007.
+2011.
+5. BrainIT. Brain-it core dataset, manual of operations, data element
+2. Jones P, Andrews P, Midgley S, Anderson S, Piper I, Tocher J,
+definitions. 2009.
+Housley A, Corrie J, Slattery J, Dearden M, Douglas Miller J.
+6. Piper I, Chambers I, Citerio G, Enblad P, Gregson B, Howells T,
+Measuring the burden of secondary insults in head-injured patients
+Kiening K, Mattern J, Nilsson P, Ragauskas A, Sahuquillo J, Don-
+during intensive care. J Neurosurg Anesthesiol. 1994;6:4-14.
+ald R, Sinnott R, Stell A. The brain monitoring with information
+
+50 Journal of Clinical Monitoring and Computing (2019) 33:39-51
+
+technology (BrainIT) collaborative network: EC feasibility study 22. Chen X, Xu D, Zhang G, Mukkamala R. Forecasting acute hypo-
+results and future direction. Acta Neurochir. 2010;152(11):1859- tensive episodes in intensive care patients based on a peripheral
+71. https://doi.org/10.1007/s00701-010-0719-1. arterial blood pressure waveform. Comput Cardiol. 2009;36:545-8.
+8. Funahashi K. On the approximate realization of continuous map- the prediction of acute hypotensive episodes. Comput Cardiol.
+pings by neural networks. Neural Networks. 1989;2(3):183-192. 2009;36:557-60.
+9. Bishop CM. Neural networks for pattern recognition. Oxford Uni- 24. Gabutti L, Vadilonga D, Mombelli G, Burnier M, Marone C.
+versity Press; 1995. Artificial neural networks improve the prediction of kt/v, follow10. Ripley BR. Pattern recognition and neural networks. Cambridge up dietary protein intake and hypotension risk in haemodialysis
+University Press; 1996. patients. Nephrol Dial Transplant. 2004;19:1204-11.
+11. MacKay DJC. Probable networks and plausible predictions-a 25. Reich DL, Hossain S, Krol M, Baez B, Patel P, Bernstein A,
+review of practical bayesian methods for supervised neural net- Bodian CA. Predictors of hypotension after induction of general
+works. Network. 1995;6:469-505. anesthesia. Anesth Analg. 2005;101(3):622-8.
+12. Neal RM. Bayesian learning for neural networks. Springer, Lec- 26. Lehman L, Saeed M, Moody G, Mark R. Similarity-based search-
+ture Notes in Statistics. 1996. ing in multi-parameter time series databases. Comput Cardiol.
+13. Stell A, Sinnott R, Jiang J, Donald R, Chambers I, Citerio G, 2008;35:653-6.
+Enblad P, Gregson B, Howells T, Kiening K, Nilsson P, Ragauskas 27. Dasta JF, McLaughlin TP, Mody SH, Piech CT. Daily cost of an
+A, Sahuquillo J, Piper I. Federating distributed clinical data for intensive care unit day: the contribution of mechanical ventilation.
+the prediction of adverse hypotensive events. Philos Trans R Soc. Crit Care Med. 2005;33(6):1266-71.
+2009;367(1898):2679-90. 28. Donald R, Howells T, Piper I, Chambers I, Citerio G, Enblad P,
+14. Hanfelt JJ, Slack RS, Gehan EA. A modification of simon's opti- Gregson B, Kiening K, Mattern J, Nilsson P, Ragauskas A, Sahu-
+mal design for phase ii trials when the criterion is median sample quillo J, Sinnott R, Stell A. Trigger characteristics of EUSIG-
+size. Control Clin Trials. 1999;20:555-66. defined hypotensive events. Acta Neurochir Suppl. 2012;114:45 - 9.
+15. Simon R. Optimal two-stage designs for phase ii clinical trials. 29. Williams CKI, Georgatzis K, Hawthorne C, McMonagle P, Piper
+Control Clin Trials. 10:1-10, 1989. I, Shaw M, Lal P. Detecting artifactual events in vital signs moni16. Crawley M. The R book (Second Edition). New York: Wiley; 2012. toring data. In: Clifton DA, editor. Machine learning for health17. Kumar A, Roberts D, Wood KE, Light B, Parrillo JE, Sharma S, care technologies; 2016. http://homepa ges.inf.ed.ac.uk/ckiw/proje
+Suppes R, Feinstein D, Zanotti S, Taiberg L, Gurka D, Kumar A, cts/adult_icu/CSOreport230915.pdf.
+Cheang M. Duration of hypotension before initiation of effective 30. Ghassemi M, Celi L,A, Stone J. State of the art review: the data
+antimicrobial therapy is the critical determinant of survival in revolution in critical care. Crit Care. 2015;19:118.
+human septic shock. Crit Care Med. 2006;34(6):1589-96. 31. IBM InfoSphere, Big Data Help Toronto Hospital Monitor Pre18. Bijker JB, vanKlei WA, Vergouwe Y, .Eleveld DJ, van Wolfswin- mature Infants. http://www.eweek.com/enterprise-apps/ibm-infos
+kel L, Moons KGM, Kalkman CJ. Intraoperative hypotension phere-big-data-help-toronto-hospital-monitor-premature-infants.
+and 1-year mortality after noncardiac surgery. Anesthesiology. 32. Docherty AB, Lone NI. Exploiting big data for critical care
+2009;111(6):1217-26. research. Curr Opin Crit Care. 2015;21(5):467-72.
+19. Smiley R. Fast fourier transforms as prophecy: predict- 33. Celi LA, Mark RG, Stone DJ, Montgomery RA. "Big Data" in the
+ing hypotension during spinal anes-thesia. Anesthesiology. intensive care unit. Closing the data loop. Am J Respir Crit Care
+2005;102(6):1079-80. Med. 2013;187(11):1157-60.
+20. Moody GB, Lehman LH. Predicting acute hypotensive episodes: 34. Figini S, Maggi M. Performance of credit risk prediction models
+the10th annual physionet/computers in cardiology challenge. via proper loss functions. Technical report, Universita di Pavia,
+Comput Cardiol. 2009;36:541-4. Department of Economics and Management, 2014.
+21. Henriques JH, Rocha TR. Prediction of acute hypotensive epi- 35. Hand D. Assessing the performance of classification meth-
+sodes using neural network multi-models. Comput Cardiol. ods. Int Stat Rev. 2012;80(3):400-14. https://doi.org/10.111
+2009;36:549-52. 1/j.1751-5823.2012.00183.x.
+
+Rob Donald1 · Tim Howells2 · Ian Piper3 · P. Enblad4 · P. Nilsson4 · I. Chambers5 · B. Gregson6 · G. Citerio7 ·
+Rob Donald Department of Medical Physics, James Cook University
+rob@statsresearch.co.uk Hospital, Middlesbrough, UK
+1 Neurosurgical Trials Group, Newcastle University,
+Stats Research Ltd, Dingwall, Scotland, UK
+Newcastle upon Tyne, UK
+Department of Neurosurgery, Uppsala University Hospital, 7
+Hospital San Gerardo, Neurorianimazione, Monza, Italy
+Uppsala, Sweden
+3 Department of Neurosurgery, Ruprecht-Karls-Universitat
+Institute of Neurological Sciences, Queen Elizabeth
+Hospital, Heidelberg, Germany
+University Hospital, Clinical Physics, Glasgow, Scotland, UK
+4 Kaunas University of Technology, Kaunas, Lithuania
+Section of Neurosurgery, Uppsala University, Uppsala,
+Sweden
+
+Journal of Clinical Monitoring and Computing (2019) 33:39-51 51
+
+10 12
+Department of Neurosurgery, Vall d'Hebron University Department of Clinical Physics, University of Glasgow,
+Hospital, Barcelona, Spain Glasgow, Scotland, UK
+Department of Information Systems, University
+of Melbourne, Parkville, Australia
+---

@@ -1,24 +1,69 @@
 # TripleGen — Application Walkthrough
 
+## How to run the app
 
-## 1. Home page
+### Prerequisites
 
-When you open the app you'll see two panels side by side.
+- **Python 3.11** (or later)
+- API keys for at least one LLM provider (OpenAI at minimum)
 
-The **left panel** is where you provide the text you want to analyse — you can paste it, upload files, or just use the built-in default paper.
+### Setup
 
-The **right panel** is where you configure the run — pick a prompting method, a pipeline mode, an LLM provider, and a few optional settings.
+```bash
+# Create and activate a virtual environment
+python -m venv .venv
+source .venv/Scripts/activate   # Windows Git Bash
+# .venv\Scripts\activate        # Windows CMD
 
-The navigation bar at the top has three links:
-- **Run experiment** — runs a single configuration (the home page).
-- **Run comparison** — batch mode to compare multiple configurations at once.
-- **High contrast** — accessibility toggle if you prefer a higher-contrast theme.
+# Install dependencies
+pip install -r requirements.txt
+
+# Download the spaCy English model
+python -m spacy download en_core_web_sm
+
+# Set up environment variables
+cp .env.example .env
+# Open .env and fill in your API keys (OPENAI_API_KEY at minimum)
+```
+
+### Start the app
+
+```bash
+python web/app.py
+```
+
+The app opens at **http://127.0.0.1:5000**.
+
+### Browsing existing results
+
+The `runs/` directory contains pre-computed experiment results. When you open the app, all previous runs appear in the results dropdown and on the comparison pages — no API keys are needed just to browse them.
+
+---
+
+## 1. Navigation
+
+The navigation bar has four items:
+
+| Link | What it does |
+|------|-------------|
+| **Run experiment** | Run a single configuration (the home page). |
+| **Controlled experiment** | Fine-grained ablation with 19 individual pipeline toggles. |
+| **Run comparison** | Batch mode to compare multiple configurations at once. |
+| **Contrast** | Accessibility toggle for a higher-contrast theme. |
+
+---
+
+## 2. Home page — Run experiment
+
+When you open the app you see two panels side by side.
+
+The **left panel** is where you provide the text you want to analyse — you can paste it, upload files, or use the built-in default paper.
+
+The **right panel** is where you configure the run — pick a prompting method, a pipeline mode, an LLM provider, and optional settings.
 
 ![Screenshot: Home page overview with left and right panels labelled](screenshots/02_home_overview.png)
 
 ---
-
-## 2. Running a single experiment
 
 ### 2.1 Providing input text
 
@@ -26,46 +71,45 @@ You have three ways to give the system something to work with.
 
 **Option A — Paste text**
 
-Click the **Paste Text** tab, paste or type your clinical text into the box, and optionally give it a title (e.g. "BrainIT 2003 core dataset"). The title just makes the run summary easier to read — otherwise it shows up as `corpus.txt`.
+Click the **Paste Text** tab, paste or type your clinical text into the box, and optionally give it a title (e.g. "BrainIT 2003 core dataset"). The title makes the run summary easier to read — otherwise it shows up as `corpus.txt`.
 
 ![Screenshot: Paste text input with paper title field](screenshots/03a_paste_text.png)
 
 **Option B — Upload files**
 
-Click the **Upload File** tab and drag-and-drop one or more `.txt` or `.pdf` files (up to 10 MB each). If you upload multiple files they're all combined into one corpus and processed together.
+Click the **Upload File** tab and drag-and-drop one or more `.txt` or `.pdf` files (up to 10 MB each). If you upload multiple files they are all combined into one corpus and processed together.
 
 ![Screenshot: File upload with two files selected](screenshots/03b_upload_files.png)
 
 **Option C — Use the default paper**
 
-Turn on the **Use default paper** toggle. The run uses the built-in BrainIT paper, and any text or files you've added are ignored.
+Turn on the **Use default paper** toggle. The run uses the built-in BrainIT paper, and any text or files you have added are ignored.
 
 ---
 
 ### 2.2 Configuring the run
 
-> At the top of the right panel, click **"What do these options do?"** to expand a short glossary. Each option also has a **ⓘ** tooltip if you hover over it.
+> Click **"What do these options do?"** at the top of the right panel to expand a short glossary. Each option also has a **ⓘ** tooltip on hover.
 
 **Prompting method**
 
-This controls how the LLM is guided during extraction. Pick one:
+This controls how the LLM is guided during extraction:
 
 | Strategy | What it does |
 |----------|-------------|
-| **Zero-Shot** | No examples at all — the LLM works purely from the text. This is the baseline. |
-| **One-Shot** | One retrieved example is included per chunk to give the LLM a format to follow. A separate hierarchy step kicks in when the text contains obvious hierarchy cues. |
-| **Few-Shot** | Three dedicated extraction phases, each with its own examples. Phase 1 extracts concepts broadly, Phase 2 picks up relations (and any concepts Phase 1 missed), and Phase 3 extracts hierarchy edges — but only when the text contains cues like "such as", "is a", or "type of". Instructions actively discourage the LLM from just copying the example content. |
+| **Zero-Shot** | No examples — the LLM works purely from the text. This is the baseline. |
+| **One-Shot** | One retrieved example is included per chunk to give the LLM a format to follow. A separate hierarchy step runs when the text contains obvious hierarchy cues. |
+| **Few-Shot** | Three dedicated extraction phases, each with its own examples. Phase 1 extracts concepts broadly, Phase 2 picks up relations (and any concepts Phase 1 missed), and Phase 3 extracts hierarchy edges — but only when the text contains cues like "such as", "is a", or "type of". Instructions actively discourage the LLM from copying the example content. |
 
 **Pipeline mode**
 
-This controls how much post-processing happens after the LLM extracts. Each mode adds a layer on top of the previous one:
+Each mode adds a layer on top of the previous one:
 
 | Mode | What it adds |
 |------|-------------|
-| **1 · Strict** | Filters extracted content by scope and vocabulary before anything else. No extra steps. |
-| **2 · Guided** | Everything in Mode 1, plus medical named-entity recognition and candidate term suggestions fed into the prompt. |
-| **3 · Schema-Completed** | Everything in Mode 2, plus the system compares the generated ontology against the gold schema and fills in any gaps that can be supported by the text. Rule-based reasoning also runs to tidy up the hierarchy. |
-| **4 · Fully Reasoned** | Everything in Mode 3, plus a second LLM pass that proposes and verifies additional hierarchy relationships against the gold schema. |
+| **1 · Strict** | Raw extraction with scope and vocabulary filtering. No extra steps. |
+| **2 · Guided** | Everything in Mode 1, plus medical NER and candidate term suggestions fed into the prompt. |
+| **3 · Schema-Completed** | Everything in Mode 2, plus schema-guided completion (fills in gold-schema items supported by corpus evidence) and rule-based reasoning to tidy the hierarchy. |
 
 **LLM provider**
 
@@ -73,7 +117,8 @@ Pick which model does the extraction:
 
 | Provider | Model |
 |----------|-------|
-| **OpenAI** | GPT-4o-mini |
+| **OpenAI** | GPT-4o-mini (default) |
+| **OpenAI** | GPT-4o |
 | **Anthropic** | Claude Haiku 4.5 |
 | **Google** | Gemini 2.5 Flash |
 | **Groq** | Llama 3.1 8B (free) |
@@ -82,13 +127,11 @@ Pick which model does the extraction:
 
 **Evaluation settings**
 
-The **Gold-vocabulary-only** option filters the generated ontology down to the gold vocabulary before computing precision and recall. It's an evaluation control — it doesn't change what gets extracted, and the full unfiltered output is always saved alongside.
+The **Gold-vocabulary-only** option filters the generated ontology down to the gold vocabulary before computing precision and recall. It is an evaluation control — it does not change what gets extracted, and the full unfiltered output is always saved alongside.
 
 **Advanced / Experimental**
 
-Expand this section if you want to change the reasoning LLM — the model used for schema-guided completion and the LLM reasoning layer in Modes 3 and 4. You can choose between **OpenAI GPT-4o-mini** (the default) and **DeepSeek Reasoner R1** (stronger reasoning, but slower).
-
-If you leave this section alone, GPT-4o-mini handles both extraction and reasoning.
+Expand this section to change the reasoning LLM — the model used for schema-guided completion. Choose between **OpenAI GPT-4o-mini** (default) and **DeepSeek Reasoner R1** (stronger reasoning, slower).
 
 ![Screenshot: Run configuration panel](screenshots/4_run_configuration.png)
 
@@ -96,11 +139,65 @@ If you leave this section alone, GPT-4o-mini handles both extraction and reasoni
 
 ### 2.3 Starting the run
 
-Once you're happy with the settings, click **Run experiment** at the bottom of the left panel. The app takes you straight to the progress page.
+Click **Run experiment** at the bottom of the left panel. The app takes you to the progress page.
 
 ---
 
-## 3. Progress page
+## 3. Controlled experiment page
+
+This page gives full granular control over every pipeline stage. Instead of the three predefined pipeline modes, you get **17 individual pipeline toggles** grouped into three sections:
+
+![Screenshot: Controlled experiment page with pipeline toggles](screenshots/05_controlled_experiment.png)
+
+### 3.1 Input
+
+At the top of the left panel, a **BrainIT Paper** dropdown lets you select any of the 11 built-in BrainIT papers directly. Select a paper and its full text is loaded automatically — no pasting or uploading needed. You can also leave the dropdown blank and paste or upload your own corpus below it.
+
+![Screenshot: BrainIT paper selector dropdown expanded](screenshots/06_paper_selector.png)
+
+### 3.2 Pipeline controls
+
+The right panel exposes every pipeline feature as an independent on/off switch:
+
+**1. Preprocessing (4 toggles)**
+
+| Toggle | What it does |
+|--------|-------------|
+| **Scope Filter** | Remove admin/non-clinical sections at document load time. |
+| **Chunk-level Clinical Filter** | Drop low clinical-density chunks after chunking. |
+| **Clinical-only Routing** | Restrict prompt routing to clinical vocabulary paths. |
+| **Require Label in Evidence** | Only keep extracted classes whose label appears in the evidence text. |
+
+**2. Prompt Injection (5 toggles)**
+
+| Toggle | What it does |
+|--------|-------------|
+| **Vocabulary Guardrails** | Inject gold class/relation labels into every prompt as allowed vocabulary. |
+| **Candidate Terms** | Add linguistics-based candidate noun phrases as optional hints. |
+| **Medical NER Anchoring** | Run ScispaCy BC5CDR NER and inject detected entities as suggested concepts. |
+| **Filter to Gold Vocabulary** | Post-parse filter: only keep classes/relations matching gold schema labels. |
+| **Strict Relations** | Use strict clinical reference relation set instead of core allowed relations. |
+
+**3. Post-Processing (8 toggles)**
+
+| Toggle | What it does |
+|--------|-------------|
+| **Text-Grounded Completion** | Second-pass extraction: LLM reviews full document + current ontology to find missed items. |
+| **Schema-Guided Completion** | LLM fills in gold-schema items that are missing but supported by corpus evidence. |
+| **Symbolic Reasoner** | Deterministic hierarchy completion from gold schema + orphan class pruning. |
+| **Deduplication** | Deduplicate classes, relations, and hierarchy edges. |
+| **Scope / Abstract Pruning** | Remove out-of-scope classes, abstract data labels, and overly broad contextual classes. |
+| **Evidence Pruning** | Drop classes/relations with weak or missing evidence text. |
+| **Structural Validation** | Auto-add missing endpoints, prune dangling hierarchy, validate domain/range. |
+| **Axiom Constraints** | Enforce ontology axiom constraints (disjointness, cardinality, range restrictions). |
+
+Below the toggles are the same **Prompting method**, **LLM provider**, **Evaluation**, and **Advanced** sections as the home page.
+
+This page is designed for ablation studies — toggle individual features on/off to measure their contribution.
+
+---
+
+## 4. Progress page
 
 This page updates in real time while the pipeline runs.
 
@@ -111,30 +208,30 @@ This page updates in real time while the pipeline runs.
 | **Progress bar** | How far through the chunks the pipeline is. |
 | **Progress message** | The current step, e.g. "Processing chunk 3 of 12". |
 | **Live knowledge graph** | A growing visual network of the classes and relations extracted so far. |
-| **Triple stream** | The latest Subject → Predicate → Object extractions shown as pills. |
+| **Triple stream** | The latest Subject, Predicate, Object extractions shown as pills. |
 
-If you want to stop early, click **Cancel**. A confirmation dialog appears, and if you confirm, the run stops and its files are deleted.
+Click **Cancel** to stop early — a confirmation dialog appears, and if you confirm, the run stops and its files are deleted.
 
-When the run finishes, the page automatically redirects you to the Results page.
+When the run finishes, the page automatically redirects to the Results page.
 
 ![Screenshot: Progress page showing a run in progress with the live graph](screenshots/09_progress.png)
 
 ---
 
-## 4. Results page
+## 5. Results page
 
-### 4.1 Evaluation metrics
+### 5.1 Evaluation metrics
 
-The left card shows the full evaluation metrics as a formatted block.
+The left card shows the full evaluation metrics:
 
-| Metric group | What's included |
+| Metric group | What is included |
 |---|---|
 | **Class** | Coverage, precision, recall, hallucinations, schema violations, omissions. |
 | **Structural** | Hierarchy edges, hierarchy coverage, relation domain/range rate. |
 | **Relations** | Precision, recall, counts, and a per-relation breakdown. |
 | **Clinical-only** | The same class metrics but limited to clinical vocabulary. |
 
-Below the metrics is a **per-stage ablation table** — a compact view of how the ontology changed at each pipeline stage:
+Below the metrics is a **per-stage ablation table** showing how the ontology changed at each pipeline stage:
 
 ```
 Stage              Classes  Rels  Hier  Coverage  Precision  Recall
@@ -145,15 +242,13 @@ Extraction              35     8    28    48.61%    100.00%  48.61%
 + Rule-based            57    19    41    79.17%    100.00%  79.17%
 ```
 
-This makes it easy to see which stage contributed (or removed) the most.
-
 ![Screenshot: Results page — evaluation metrics card and per-stage ablation table](screenshots/10_results_metrics.png)
 
 ---
 
-### 4.2 Knowledge artifacts
+### 5.2 Knowledge artifacts
 
-The right card lists everything the run produced. Click any link to view or download the file.
+The right card lists everything the run produced. Click any link to view or download.
 
 | Artifact | File | What it contains |
 |----------|------|-----------------|
@@ -162,7 +257,7 @@ The right card lists everything the run produced. Click any link to view or down
 | **Summary** | `summary.txt` | A human-readable report covering metadata, input papers, metrics, the ablation table, and full listings. |
 | **Metrics** | `metrics.json` | All metrics in structured form, including per-stage and per-relation breakdowns. |
 | **Improvement counts** | `improvement_counts.json` | How many classes, relations, and hierarchy edges were added or removed at each stage. |
-| **SGC diagnostic** | `sgc_diagnostic.json` | Counts from the schema-guided completion step — raw response size, items parsed, items kept. Modes 3–4 only. |
+| **SGC diagnostic** | `sgc_diagnostic.json` | Counts from the schema-guided completion step — raw response size, items parsed, items kept. |
 | **Prompts** | `prompt_chunk_NNNN.txt` | The exact prompt sent to the LLM for each chunk and phase. |
 | **Metadata** | `metadata.json` | Run configuration, input file names, environment info, and code version. |
 
@@ -170,7 +265,7 @@ The right card lists everything the run produced. Click any link to view or down
 
 ---
 
-### 4.3 Ontology graph
+### 5.3 Ontology graph
 
 If an ontology was produced, a **Show Ontology Graph** button appears near the artifacts.
 
@@ -180,7 +275,7 @@ If an ontology was produced, a **Show Ontology Graph** button appears near the a
 | Feature | How it works |
 |---------|-------------|
 | **Colour-coded nodes** | Classes are coloured by type: teal = core, amber = governance, purple = provenance, grey = inferred. |
-| **Edge types** | Solid cyan edges show hierarchy (subClassOf); dashed orange edges show relations (domain → range). |
+| **Edge types** | Solid cyan edges show hierarchy (subClassOf); dashed orange edges show relations (domain to range). |
 | **Click a node** | Highlights the node and its neighbours. A panel on the right shows its label, definition, parents, children, related relations, and evidence. |
 | **Layout switcher** | Switch between Force (physics), Tree (hierarchical), Circle, and Grid layouts. |
 | **Export** | Click **PNG** in the toolbar to save the current graph view as an image. |
@@ -192,24 +287,26 @@ If an ontology was produced, a **Show Ontology Graph** button appears near the a
 
 ---
 
-## 5. Running a batch comparison
+## 6. Running a batch comparison
 
-Click **Run comparison** in the navigation bar. This page works the same way as the single-run home page — same corpus input on the left, same configuration panel on the right — but instead of running immediately, you build a list of configurations to run one after another.
+Click **Run comparison** in the navigation bar. This page has the same corpus input on the left, and a configuration panel on the right, but instead of running immediately you build a list of configurations to run one after another.
+
+The comparison page also includes a **BrainIT Paper** dropdown, so each run in the batch can target a different paper, or all runs can share the same corpus.
 
 ![Screenshot: Run comparison page overview](screenshots/15_comparison_overview.png)
 
 ---
 
-### 5.1 Adding runs to the batch
+### 6.1 Adding runs to the batch
 
-1. Set up a configuration using the right panel — exactly the same options as a single run.
+1. Set up a configuration using the right panel — same options as a single run.
 2. Click **Add run**. It appears as a new row in the table below.
-3. Change any options you like and click **Add run** again to add another configuration.
-4. Use **Reset** at any point to clear all fields back to defaults before building a new entry.
+3. Change any options and click **Add run** again to add another configuration.
+4. Use **Reset** at any point to clear all fields back to defaults.
 
 ---
 
-### 5.2 The runs table
+### 6.2 The runs table
 
 Each row in the table represents one configuration:
 
@@ -217,54 +314,54 @@ Each row in the table represents one configuration:
 |--------|--------------|
 | **Checkbox** | Select this row for running or analysis. |
 | **#** | Row number. |
-| **Run name** | An auto-generated label that identifies the configuration, e.g. `Few-Shot - Schema-Completed - GPT‑4o‑mini - Gold-vocab - None`. |
+| **Run name** | An auto-generated label, e.g. `Few-Shot - Schema-Completed - GPT-4o-mini - Gold-vocab - None`. |
 | **Strategy** | Zero-Shot / One-Shot / Few-Shot. |
-| **Pipeline mode** | Strict / Guided / Schema-Completed / Fully Reasoned. |
+| **Pipeline mode** | Strict / Guided / Schema-Completed / Controlled. |
 | **LLM** | Provider and model. |
 | **Eval settings** | Gold-vocab or None. |
 | **Advanced** | DSR (DeepSeek Reasoner) or None. |
 | **Actions** | View the last result, view the full analysis history, or remove the row. |
 
-The **Select all** checkbox in the header selects or deselects everything at once. The trash icon in the Actions column removes a row.
+The **Select all** checkbox selects or deselects everything at once.
 
 ![Screenshot: Runs table with several configurations added](screenshots/17_runs_table.png)
 
 ---
 
-### 5.3 Running the batch
+### 6.3 Running the batch
 
 1. Tick the rows you want to run (or use **Select all**).
 2. Click **Run selected**. The app takes you to the batch progress page.
-
-The status bar shows how many rows are currently selected, e.g. "3 selected".
 
 ![Screenshot: Run selected button with selection count](screenshots/18_run_selected.png)
 
 ---
 
-## 6. Batch progress page
+## 7. Batch progress page
 
 Each configuration gets its own status row:
 
 | Element | What it shows |
 |---------|--------------|
-| **Run label** | The 5-part name for this configuration. |
+| **Run label** | The configuration name. |
 | **Run ID** | Assigned when the run starts. |
-| **Status badge** | Pending / Running / Completed / Failed / Cancelled. |
+| **Status badge** | Pending / Running / Paused / Completed / Failed / Skipped / Cancelled. |
 
-Runs go one at a time in sequence — the current run shows live progress while the rest wait. **Cancel** stops everything that hasn't finished yet; already-completed runs are kept.
+Runs execute one at a time in sequence. For each running run you can **Pause**, **Resume**, or **Skip** it. **Cancel** stops everything that has not finished yet; already-completed runs are kept.
 
 When everything is done, an **Analyze** button appears to open the batch analysis.
 
 ![Screenshot: Batch progress page with some runs completed and one running](screenshots/19_batch_progress.png)
 
+![Screenshot: Batch progress controls — Pause, Resume, and Skip buttons](screenshots/19b_batch_controls.png)
+
 ---
 
-## 7. Comparing and analysing results
+## 8. Comparing and analysing results
 
-### 7.1 Analyze selected
+### 8.1 Analyze selected
 
-From the **Run comparison** page (you don't need to re-run anything), tick the configurations you want to compare and click **Analyze selected**. A modal opens showing the last completed run for each configuration.
+From the **Run comparison** page (no need to re-run anything), tick the configurations you want to compare and click **Analyze selected**. A modal shows the last completed run for each configuration.
 
 | Column | What it shows |
 |--------|--------------|
@@ -281,14 +378,14 @@ The best-performing run (by F1) gets a "best" badge. A bar chart and a precision
 
 ---
 
-### 7.2 Per-run actions
+### 8.2 Per-run actions
 
 In the runs table, each row has two action buttons:
 
 | Button | What it does |
 |--------|-------------|
 | **Last result** (clipboard icon) | Shows a summary of the most recent completed run for this configuration. |
-| **Analysis** (chart icon) | Shows metrics for every past run with this exact configuration — useful for seeing how consistent the LLM is across repeated runs. |
+| **Analysis** (chart icon) | Shows metrics for every past run with this exact configuration — useful for seeing consistency across repeated runs. |
 
 ![Screenshot: Per-run action buttons — Last result and Analysis](screenshots/21_per_run_actions.png)
 
@@ -296,20 +393,20 @@ In the runs table, each row has two action buttons:
 
 ---
 
-### 7.3 Batch analysis
+### 8.3 Batch analysis
 
 After a batch finishes from the Batch progress page, click **Analyze** to see a full comparison table with metrics for every run. The best run is highlighted, and each row has a **View** link to open its Results page.
 
 ---
 
-## 8. The summary file
+## 9. The summary file
 
-Every run saves a `summary.txt` that you can open straight from the Results page. It's the easiest way to read everything in one place.
+Every run saves a `summary.txt` that you can open from the Results page. It is the easiest way to read everything in one place.
 
 | Section | What it covers |
 |---------|---------------|
 | **Metadata** | Run ID, timestamp, prompting method, pipeline mode, LLM, evaluation settings. |
-| **Input papers** | The filenames you provided. Pasted text shows your chosen title, or `corpus.txt` if you didn't enter one. |
+| **Input papers** | The filenames you provided. Pasted text shows your chosen title, or `corpus.txt` if you did not enter one. |
 | **Improvement counts** | How many classes, relations, and hierarchy edges were added, removed, or inferred at each stage. |
 | **Final metrics** | Coverage, precision, recall, errors, structural metrics, clinical-only metrics, relation precision/recall. |
 | **Extraction-only metrics** | The same metrics before any improvement step — your raw LLM baseline. |
@@ -321,9 +418,9 @@ Every run saves a `summary.txt` that you can open straight from the Results page
 
 ---
 
-## 9. Run labels explained
+## 10. Run labels explained
 
-Every run gets a 5-part label that describes its exact configuration:
+Every run gets a label that describes its exact configuration:
 
 ```
 Strategy - PipelineMode - LLM - EvalSettings - Advanced
@@ -333,9 +430,10 @@ Strategy - PipelineMode - LLM - EvalSettings - Advanced
 
 | Label | What it means |
 |-------|--------------|
-| `Few-Shot - Schema-Completed - GPT‑4o‑mini - Gold-vocab - None` | 3-phase Few-Shot extraction, Schema-Completed mode, OpenAI GPT-4o-mini, gold-vocab evaluation, no advanced options. |
-| `Zero-Shot - Fully Reasoned - Anthropic - Gold-vocab - None` | Zero-Shot baseline with full post-processing, using Anthropic Claude. |
-| `Few-Shot - Schema-Completed - GPT‑4o‑mini - Gold-vocab - DSR` | Few-Shot with DeepSeek Reasoner handling schema-guided completion and LLM reasoning. |
+| `Few-Shot - Schema-Completed - GPT-4o-mini - Gold-vocab - None` | 3-phase Few-Shot extraction, Schema-Completed mode, OpenAI GPT-4o-mini, gold-vocab evaluation, no advanced options. |
+| `Zero-Shot - Strict - Anthropic - None - None` | Zero-Shot baseline, strict mode, using Anthropic Claude Haiku 4.5. |
+| `Few-Shot - Schema-Completed - GPT-4o-mini - Gold-vocab - DSR` | Few-Shot with DeepSeek Reasoner handling schema-guided completion. |
+| `Few-Shot - Controlled - GPT-4o-mini - Gold-vocab - None` | Few-Shot with custom pipeline toggle overrides from the Controlled Experiment page. |
 
 This label appears everywhere — the comparison table, run list, batch progress, summary file, and metadata.
 

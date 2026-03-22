@@ -1,0 +1,147 @@
+============================================================
+RUN SUMMARY  —  TripleGen Ontology Engineering Framework
+============================================================
+
+--- Metadata ---
+Run ID:          20260317-204957-b7a87882
+Timestamp (UTC): 2026-03-17T20:53:01.311045
+Method:          Few-Shot
+Pipeline mode:   Strict
+LLM provider:    openai gpt-4o-mini
+Improvements:    Text-grounded completion (built-in)
+Eval settings:   Scope filter (clinical-only chunks)
+
+--- Input paper(s) ---
+  • 2. Moss 2013 — Trusting Intensive Care Unit .txt
+
+--- Improvement counts (for ablation / fairness) ---
+  Text-grounded completion (built-in): classes_added=5, relations_added=14, hierarchy_added=26
+  Built-in cleanup (always active): includes_to_hierarchy=0, relation_labels_normalized=6, relations_range_normalized=4, classes_removed_dedupe=1, relations_removed_dedupe=0, hierarchy_removed_dedupe=1, out_of_scope_classes_removed=10, abstract_data_classes_removed=2, broad_contextual_classes_removed=0, classes_removed_evidence=0, endpoints_auto_added=1, relations_pruned_scope=0, hierarchy_pruned_scope=0, hierarchy_pruned_dangling=2, relations_pruned=3, relations_removed_evidence=1, hierarchy_fragments_removed=0, hierarchy_edges_corrected=0, hierarchy_scaffolded=2, hierarchy_removed_axiom=0, relations_removed_axiom=0, hierarchy_cycles_removed=0, hierarchy_completeness={'orphan_count': 16, 'total_classes': 35, 'orphan_rate': 0.457, 'orphan_rate_warning': False}, hierarchy_added=0, orphans_removed=0
+  Orphan Rescue (connect isolated classes): orphans_found=3, relations_added=3, hierarchy_added=0
+  Post-orphan scope cleanup: out_of_scope_removed=0
+  LLM CoT Refinement (semantic quality review): classes_removed=1, relations_removed=1, hierarchy_removed=1, hierarchy_corrected=0
+
+
+  Text-grounded completion (built-in): +5 classes, +14 relations, +26 hierarchy edges recovered from source text in second-pass extraction.
+
+  Orphan Rescue: 3 orphaned classes found → +3 relations, +0 hierarchy edges inferred from source text.
+
+  LLM CoT Refinement: -1 classes, -1 relations, -1 hierarchy removed; 0 hierarchy edges corrected.
+
+--- Metrics summary (final ontology) ---
+  Coverage:        17.20%
+  Precision:       47.06%
+  Recall:          17.20%
+  Errors:          hallucinations=0, schema_violations=0, omissions=0
+  Structural:      hierarchy_edges=23, hierarchy_coverage=0.71, relation_domain_range_rate=1.00
+  Clinical-only:   coverage=17.20%, precision=47.06%, recall=17.20%
+  Relations:       precision=37.50%, recall=27.78%, n_generated=24, n_gold=18
+  Hierarchy:       precision=13.04%, recall=3.95%, matched=3, n_generated=23, n_gold=76
+
+--- Metrics at extraction only (pre-improvement baseline) ---
+  Coverage:        17.20%
+  Precision:       38.10%
+  Recall:          17.20%
+  Structural:      hierarchy_edges=6, hierarchy_coverage=0.26, relation_domain_range_rate=1.00
+  Relations:       precision=43.48%, recall=33.33%, n_generated=23
+
+--- Per-stage ablation (pipeline progression) ---
+  Stage                   Classes   Rels   Hier   Coverage  Precision     Recall
+  --------------------------------------------------------------------------
+  Extraction                   42     23      6     17.20%     38.10%     17.20%
+  + Text-grounded              47     37     32     17.20%     34.04%     17.20%
+  + Cleanup                    35     22     24     17.20%     45.71%     17.20%
+  + Orphan Rescue              35     25     24     17.20%     45.71%     17.20%
+  + LLM Refinement             34     24     23     17.20%     47.06%     17.20%
+
+--- Concept counts (final ontology) ---
+  Classes:         34
+  Relations:       24
+  Hierarchy edges: 23
+
+--- Classes ---
+  • Intensive Care Unit
+  • Patient Data
+  • Data Quality Assessment
+  • Medical Decision Making
+  • Heart Rate
+  • Sepsis
+  • Contextual Information
+  • Patient
+  • Session
+  • Timepoint
+  • Reading
+  • Parameter
+  • Observation
+  • Observation Value
+  • Property
+  • Feature of Interest
+  • Observation Collection
+  • Machine
+  • Sensor
+  • Sensing Process
+  • Measurement Capability
+  • Condition
+  • Possible Error
+  • Probable Error
+  • Medical Data
+  • Traumatic Brain Injury
+  • General Medical Icu
+  • Hypertension
+  • Hypotension
+  • Noradrenaline
+  • Adrenaline
+  • Sensor Accuracy
+  • Medical Machine/Sensor
+  • Platform
+
+--- Relations ---
+  • has patient data(Intensive Care Unit → Patient Data)
+  • is a symptom of(Heart Rate → Sepsis)
+  • is used for(Patient Data → Medical Decision Making)
+  • has session(Patient → Session)
+  • has timepoint(Session → Timepoint)
+  • has monitoring data(Timepoint → Reading)
+  • refers to parameter(Reading → Parameter)
+  • produced by sensor(Observation → Sensor)
+  • has timepoint(Patient → Timepoint)
+  • has monitoring data(Timepoint → Observation)
+  • has parameter(Observation → Parameter)
+  • receives therapy(Data Quality Assessment → Hypertension)
+  • receives therapy(Data Quality Assessment → Hypotension)
+  • triggers intervention(Hypertension → Noradrenaline)
+  • triggers intervention(Hypertension → Adrenaline)
+  • is produced by(Reading → Medical Machine/Sensor)
+  • has measurement capability(Medical Machine/Sensor → Measurement Capability)
+  • is produced by(Observation → Machine)
+  • has monitoring data(Timepoint → Observation Collection)
+  • is assessed by(Data Quality Assessment → Data Quality Assessment)
+  • has observation value(Observation → Observation Value)
+  • is a feature of(Feature of Interest → Patient)
+  • is a process of(Sensing Process → Sensor)
+  • assesses(Sensor Accuracy → Data Quality Assessment)
+
+--- Hierarchy (subclass → superclass) ---
+  • Reading ⊑ Observation Value
+  • Parameter ⊑ Property
+  • Timepoint ⊑ Observation Collection
+  • Machine ⊑ Platform
+  • Machine ⊑ Sensor
+  • Traumatic Brain Injury ⊑ General Medical Icu
+  • Data Quality Assessment ⊑ Medical Data
+  • Contextual Information ⊑ Medical Data
+  • Observation ⊑ Medical Data
+  • Reading ⊑ Observation
+  • Observation Collection ⊑ Observation
+  • Observation Value ⊑ Observation
+  • Parameter ⊑ Medical Data
+  • Heart Rate ⊑ Parameter
+  • Hypertension ⊑ Parameter
+  • Hypotension ⊑ Parameter
+  • Machine ⊑ Medical Data
+  • Medical Machine/Sensor ⊑ Machine
+  • Sepsis ⊑ Condition
+  • General Medical Icu ⊑ Intensive Care Unit
+  • Traumatic Brain Injury ⊑ Intensive Care Unit
+  • Possible Error ⊑ Data Quality Assessment
+  • Probable Error ⊑ Data Quality Assessment

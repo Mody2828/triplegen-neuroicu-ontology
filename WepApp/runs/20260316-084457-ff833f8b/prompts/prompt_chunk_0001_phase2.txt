@@ -1,0 +1,342 @@
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing the EXACT, verbatim sentence fragment from the text.
+
+3. **Extraction Scope:** Extract clinical and biomedical content: conditions, physiological parameters, monitoring variables, treatments/therapies/interventions, outcomes, assessments, laboratory values, nursing interventions, surgical procedures, and clinical dataset categories when explicitly named.
+   Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+   If a sentence or paragraph is mainly about these excluded topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+6. **Label Mapping Rule:** If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+   Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+   For other abbreviations, expand to their full clinical name as used in the text.
+
+7. **Structural Completeness Rule:** When the text mentions specific clinical items, also extract their general category if the text supports it.
+   For example, if the text discusses 'ventilation, sedation, fluids' as therapies, also extract the general class 'Therapy' or 'Baseline Therapy' if the text uses that grouping.
+   Use the text's own categories and groupings — do not impose an external hierarchy.
+
+**Default priority: classes first, then relations.** Extract relations when the text clearly states a connection between two concepts — both domain and range must be extracted classes. If a phase instruction below overrides this priority, follow the phase instruction.
+
+**Completeness:** Extract every distinct clinical concept the text names — err on the side of inclusion when evidence exists.
+
+### CURRENT TASK: Phase 2 — RELATION & HIERARCHY EXTRACTION (+ supplementary classes)
+Primary task: extract semantic RELATIONS between the known classes below. Extract every relation the text explicitly supports with evidence.
+Secondary task: if you notice clinical concepts in the text that Phase 1 missed (e.g. a concept needed as domain/range), add them to the classes array with evidence.
+Also extract hierarchy (subClassOf) edges wherever the text shows parent-child relationships — look for cues like 'such as', 'includes', 'type of', 'consists of', 'categorized as', enumeration lists, or even implied groupings.
+
+### WHAT IS AN ONTOLOGY RELATION?
+An ontology relation (object property) defines a typed semantic link between two class types. The DOMAIN is the subject class; the RANGE is the object class. Think: 'Every instance of [domain] can be linked via [relation] to an instance of [range].' Relations model the SCHEMA of the domain, not individual facts.
+Example: 'has monitoring data(Patient → Monitoring Data)' means every Patient can have Monitoring Data associated with them.
+
+### RELATION EXTRACTION METHOD (Chain-of-Thought)
+For each pair of known classes, reason step by step:
+1. Do these two classes co-occur or interact in the text?
+2. What is the SEMANTIC NATURE of their link? (measurement, treatment, assessment, outcome, composition, causation, etc.)
+3. Which class is the subject (domain) and which is the object (range)?
+4. Assign a descriptive relation label from the patterns below, or create a meaningful label if none fits.
+5. Find an exact text quote that supports this relationship.
+
+### ONTOLOGY DESIGN PATTERNS (use when the text supports them)
+These are reusable structural patterns showing how clinical concepts relate.
+Match them against the text — extract every supported edge.
+
+**Pattern 1 — Clinical Monitoring:**
+  Patient --[has monitoring data]--> Monitoring Data
+  Monitoring Data --[includes]--> Parameter
+  Observation --[measures parameter]--> Parameter
+  Observation --[produced by sensor]--> Sensor
+  Observation --[has quality assessment]--> Data Quality Assessment
+  Session --[has timepoint]--> Timepoint
+  Timepoint --[has observation]--> Observation
+
+**Pattern 2 — Clinical Intervention:**
+  Patient --[receives therapy]--> Therapy
+  Therapy --[targets condition]--> Condition
+  Condition --[triggers intervention]--> Therapy
+  Patient --[has surgical procedure]--> Surgical Procedure
+  Patient --[has nursing intervention]--> Nursing Intervention
+
+**Pattern 3 — Clinical Assessment and Outcome:**
+  Patient --[has clinical assessment]--> Clinical Assessment
+  Patient --[has outcome]--> Outcome
+  Patient --[has laboratory value]--> Laboratory Values
+  Monitoring Data --[monitoring indicates condition]--> Condition
+
+**Pattern 4 — Patient Context:**
+  Patient --[has session]--> Session
+  Patient --[has demographic data]--> Demographic Data
+  Patient --[has injury mechanism]--> Injury Mechanism
+
+**Pattern 5 — Data Quality:**
+  Data Quality Assessment --[affected by treatment]--> Therapy
+  Data Quality Assessment --[associated with condition]--> Condition
+
+**Pattern 6 — Composition:**
+  Category --[includes]--> Member
+  Derived Parameter --[derived from]--> Source Parameter
+
+You SHOULD also extract other relations the text supports beyond these patterns.
+Do not invent relations not stated or clearly implied in the text.
+
+### RELATION EVIDENCE RULES
+- Each relation MUST have an 'evidence' field with an exact verbatim quote from the source text.
+- The evidence should mention or clearly imply at least one of the two endpoint classes (domain or range).
+- Use the ABSTRACT superclass as the range, not specific instances (e.g., 'Monitoring Data' not 'ICP').
+- Do NOT reuse the same evidence quote for multiple relations.
+
+### SELF-CHECK (before finalising output)
+- Do all domain and range labels match known classes from Phase 1?
+- Are there any duplicate relations (same domain-label-range)? Remove duplicates.
+- Does every evidence field contain a verbatim quote from the text?
+
+Output JSON with keys classes, relations, hierarchy.
+
+Known classes (use only these labels): Demographic Information; Treatment Data; Physiological Signals; Severe Brain Injury; Secondary Insult; Arterial Hypotension; Clinical Outcome; Hypotensive Event; Systolic Blood Pressure (SBP); Event Threshold; Event Holddown; Clear Holddown; Patient; Event Profiles; EUSIG-Defined Hypotensive Events
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+**REASONING STEP:** Before producing JSON, mentally scan the text for: (1) every named clinical concept, (2) explicit relations between them, (3) hierarchy cues (such as, is a, type of, include:). Then output only items with verbatim evidence.
+
+---
+--- Retrieved examples (3) ---
+
+Text: The minimum minute by minute monitoring data required for inclusion in the BrainIT Database include: Heart Rate, Respiration Rate, Mean Arterial Pressure, ICP, SaO2 and Temperature. Data is collected from patients every minute.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Patient",
+      "evidence": "patients"
+    },
+    {
+      "label": "Monitoring Data",
+      "evidence": "monitoring data"
+    },
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate"
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate"
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature"
+    }
+  ],
+  "relations": [
+    {
+      "label": "has monitoring data",
+      "domain": "Patient",
+      "range": "Monitoring Data",
+      "evidence": "Data is collected from patients every minute"
+    },
+    {
+      "label": "includes",
+      "domain": "Monitoring Data",
+      "range": "Heart Rate",
+      "evidence": "monitoring data include: Heart Rate"
+    },
+    {
+      "label": "includes",
+      "domain": "Monitoring Data",
+      "range": "Temperature",
+      "evidence": "monitoring data include: Heart Rate, Respiration Rate, Mean Arterial Pressure, ICP, SaO2 and Temperature"
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+
+Text: BPs (systolic blood pressure) and BPm (mean arterial pressure) both indicate hypotensive events, but the trigger characteristics differ. BPs events were often preceded by a steady downward trend in systolic pressure, while BPm events showed more abrupt onset. Each hypotensive event was classified according to the Edinburgh University Secondary Insult Grades (EUSIG).
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Systolic Blood Pressure (SBP)",
+      "evidence": "BPs (systolic blood pressure)"
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "BPm (mean arterial pressure)"
+    },
+    {
+      "label": "Hypotensive Event",
+      "evidence": "hypotensive events"
+    },
+    {
+      "label": "EUSIG Grade",
+      "evidence": "Edinburgh University Secondary Insult Grades (EUSIG)"
+    }
+  ],
+  "relations": [
+    {
+      "label": "monitoring indicates condition",
+      "domain": "Monitoring Data",
+      "range": "Condition",
+      "evidence": "BPs (systolic blood pressure) and BPm (mean arterial pressure) both indicate hypotensive events"
+    },
+    {
+      "label": "has EUSIG grade",
+      "domain": "Hypotensive Event",
+      "range": "EUSIG Grade",
+      "evidence": "Each hypotensive event was classified according to the Edinburgh University Secondary Insult Grades"
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+
+Text: Many hypotensive events were preceded by clinical interventions such as nursing care, patient turning, or changes in sedation. Detection of a hypotensive event triggers specific therapeutic interventions including fluid resuscitation and vasopressor administration to restore adequate cerebral perfusion pressure.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Hypotensive Event",
+      "evidence": "hypotensive events"
+    },
+    {
+      "label": "Therapy",
+      "evidence": "therapeutic interventions"
+    },
+    {
+      "label": "Fluids",
+      "evidence": "fluid resuscitation"
+    },
+    {
+      "label": "Vasopressors",
+      "evidence": "vasopressor administration"
+    },
+    {
+      "label": "Cerebral Perfusion Pressure (CPP)",
+      "evidence": "adequate cerebral perfusion pressure"
+    }
+  ],
+  "relations": [
+    {
+      "label": "triggers intervention",
+      "domain": "Condition",
+      "range": "Therapy",
+      "evidence": "Detection of a hypotensive event triggers specific therapeutic interventions including fluid resuscitation"
+    },
+    {
+      "label": "targets condition",
+      "domain": "Therapy",
+      "range": "Condition",
+      "evidence": "vasopressor administration to restore adequate cerebral perfusion pressure"
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+TEXT TO ANALYZE:
+A
+
+Donald et al.
+
+Event measure (e.g. Bps or Bpm)
+C
+
+Event threshold B Clear holddown
+
+Event holddown
+
+Time
+
+Introduction hospitals in Europe and it contains anonymized demographic
+information, treatment data, and minute by minute physio-
+logical signals of 199 patients who were admitted with severe
+It has been known since the 1980s that secondary insults are
+brain injury defined as GCS £ 8.
+a major factor in the treatment of traumatically brain injured
+The BrainIT database contains 199 patients; however,
+patients [9]. Although there are several classes of secondary
+only 119 patients met the criteria of having both BPs and
+insults, several authors have shown that significant periods of
+BPm available. Of these 119 patients a further 19 were
+arterial hypotension consistently relate to clinical outcome
+removed because they did not have any EUSIG-defined
+[5, 7, 8, 12, 13]. As part of a current European Union (EU)
+hypotensive events. The average age of the eligible 100
+funded research project Avert-IT [1] an investigation has
+patients was 39.04 years (range = 15-83, median = 34.5),
+been undertaken into the characteristics of the physiological
+with 85% being male. Full details of the data available in the
+signals surrounding a hypotensive incident. This report
+BrainIT database can be found in Piper et al. [10].
+details the methods used to investigate these characteristics
+and the results of these analyses.
+recommend using systolic arterial pressure £90 mmHg as a
+threshold but make no mention of a holddown period. Recent
+A conceptual description of an event is provided in Fig. 1.
+work by Bijker and colleagues [2] continues to highlight the
+If we consider a trace of either BPs or BPm that is being
+difficulty in obtaining a consensus on a hypotensive defini-
+scanned, the sequence of events that occurs is: A - trace falls
+tion, with this group identifying more than 45 definitions
+below the "Event Threshold"; B - trace remains below the
+used in various publications.
+event threshold for the defined "Event Holddown" period.
+The event is now "Active" starting from point "A"; C - trace
+rises above the event threshold; D - trace remains above the
+Materials and Methods event threshold for the "Clear Hold-down" period. At this
+point the event is declared complete, the event is defined
+from point "A" to "C." One problem when attempting to conThis section of the report provides details of the data used in
+struct experiments on classifying hypotensive events is
+the analysis; defines the threshold characteristics of a
+obtaining an agreed definition for such an event. The six cenhypotensive event; defines a series of trigger and clearance
+ters participating in the AvertIT project all provided a differprofiles; and a description of the two software methods used
+ent definition of what their clinical teams used to monitor a
+to obtain the results.
+patient for a hypotensive condition. These definitions are
+provided in Table 1.
+
+Event Profiles
+We based our investigations on the BrainIT database, which
+is a rich resource of data collected by the BrainIT organiza- Using the EUSIG event definition described in the Results
+tion [3] during an EU-funded project from 2002 to 2005. section, there are 11 possible event profiles that can occur.
+This database was the result of a multicenter study across 22 These are defined by the type of event trigger (BPs or BPm)
+
+Trigger Characteristics of EUSIG-Defined Hypotensive Events 47
+
+Table 1 Hypotensive definition by center
+Location
+Parameter Uppsala Glasgow Kaunas Heidelberg Monza Barcelona
+Measure and BPs < 100 BPm < 70 BPs/BPd = 90/50 CPP < 50 BPs < 90 BPs < 90
+threshold and BPm < 70
+Event holddown 2 5 5 5 5 5
+Clear holddown BPs > 100; 5 m* BPm > 70; 5 m* BPm > 70; 5 m CPP > 60; 5 m BPs > 90; 10 m BPs > 90; 15 m
+Note the * values were estimated as the center did not define this parameter
+---

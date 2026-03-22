@@ -1,0 +1,145 @@
+============================================================
+RUN SUMMARY  —  TripleGen Ontology Engineering Framework
+============================================================
+
+--- Metadata ---
+Run ID:          20260316-111908-3777e6d4
+Timestamp (UTC): 2026-03-16T11:22:14.066431
+Method:          Few-Shot
+Pipeline mode:   Strict
+LLM provider:    openai gpt-4o-mini
+Improvements:    Text-grounded completion (built-in)
+Eval settings:   Scope filter (clinical-only chunks)
+
+--- Input paper(s) ---
+  • 2. Moss 2013 — Trusting Intensive Care Unit .txt
+
+--- Improvement counts (for ablation / fairness) ---
+  Text-grounded completion (built-in): classes_added=5, relations_added=10, hierarchy_added=19
+  Built-in cleanup (always active): includes_to_hierarchy=0, relation_labels_normalized=4, relations_range_normalized=2, classes_removed_dedupe=0, relations_removed_dedupe=0, hierarchy_removed_dedupe=0, out_of_scope_classes_removed=11, abstract_data_classes_removed=0, broad_contextual_classes_removed=0, classes_removed_evidence=0, endpoints_auto_added=3, relations_pruned_scope=0, hierarchy_pruned_scope=0, hierarchy_pruned_dangling=0, relations_pruned=0, relations_removed_evidence=0, hierarchy_fragments_removed=0, hierarchy_edges_corrected=0, hierarchy_scaffolded=2, hierarchy_removed_axiom=0, relations_removed_axiom=0, hierarchy_cycles_removed=0, hierarchy_completeness={'orphan_count': 18, 'total_classes': 35, 'orphan_rate': 0.514, 'orphan_rate_warning': True}, hierarchy_added=0, orphans_removed=0
+  Orphan Rescue (connect isolated classes): orphans_found=1, relations_added=2, hierarchy_added=0
+  Post-orphan scope cleanup: out_of_scope_removed=0
+  LLM CoT Refinement (semantic quality review): classes_removed=1, relations_removed=1, hierarchy_removed=0, hierarchy_corrected=0
+
+
+  Text-grounded completion (built-in): +5 classes, +10 relations, +19 hierarchy edges recovered from source text in second-pass extraction.
+
+  Orphan Rescue: 1 orphaned classes found → +2 relations, +0 hierarchy edges inferred from source text.
+
+  LLM CoT Refinement: -1 classes, -1 relations, -0 hierarchy removed; 0 hierarchy edges corrected.
+
+--- Metrics summary (final ontology) ---
+  Coverage:        17.20%
+  Precision:       47.06%
+  Recall:          17.20%
+  Errors:          hallucinations=0, schema_violations=0, omissions=0
+  Structural:      hierarchy_edges=20, hierarchy_coverage=0.68, relation_domain_range_rate=1.00
+  Clinical-only:   coverage=17.20%, precision=47.06%, recall=17.20%
+  Relations:       precision=28.00%, recall=27.78%, n_generated=25, n_gold=18
+  Hierarchy:       precision=15.00%, recall=3.95%, matched=3, n_generated=20, n_gold=76
+
+--- Metrics at extraction only (pre-improvement baseline) ---
+  Coverage:        16.13%
+  Precision:       39.47%
+  Recall:          16.13%
+  Structural:      hierarchy_edges=7, hierarchy_coverage=0.24, relation_domain_range_rate=1.00
+  Relations:       precision=26.92%, recall=33.33%, n_generated=26
+
+--- Per-stage ablation (pipeline progression) ---
+  Stage                   Classes   Rels   Hier   Coverage  Precision     Recall
+  --------------------------------------------------------------------------
+  Extraction                   38     26      7     16.13%     39.47%     16.13%
+  + Text-grounded              43     36     26     17.20%     37.21%     17.20%
+  + Cleanup                    35     24     20     17.20%     45.71%     17.20%
+  + Orphan Rescue              35     26     20     17.20%     45.71%     17.20%
+  + LLM Refinement             34     25     20     17.20%     47.06%     17.20%
+
+--- Concept counts (final ontology) ---
+  Classes:         34
+  Relations:       25
+  Hierarchy edges: 20
+
+--- Classes ---
+  • Intensive Care Unit
+  • Patient Data
+  • Data Quality Assessment
+  • Medical Decision Making
+  • Heart Rate
+  • Sepsis
+  • Context Dependent Assessments
+  • Patient
+  • Session
+  • Timepoint
+  • Reading
+  • Parameter
+  • Observation
+  • Sensor
+  • Machine
+  • Provenance
+  • Possible Error
+  • Probable Error
+  • Intensive Care Unit (ICU) Medical Data
+  • Hypertension
+  • Noradrenaline
+  • Time Series Physiological Data
+  • Acceptable Range Rules
+  • Data
+  • Hypotension
+  • Adrenaline
+  • Traumatic Brain Injury
+  • Heart Rate Error
+  • Medical Machine/Sensor
+  • Acceptable Range Error
+  • Core Monitoring Parameter
+  • ObservationCollection
+  • Property
+  • Platform
+
+--- Relations ---
+  • has patient data(Intensive Care Unit → Patient Data)
+  • affects data quality(Patient Data → Data Quality Assessment)
+  • supports medical decision making(Patient Data → Medical Decision Making)
+  • is a condition(Data Quality Assessment → Sepsis)
+  • requires context dependent assessments(Data Quality Assessment → Context Dependent Assessments)
+  • has session(Patient → Session)
+  • has timepoint(Session → Timepoint)
+  • has monitoring data(Timepoint → Reading)
+  • measures parameter(Observation → Parameter)
+  • produced by sensor(Observation → Sensor)
+  • annotated with provenance(Reading → Provenance)
+  • is associated with(Acceptable Range Rules → Intensive Care Unit (ICU) Medical Data)
+  • is affected by(Intensive Care Unit (ICU) Medical Data → Hypertension)
+  • is affected by(Intensive Care Unit (ICU) Medical Data → Hypotension)
+  • is affected by(Intensive Care Unit (ICU) Medical Data → Noradrenaline)
+  • is affected by(Intensive Care Unit (ICU) Medical Data → Adrenaline)
+  • is associated with(Heart Rate Error → Sepsis)
+  • is produced by(Medical Machine/Sensor → Reading)
+  • is affected by(Acceptable Range Error → Hypertension)
+  • is affected by(Acceptable Range Error → Hypotension)
+  • has monitoring data(Timepoint → Observation)
+  • produced by(Observation → Machine)
+  • is affected by(Heart Rate → Sepsis)
+  • has monitoring data(Time Series Physiological Data → Patient Data)
+  • is a type of(Time Series Physiological Data → Core Monitoring Parameter)
+
+--- Hierarchy (subclass → superclass) ---
+  • Reading ⊑ Observation
+  • Parameter ⊑ Property
+  • Timepoint ⊑ ObservationCollection
+  • Machine ⊑ Platform
+  • Parameter ⊑ Reading
+  • Timepoint ⊑ Observation
+  • Machine ⊑ Sensor
+  • Intensive Care Unit (ICU) Medical Data ⊑ Observation
+  • Traumatic Brain Injury ⊑ Intensive Care Unit (ICU) Medical Data
+  • Data Quality Assessment ⊑ Data
+  • Acceptable Range Rules ⊑ Data Quality Assessment
+  • Acceptable Range Error ⊑ Acceptable Range Rules
+  • Provenance ⊑ Data
+  • Medical Machine/Sensor ⊑ Machine
+  • Core Monitoring Parameter ⊑ Parameter
+  • Heart Rate ⊑ Core Monitoring Parameter
+  • Heart Rate Error ⊑ Heart Rate
+  • Context Dependent Assessments ⊑ Parameter
+  • Possible Error ⊑ Data Quality Assessment
+  • Probable Error ⊑ Data Quality Assessment

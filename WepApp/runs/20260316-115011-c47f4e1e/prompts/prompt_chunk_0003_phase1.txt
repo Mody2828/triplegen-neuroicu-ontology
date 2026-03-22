@@ -1,0 +1,371 @@
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+Use ONLY the following class labels:
+Acute Respiratory Distress Syndrome; Adrenaline; Analgesia; Anterior Fossa Repair; Anti-hypertensives; Anti-pyretics; Antibiotics; Arterial Hypotension; Arterial Pressors; Barbiturates; Baseline Therapy; Bedside Intervention; Biochemistry; Blood Gases; Brain Temperature; CT Scan Assessment; CVP; Cardiac Output; Cerebral Perfusion Pressure (CPP); Clinical Assessment; Condition; Core Monitoring Parameter; Data Quality Assessment; Decompressive Craniectomy; Demographic Data; Derived Parameter; EtCO2; Evacuation of Mass Lesion; Extra Ventricular Drain Placement; Fluids; GCS Assessment; GOSe Outcome; Glucose; Haematocrit; Haematology; Haemoglobin; Heart Rate; Hypertension; Hypotension; Hypothermia Therapy; ICP Sensor Placement; Intensive Care Management; Intracranial Hypertension; Intracranial Pressure (ICP); Jugular Venous Desaturation; Laboratory Values; Mean Arterial Pressure (MAP); Microdialysis; Monitoring Data; NIBP; Noradrenaline; Nursing Intervention; Nutrition; Observation; Optional Monitoring Parameter; Osmotics; Outcome; Paralysis; Parameter; Patient; Patient Transport; PbrO2; Peripheral Temperature; Physiotherapy; Possible Error; Potassium; Pressure Reactivity Index (PRx); Probable Error; Pupil Assessment; Removal of Foreign Body; Respiration Rate; Routine Nursing Care; SaO2; Secondary Insult; Secondary Insult Therapy; Secondary Insult Treatment; Sedation; Sensor; Sepsis; Session; SjO2; Skull Fracture Elevation; Sodium; Steroids; Surgical Procedure; Systemic Hypotension; TCD; Temperature; Therapy; Timepoint; Vasopressors; Ventilation; White Blood Cell Count
+Relations (use exact labels + domain/range):
+affected by treatment(Data Quality Assessment->Therapy); associated with condition(Data Quality Assessment->Condition); has EUSIG grade; has clinical assessment(Patient->Clinical Assessment); has guideline adherence; has injury mechanism; has laboratory value(Patient->Laboratory Values); has monitoring data(Patient->Monitoring Data); has mortality; has nursing intervention(Patient->Nursing Intervention); has observation(Timepoint->Observation); has outcome(Patient->Outcome); has quality assessment(Observation->Data Quality Assessment); has session(Patient->Session); has surgical procedure(Patient->Surgical Procedure); has timepoint(Session->Timepoint); has_source; has_target; includes; is_a; measures parameter(Observation->Parameter); monitoring indicates condition(Monitoring Data->Condition); produced by sensor(Observation->Sensor); receives therapy(Patient->Therapy); secondary_to; targets condition(Therapy->Condition); treats; triggers intervention
+If an item is not in the list, omit it.
+
+LEAF-FIRST RULE (important):
+- Prefer the most specific class labels mentioned in the text (e.g., ICP/CPP/MAP, Ventilation/Sedation/Fluids/Nutrition).
+- Avoid outputting only broad container classes (e.g., Monitoring Data, Therapy, Condition) if the text names specific items.
+- You may include container classes when needed as endpoints for allowed relations, but do not stop at containers when leaf items are present.
+- If the text clearly mentions multiple distinct allowed leaf items, extract several of them (each with evidence) rather than stopping early.
+- Do NOT treat research methods/algorithms/guideline-adherence calculations as Therapy or Monitoring Data.
+
+Suggested concepts (pre-identified by biomedical NER in this text): Na, Glucose, Secondary insult, pressors, hypotension.
+These are entity mentions detected in this chunk. Use them as additional evidence that a concept is present, but only extract labels from the allowed class list above.
+
+Candidate domain terms (contextual hints from this chunk — use only if supported by the text): biochemistry; blood gases; central venous; cerebral perfusion pressure; cpp; cvp; etco2; gcs; haematology; hypotension; icp; microdialysis
+
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing the EXACT, verbatim sentence fragment from the text.
+
+3. **Extraction Scope:** Extract clinical and biomedical content: conditions, physiological parameters, monitoring variables, treatments/therapies/interventions, outcomes, assessments, laboratory values, nursing interventions, surgical procedures, and clinical dataset categories when explicitly named.
+   Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+   If a sentence or paragraph is mainly about these excluded topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+6. **Label Mapping Rule:** If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+   Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+   For other abbreviations, expand to their full clinical name as used in the text.
+
+7. **Structural Completeness Rule:** When the text mentions specific clinical items, also extract their general category if the text supports it.
+   For example, if the text discusses 'ventilation, sedation, fluids' as therapies, also extract the general class 'Therapy' or 'Baseline Therapy' if the text uses that grouping.
+   Use the text's own categories and groupings — do not impose an external hierarchy.
+
+**Default priority: classes first, then relations.** Extract relations when the text clearly states a connection between two concepts — both domain and range must be extracted classes. If a phase instruction below overrides this priority, follow the phase instruction.
+
+**Completeness:** Extract every distinct clinical concept the text names — err on the side of inclusion when evidence exists.
+
+### CURRENT TASK: Phase 1 — COMPREHENSIVE CLASS EXTRACTION
+Extract all clinical and biomedical classes mentioned in the text.
+
+### CHAIN-OF-THOUGHT (follow these steps before producing output)
+1. Read each paragraph and identify every clinical noun phrase (conditions, parameters, therapies, assessments, outcomes, devices, data categories).
+2. For each candidate, classify it: Is it a clinical condition? A physiological parameter? A treatment? An assessment? A laboratory value? A nursing intervention? A data category? A device or sensor?
+3. Check: does the text provide a verbatim phrase you can cite as evidence?
+4. If yes, include it. If the concept is purely organisational, governance, or publication metadata, skip it.
+
+### CONCEPT TYPES TO LOOK FOR
+  - Clinical conditions, diseases, injuries, syndromes, secondary insults
+  - Physiological parameters and monitoring variables (e.g. ICP, MAP, HR, SpO2)
+  - Treatments, therapies, interventions, drugs, medications
+  - Surgical procedures and clinical procedures
+  - Clinical assessments, scores, and scales (e.g. GCS, GOSe, pupil assessment)
+  - Patient outcomes and outcome measures
+  - Laboratory values and test categories (e.g. blood gases, biochemistry)
+  - Nursing interventions and bedside care (e.g. suctioning, sedation)
+  - Medical devices and sensors
+  - Data categories and abstract grouping classes (e.g. Monitoring Data, Therapy, Condition, Outcome, Core Monitoring Parameter, Optional Monitoring Parameter, Baseline Therapy, Demographic Data, Admission Data, Treatment Data, Outcome Data)
+  - Clinical guidelines and management protocols
+
+### LABEL GUIDANCE
+  - Use short, clean noun-phrase labels.
+  - Expand common abbreviations: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+  - For other abbreviations, expand to their full clinical name.
+
+### STRUCTURAL COMPLETENESS
+When the text mentions specific clinical items, also extract their general category if the text supports it. Use the text's own categories and groupings. For example, if the text lists 'heart rate, ICP, MAP' under 'core monitoring parameters', extract BOTH the individual parameters AND 'Core Monitoring Parameter' as a class.
+
+### EXTRACTION PRINCIPLE
+Extract every clinical concept the text explicitly names. Do not invent concepts not present in the text. Each concept needs a verbatim evidence quote from the source.
+
+### SELF-CHECK (before finalising output)
+- Is every label a clinical TYPE (not an instance or a person's name)?
+- Are there any duplicate or synonym labels? Merge them.
+- Does every evidence field contain a verbatim quote from the text?
+
+Output JSON with keys classes, relations, hierarchy. Set relations and hierarchy to empty arrays.
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+**REASONING STEP:** Before producing JSON, mentally scan the text for: (1) every named clinical concept, (2) explicit relations between them, (3) hierarchy cues (such as, is a, type of, include:). Then output only items with verbatim evidence.
+
+---
+--- Retrieved examples (3) ---
+
+Text: This is the minimum minute by minute monitoring data required for inclusion in the BrainIT Database and include: Heart Rate (specifying source: ECG or Pulse Oximetry), Respiration Rate (sources: impedance plethmography or ventilator), Mean Arterial Pressure, mean ICP, Pulse Oximetry (SaO2) and Temperature (sources: rectal=oesophageal= bladder=skin.) However, additional variables: Central Venous Pressure (CVP), EtCO2, SjO2, TCD, PbrO2, Brain Temperature, Microdialysis. . . will also be included in the database if they are monitored, in a given patient, as part of their usual clinical management.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate (specifying source: ECG or Pulse Oximetry)"
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate (sources: impedance plethmography or ventilator)"
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "Mean Arterial Pressure"
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "mean ICP"
+    },
+    {
+      "label": "SaO2",
+      "evidence": "Pulse Oximetry (SaO2)"
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature (sources: rectal=oesophageal= bladder=skin.)"
+    },
+    {
+      "label": "CVP",
+      "evidence": "Central Venous Pressure (CVP)"
+    },
+    {
+      "label": "EtCO2",
+      "evidence": "EtCO2"
+    },
+    {
+      "label": "SjO2",
+      "evidence": "SjO2"
+    },
+    {
+      "label": "TCD",
+      "evidence": "TCD"
+    },
+    {
+      "label": "PbrO2",
+      "evidence": "PbrO2"
+    },
+    {
+      "label": "Brain Temperature",
+      "evidence": "Brain Temperature"
+    },
+    {
+      "label": "Microdialysis",
+      "evidence": "Microdialysis"
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+
+Text: Therapy data is divided into two categories: baseline therapy covering routine ICU management delivered to all patients (ventilation settings, sedation levels, fluid input and output, nutrition, vasopressors, antibiotics), and secondary insult therapy covering non-surgical medical management specifically given to treat secondary insults, with assigned therapy targets (e.g. arterial pressors targeting systemic hypotension or reduced CPP secondary to raised ICP).
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Therapy",
+      "evidence": "Therapy data"
+    },
+    {
+      "label": "Baseline Therapy",
+      "evidence": "baseline therapy covering routine ICU management"
+    },
+    {
+      "label": "Secondary Insult Therapy",
+      "evidence": "secondary insult therapy covering non-surgical medical management"
+    },
+    {
+      "label": "Ventilation",
+      "evidence": "ventilation settings"
+    },
+    {
+      "label": "Sedation",
+      "evidence": "sedation levels"
+    },
+    {
+      "label": "Fluids",
+      "evidence": "fluid input and output"
+    },
+    {
+      "label": "Nutrition",
+      "evidence": "nutrition"
+    },
+    {
+      "label": "Vasopressors",
+      "evidence": "vasopressors"
+    },
+    {
+      "label": "Antibiotics",
+      "evidence": "antibiotics"
+    },
+    {
+      "label": "Arterial Pressors",
+      "evidence": "arterial pressors targeting systemic hypotension"
+    },
+    {
+      "label": "Systemic Hypotension",
+      "evidence": "targeting systemic hypotension"
+    },
+    {
+      "label": "Cerebral Perfusion Pressure (CPP)",
+      "evidence": "reduced CPP secondary to raised ICP"
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "raised ICP"
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+
+Text: Intensive care management information. Types of data include: GCS scores, pupil scores, ventilation settings, sedation levels, fluid input and output, nutrition, use of vasopressors, antibiotics. Routine blood gases and daily laboratory values will also be recorded – Biochemistry (Na, K+, Glucose), Haematology (Haemoglobin, White Cell Count, Haematocrit).
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Intensive Care Management",
+      "evidence": "Intensive care management information"
+    },
+    {
+      "label": "GCS Assessment",
+      "evidence": "GCS scores"
+    },
+    {
+      "label": "Pupil Assessment",
+      "evidence": "pupil scores"
+    },
+    {
+      "label": "Ventilation",
+      "evidence": "ventilation settings"
+    },
+    {
+      "label": "Sedation",
+      "evidence": "sedation levels"
+    },
+    {
+      "label": "Fluids",
+      "evidence": "fluid input and output"
+    },
+    {
+      "label": "Nutrition",
+      "evidence": "nutrition"
+    },
+    {
+      "label": "Vasopressors",
+      "evidence": "use of vasopressors"
+    },
+    {
+      "label": "Antibiotics",
+      "evidence": "antibiotics"
+    },
+    {
+      "label": "Laboratory Values",
+      "evidence": "daily laboratory values"
+    },
+    {
+      "label": "Blood Gases",
+      "evidence": "Routine blood gases"
+    },
+    {
+      "label": "Biochemistry",
+      "evidence": "Biochemistry (Na, K+, Glucose)"
+    },
+    {
+      "label": "Haematology",
+      "evidence": "Haematology (Haemoglobin, White Cell Count, Haematocrit)"
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+TEXT TO ANALYZE:
+Minute by minute monitoring data
+This is the minimum minute by minute monitoring data required for
+inclusion in the BrainIT Database and include: Heart Rate (specifying
+source: ECG or Pulse Oximetry), Respiration Rate (sources: impedance
+plethmography or ventilator), Mean Arterial Pressure, mean ICP, Pulse
+Oximetry (SaO2) and Temperature (sources: rectal=oesophageal= bladder=skin.)
+
+I. Piper et al.
+However, additional variables: Central Venous Pressure (CVP),
+EtCO2, SjO2, TCD, PbrO2, Brain Temperature, Microdialysis. . . will
+also be included in the database if they are monitored, in a given patient,
+as part of their usual clinical management.
+Thus the emphasis is to not exclude data which is part of any given
+centre's normal monitoring practice and in so doing build a rich and
+varied database for post-hoc analysis.
+
+Intensive care management information
+This section focuses on the baseline medical management and
+monitoring of clinical status that occurs to patients more than once in
+their stay in ITU. Our intention is to collect this time-series information
+with a greater frequency and accuracy than has been previously
+attempted.
+To acquire the information with the required frequency, data here will
+typically be collected by menu driven PC software or in some cases by
+direct links to hardware (e.g.: infusion pump links). Start times and end
+times will be given for any change in condition. Data collection methodology varies between centres.
+Types of data include: GCS scores, pupil scores, ventilation settings,
+sedation levels, fluid input and output, nutrition, use of vasopressors,
+antibiotics.
+Coded fields will annotate routine nursing (eye=mouth care, ET tube
+suction, bed care.), physiotherapy and bedside interventions= investigations (line insertion=renewal, transducer calibration, x-ray.) and patient
+transport (to and from Theatre=CT-Scan.).
+Routine blood gases and daily laboratory values will also be recorded -
+Biochemistry (Na, K þ , Glucose), Haematology (Haemaglobin, White
+Cell Count, Haematocrit).
+Further detail can be obtained by viewing the core dataset definition
+or by downloading it from the BrainIT web-site (go to core dataset link
+at: www.brainit.org).
+
+Secondary insult management data
+This is medical management=therapy given to patients specifically to
+treat secondary insults which occur to patients despite their baseline
+intensive care medical management.
+To distinguish therapy given to patients to treat secondary insults from
+those of baseline intensive care, we have devised a coding system which
+allows specific categories of therapy to be assigned a ''therapy target''.
+For example, arterial pressors may be given to treat systemic hypotension or to treat reduced cerebral perfusion pressure (CPP) secondary to
+raised ICP. By choosing an appropriate target for each secondary
+insult therapy will enhance the usefulness of the database on medical
+therapy.
+Data here will typically be collected by menu driven PC software. It is
+to be limited to non-surgical management. Start and end times must be
+given.
+Each Therapy must be assigned a ''Target'' chosen from a drop down
+list. If drugs are given then one can indicate continuous infusion if drugs
+are delivered by a continuous infusion pump or one can indicate boluses
+if it is delivered non-continuously.
+Figure 3 summarise the minimum choice of therapy categories and
+associated targets for the BrainIT core dataset.
+
+Paper based feasibility exercise
+Having met and defined a core dataset, the group next performed a
+paper based feasibility exercise. The intention being to determine if the
+core data elements can be collected from the majority of centres. If only
+
+Fig. 3. Tracking Therapies and Targets. Lists BrainIT core dataset definition therapies and therapy targets. This therapy tracking model has been
+designed to be easily implemented in software
+---

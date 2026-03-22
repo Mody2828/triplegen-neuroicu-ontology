@@ -1,0 +1,179 @@
+
+
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+### PRIMARY GOAL
+Extract a COMPREHENSIVE, evidence-grounded ontology from the text.
+Every item must have verbatim evidence from the source text.
+Be thorough — extract every clinical concept the text explicitly names.
+
+### RULES
+
+1. EVIDENCE FIRST
+- EVERY class, relation, and hierarchy edge MUST include an `evidence` field.
+- `evidence` must be an EXACT verbatim fragment copied from the text.
+- If exact evidence is not available, omit the item.
+
+2. SOURCE FIDELITY
+- Extract concepts and relations stated or clearly implied in the text.
+- You may use standard medical knowledge for hierarchy (e.g. TBI is a type of Brain Injury).
+- Use short noun-phrase labels only.
+- Do NOT output sentence fragments, clauses, or paraphrases as class labels.
+
+3. EXTRACTION SCOPE
+Extract ALL clinical and biomedical content: conditions, diseases, injuries, syndromes, secondary insults, physiological parameters, monitoring variables, treatments/therapies/interventions/drugs, outcomes, assessments, scores, laboratory values, nursing interventions, surgical procedures, medical devices, sensors, clinical guidelines, management protocols, and data categories (Monitoring Data, Demographic Data, Admission Data, Treatment Data, Outcome Data, Core Monitoring Parameter, Optional Monitoring Parameter, Baseline Therapy, etc.).
+Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+
+4. CLASS RULES
+- Prefer concrete clinical labels from the text.
+- Prefer specific labels over abstract ones (e.g. prefer 'Heart Rate' over 'Monitoring Data' when both are mentioned). If an allowed class list is provided, you may use those labels; otherwise avoid abstract categories unless the text explicitly names them.
+- Keep labels close to the wording in the text.
+- Do not invent CamelCase labels.
+
+5. LABEL MAPPING
+- If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+  Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+- For other abbreviations, expand to their full clinical name as used in the text.
+
+6. STRUCTURAL COMPLETENESS
+- When the text mentions specific clinical items, also extract their general category if the text supports it.
+- Use the text’s own categories and groupings — do not impose an external hierarchy.
+
+7. RELATION RULES
+- Extract relations when the text clearly states a connection between two extracted class labels.
+- Domain and range must both be extracted class labels from the same text.
+- Prefer concise, domain-appropriate relation labels (e.g. includes, treats, targets condition, has monitoring data).
+- If an allowed relation list was provided, use those labels. Otherwise, prefer labels that reflect the text’s wording.
+
+8. HIERARCHY RULES
+- Extract hierarchy edges when the text supports them. Look for:
+  - Explicit cues: "is a", "type of", "kind of", "such as", "include:", "includes:", "consists of", "comprises"
+  - Implicit grouping: items listed under a heading or category
+  - Medical knowledge: when both concepts are in the text and one is clearly a subtype (e.g. TBI is a type of Brain Injury)
+- For enumeration cues, extract EACH listed item as a subclass.
+- NEVER output long clauses, verb phrases, or sentence fragments as subclass or superclass.
+- If either side is not a clean noun phrase, omit the hierarchy edge.
+
+### REASONING STEP
+Before producing JSON, mentally scan the text for:
+(1) every named clinical concept,
+(2) explicit relations between them,
+(3) hierarchy cues (such as, is a, type of, include:).
+Then output only items with verbatim evidence.
+
+### OUTPUT FORMAT (JSON ONLY)
+Return ONLY valid JSON.
+Do not include markdown, explanations, headings, or commentary.
+
+Use exactly this structure:
+{
+  "classes": [
+    {"label": "string", "evidence": "string"}
+  ],
+  "relations": [
+    {"label": "string", "domain": "string", "range": "string", "evidence": "string"}
+  ],
+  "hierarchy": [
+    {"subClass": "string", "superClass": "string", "evidence": "string"}
+  ]
+}
+
+### NON-GOAL EXAMPLE
+The following sentence should produce NO extraction:
+Text: "The study was funded by the BrainIT Group and data were collected from 22 centres across 11 countries."
+Expected output: {"classes": [], "relations": [], "hierarchy": []}
+Reason: Funding, governance, study logistics, and multi-centre coordination are out of scope — only extract clinical concepts.
+
+### SELF-CHECK (before finalising output)
+- Is every label a clinical TYPE (not an instance, a person's name, or a study name)?
+- Are there any duplicate or synonym labels? Merge them.
+- Do all relation domain/range labels match extracted class labels?
+- Are there any circular hierarchy edges (A subClassOf B AND B subClassOf A)? Remove them.
+- Does every evidence field contain a verbatim quote from the text?
+- Do not invent concepts not present in the text.
+
+---
+TEXT TO ANALYZE:
+range and total CPP range over the patients' monitoring
+
+a b
+100 100
+95 95
+90 ** 90
+**
+85 85
+80 * 80
+*
+75 75
+70 70
+65 65
+60 60
+55 55
+50 50
+45 45
+40 40
+
+Cerebral Perfusion Pressure Variability Between Patients and Between Centres 5
+
+Discussion values or ranges in the everyday clinical setting, given that it
+is influenced by ICP variability, MAP variability including
+The current analysis demonstrates that in the patient cohorts systemic events and responses to drugs, and by responses to
+studied, the inter-individual CPP variability exceeds the therapeutic actions intended to decrease raised ICP. This
+inter-centre variability as expressed in interquartile ranges question is particularly relevant in light of the recommended
+and total ranges. However, it is still possible to discern an CPP range being narrowed down to 60-70 mmHg in the lateffect of centres' CPP target policies in the data. The change est version of the BTF guidelines issued this year [9], as well
+in CPP thresholds in the BTF guidelines in 2007 did affect as in light of the emerging concept of dynamic individual
+one of the two centres where this could be measured, while CPP targets influenced by autoregulation capacity [10, 11].
+the rate of 75% post-2007 having median CPP below The second question is whether deviations to the right (higher
+70 mmHg may also mean that an effort was made to follow CPPs) originate from the fear of too low CPP and possible
+the BTF guidelines. When looking at individual data, though, associated ischaemia, while the effects of too high CPP are
+it can be stated that deviations from the BTF guidelines less well documented or feared. In fact, the higher incidence
+occurred more frequently to the right, i.e. to higher CPPs, of acute respiratory distress syndrome (ARDS) reportedly
+than to the left, i.e. to lower CPPs. To the best of our knowl- associated with vasopressors in the CPP > 70 mmHg group
+edge, this is the first study specifically documenting CPP in the trial by Robertson et al. [3] does not seem to be that
+adherence and variability. much of a concern in clinical practice.
+When studying CPP variability across centres and The current analysis is a spin-off of another study for which
+patients, two questions emerge. The first question is how the current data were brought together [7]. Hence, it is limited
+accurately CPP can effectively be steered towards specific by its retrospective nature. Moreover, only four centres
+
+6 B. Depreitere et al.
+
+contributed data in the post-2007 cohort. Different centres the management of severe traumatic brain injury. IX. Cerebral perused different CPP methodology, i.e. they had the arterial fusion thresholds. J Neurotrauma. 2007;24(Suppl 1):S59-64.
+3. Robertson CS, Valadka AB, Hannay HJ, Contant CF, Gopinath SP,
+blood pressure transducer at tragus or at atrium height and Cormio M, et al. Prevention of secondary ischemic insults after
+nursed patients flat or with their head up at 30°. For patients severe head injury. Crit Care Med. 1999;27:2086-95.
+with the transducer at atrium height and being nursed at 30° 4. Juul N, Morris GF, Marshall SB, Marshall LF. Intracranial hyper-
+tension and cerebral perfusion pressure: influence on neurological
+head up, the CPP was corrected by subtracting 10 mmHg [esti-
+deterioration and outcome in severe head injury. The Executive
+mation of tragus-atrium distance × sin(30°) × 0.76 mmHg/ Committee of the International Selfotel Trial. J Neurosurg.
+cmH2O]. When we repeated the analysis without this correc- 2000;92:1-6.
+tion, all conclusions stated in the first paragraph of the discus- 5. Cnossen MC, Scholten AC, Lingsma HF, Synnot A, Tavender E,
+Gantner D, et al. Adherence to guidelines in adult patients with
+sion section remained valid. traumatic brain injury: a living systematic review. J Neurotrauma.
+While it may be irrelevant to issue CPP targets that are 2016. doi:10.1089/neu.2015.4121.
+expected to be universally valid in all patients at all times, it 6. Gupta D, Sharma D, Kannan N, Prapruettham S, Mock C, Wang
+may be useful to produce CPP safety limits. The current J, et al. Guideline adherence and outcomes in severe adult trau-
+matic brain injury for the CHIRAG (Collaborative Head Injury and
+study demonstrated that centres' CPP policies do have some Guidelines) study. World Neurosurg. 2016;89:169-79.
+effect, but that it is exceeded by intra- and inter-individual 7. Güiza F, Depreitere B, Piper I, Citerio G, Chambers I, Jones
+CPP variability. PA, et al. Visualizing the pressure and time burden of intracra-
+nial hypertension in adult and paediatric traumatic brain injury.
+Intensive Care Med. 2015;41:1067-76.
+Conflicts of interest statement We declare that we have no conflict 8. Piper I, Citerio G, Chambers I, Contant C, Enblad P, Fiddes H,
+of interest. et al. The Brain-IT group: concept and core dataset definition. Acta
+Neurochir. 2003;145:615-28.
+9. Carney N, Totten AM, O'Reilly C, Ullman JS, Hawryluk GW, Bell
+MJ, et al. Guidelines for the management of severe traumatic brain
+References injury. 4th ed. Neurosurgery. 2017;80:6-15.
+10. Steiner LA, Czosnyka M, Piechnik K, Smielewski P, Chatfield D,
+Menon DK, et al. Continuous monitoring of cerebrovascular pres-
+1. Brain Trauma Foundation; American Association of Neurological sure reactivity allows determination of optimal cerebral perfusion
+Surgeons; Joint Section on Neurotrauma and Critical Care, pressure in patients with traumatic brain injury. Crit Care Med.
+et al. Guidelines for cerebral perfusion pressure. J Neurotrauma. 2002;30:733-8.
+1996;13:693-697. 11. Aries MJ, Czosnyka M, Budohoski KP, Steiner LA, Lavinio A,
+2. Brain Trauma Foundation, American Association of Neurological Kolias AG, et al. Continuous determination of optimal cere-
+Surgeons, Congress of Neurological Surgeons, Joint Section on bral perfusion pressure in traumatic brain injury. Crit Care Med.
+Neurotrauma and Critical Care, AANS/CNS, et al. Guidelines for 2012;40:2456-63.
+---

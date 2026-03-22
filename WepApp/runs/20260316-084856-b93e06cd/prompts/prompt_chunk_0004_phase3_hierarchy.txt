@@ -1,0 +1,332 @@
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing the EXACT, verbatim sentence fragment from the text.
+
+3. **Extraction Scope:** Extract clinical and biomedical content: conditions, physiological parameters, monitoring variables, treatments/therapies/interventions, outcomes, assessments, laboratory values, nursing interventions, surgical procedures, and clinical dataset categories when explicitly named.
+   Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+   If a sentence or paragraph is mainly about these excluded topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+6. **Label Mapping Rule:** If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+   Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+   For other abbreviations, expand to their full clinical name as used in the text.
+
+7. **Structural Completeness Rule:** When the text mentions specific clinical items, also extract their general category if the text supports it.
+   For example, if the text discusses 'ventilation, sedation, fluids' as therapies, also extract the general class 'Therapy' or 'Baseline Therapy' if the text uses that grouping.
+   Use the text's own categories and groupings — do not impose an external hierarchy.
+
+**Default priority: classes first, then relations.** Extract relations when the text clearly states a connection between two concepts — both domain and range must be extracted classes. If a phase instruction below overrides this priority, follow the phase instruction.
+
+**Completeness:** Extract every distinct clinical concept the text names — err on the side of inclusion when evidence exists.
+
+### CURRENT TASK: Phase 3 — HIERARCHY EXTRACTION
+Extract subclass/superclass (is-a) edges supported by the text. A hierarchy edge means one class is a TYPE, SUBTYPE, CATEGORY MEMBER, or SPECIFIC INSTANCE of another. Extract every edge the text explicitly supports with evidence.
+
+### HIERARCHY DETECTION METHOD
+Look for ALL of these patterns in the text:
+  1. Explicit cues: 'such as', 'is a', 'type of', 'kind of', 'form of'
+  2. Enumeration: 'include:', 'includes:', 'consists of', 'comprises'
+  3. Category grouping: 'categorized as', 'classified as', 'grouped into'
+  4. List patterns: items listed under a heading or category name
+  5. Implicit grouping: when several specific items are mentioned alongside a general category (e.g., 'therapy: ventilation, sedation' implies both are subclasses of Therapy; 'core parameters: HR, ICP, MAP' implies all three are subclasses of Core Monitoring Parameter)
+  6. Definitional: 'X is a Y', 'X, a type of Y', 'X (a form of Y)'
+  7. Context-based: if the text organises items into sections or tables, each section heading implies a parent class for the items listed under it
+  8. Medical knowledge: TBI is a type of Brain Injury, Hypotension is a type of Secondary Insult — extract these when the text discusses them together
+
+For enumeration patterns (e.g. 'include: X, Y, Z'), extract EACH listed item as a subclass of the parent category.
+
+### CHAIN-OF-THOUGHT
+For each pair of known classes, reason:
+1. Does the text describe one class as a specialization of another?
+2. Does the text list one class under another as a member/subtype?
+3. Even if not explicitly stated, does medical context clearly imply a parent-child relationship?
+4. What text evidence supports this parent-child link?
+
+Be thorough: extract every parent-child relationship the text supports. Aim for at least one hierarchy edge per class if possible.
+Use ONLY the known classes below for subClass and superClass labels.
+
+### SELF-CHECK (before finalising output)
+- Are there any circular edges (A subClassOf B AND B subClassOf A)? Remove them.
+- Are subClass and superClass labels from the known-classes list?
+- Does every evidence field contain a verbatim quote from the text?
+
+Output JSON with keys classes, relations, hierarchy. Set classes and relations to empty arrays.
+
+Known classes (use only these for subclass/superclass): Arterial Hypotension; Hypotension; Systolic Blood Pressure (SBP); Mean Arterial Pressure (MAP); Heart Rate; Heart-Rate Variability; Patient Age; Outcome; Neural Network Model; Warning Time
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+**REASONING STEP:** Before producing JSON, mentally scan the text for: (1) every named clinical concept, (2) explicit relations between them, (3) hierarchy cues (such as, is a, type of, include:). Then output only items with verbatim evidence.
+
+---
+--- Retrieved examples (3) ---
+
+Text: This is the minimum minute by minute monitoring data required for inclusion in the BrainIT Database and include: Heart Rate, Respiration Rate, Mean Arterial Pressure, mean ICP, SaO2 and Temperature.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Monitoring Data",
+      "evidence": "minute by minute monitoring data"
+    },
+    {
+      "label": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required"
+    },
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate"
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate"
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "Mean Arterial Pressure"
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "mean ICP"
+    },
+    {
+      "label": "SaO2",
+      "evidence": "SaO2"
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature"
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Heart Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required...include: Heart Rate"
+    },
+    {
+      "subClass": "Respiration Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Heart Rate, Respiration Rate"
+    },
+    {
+      "subClass": "Mean Arterial Pressure (MAP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Mean Arterial Pressure"
+    },
+    {
+      "subClass": "Intracranial Pressure (ICP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: mean ICP"
+    },
+    {
+      "subClass": "SaO2",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: SaO2"
+    },
+    {
+      "subClass": "Temperature",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Temperature"
+    }
+  ]
+}
+
+---
+
+Text: Hypotension is a recognized secondary insult after traumatic brain injury. There are several classes of secondary insults. Several authors have shown that significant periods of arterial hypotension consistently relate to clinical outcome.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Hypotension",
+      "evidence": "Hypotension is a recognized secondary insult"
+    },
+    {
+      "label": "Secondary Insult",
+      "evidence": "secondary insult after traumatic brain injury"
+    },
+    {
+      "label": "Arterial Hypotension",
+      "evidence": "arterial hypotension"
+    },
+    {
+      "label": "Outcome",
+      "evidence": "clinical outcome"
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Hypotension",
+      "superClass": "Secondary Insult",
+      "evidence": "Hypotension is a recognized secondary insult"
+    },
+    {
+      "subClass": "Arterial Hypotension",
+      "superClass": "Hypotension",
+      "evidence": "arterial hypotension consistently relate to clinical outcome"
+    }
+  ]
+}
+
+---
+
+Text: Blood pressure monitoring includes both systolic (BPs) and mean (BPm) arterial pressure as core monitoring parameters. Hypotensive events, defined by EUSIG criteria, are a specific type of secondary insult. The EUSIG grading system is a clinical assessment tool for classifying insult severity.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Systolic Blood Pressure (SBP)",
+      "evidence": "systolic (BPs)"
+    },
+    {
+      "label": "Diastolic Blood Pressure (DBP)",
+      "evidence": "arterial pressure"
+    },
+    {
+      "label": "Hypotensive Event",
+      "evidence": "Hypotensive events"
+    },
+    {
+      "label": "EUSIG Grade",
+      "evidence": "EUSIG grading system"
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Systolic Blood Pressure (SBP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "systolic (BPs) arterial pressure as core monitoring parameters"
+    },
+    {
+      "subClass": "Diastolic Blood Pressure (DBP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "arterial pressure as core monitoring parameters"
+    },
+    {
+      "subClass": "Hypotensive Event",
+      "superClass": "Secondary Insult",
+      "evidence": "Hypotensive events are a specific type of secondary insult"
+    },
+    {
+      "subClass": "EUSIG Grade",
+      "superClass": "Clinical Assessment",
+      "evidence": "EUSIG grading system is a clinical assessment tool"
+    }
+  ]
+}
+
+---
+TEXT TO ANALYZE:
+AUC 0.3
+
+1.0 0.7 FPC
+
+The BANN
+test set results are shown with 0.4 0.4
+the dashed dot line and crossed
+circles for comparison AUC AUC
+0.2 TestSet: 0.74 0.2 TestSet: 0.74
+NoFPC: 0.67 NoFPC: 0.64
+0.0 WithFPC: 0.68 0.0 WithFPC: 0.67
+
+0.0 0.2 0.4 0.6 0.8 1.0 0.0 0.2 0.4 0.6 0.8 1.0
+False Positive Rate (1-Specificity) False Positive Rate (1-Specificity)
+
+Journal of Clinical Monitoring and Computing (2019) 33:39-51 45
+
+ROC Plot, Combined Phase 1 and 2 Data ROC Plot, Combined Phase 1 and 2 Data
+
+NoFPC
+0.8 0.6 WithFPC
+
+0.6
+0.5 0.2 DT
+Sensitivity
+
+Sensitivity
+FPC
+NoFPC 0.4
+0.4
+WithFPC
+
+0.2 TestSet: 0.74
+NoFPC: 0.65
+0.2 0.5 DT
+WithFPC: 0.68
+0.0
+
+0.0 0.2 0.4 0.6 0.8 1.0
+0.0 0.1 0.2 0.3 0.4
+False Positive Rate (1-Specificity)
+False Positive Rate (1-Specificity)
+
+False Positive Checks
+of effective antimicrobial therapy is the critical determinant 0.6
+NoFPC
+of survival [17].
+Precision
+
+0.4 WithFPC
+There is no universally accepted definition of arterial
+hypotension used during the clinical management of TBI 0.2
+
+patients. Bijker et al. found almost 50 definitions being
+0.0
+quoted in the surgical literature [18], many of these use 0.1 0.2 0.3 0.4 0.5 0.6
+hypotension definitions that are markedly more severe in Recall
+terms of the depth of hypotension and their combined duration (often > 30 min) than those considered relevant in the Fig. 7 Precision recall plot. An alternative visualization of prediction
+neuro-critical care of TBI patients. We carried out our own performance. This plot indicates low values of precision in the likely
+survey of the current practices within the participating cen- operating range of 0.3-0.4 for recall (sensitivity), the plot, similar
+to the ROC presentation also suggests that > 30% of the warnings
+tres, which indicated that both systolic and mean arterial would be clinically relevant
+pressure should be monitored and considered in the definition of hypotension and therefore it was decided to use the
+published Edinburgh University Secondary Insult Grading trend values of heart rate incorporated in our model is a
+(EUSIG) definition [2], which requires both measurements. crude measure of heart-rate variability.
+Our results and the predictive variables selected (Table 1) The choice of a neural network model is supported by
+are generally consistent with previous work. A study of the results of a competition sponsored by the PhysioNet
+hypotensive episodes during general anesthesia found that group [20] that tested the ability of various models to prebaseline mean arterial pressure and patient age were sig- dict hypotension in intensive care patients. A neural network
+nificant predictors of outcome [6]. Several studies have entry won this challenge [21], although optimized rule-based
+found that heart-rate variability can be used as a predictor approaches also worked well [22, 23]. An earlier study also
+of hypotension [19]. The standard deviation of the 1-min demonstrated that a neural network model was an effective
+
+46 Journal of Clinical Monitoring and Computing (2019) 33:39-51
+
+Fig. 8 Box plot of warning time
+for varying decision thresholds. Note that in the clinically
+relevant decision threshold
+region of 0.3-0.4, the average
+hypotension warning time was
+15 min or greater
+---

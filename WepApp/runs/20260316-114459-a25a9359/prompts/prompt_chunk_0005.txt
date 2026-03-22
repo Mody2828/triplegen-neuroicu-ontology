@@ -1,0 +1,420 @@
+Use ONLY the following class labels:
+Acute Respiratory Distress Syndrome; Adrenaline; Analgesia; Anterior Fossa Repair; Anti-hypertensives; Anti-pyretics; Antibiotics; Arterial Hypotension; Arterial Pressors; Barbiturates; Baseline Therapy; Bedside Intervention; Biochemistry; Blood Gases; Brain Temperature; CT Scan Assessment; CVP; Cardiac Output; Cerebral Perfusion Pressure (CPP); Clinical Assessment; Condition; Core Monitoring Parameter; Data Quality Assessment; Decompressive Craniectomy; Demographic Data; Derived Parameter; EtCO2; Evacuation of Mass Lesion; Extra Ventricular Drain Placement; Fluids; GCS Assessment; GOSe Outcome; Glucose; Haematocrit; Haematology; Haemoglobin; Heart Rate; Hypertension; Hypotension; Hypothermia Therapy; ICP Sensor Placement; Intensive Care Management; Intracranial Hypertension; Intracranial Pressure (ICP); Jugular Venous Desaturation; Laboratory Values; Mean Arterial Pressure (MAP); Microdialysis; Monitoring Data; NIBP; Noradrenaline; Nursing Intervention; Nutrition; Observation; Optional Monitoring Parameter; Osmotics; Outcome; Paralysis; Parameter; Patient; Patient Transport; PbrO2; Peripheral Temperature; Physiotherapy; Possible Error; Potassium; Pressure Reactivity Index (PRx); Probable Error; Pupil Assessment; Removal of Foreign Body; Respiration Rate; Routine Nursing Care; SaO2; Secondary Insult; Secondary Insult Therapy; Secondary Insult Treatment; Sedation; Sensor; Sepsis; Session; SjO2; Skull Fracture Elevation; Sodium; Steroids; Surgical Procedure; Systemic Hypotension; TCD; Temperature; Therapy; Timepoint; Vasopressors; Ventilation; White Blood Cell Count
+
+Use ONLY the following relation labels with the stated domain and range:
+affected by treatment(Data Quality Assessment->Therapy); associated with condition(Data Quality Assessment->Condition); has clinical assessment(Patient->Clinical Assessment); has laboratory value(Patient->Laboratory Values); has monitoring data(Patient->Monitoring Data); has nursing intervention(Patient->Nursing Intervention); has observation(Timepoint->Observation); has outcome(Patient->Outcome); has quality assessment(Observation->Data Quality Assessment); has session(Patient->Session); has surgical procedure(Patient->Surgical Procedure); has timepoint(Session->Timepoint); measures parameter(Observation->Parameter); monitoring indicates condition(Monitoring Data->Condition); produced by sensor(Observation->Sensor); receives therapy(Patient->Therapy); targets condition(Therapy->Condition)
+
+If an item is not supported by the text and does not match the allowed labels above, omit it.
+
+Leaf-first rule (important):
+Prefer the most specific allowed class labels explicitly supported by the text.
+Do not stop at broad container classes such as Monitoring Data, Therapy, or Condition if the text names more specific allowed concepts.
+Broad classes may be included only when directly supported by the text or when needed as valid endpoints for a clearly supported relation.
+If multiple distinct allowed leaf concepts are explicitly named, extract each of them separately with its own evidence.
+Do not treat research methods, feasibility workflow, organisational process, or guideline-adherence calculations as Therapy, Monitoring Data, or other clinical ontology classes.
+
+Suggested concepts (pre-identified by biomedical NER in this text): jugular venous desaturations, intracranial hypertension, hypotension.
+These are entity mentions detected in this chunk. Use them as additional evidence that a concept is present, but only extract labels from the allowed class list above.
+
+Candidate domain terms (contextual hints only — use only if explicitly supported by the text):
+pressure; cerebral perfusion pressure; hypertension; hypotension; icp; intracranial hypertension; microdialysis; outcome; secondary insult; therapy; CPP; monitoring
+
+SYSTEM ROLE
+
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+CORE CONSTRAINTS
+
+Source fidelity
+Extract information stated or clearly implied in the current text.
+You may use standard medical knowledge to recognise parent-child relationships
+(e.g. TBI is a type of Brain Injury) when the text discusses both concepts.
+Do not invent concepts that are not mentioned in the text.
+
+Evidence anchor
+Every extracted class, relation, and hierarchy edge must include an evidence field.
+Evidence must be an exact verbatim phrase or sentence fragment from the text.
+
+Extraction scope
+Extract ALL clinical and biomedical content: conditions, diseases, injuries, syndromes, secondary insults, physiological parameters, monitoring variables, treatments/therapies/interventions/drugs, outcomes, assessments, scores, laboratory values, nursing interventions, surgical procedures, medical devices, sensors, clinical guidelines, management protocols, and data categories (Monitoring Data, Demographic Data, Admission Data, Treatment Data, Outcome Data, Core Monitoring Parameter, Optional Monitoring Parameter, Baseline Therapy, etc.).
+Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+If a sentence or paragraph is mainly about these excluded topics, ignore it unless it contains a clearly named clinical concept.
+
+Priority rule
+Classes are the priority.
+Extract relations when the text clearly supports the connection and both endpoints are extracted classes.
+Extract hierarchy only when there is an explicit lexical cue.
+
+Confidence rule
+If a clinical concept is clearly named in the text, include it even if mentioned briefly.
+Omit only genuinely non-clinical items.
+
+Hierarchy rule
+Extract hierarchy edges generously. Look for:
+- Explicit cues: is a, type of, kind of, such as, include:, includes:, consists of, comprises
+- Implicit grouping: items listed under a heading or category (e.g. 'core parameters: HR, ICP, MAP')
+- Medical knowledge: when the text discusses both concepts and one is clearly a subtype
+  (e.g. TBI is a type of Brain Injury, Hypotension is a Secondary Insult)
+
+Label mapping rule
+If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+For other abbreviations, expand to their full clinical name as used in the text.
+
+Structural completeness rule
+When the text mentions specific clinical items, also extract their general category if the text supports it.
+For example, if the text discusses ventilation, sedation, fluids as therapies, also extract the general class Therapy or Baseline Therapy if the text uses that grouping.
+Use the text’s own categories and groupings — do not impose an external hierarchy.
+
+Anti-anchoring rule
+Use the retrieved example below as format and behaviour guidance only.
+Do not copy labels, relations, or hierarchy from the example unless the current text explicitly supports them.
+Your text may contain concept types NOT represented in the example — extract them all.
+
+REASONING STEP
+Before producing JSON, mentally scan the text for:
+(1) every named clinical concept,
+(2) explicit relations between them,
+(3) hierarchy cues (such as, is a, type of, include:).
+Then output only items with verbatim evidence.
+
+OUTPUT FORMAT (JSON ONLY)
+
+Return only valid JSON.
+Do not include markdown code fences, explanations, notes, or commentary.
+
+Structure:
+{
+  "classes": [
+    {"label": "string", "evidence": "string"}
+  ],
+  "relations": [
+    {"label": "string", "domain": "string", "range": "string", "evidence": "string"}
+  ],
+  "hierarchy": [
+    {"subClass": "string", "superClass": "string", "evidence": "string"}
+  ]
+}
+
+OUTPUT RULES
+
+Use short, clean noun-phrase labels for classes.
+Do not output duplicate items.
+Every relation must have a valid domain, range, and exact evidence.
+Domain and range must be class labels supported by the text.
+If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+Do not create hierarchy from thresholds, values, long clause fragments, or procedural text.
+If no valid relations or hierarchy are supported, return empty arrays for them.
+Extract EVERY distinct clinical concept the text names — err on the side of INCLUSION.
+Do not invent concepts, relations, or hierarchy edges not supported by the text.
+
+NON-GOAL EXAMPLE
+The following sentence should produce NO extraction:
+Text: "The study was funded by the BrainIT Group and data were collected from 22 centres across 11 countries."
+Expected output: {"classes": [], "relations": [], "hierarchy": []}
+Reason: Funding, governance, study logistics, and multi-centre coordination are out of scope — only extract clinical concepts.
+
+SELF-CHECK (before finalising output)
+- Is every label a clinical TYPE (not an instance or a person’s name)?
+- Are there any duplicate or synonym labels? Merge them.
+- Do all relation domain/range labels match extracted class labels?
+- Are there any circular hierarchy edges? Remove them.
+- Does every evidence field contain a verbatim quote from the text?
+
+--- Retrieved example ---
+Text: Secondary insults such as intracranial hypertension, systemic hypotension, arterial hypotension, jugular venous desaturation, and acute respiratory distress syndrome (ARDS) occur frequently in head injured patients despite baseline intensive care management. Secondary insult treatment covers non-surgical therapy specifically given to treat secondary insults. For example, arterial pressors may be given to treat systemic hypotension or to treat reduced cerebral perfusion pressure (CPP) secondary to raised ICP. The minute by minute monitoring data allows clinicians to detect these conditions.
+Output (JSON):
+{{
+  "classes": [
+    {{
+      "label": "Secondary Insult",
+      "evidence": "Secondary insults such as intracranial hypertension"
+    }},
+    {{
+      "label": "Condition",
+      "evidence": "adverse physiological events that occur frequently in head injured patients"
+    }},
+    {{
+      "label": "Intracranial Hypertension",
+      "evidence": "intracranial hypertension"
+    }},
+    {{
+      "label": "Systemic Hypotension",
+      "evidence": "systemic hypotension"
+    }},
+    {{
+      "label": "Arterial Hypotension",
+      "evidence": "arterial hypotension"
+    }},
+    {{
+      "label": "Jugular Venous Desaturation",
+      "evidence": "jugular venous desaturation"
+    }},
+    {{
+      "label": "Acute Respiratory Distress Syndrome",
+      "evidence": "acute respiratory distress syndrome (ARDS)"
+    }},
+    {{
+      "label": "Secondary Insult Treatment",
+      "evidence": "Secondary insult treatment covers non-surgical therapy"
+    }},
+    {{
+      "label": "Therapy",
+      "evidence": "non-surgical therapy specifically given to treat secondary insults"
+    }},
+    {{
+      "label": "Arterial Pressors",
+      "evidence": "arterial pressors"
+    }},
+    {{
+      "label": "Cerebral Perfusion Pressure (CPP)",
+      "evidence": "reduced cerebral perfusion pressure (CPP)"
+    }},
+    {{
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "raised ICP"
+    }},
+    {{
+      "label": "Monitoring Data",
+      "evidence": "minute by minute monitoring data"
+    }}
+  ],
+  "relations": [
+    {{
+      "label": "targets condition",
+      "domain": "Therapy",
+      "range": "Condition",
+      "evidence": "arterial pressors may be given to treat systemic hypotension"
+    }},
+    {{
+      "label": "monitoring indicates condition",
+      "domain": "Monitoring Data",
+      "range": "Condition",
+      "evidence": "monitoring data allows clinicians to detect these conditions"
+    }}
+  ],
+  "hierarchy": [
+    {{
+      "subClass": "Secondary Insult",
+      "superClass": "Condition",
+      "evidence": "Secondary insults such as intracranial hypertension...occur frequently in head injured patients"
+    }},
+    {{
+      "subClass": "Intracranial Hypertension",
+      "superClass": "Secondary Insult",
+      "evidence": "Secondary insults such as intracranial hypertension"
+    }},
+    {{
+      "subClass": "Systemic Hypotension",
+      "superClass": "Secondary Insult",
+      "evidence": "Secondary insults such as systemic hypotension"
+    }},
+    {{
+      "subClass": "Arterial Hypotension",
+      "superClass": "Secondary Insult",
+      "evidence": "Secondary insults such as arterial hypotension"
+    }},
+    {{
+      "subClass": "Jugular Venous Desaturation",
+      "superClass": "Secondary Insult",
+      "evidence": "Secondary insults such as jugular venous desaturation"
+    }},
+    {{
+      "subClass": "Acute Respiratory Distress Syndrome",
+      "superClass": "Secondary Insult",
+      "evidence": "Secondary insults such as acute respiratory distress syndrome"
+    }}
+  ]
+}}
+
+--- TEXT TO ANALYZE ---
+Group members were also invited to make comments on the form on
+data elements which they felt the instructions either needed clarification
+or the categories required modification. The comments were summarised
+
+Monitoring based feasibility exercise
+
+or the PI has recently moved to a different unit and data will be forthcoming. The remaining three centres currently have no PC connection to
+their bedside monitoring and require assistance with developing a suitable interface. The BrainIT group is collaborating with three medical
+device companies (Philips Medical, CMA Microdialysis and Licox) to
+develop solutions for these centres. For the purposes of this pilot, the key
+question was to determine that ''minute by minute'' data is collectable
+from all centres. The data returned is only a sample and so may not be
+representative of the full range of monitoring which will be collected in
+future. This can only be determined from a prospective data collection
+period with multiple patients data collected per centre.
+
+This paper has outlined the concept underlying the
+the groups efforts to define and test the feasibility for
+collection of a core-dataset.
+
+collaboration towards raising standards for collection
+and analysis of data from patients with traumatic brain
+injury. Data generated as a result of the work of the
+working within the field of traumatic brain injury in that
+data collected as part of individual projects is openly
+accessible by all who contribute data to the database.
+database will be openly accessible, through the Internet,
+able to be queried over the Internet and datasets of interest can be downloaded to any member who has also
+contributed data to the database.
+The underlying hope is that such openness will lead
+to a more diverse and innovative range of analysis
+approaches than would be otherwise possible by any
+fixed group of investigators with a limited range of
+prevent duplication and may stimulate inter group
+collaboration. The strength of post-hoc analyses of such
+a database is in the generation of new hypotheses which
+can be prospectively tested.
+The success of this approach will depend upon the
+correct balance between openness and control. The concept of an open access database would not have worked
+in previous years, due to the difficulty of managing and
+protecting such a resource. However today, the pervasive
+
+nature of the Internet and the power and ease of use of
+discussion forums and remotely administrable and auditable databases makes the implementation of such an
+approach feasible. However, any such open database
+can only work if it is based, to some extent, on trust.
+Criteria have been set and must be met by contributors to
+the database. Those accessing and analysing data will be
+audited and those who fail to follow group guidelines
+will be prevented from future access to the database.
+will depend upon if the generation and publication of
+standards, new findings and analyses outweigh any
+abuse of the open access approach.
+
+Core dataset definition
+requirements are uniquely detailed and require as a
+minimum some form of PC based collection of patient
+monitoring data at a collection frequency of no less than
+1 sample per minute. The technical aims of the group are
+to collect both monitoring and non-monitoring core
+dataset elements from multiple centers using bedside,
+that end, in this paper, we have outlined the groups
+efforts towards defining a uniquely detailed core dataset.
+A feasibility exercise was successfully carried out
+demonstrating that the core dataset is collectable across
+centres with an acceptably low frequency of missing
+data.
+However, it is not enough to just set up procedures for
+collection of multi-centre data - the procedures must be
+shown to work and estimates of inter and intra centre
+missing data and data error rates need to be determined.
+To do so requires a prospective trial of the effectiveness
+of the BrainIT procedures. EEC funding has recently
+on a region-by-region basis to conduct a prospective
+between 5 and 10 patients per centre need be recruited
+approval has been obtained. The successful completion
+of this ''proof of concept'' phase will create a network of
+centres capable of multi-centre computer based standardised collection of validated, high resolution, well documented management and monitoring data from patients
+with TBI. The results of the data validation study will
+provide a baseline measure of inter-centre missing data
+and data field error rates. In addition, a mechanism for
+
+testing the efficacy of maintaining patient confidentiality
+will be implemented and tested. Such a network, once
+tested, will be a valuable resource, not only for academic
+medicine and the medical device industry, but also for
+I=II trials of new pharmacological therapy. In this
+regard, of particular relevance to trials of therapy, will
+be the advantage of using the BrainIT ''therapy targets''
+(See Figure 3) instead of giving fixed criteria for adverse
+events and indications for treatment. Some advantages
+of this approach are: a) There is no need to come to an
+agreement between centres on standard treatment, thus
+allowing more centres to participate in any given study,
+b) Delivers an increased possibility to study the effects
+of different treatment thresholds and a wider spectrum of
+treatments.
+The case for raising standards
+Although most trial designs incorporate data collection methods for quantifying and controlling for secondary insults that may occur during the trial period, these
+measures will at best identify only major adverse events
+discernible from the nurses hourly chart records. More
+frequent shorter duration secondary insults are often
+missed if sampling periods greater than 1 minute is used
+[6]. Apart from data sampling rate there is also still
+uncertainty amongst investigators as to the optimal
+methodology for identification and definition of these
+adverse events. In particular the duration and critical
+threshold that should be used to define a specific type
+of secondary insult remains unclear. A good example is
+cerebral perfusion pressure insults. Over the last few
+years an interest in CPP targeted therapy for head
+injured patients has developed with a number of observational studies indicating that a CPP of 70 mmHg
+appears to be a critical value [2, 5, 14-16, 21]. Publication of the American Guidelines for the management of
+state that there is not sufficient evidence to establish
+either a standard or guideline for the management of
+CPP, although they indicate management of CPP greater
+than 70 mmHg as a management option. However, as
+yet, there are no published randomised multi-centre
+trials demonstrating a benefit in patient outcome if
+CPP is maintained at or beyond this threshold. Conversely, a recently published study from a single-centre
+randomised CPP management trial has shown that
+aggressive management of CPP > 70 mmHg, although
+reducing the incidence of jugular venous desaturations
+
+I. Piper et al.
+
+< 50%, increased the incidence of acute respiratory
+distress syndrome and worsened neurological outcome
+[20, 21].
+Whether it is possible to define if the optimal CPP
+threshold should be set at 60 mmHg, 70 mmHg or higher
+is further complicated by a number of technical issues.
+These include a lack of standardisation between centres
+on the site of ICP monitoring (intraventricular vs intraparenchymal vs subdural) and the technology used
+(catheter-tip vs fluid-filled catheter-transducer systems).
+Most arterial pressure measurement is based on fluidfilled catheter-transducer systems where the degree of
+system ''damping'' is an important factor. Altering the
+damping of such a system over typical limits can cause
+up to a 7 mmHg bias in recorded arterial pressure [7]. In
+terms of arterial pressure recording such a bias may not
+be significant, but for CPP measurement, a 7 mmHg
+error will make the difference to calculated CPP being
+above or below a treatment threshold. Another important
+source of error is the inter-centre differences in location
+of the ''zero'' pressure reference site for the BP transducer. This issue alone can account for up 13 mmHg
+variance in calculated CPP when combined with the
+effect of hydrostatic fluid columns which depend upon
+the degree of angle of head up tilt of the patient [10].
+Before we can define thresholds for secondary insults, in
+a multi-centre study, better standardisation between centres of the type, damping, placement and calibration of
+physiological monitoring is needed.
+Apart from optimising the methods for measuring
+adverse events, data sampling rate is also important.
+There are now a number of microcomputer based dataacquisition software systems that can be used to acquire
+patient physiological data on a frequent basis (<1/4 1
+sample=minute). These packages provide the means
+for quantifying, with greater resolution, the degree of
+secondary injury occurring in head injured patients over
+specific periods of monitoring [4, 6]. As a result, secondary insults such as intracranial hypertension, and
+arterial hypotension have been found to occur, in head
+injured patients, more frequently than previously realised with more than 90 percent of patients exhibiting
+one or more insults during their management in intensive care [12]. To accurately detect and quantify these
+are required and studies have shown that taking data
+from the nursing charts alone often miss and frequently
+underestimate the actual incidence of these events [6].
+This is particularly relevant as, to date, all previous
+
+research forms (CRF) for recording data on adverse
+events with a sampling rate similar to the bedside nurses
+chart.
+For the above mentioned reasons, it is conceivable that
+large numbers of secondary insults could be missed in a
+trial. It is also possible that many of these missed events
+might occur non-randomly across centres as the ability to
+detect short acting secondary insults may vary between
+centres depending on the type and method of monitoring
+employed. It is also still unknown to what degree the
+intensity of patient management and any intra=inter centre management variation influences the incidence of
+short acting secondary insults. An investigator's choice
+of participating centre may be more driven by a centres
+past recruitment rate rather than providing a representative sample of these other factors. For these reasons, it is
+feasible that missed secondary insults could potentially
+adversely influence outcome by as much or greater than a
+potential neuroprotective drug, management or monitoring approach might improve outcome.
+By not using appropriate high resolution standardised
+factors in their design and analysis and thus the power
+for detecting an effect of a trial drug or a new management or monitoring approach could be significantly
+reduced.
+---

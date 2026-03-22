@@ -1,0 +1,300 @@
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing the EXACT, verbatim sentence fragment from the text.
+
+3. **Extraction Scope:** Extract clinical and biomedical content: conditions, physiological parameters, monitoring variables, treatments/therapies/interventions, outcomes, assessments, laboratory values, nursing interventions, surgical procedures, and clinical dataset categories when explicitly named.
+   Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+   If a sentence or paragraph is mainly about these excluded topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+6. **Label Mapping Rule:** If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+   Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+   For other abbreviations, expand to their full clinical name as used in the text.
+
+7. **Structural Completeness Rule:** When the text mentions specific clinical items, also extract their general category if the text supports it.
+   For example, if the text discusses 'ventilation, sedation, fluids' as therapies, also extract the general class 'Therapy' or 'Baseline Therapy' if the text uses that grouping.
+   Use the text's own categories and groupings — do not impose an external hierarchy.
+
+**Default priority: classes first, then relations.** Extract relations when the text clearly states a connection between two concepts — both domain and range must be extracted classes. If a phase instruction below overrides this priority, follow the phase instruction.
+
+**Completeness:** Extract every distinct clinical concept the text names — err on the side of inclusion when evidence exists.
+
+### CURRENT TASK: Phase 1 — COMPREHENSIVE CLASS EXTRACTION
+Extract all clinical and biomedical classes mentioned in the text.
+
+### CHAIN-OF-THOUGHT (follow these steps before producing output)
+1. Read each paragraph and identify every clinical noun phrase (conditions, parameters, therapies, assessments, outcomes, devices, data categories).
+2. For each candidate, classify it: Is it a clinical condition? A physiological parameter? A treatment? An assessment? A laboratory value? A nursing intervention? A data category? A device or sensor?
+3. Check: does the text provide a verbatim phrase you can cite as evidence?
+4. If yes, include it. If the concept is purely organisational, governance, or publication metadata, skip it.
+
+### CONCEPT TYPES TO LOOK FOR
+  - Clinical conditions, diseases, injuries, syndromes, secondary insults
+  - Physiological parameters and monitoring variables (e.g. ICP, MAP, HR, SpO2)
+  - Treatments, therapies, interventions, drugs, medications
+  - Surgical procedures and clinical procedures
+  - Clinical assessments, scores, and scales (e.g. GCS, GOSe, pupil assessment)
+  - Patient outcomes and outcome measures
+  - Laboratory values and test categories (e.g. blood gases, biochemistry)
+  - Nursing interventions and bedside care (e.g. suctioning, sedation)
+  - Medical devices and sensors
+  - Data categories and abstract grouping classes (e.g. Monitoring Data, Therapy, Condition, Outcome, Core Monitoring Parameter, Optional Monitoring Parameter, Baseline Therapy, Demographic Data, Admission Data, Treatment Data, Outcome Data)
+  - Clinical guidelines and management protocols
+
+### LABEL GUIDANCE
+  - Use short, clean noun-phrase labels.
+  - Expand common abbreviations: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+  - For other abbreviations, expand to their full clinical name.
+
+### STRUCTURAL COMPLETENESS
+When the text mentions specific clinical items, also extract their general category if the text supports it. Use the text's own categories and groupings. For example, if the text lists 'heart rate, ICP, MAP' under 'core monitoring parameters', extract BOTH the individual parameters AND 'Core Monitoring Parameter' as a class.
+
+### EXTRACTION PRINCIPLE
+Extract every clinical concept the text explicitly names. Do not invent concepts not present in the text. Each concept needs a verbatim evidence quote from the source.
+
+### SELF-CHECK (before finalising output)
+- Is every label a clinical TYPE (not an instance or a person's name)?
+- Are there any duplicate or synonym labels? Merge them.
+- Does every evidence field contain a verbatim quote from the text?
+
+Output JSON with keys classes, relations, hierarchy. Set relations and hierarchy to empty arrays.
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+**REASONING STEP:** Before producing JSON, mentally scan the text for: (1) every named clinical concept, (2) explicit relations between them, (3) hierarchy cues (such as, is a, type of, include:). Then output only items with verbatim evidence.
+
+---
+--- Retrieved examples (3) ---
+
+Text: This is the minimum minute by minute monitoring data required for inclusion in the BrainIT Database and include: Heart Rate (specifying source: ECG or Pulse Oximetry), Respiration Rate (sources: impedance plethmography or ventilator), Mean Arterial Pressure, mean ICP, Pulse Oximetry (SaO2) and Temperature (sources: rectal=oesophageal= bladder=skin.) However, additional variables: Central Venous Pressure (CVP), EtCO2, SjO2, TCD, PbrO2, Brain Temperature, Microdialysis. . . will also be included in the database if they are monitored, in a given patient, as part of their usual clinical management.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate (specifying source: ECG or Pulse Oximetry)"
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate (sources: impedance plethmography or ventilator)"
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "Mean Arterial Pressure"
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "mean ICP"
+    },
+    {
+      "label": "SaO2",
+      "evidence": "Pulse Oximetry (SaO2)"
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature (sources: rectal=oesophageal= bladder=skin.)"
+    },
+    {
+      "label": "CVP",
+      "evidence": "Central Venous Pressure (CVP)"
+    },
+    {
+      "label": "EtCO2",
+      "evidence": "EtCO2"
+    },
+    {
+      "label": "SjO2",
+      "evidence": "SjO2"
+    },
+    {
+      "label": "TCD",
+      "evidence": "TCD"
+    },
+    {
+      "label": "PbrO2",
+      "evidence": "PbrO2"
+    },
+    {
+      "label": "Brain Temperature",
+      "evidence": "Brain Temperature"
+    },
+    {
+      "label": "Microdialysis",
+      "evidence": "Microdialysis"
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+
+Text: Intracranial pressure (ICP) monitoring was introduced as a monitoring tool for severe TBI. The recommended treatment threshold for ICP-lowering therapies is 20 mmHg. An increased ICP is an independent risk factor for mortality, and the total burden of ICP derangements, calculated as the area under the ICP curve above 20 mmHg, is an independent predictor of worse outcome in adults and children.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "Intracranial pressure (ICP) monitoring"
+    },
+    {
+      "label": "Monitoring Data",
+      "evidence": "ICP monitoring was introduced as a monitoring tool"
+    },
+    {
+      "label": "Intracranial Hypertension",
+      "evidence": "increased ICP is an independent risk factor"
+    },
+    {
+      "label": "Therapy",
+      "evidence": "ICP-lowering therapies"
+    },
+    {
+      "label": "Outcome",
+      "evidence": "independent predictor of worse outcome"
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+
+Text: The pressure-time dose of intracranial hypertension, defined as the area under the ICP curve above a threshold, is an independent predictor of 6-month mortality. Cerebrovascular autoregulation status, assessed via the pressure reactivity index (PRx), modulates the relationship between ICP burden and outcome. Patients with intact autoregulation tolerate higher ICP doses than those with impaired autoregulation.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Pressure-Time Dose",
+      "evidence": "pressure-time dose of intracranial hypertension, defined as the area under the ICP curve"
+    },
+    {
+      "label": "Intracranial Hypertension",
+      "evidence": "intracranial hypertension"
+    },
+    {
+      "label": "Mortality",
+      "evidence": "independent predictor of 6-month mortality"
+    },
+    {
+      "label": "Cerebrovascular Autoregulation",
+      "evidence": "Cerebrovascular autoregulation status"
+    },
+    {
+      "label": "Pressure Reactivity Index (PRx)",
+      "evidence": "pressure reactivity index (PRx)"
+    },
+    {
+      "label": "Outcome",
+      "evidence": "relationship between ICP burden and outcome"
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+TEXT TO ANALYZE:
+In
+vegetative or severely disabled (GOS 1-3)] were built, children, at intensity thresholds of 15 and 20 mmHg, the
+
+p \ 0.050] cohorts. The percentage of monitoring time in
+the red zone was also a significant predictor of un-
+favourable outcome in adults [OR 3.97 (95 % CI
+1.30-12.1); p = 0.014] (ESM Tables 2-5). The percent-
+age of monitoring time in the red zone during the first day
+only was a significant independent predictor of mortality
+[OR 2.90 (95 % CI 1.03-8.14); p = 0.039], but not of
+6-month unfavourable outcome [OR 1.80 (95 % CI
+0.78-4.18); p = 0.16] in adults. In paediatric TBI pa-
+tients, there was a trend towards significance for the
+percentage of monitoring time in the red zone during the
+first day only, for both mortality [OR 266 9 101 (95 % CI
+0.564-126 9 105); p = 0.062] and unfavourable out-
+come [OR 5.82 (95 % CI 0.861-39.4); p = 0.065] (ESM
+Tables 6-9).
+Figure 4 shows the transition curves resulting from
+visualizations of active and passive autoregulation insults
+(the corresponding colour-coded plots are available in the
+ESM Fig. 1, the percentages of active and passive insults
+in each cohort in the ESM Table 10). In the adult as well
+as in the paediatric population, the transition curve for
+Fig. 3 Comparison of transition curves in adult (black) and passive insults shifts towards the left, and the transition
+paediatric (purple) cohorts. Transition curves are the lines of zero
+correlation between ICP insults and outcome. Episodes above and curve for active insults shifts towards the right, with reto the right of this transition curve are associated with worse spect to the 'all insults' curve. In adults, episodes above
+outcomes 20 mmHg when cerebrovascular autoregulation is active
+had a duration of 233 min before they were associated
+respective transitions occur at shorter durations of 48 and with worse outcome, versus 19 min when autoregulation
+8 min. The transition curves of the two cohorts are shown was passive. Duration thresholds derived from the active
+together in Fig. 3. and passive transition curves for commonly used intensity
+monitoring time spent by each patient in the red zone was Finally, the association of ICP insults and outcome
+an independent significant predictor of death, both in was plotted for three different levels of CPP. In adults as
+adults [OR 9.91 (95 % CI 2.67-36.8); p \ 0.001] as in well as in children, when CPP was below 50 mmHg, alchildren [OR 178 9 103 (95 % CI 1.02-309 9 108); most all ICP insults were associated with worse outcome,
+
+Fig. 4 Transition curve visualizations according to cerebrovascular Right paediatric cohort (n = 99). Transition curves are the lines of
+autoregulatory status. The transition curves for all insults (irre- zero correlation between ICP insults and outcome. Episodes above
+spective of autoregulation) are drawn in blue, while the transition and to the right of this transition curve are associated with worse
+curves for autoregulation active insults are shown in green and for outcomes
+autoregulation passive insults in red. Left adult cohort (n = 261).
+
+Fig. 5 Visualization of correlation between GOS and average explanation of this colour-coded plot, refer to the legend of
+number of ICP insults per GOS category according to a cerebral Fig. 1. Left panel CPP B50 mmHg. Right panel CPP [50 mmHg.
+perfusion pressure (CPP) threshold of 50 mmHg. For an Above adult cohort (n = 261). Below paediatric cohort (n = 99)
+
+In adults as
+adults [OR 9.91 (95 % CI 2.67-36.8); p \ 0.001] as in well as in children, when CPP was below 50 mmHg, alchildren [OR 178 9 103 (95 % CI 1.02-309 9 108); most all ICP insults were associated with worse outcome,
+
+regardless of duration and intensity (Fig. 5). When CPP represent the cumulative time/pressure dose per patient,
+was above 50 mmHg, the transition curve shifted to the but per type of insult, characterized by duration and inright as compared to the 'all insults' curve. At CPPs of 60tensity. The cumulative ICP burden per patient (defined as
+and 70 mmHg there was a further small rightward shift of the percentage of time in the red zone) was assessed
+sociated with mortality at 6 months.
+The main finding is the emergence of clearly distinct
+insult intensity and duration thresholds that occur more
+Discussion frequently in patients with lower 6-month GOS, delin-
+eated by an approximately exponential transition curve.
+In this study, the univariate relationship between 6-month This supports the 'dose of ICP' concept, which has been
+neurological outcome and insults of raised ICP is sum- proposed earlier as the proportion of hourly measuremarized in colour-coded plots. These plots do not ments above 20 mmHg [12], or the area under the curve
+
+Fig. 6 Transition curves of ICP
+insults according to three
+different thresholds of cerebral
+perfusion pressure (CPP). For
+an explanation of transition
+curves, refer to the legend of
+Fig. 4. All insults irrespective
+of CPP (black); insults with
+CPP [50 mmHg (red); with
+CPP [60 mmHg (green) and
+with CPP [70 mmHg (blue).
+Left panel adult cohort
+(n = 261). Right panel
+paediatric cohort (n = 99)
+---

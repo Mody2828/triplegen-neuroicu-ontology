@@ -1,0 +1,186 @@
+
+
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+### PRIMARY GOAL
+Extract a COMPREHENSIVE, evidence-grounded ontology from the text.
+Every item must have verbatim evidence from the source text.
+Be thorough — extract every clinical concept the text explicitly names.
+
+### RULES
+
+1. EVIDENCE FIRST
+- EVERY class, relation, and hierarchy edge MUST include an `evidence` field.
+- `evidence` must be an EXACT verbatim fragment copied from the text.
+- If exact evidence is not available, omit the item.
+
+2. SOURCE FIDELITY
+- Extract concepts and relations stated or clearly implied in the text.
+- You may use standard medical knowledge for hierarchy (e.g. TBI is a type of Brain Injury).
+- Use short noun-phrase labels only.
+- Do NOT output sentence fragments, clauses, or paraphrases as class labels.
+
+3. EXTRACTION SCOPE
+Extract ALL clinical and biomedical content: conditions, diseases, injuries, syndromes, secondary insults, physiological parameters, monitoring variables, treatments/therapies/interventions/drugs, outcomes, assessments, scores, laboratory values, nursing interventions, surgical procedures, medical devices, sensors, clinical guidelines, management protocols, and data categories (Monitoring Data, Demographic Data, Admission Data, Treatment Data, Outcome Data, Core Monitoring Parameter, Optional Monitoring Parameter, Baseline Therapy, etc.).
+Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+
+4. CLASS RULES
+- Prefer concrete clinical labels from the text.
+- Prefer specific labels over abstract ones (e.g. prefer 'Heart Rate' over 'Monitoring Data' when both are mentioned). If an allowed class list is provided, you may use those labels; otherwise avoid abstract categories unless the text explicitly names them.
+- Keep labels close to the wording in the text.
+- Do not invent CamelCase labels.
+
+5. LABEL MAPPING
+- If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+  Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+- For other abbreviations, expand to their full clinical name as used in the text.
+
+6. STRUCTURAL COMPLETENESS
+- When the text mentions specific clinical items, also extract their general category if the text supports it.
+- Use the text’s own categories and groupings — do not impose an external hierarchy.
+
+7. RELATION RULES
+- Extract relations when the text clearly states a connection between two extracted class labels.
+- Domain and range must both be extracted class labels from the same text.
+- Prefer concise, domain-appropriate relation labels (e.g. includes, treats, targets condition, has monitoring data).
+- If an allowed relation list was provided, use those labels. Otherwise, prefer labels that reflect the text’s wording.
+
+8. HIERARCHY RULES
+- Extract hierarchy edges when the text supports them. Look for:
+  - Explicit cues: "is a", "type of", "kind of", "such as", "include:", "includes:", "consists of", "comprises"
+  - Implicit grouping: items listed under a heading or category
+  - Medical knowledge: when both concepts are in the text and one is clearly a subtype (e.g. TBI is a type of Brain Injury)
+- For enumeration cues, extract EACH listed item as a subclass.
+- NEVER output long clauses, verb phrases, or sentence fragments as subclass or superclass.
+- If either side is not a clean noun phrase, omit the hierarchy edge.
+
+### REASONING STEP
+Before producing JSON, mentally scan the text for:
+(1) every named clinical concept,
+(2) explicit relations between them,
+(3) hierarchy cues (such as, is a, type of, include:).
+Then output only items with verbatim evidence.
+
+### OUTPUT FORMAT (JSON ONLY)
+Return ONLY valid JSON.
+Do not include markdown, explanations, headings, or commentary.
+
+Use exactly this structure:
+{
+  "classes": [
+    {"label": "string", "evidence": "string"}
+  ],
+  "relations": [
+    {"label": "string", "domain": "string", "range": "string", "evidence": "string"}
+  ],
+  "hierarchy": [
+    {"subClass": "string", "superClass": "string", "evidence": "string"}
+  ]
+}
+
+### NON-GOAL EXAMPLE
+The following sentence should produce NO extraction:
+Text: "The study was funded by the BrainIT Group and data were collected from 22 centres across 11 countries."
+Expected output: {"classes": [], "relations": [], "hierarchy": []}
+Reason: Funding, governance, study logistics, and multi-centre coordination are out of scope — only extract clinical concepts.
+
+### SELF-CHECK (before finalising output)
+- Is every label a clinical TYPE (not an instance, a person's name, or a study name)?
+- Are there any duplicate or synonym labels? Merge them.
+- Do all relation domain/range labels match extracted class labels?
+- Are there any circular hierarchy edges (A subClassOf B AND B subClassOf A)? Remove them.
+- Does every evidence field contain a verbatim quote from the text?
+- Do not invent concepts not present in the text.
+
+---
+TEXT TO ANALYZE:
+1. Hydera AA, Wunderlich CA, 2. Stein SC, Georgoff P, Meghan S, Mizra 3. Patel HC, Bouamra O, Woodford M,
+Puvanachandra P, Gururaj G, K, Sonnad SS (2010) 150 years of King AT, Yates DW, Lecky FE (2005)
+Kobusingye OC (2007) The impact of treating severe traumatic brain injury: a Trends in head injury outcome from
+traumatic brain injuries: a global systematic review of progress in 1989 to 2003 and the effect of
+perspective. NeuroRehabilitation mortality. J Neurotrauma 27:1343-1353 neurosurgical care: an observational
+22:341-353 study. Lancet 366:1538-1544
+
+Management of severe head injury: can T, Moen KG, Schirmer-Mikalsen K, Vespa P, Bader MK, Brophy GM,
+we do better? Lancet 366:1509-1510 Manley GT (2008) Relationship of Diringer MN, Stocchetti N, Videtta W,
+5. Guillaume J, Janny P (1951) ''dose'' of intracranial hypertension to Armonda R, Badjatia N, Böesel J,
+Continuous intracranial manometry; outcome in severe traumatic brain Chesnut R, Chou S, Claassen J,
+importance of the method and first injury. J Neurosurg 109:678-684 Czosnyka M, De Georgia M, Figaji A,
+results. Rev Neurol (Paris) 84:131-142 16. Kahraman S, Dutton R, Hu P, Xiao Y, Fugate J, Helbok R, Horowitz D,
+Continuous recording of the Automated measurement of ''pressure Miller C, Naidech A, Oddo M, Olson D,
+ventricular-fluid pressure in patients times time dose'' of intracranial O'Phelan K, Provencio JJ, Puppo C,
+with severe acute traumatic brain hypertension best predicts outcome Riker R, Robertson C, Schmidt M,
+injury. A preliminary report. after severe traumatic brain injury. Taccone F (2014) Consensus summary
+J Neurosurg 22(6):581-590 J Trauma 69:110-118 statement of the International
+Association of Neurological Surgeons Forsyth RJ, Fulton B, Andrews PJ, Conference on Multimodality
+(AANS), Congress of Neurological Mendelow AD, Minns RA (2006) Monitoring in Neurocritical Care: a
+Surgeons (CNS), AANS/CNS Joint Critical thresholds of intracranial statement for healthcare professionals
+Section on Neurotrauma and Critical pressure and cerebral perfusion pressure from the Neurocritical Care Society and
+Care (2007) Guidelines for the related to age in paediatric head injury. the European Society of Intensive Care
+management of severe traumatic brain J Neurol Neurosurg Psychiatry Medicine. Intensive Care Med
+injury. VI. Indications for intracranial 77(2):234-240 40(9):1189-1209
+pressure monitoring. J Neurotrauma 18. Adelson PD, Bratton SL, Carney NA, 25. Güiza F, Depreitere B, Piper I, Van den
+24(Suppl 1):S37-S44 Chesnut RM, du Coudray HE, Berghe G, Meyfroidt G (2014) New
+8. Marshall LF, Smith RW, Shapiro HM Goldstein B, Kochanek PM, Miller HC, look at the 20 mmHg ICP threshold.
+(1979) The outcome with aggressive Partington MP, Selden NR, Warden Crit Care 18(Suppl 1):P458
+treatment in severe head injuries. Part CR, Wright DW (2003) Guidelines for 26. Güiza F, Depreitere B, Lo TY, Jones
+II: acute and chronic barbiturate the acute medical management of PA, Chambers IR, Van den Berghe G,
+administration in the management of severe traumatic brain injury in infants, Meyfroidt G (2014) Visualizing
+head injury. J Neurosurg 50(1):26-30 children and adolescents. Pediatr Crit secondary insults of elevated ICP in
+9. Narayan RK, Kishore PR, Becker DP, Care Med 4(3):S72-S75 pediatric TBI. Intensive Care Med
+Ward JD, Enas GG, Greenberg RP, 19. Cremer OL, van Dijk GW, van Wensen 40(Suppl 1):S18;0037
+Domingues Da Silva A, Lipper MH, E, Brekelmans GJ, Moons KG, Leenen 27. Piper I, Citerio G, Chambers I, Contant
+Choi SC, Mayhall CG, Lutz HA 3rd, LP, Kalkman CJ (2005) Effect of C, Enblad P, Fiddes H, Howells T,
+Young HF (1982) Intracranial pressure: intracranial pressure monitoring and Kiening K, Nilsson P, Yau YH (2003)
+to monitor or not to monitor? A review targeted intensive care on functional The Brain-IT group: concept and core
+of our experience with severe head outcome after severe head injury. Crit dataset definition. Acta Neurochir
+injury. J Neurosurg 56(5):650-659 Care Med 33(10):2207-2213 (Wien) 145:615-628
+intracranial pressure monitoring and Arabi YM, Davies AR, D'Urso P, Citerio G, Fiddes H, Howells T,
+aggressive treatment on mortality in Kossmann T, Ponsford J, Seppelt I, Kiening K, Ragauskas A, Sahuquillo J,
+56(4):498-503 Investigators, Australian and New brain injury management in European
+11. Eisenberg HM, Frankowski RF, Zealand Intensive Care Society Clinical Brain IT centres year 2001. Intensive
+Contant CF, Marshall LF, Walker MD Trials Group (2011) Decompressive Care Med 30(6):1058-1065
+(1988) High-dose barbiturate control of craniectomy in diffuse traumatic brain 29. Feyen BFE, Sener S, Jorens PG,
+elevated intracranial pressure in patients injury. N Engl J Med 364:1493-1502 Menovsky T, Maas AI (2012)
+with severe head injury. J Neurosurg 21. Chesnut RM, Temkin N, Carney N, Neuromonitoring in traumatic brain
+69(1):15-23 Dikmen S, Rondina C, Videtta W, injury. Minerva Anestesiol 78:949-958
+Choi SC, Young HF, Eisenberg HM, J, Machamer J, Chaddock K, Celix JM, Survey of traumatic brain injury
+Foulkes MA, Marshall LF, Jane JA Cherner M, Hendrix T (2012) A trial of management in European Brain-IT
+(1991) Impact of ICP instability and intracranial-pressure monitoring in centres year 2001. Acta Neurochir
+hypotension on outcome in patients traumatic brain injury. N Engl J Med (Suppl) 95:51-53
+with severe head trauma. J Neurosurg 367:2471-2481 31. Depreitere B, Güiza F, Van den Berghe
+75:S59-S66 22. Le Roux P (2014) Intracranial pressure G, Schuhmann MU, Maier G, Piper I,
+Dikmen SS, Chesnut RM, Deem S, more monitoring. Curr Opin Crit Care autoregulation monitoring and cerebral
+Yanez ND, Treggiari MM (2012) 20:141-147 perfusion pressure target
+Mortality and long-term functional 23. Stocchetti N, Maas AI (2014) recommendation in severe traumatic
+outcome associated with intracranial Traumatic intracranial hypertension. brain injury patients based on minute-
+pressure after traumatic brain injury. N Eng J Med 370:2121-2130 by-minute monitoring data. J Neurosurg
+Intensive Care Med 38(11):1800-1809 120:1451-1457
+14. Sigurtà A, Zanaboni C, Canavesi K,
+Citerio G, Beretta L, Stocchetti N
+(2013) Intensive care for pediatric
+traumatic brain injury. Intensive Care
+Med 39(1):129-136
+
+32. Steyerberg EW, Mushkudiani N, Perel 35. Czosnyka M, Smielewski P, 38. CENTER-TBI (2015) https://www.
+P, Butcher I, Lu J, McHugh GS, Murray Kirkpatrick P, Laing RJ, Menon D, center-tbi.eu/. Accessed 6 March 2015
+GD, Marmarou A, Roberts I, Habbema Pickard JD (1997) Continuous 39. Chesnut RM (2015) What the BEST
+JD, Maas AI (2008) Predicting outcome assessment of the cerebral vasomotor TRIP study means to me as the
+after traumatic brain injury: reactivity in head injury. Neurosurgery principle investigator. https://www.
+development and international 41:11-19 braintrauma.org/dr-chesnut-
+validation of prognostic scores based on 36. Jaeger M, Schuhmann MU, Soehle M, commentary/. Accessed 24 March 2015
+admission characteristics. PLoS Med Meixensberger J (2006) Continuous
+5(8):e165 assessment of cerebrovascular
+33. IMPACT: International Mission for autoregulation after traumatic brain
+Prognosis and Analysis of Clinical injury using brain tissue oxygen
+Trials in TBI (2015) pressure reactivity. Crit Care Med
+http://www.tbi-impact.org/. Accessed 34(6):1783-1788
+11 March 2015 37. Lazaridis C, DeSantis SM, Smielewski
+34. Sviri GE, Aaslid R, Douville CM, P, Menon DK, Hutchinson P, Pickard
+Moore A, Newell DW (2009) Time JD, Czosnyka M (2014) Patient-specific
+course for autoregulation recovery thresholds of intracranial pressure in
+following severe traumatic brain injury. severe traumatic brain injury.
+J Neurosurg 111:695-700 J Neurosurg 120:893-900
+---

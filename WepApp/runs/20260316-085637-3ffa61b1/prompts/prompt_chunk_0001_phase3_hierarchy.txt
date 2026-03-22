@@ -1,0 +1,282 @@
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing the EXACT, verbatim sentence fragment from the text.
+
+3. **Extraction Scope:** Extract clinical and biomedical content: conditions, physiological parameters, monitoring variables, treatments/therapies/interventions, outcomes, assessments, laboratory values, nursing interventions, surgical procedures, and clinical dataset categories when explicitly named.
+   Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+   If a sentence or paragraph is mainly about these excluded topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+6. **Label Mapping Rule:** If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+   Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+   For other abbreviations, expand to their full clinical name as used in the text.
+
+7. **Structural Completeness Rule:** When the text mentions specific clinical items, also extract their general category if the text supports it.
+   For example, if the text discusses 'ventilation, sedation, fluids' as therapies, also extract the general class 'Therapy' or 'Baseline Therapy' if the text uses that grouping.
+   Use the text's own categories and groupings — do not impose an external hierarchy.
+
+**Default priority: classes first, then relations.** Extract relations when the text clearly states a connection between two concepts — both domain and range must be extracted classes. If a phase instruction below overrides this priority, follow the phase instruction.
+
+**Completeness:** Extract every distinct clinical concept the text names — err on the side of inclusion when evidence exists.
+
+### CURRENT TASK: Phase 3 — HIERARCHY EXTRACTION
+Extract subclass/superclass (is-a) edges supported by the text. A hierarchy edge means one class is a TYPE, SUBTYPE, CATEGORY MEMBER, or SPECIFIC INSTANCE of another. Extract every edge the text explicitly supports with evidence.
+
+### HIERARCHY DETECTION METHOD
+Look for ALL of these patterns in the text:
+  1. Explicit cues: 'such as', 'is a', 'type of', 'kind of', 'form of'
+  2. Enumeration: 'include:', 'includes:', 'consists of', 'comprises'
+  3. Category grouping: 'categorized as', 'classified as', 'grouped into'
+  4. List patterns: items listed under a heading or category name
+  5. Implicit grouping: when several specific items are mentioned alongside a general category (e.g., 'therapy: ventilation, sedation' implies both are subclasses of Therapy; 'core parameters: HR, ICP, MAP' implies all three are subclasses of Core Monitoring Parameter)
+  6. Definitional: 'X is a Y', 'X, a type of Y', 'X (a form of Y)'
+  7. Context-based: if the text organises items into sections or tables, each section heading implies a parent class for the items listed under it
+  8. Medical knowledge: TBI is a type of Brain Injury, Hypotension is a type of Secondary Insult — extract these when the text discusses them together
+
+For enumeration patterns (e.g. 'include: X, Y, Z'), extract EACH listed item as a subclass of the parent category.
+
+### CHAIN-OF-THOUGHT
+For each pair of known classes, reason:
+1. Does the text describe one class as a specialization of another?
+2. Does the text list one class under another as a member/subtype?
+3. Even if not explicitly stated, does medical context clearly imply a parent-child relationship?
+4. What text evidence supports this parent-child link?
+
+Be thorough: extract every parent-child relationship the text supports. Aim for at least one hierarchy edge per class if possible.
+Use ONLY the known classes below for subClass and superClass labels.
+
+### SELF-CHECK (before finalising output)
+- Are there any circular edges (A subClassOf B AND B subClassOf A)? Remove them.
+- Are subClass and superClass labels from the known-classes list?
+- Does every evidence field contain a verbatim quote from the text?
+
+Output JSON with keys classes, relations, hierarchy. Set classes and relations to empty arrays.
+
+Known classes (use only these for subclass/superclass): GOSe Outcome; Modified GOSe Outcome; Monitoring Data; Cerebrovascular Autoregulation; Low-frequency Autoregulation Index (LAx); Intracranial Pressure (ICP); Mean Arterial Pressure (MAP); ICU Stay; Autoregulatory State; Active Insult; Passive Insult; ICP Insult; Neurological Outcome; Outcome; Adult Cohort; Paediatric Cohort
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+**REASONING STEP:** Before producing JSON, mentally scan the text for: (1) every named clinical concept, (2) explicit relations between them, (3) hierarchy cues (such as, is a, type of, include:). Then output only items with verbatim evidence.
+
+---
+--- Retrieved examples (3) ---
+
+Text: This is the minimum minute by minute monitoring data required for inclusion in the BrainIT Database and include: Heart Rate, Respiration Rate, Mean Arterial Pressure, mean ICP, SaO2 and Temperature.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Monitoring Data",
+      "evidence": "minute by minute monitoring data"
+    },
+    {
+      "label": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required"
+    },
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate"
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate"
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "Mean Arterial Pressure"
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "mean ICP"
+    },
+    {
+      "label": "SaO2",
+      "evidence": "SaO2"
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature"
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Heart Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required...include: Heart Rate"
+    },
+    {
+      "subClass": "Respiration Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Heart Rate, Respiration Rate"
+    },
+    {
+      "subClass": "Mean Arterial Pressure (MAP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Mean Arterial Pressure"
+    },
+    {
+      "subClass": "Intracranial Pressure (ICP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: mean ICP"
+    },
+    {
+      "subClass": "SaO2",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: SaO2"
+    },
+    {
+      "subClass": "Temperature",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Temperature"
+    }
+  ]
+}
+
+---
+
+Text: The pressure-time dose is a derived parameter calculated as the area under the ICP curve above a critical threshold. Cerebrovascular autoregulation is a physiological condition that modulates the relationship between ICP and outcome. Mortality is a key outcome measure alongside the Glasgow Outcome Scale.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Pressure-Time Dose",
+      "evidence": "pressure-time dose is a derived parameter"
+    },
+    {
+      "label": "Cerebrovascular Autoregulation",
+      "evidence": "Cerebrovascular autoregulation is a physiological condition"
+    },
+    {
+      "label": "Mortality",
+      "evidence": "Mortality is a key outcome measure"
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Pressure-Time Dose",
+      "superClass": "Derived Parameter",
+      "evidence": "pressure-time dose is a derived parameter"
+    },
+    {
+      "subClass": "Cerebrovascular Autoregulation",
+      "superClass": "Condition",
+      "evidence": "Cerebrovascular autoregulation is a physiological condition"
+    },
+    {
+      "subClass": "Mortality",
+      "superClass": "Outcome",
+      "evidence": "Mortality is a key outcome measure alongside the Glasgow Outcome Scale"
+    }
+  ]
+}
+
+---
+
+Text: Secondary insult treatment covers non-surgical medical management specifically given to treat secondary insults. This is a form of secondary insult therapy. Secondary insults such as arterial hypotension (a subtype of systemic hypotension) require targeted interventions.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Secondary Insult Treatment",
+      "evidence": "Secondary insult treatment covers non-surgical medical management"
+    },
+    {
+      "label": "Secondary Insult Therapy",
+      "evidence": "secondary insult therapy"
+    },
+    {
+      "label": "Arterial Hypotension",
+      "evidence": "arterial hypotension"
+    },
+    {
+      "label": "Systemic Hypotension",
+      "evidence": "systemic hypotension"
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Secondary Insult Treatment",
+      "superClass": "Secondary Insult Therapy",
+      "evidence": "This is a form of secondary insult therapy"
+    },
+    {
+      "subClass": "Arterial Hypotension",
+      "superClass": "Systemic Hypotension",
+      "evidence": "arterial hypotension (a subtype of systemic hypotension)"
+    }
+  ]
+}
+
+---
+TEXT TO ANALYZE:
+The contour for zero correlation was
+Outcome Score (GOS) at 6 months [Electronic Supple- highlighted in black, and defined as the 'transition curve',
+mentary Material (ESM) Table 1]. For the paediatric because it indicates the transition into the region of insult
+patients, a modified GOS was used, as described in the types that occur more frequently in patients with lower
+original paper [17]. Monitoring data in the NEMO GOS.
+
+Role of cerebrovascular autoregulation using as co-variates the total percentage of total
+monitoring time each patient experienced one or more
+The low-frequency autoregulation index (LAx) is com- ICP insults associated with worse GOS (indicated on the
+puted as a moving minute-by-minute correlation of graph as the red zone), together with the IMPACT model
+previous values of ICP and MAP [31]. The LAx ranges in core variables [32, 33] (age, admission motor GCS,
+value from -1 to ?1 and was calculated for every minute pupils).
+of the patients' ICU stay. This allowed one to compute the All analyses were done in Matlab 2014b (The
+average autoregulatory state during each ICP insult. An MathWorks, Natick, MA, USA).
+insult was classified as 'active' if its average LAx was
+negative or zero, and 'passive' if the average LAx was
+positive. The visualization method described above was
+repeated considering active and passive episodes Results
+separately.
+The colour-coded plots visualizing the correlations be-
+tween GOS at 6 months and the average number of
+Role of CPP different types of ICP insults are shown in Fig. 2. Two
+clear overall regions emerge: a predominantly blue zone,
+The association between ICP insults and outcome was indicating types of ICP insults that occur more frequently
+visualized for three different thresholds of CPP: 50, 60 in patients with higher GOS; and a predominantly red
+and 70 mmHg. zone, indicating types of ICP insults that occur more
+frequently in patients with lower GOS. The transition
+curve between the blue and red zone is approximately
+occurs at shorter insult durations and, conversely, for
+In order to assess the independent association of the cu- lower insult intensities the transition occurs at longer inmulative dose of ICP insults with outcome, multivariate sult durations. In adults, the duration above which ICP
+unfavourable neurological outcome [defined as death, worse outcome is 223, 37, 12 and 8 min, respectively. In
+vegetative or severely disabled (GOS 1-3)] were built, children, at intensity thresholds of 15 and 20 mmHg, the
+
+Fig. 2 Visualization of correlation between GOS and average ICP intensity and duration thresholds) with outcome is colournumber of ICP insults per GOS category. Left adult cohort coded according to the scale in Fig. 1c. Dark red episodes mean
+(n = 261). Right paediatric cohort (n = 99). Each colour-coded that such ICP insults, on average, are associated with worse
+point in the graph refers to a number of episodes of ICP, defined by outcome (lower GOS categories); dark blue episodes mean that
+a certain ICP intensity threshold (X-axis), and a certain duration such ICP insults, on average, are associated with better outcome
+threshold (Y-axis). Such an episode is called an ICP insult. The (higher GOS categories). The contour of zero correlation is
+univariate correlation of each type of ICP insult (characterized by highlighted in black, and is called the transition curve
+---

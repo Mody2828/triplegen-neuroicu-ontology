@@ -1,0 +1,198 @@
+
+
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+### PRIMARY GOAL
+Extract a COMPREHENSIVE, evidence-grounded ontology from the text.
+Every item must have verbatim evidence from the source text.
+Be thorough — extract every clinical concept the text explicitly names.
+
+### RULES
+
+1. EVIDENCE FIRST
+- EVERY class, relation, and hierarchy edge MUST include an `evidence` field.
+- `evidence` must be an EXACT verbatim fragment copied from the text.
+- If exact evidence is not available, omit the item.
+
+2. SOURCE FIDELITY
+- Extract concepts and relations stated or clearly implied in the text.
+- You may use standard medical knowledge for hierarchy (e.g. TBI is a type of Brain Injury).
+- Use short noun-phrase labels only.
+- Do NOT output sentence fragments, clauses, or paraphrases as class labels.
+
+3. EXTRACTION SCOPE
+Extract ALL clinical and biomedical content: conditions, diseases, injuries, syndromes, secondary insults, physiological parameters, monitoring variables, treatments/therapies/interventions/drugs, outcomes, assessments, scores, laboratory values, nursing interventions, surgical procedures, medical devices, sensors, clinical guidelines, management protocols, and data categories (Monitoring Data, Demographic Data, Admission Data, Treatment Data, Outcome Data, Core Monitoring Parameter, Optional Monitoring Parameter, Baseline Therapy, etc.).
+Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+
+4. CLASS RULES
+- Prefer concrete clinical labels from the text.
+- Prefer specific labels over abstract ones (e.g. prefer 'Heart Rate' over 'Monitoring Data' when both are mentioned). If an allowed class list is provided, you may use those labels; otherwise avoid abstract categories unless the text explicitly names them.
+- Keep labels close to the wording in the text.
+- Do not invent CamelCase labels.
+
+5. LABEL MAPPING
+- If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+  Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+- For other abbreviations, expand to their full clinical name as used in the text.
+
+6. STRUCTURAL COMPLETENESS
+- When the text mentions specific clinical items, also extract their general category if the text supports it.
+- Use the text’s own categories and groupings — do not impose an external hierarchy.
+
+7. RELATION RULES
+- Extract relations when the text clearly states a connection between two extracted class labels.
+- Domain and range must both be extracted class labels from the same text.
+- Prefer concise, domain-appropriate relation labels (e.g. includes, treats, targets condition, has monitoring data).
+- If an allowed relation list was provided, use those labels. Otherwise, prefer labels that reflect the text’s wording.
+
+8. HIERARCHY RULES
+- Extract hierarchy edges when the text supports them. Look for:
+  - Explicit cues: "is a", "type of", "kind of", "such as", "include:", "includes:", "consists of", "comprises"
+  - Implicit grouping: items listed under a heading or category
+  - Medical knowledge: when both concepts are in the text and one is clearly a subtype (e.g. TBI is a type of Brain Injury)
+- For enumeration cues, extract EACH listed item as a subclass.
+- NEVER output long clauses, verb phrases, or sentence fragments as subclass or superclass.
+- If either side is not a clean noun phrase, omit the hierarchy edge.
+
+### REASONING STEP
+Before producing JSON, mentally scan the text for:
+(1) every named clinical concept,
+(2) explicit relations between them,
+(3) hierarchy cues (such as, is a, type of, include:).
+Then output only items with verbatim evidence.
+
+### OUTPUT FORMAT (JSON ONLY)
+Return ONLY valid JSON.
+Do not include markdown, explanations, headings, or commentary.
+
+Use exactly this structure:
+{
+  "classes": [
+    {"label": "string", "evidence": "string"}
+  ],
+  "relations": [
+    {"label": "string", "domain": "string", "range": "string", "evidence": "string"}
+  ],
+  "hierarchy": [
+    {"subClass": "string", "superClass": "string", "evidence": "string"}
+  ]
+}
+
+### NON-GOAL EXAMPLE
+The following sentence should produce NO extraction:
+Text: "The study was funded by the BrainIT Group and data were collected from 22 centres across 11 countries."
+Expected output: {"classes": [], "relations": [], "hierarchy": []}
+Reason: Funding, governance, study logistics, and multi-centre coordination are out of scope — only extract clinical concepts.
+
+### SELF-CHECK (before finalising output)
+- Is every label a clinical TYPE (not an instance, a person's name, or a study name)?
+- Are there any duplicate or synonym labels? Merge them.
+- Do all relation domain/range labels match extracted class labels?
+- Are there any circular hierarchy edges (A subClassOf B AND B subClassOf A)? Remove them.
+- Does every evidence field contain a verbatim quote from the text?
+- Do not invent concepts not present in the text.
+
+---
+TEXT TO ANALYZE:
+nhs.uk; Professor Ian Whittle, Department of Clinical Neurosciences,
+Western General Infirmary, Crewe Road, Edinburgh, UK. Phone: +44 Appendix
+131 537 2103, Fax: +44 131 537 2561, Email: irw@skul.dcn.ed.ac. uk; Professor David Wyper, Department of Clinical Physics, Institute
+of Neurological Sciences, Southern General Hospital, 1345 Govan See Table 2. Road, Glasgow G51 4TF, UK. Phone: +44 (0) 141 201 2105, Fax:
++44 (0) 141 201 4127, Email: Gpca12@udcf.gla.ac.uk; Dr Michael
+
+Journal of Clinical Monitoring and Computing (2019) 33:39-51 49
+
+There are 33 runs in the table, 6 above 40% sensitivity and 13 above 30% sensitivity. The two groups inves-
+tigated the most were 30_15 and 25_10. The first digit indicates the maximum start point for a sub-window
+and the second digit gives the minimum start window and is therefore an indication of the prediction win-
+dow. For example the 30_15 group is using data which starts at 15 min before an event in the training/test
+database but also uses a sub-window that starts at 30 min before an event. In order to determine the actual
+amount of data that is required before a prediction could begin using this model you also have to consider
+the sub-window size which is defined in the input vector definition file. In the case of this model the sub-
+window size is 15 min, therefore 45 min of data are required (15 + 30)
+
+References 3. Marmarou A, Anderson RL, Ward JD, et al. Impact of ICP insta-
+bility and hypotension on outcome in patients with severe head
+trauma. J Neurosurg. 1991;75:S59-66.
+1. American College of Surgeons. Advanced trauma life support.
+4. BrainIT Consortium. BrainIT. 2007.
+2011.
+5. BrainIT. Brain-it core dataset, manual of operations, data element
+2. Jones P, Andrews P, Midgley S, Anderson S, Piper I, Tocher J,
+definitions. 2009.
+Housley A, Corrie J, Slattery J, Dearden M, Douglas Miller J.
+6. Piper I, Chambers I, Citerio G, Enblad P, Gregson B, Howells T,
+Measuring the burden of secondary insults in head-injured patients
+Kiening K, Mattern J, Nilsson P, Ragauskas A, Sahuquillo J, Don-
+during intensive care. J Neurosurg Anesthesiol. 1994;6:4-14.
+ald R, Sinnott R, Stell A. The brain monitoring with information
+
+50 Journal of Clinical Monitoring and Computing (2019) 33:39-51
+
+technology (BrainIT) collaborative network: EC feasibility study 22. Chen X, Xu D, Zhang G, Mukkamala R. Forecasting acute hypo-
+results and future direction. Acta Neurochir. 2010;152(11):1859- tensive episodes in intensive care patients based on a peripheral
+71. https://doi.org/10.1007/s00701-010-0719-1. arterial blood pressure waveform. Comput Cardiol. 2009;36:545-8.
+8. Funahashi K. On the approximate realization of continuous map- the prediction of acute hypotensive episodes. Comput Cardiol.
+pings by neural networks. Neural Networks. 1989;2(3):183-192. 2009;36:557-60.
+9. Bishop CM. Neural networks for pattern recognition. Oxford Uni- 24. Gabutti L, Vadilonga D, Mombelli G, Burnier M, Marone C.
+versity Press; 1995. Artificial neural networks improve the prediction of kt/v, follow10. Ripley BR. Pattern recognition and neural networks. Cambridge up dietary protein intake and hypotension risk in haemodialysis
+University Press; 1996. patients. Nephrol Dial Transplant. 2004;19:1204-11.
+11. MacKay DJC. Probable networks and plausible predictions-a 25. Reich DL, Hossain S, Krol M, Baez B, Patel P, Bernstein A,
+review of practical bayesian methods for supervised neural net- Bodian CA. Predictors of hypotension after induction of general
+works. Network. 1995;6:469-505. anesthesia. Anesth Analg. 2005;101(3):622-8.
+12. Neal RM. Bayesian learning for neural networks. Springer, Lec- 26. Lehman L, Saeed M, Moody G, Mark R. Similarity-based search-
+ture Notes in Statistics. 1996. ing in multi-parameter time series databases. Comput Cardiol.
+13. Stell A, Sinnott R, Jiang J, Donald R, Chambers I, Citerio G, 2008;35:653-6.
+Enblad P, Gregson B, Howells T, Kiening K, Nilsson P, Ragauskas 27. Dasta JF, McLaughlin TP, Mody SH, Piech CT. Daily cost of an
+A, Sahuquillo J, Piper I. Federating distributed clinical data for intensive care unit day: the contribution of mechanical ventilation.
+the prediction of adverse hypotensive events. Philos Trans R Soc. Crit Care Med. 2005;33(6):1266-71.
+2009;367(1898):2679-90. 28. Donald R, Howells T, Piper I, Chambers I, Citerio G, Enblad P,
+14. Hanfelt JJ, Slack RS, Gehan EA. A modification of simon's opti- Gregson B, Kiening K, Mattern J, Nilsson P, Ragauskas A, Sahu-
+mal design for phase ii trials when the criterion is median sample quillo J, Sinnott R, Stell A. Trigger characteristics of EUSIG-
+size. Control Clin Trials. 1999;20:555-66. defined hypotensive events. Acta Neurochir Suppl. 2012;114:45 - 9.
+15. Simon R. Optimal two-stage designs for phase ii clinical trials. 29. Williams CKI, Georgatzis K, Hawthorne C, McMonagle P, Piper
+Control Clin Trials. 10:1-10, 1989. I, Shaw M, Lal P. Detecting artifactual events in vital signs moni16. Crawley M. The R book (Second Edition). New York: Wiley; 2012. toring data. In: Clifton DA, editor. Machine learning for health17. Kumar A, Roberts D, Wood KE, Light B, Parrillo JE, Sharma S, care technologies; 2016. http://homepa ges.inf.ed.ac.uk/ckiw/proje
+Suppes R, Feinstein D, Zanotti S, Taiberg L, Gurka D, Kumar A, cts/adult_icu/CSOreport230915.pdf.
+Cheang M. Duration of hypotension before initiation of effective 30. Ghassemi M, Celi L,A, Stone J. State of the art review: the data
+antimicrobial therapy is the critical determinant of survival in revolution in critical care. Crit Care. 2015;19:118.
+human septic shock. Crit Care Med. 2006;34(6):1589-96. 31. IBM InfoSphere, Big Data Help Toronto Hospital Monitor Pre18. Bijker JB, vanKlei WA, Vergouwe Y, .Eleveld DJ, van Wolfswin- mature Infants. http://www.eweek.com/enterprise-apps/ibm-infos
+kel L, Moons KGM, Kalkman CJ. Intraoperative hypotension phere-big-data-help-toronto-hospital-monitor-premature-infants.
+and 1-year mortality after noncardiac surgery. Anesthesiology. 32. Docherty AB, Lone NI. Exploiting big data for critical care
+2009;111(6):1217-26. research. Curr Opin Crit Care. 2015;21(5):467-72.
+19. Smiley R. Fast fourier transforms as prophecy: predict- 33. Celi LA, Mark RG, Stone DJ, Montgomery RA. "Big Data" in the
+ing hypotension during spinal anes-thesia. Anesthesiology. intensive care unit. Closing the data loop. Am J Respir Crit Care
+2005;102(6):1079-80. Med. 2013;187(11):1157-60.
+20. Moody GB, Lehman LH. Predicting acute hypotensive episodes: 34. Figini S, Maggi M. Performance of credit risk prediction models
+the10th annual physionet/computers in cardiology challenge. via proper loss functions. Technical report, Universita di Pavia,
+Comput Cardiol. 2009;36:541-4. Department of Economics and Management, 2014.
+21. Henriques JH, Rocha TR. Prediction of acute hypotensive epi- 35. Hand D. Assessing the performance of classification meth-
+sodes using neural network multi-models. Comput Cardiol. ods. Int Stat Rev. 2012;80(3):400-14. https://doi.org/10.111
+2009;36:549-52. 1/j.1751-5823.2012.00183.x.
+
+Rob Donald1 · Tim Howells2 · Ian Piper3 · P. Enblad4 · P. Nilsson4 · I. Chambers5 · B. Gregson6 · G. Citerio7 ·
+Rob Donald Department of Medical Physics, James Cook University
+rob@statsresearch.co.uk Hospital, Middlesbrough, UK
+1 Neurosurgical Trials Group, Newcastle University,
+Stats Research Ltd, Dingwall, Scotland, UK
+Newcastle upon Tyne, UK
+Department of Neurosurgery, Uppsala University Hospital, 7
+Hospital San Gerardo, Neurorianimazione, Monza, Italy
+Uppsala, Sweden
+3 Department of Neurosurgery, Ruprecht-Karls-Universitat
+Institute of Neurological Sciences, Queen Elizabeth
+Hospital, Heidelberg, Germany
+University Hospital, Clinical Physics, Glasgow, Scotland, UK
+4 Kaunas University of Technology, Kaunas, Lithuania
+Section of Neurosurgery, Uppsala University, Uppsala,
+Sweden
+
+Journal of Clinical Monitoring and Computing (2019) 33:39-51 51
+
+10 12
+Department of Neurosurgery, Vall d'Hebron University Department of Clinical Physics, University of Glasgow,
+Hospital, Barcelona, Spain Glasgow, Scotland, UK
+Department of Information Systems, University
+of Melbourne, Parkville, Australia
+---

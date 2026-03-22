@@ -1,0 +1,403 @@
+/**
+ * TripleGen — Neuro-ICU Ontology Intelligence
+ * Theme v2 · Clinical precision × Knowledge graph × LLM inference
+ * Design: Dark glassmorphism + bioluminescent accents + clinical signal aesthetic
+ * Inspired by: 2025/2026 dark glassmorphism trend, clinical AI dashboards, knowledge graph UIs
+ *
+ * Semantic roles:
+ *   --tg-corpus   : Corpus / input / documents
+ *   --tg-class    : Ontology classes / subjects & objects
+ *   --tg-property : Object properties / predicates
+ *   --tg-llm      : LLM / reasoning / extraction
+ *   --tg-eval     : Evaluation / metrics / gold standard
+ *   --tg-neuro    : Neurological / clinical domain
+ */
+
+/* ═══════════════════════════════════════════════════════════
+   1. Theme Variables
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  /* Deep near-black backgrounds */
+  --tg-bg:     #030813;
+  --tg-bg-2:   #060e20;
+  --tg-bg-3:   #0b1830;
+  --tg-bg-end: #030813;
+
+  /* Ambient radial orbs (used on body background, supplemented by .tg-ambient-bg) */
+  --tg-bg-radial:
+    radial-gradient(ellipse 900px 600px at 12% 12%, rgba(0, 80, 175, 0.24) 0%, transparent 70%),
+    radial-gradient(ellipse 700px 550px at 90% 6%,  rgba(110, 40, 210, 0.20) 0%, transparent 65%),
+    radial-gradient(ellipse 650px 450px at 50% 98%, rgba(0,  170, 160, 0.16) 0%, transparent 60%),
+    radial-gradient(ellipse 450px 350px at 95% 88%, rgba(25,  80, 190, 0.13) 0%, transparent 55%);
+
+  /* Dot grid — knowledge graph node feel */
+  --tg-bg-dots:      radial-gradient(circle, rgba(0, 212, 255, 0.07) 1px, transparent 1px);
+  --tg-bg-dots-size: 28px;
+
+  /* Film-grain noise texture */
+  --tg-bg-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.022'/%3E%3C/svg%3E");
+
+  /* ── Semantic role colors ────────────────── */
+  --tg-corpus:       #60a5fa;
+  --tg-corpus-dim:   rgba(96,  165, 250, 0.14);
+  --tg-corpus-glow:  rgba(96,  165, 250, 0.32);
+
+  --tg-class:        #22d3ee;
+  --tg-class-dim:    rgba(34,  211, 238, 0.14);
+  --tg-class-glow:   rgba(34,  211, 238, 0.38);
+
+  --tg-property:     #a78bfa;
+  --tg-property-dim: rgba(167, 139, 250, 0.14);
+  --tg-property-glow:rgba(167, 139, 250, 0.38);
+
+  --tg-llm:          #fbbf24;
+  --tg-llm-dim:      rgba(251, 191,  36, 0.14);
+  --tg-llm-glow:     rgba(251, 191,  36, 0.32);
+
+  --tg-eval:         #34d399;
+  --tg-eval-dim:     rgba(52,  211, 153, 0.14);
+  --tg-eval-glow:    rgba(52,  211, 153, 0.38);
+
+  --tg-neuro:        #e879f9;
+  --tg-neuro-dim:    rgba(232, 121, 249, 0.12);
+  --tg-neuro-glow:   rgba(232, 121, 249, 0.30);
+
+  /* ── Glassmorphism surfaces ──────────────── */
+  --tg-blur:           20px;
+  --tg-blur-sm:        8px;
+  --tg-blur-lg:        30px;
+  --tg-glass-bg:       rgba(6,  18,  48, 0.55);
+  --tg-glass-bg-strong:rgba(9,  24,  58, 0.75);
+  --tg-glass-bg-solid: rgba(4,  10,  26, 0.96);
+  --tg-surface:        rgba(10, 24,  56, 0.60);
+  --tg-surface-hover:  rgba(0,  212, 255, 0.055);
+  --tg-surface-solid:  rgba(4,  10,  26, 0.99);
+
+  /* ── Luminous borders ────────────────────── */
+  --tg-border:        rgba(0, 212, 255, 0.13);
+  --tg-border-mid:    rgba(0, 212, 255, 0.24);
+  --tg-border-strong: rgba(0, 212, 255, 0.50);
+
+  --tg-inner-glow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 0 0 0 1px rgba(0, 212, 255, 0.08);
+  --tg-inner-glow-accent:
+    inset 0 1px 0 rgba(255, 255, 255, 0.13),
+    inset 0 0 0 1px rgba(0, 212, 255, 0.30);
+
+  /* Outer bloom / halo */
+  --tg-glow-outer:
+    0 0 24px rgba(0, 212, 255, 0.06),
+    0 2px 14px rgba(0,  0,  0, 0.50);
+  --tg-glow-outer-strong:
+    0 0 40px rgba(0, 212, 255, 0.14),
+    0 0 80px rgba(0, 212, 255, 0.06),
+    0 4px 24px rgba(0, 0, 0, 0.55);
+  --tg-glow-accent:
+    0 0 32px rgba(0, 212, 255, 0.32),
+    0 0 64px rgba(0, 212, 255, 0.12);
+
+  /* ── Text ────────────────────────────────── */
+  --tg-text:           #dde9f7;
+  --tg-text-secondary: #6e8fae;
+  --tg-text-tertiary:  #3f5870;
+
+  /* ── Primary accent — electric cyan ─────── */
+  --tg-accent-1:            #00d4ff;
+  --tg-accent-2:            #06efcf;
+  --tg-accent-glow:         rgba(0, 212, 255, 0.22);
+  --tg-accent-glow-strong:  rgba(0, 212, 255, 0.55);
+  --tg-text-glow:           0 0 20px rgba(0, 212, 255, 0.58);
+
+  /* ── Gradient palette ────────────────────── */
+  --tg-gradient-brand:  linear-gradient(118deg, #00d4ff 0%, #06efcf 45%, #a78bfa 100%);
+  --tg-gradient-accent: linear-gradient(90deg,  #00d4ff, #06efcf);
+  --tg-gradient-neuro:  linear-gradient(135deg, #8b5cf6 0%, #e879f9 100%);
+  --tg-gradient-warm:   linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+  --tg-gradient-eval:   linear-gradient(135deg, #10b981 0%, #34d399 100%);
+
+  /* ── Status ──────────────────────────────── */
+  --tg-success: #34d399;
+  --tg-warning: #fbbf24;
+  --tg-danger:  #f87171;
+  --tg-info:    #38bdf8;
+
+  /* ── Layout ──────────────────────────────── */
+  --tg-radius-xs: 5px;
+  --tg-radius-sm: 8px;
+  --tg-radius:    12px;
+  --tg-radius-lg: 18px;
+  --tg-radius-xl: 24px;
+  --tg-shadow:    0 4px 30px rgba(0, 0, 0, 0.42);
+  --tg-shadow-lg: 0 8px 52px rgba(0, 0, 0, 0.48);
+  --tg-shadow-xl: 0 16px 72px rgba(0, 0, 0, 0.58);
+  --tg-transition:      0.2s ease;
+  --tg-transition-slow: 0.4s ease;
+}
+
+/* ── High-contrast override ──────────────── */
+.tg-high-contrast,
+body.tg-high-contrast {
+  --tg-bg:             #06101f;
+  --tg-text:           #f2f8ff;
+  --tg-border:         rgba(255, 255, 255, 0.22);
+  --tg-border-strong:  rgba(255, 255, 255, 0.42);
+  --tg-accent-1:       #00d4ff;
+  --tg-accent-2:       #06efcf;
+  --tg-glass-bg:       rgba(10, 26, 58, 0.78);
+  --tg-glass-bg-strong:rgba(12, 30, 66, 0.90);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   2. Semantic role helpers (color + badges)
+   ═══════════════════════════════════════════════════════════ */
+.tg-semantic-corpus   { color: var(--tg-corpus)   !important; }
+.tg-semantic-class    { color: var(--tg-class)    !important; }
+.tg-semantic-property { color: var(--tg-property) !important; }
+.tg-semantic-llm      { color: var(--tg-llm)      !important; }
+.tg-semantic-eval     { color: var(--tg-eval)     !important; }
+.tg-semantic-neuro    { color: var(--tg-neuro)    !important; }
+
+.tg-badge-corpus   { background: var(--tg-corpus-dim);   color: var(--tg-corpus);   border: 1px solid rgba(96,  165, 250, 0.35); }
+.tg-badge-class    { background: var(--tg-class-dim);    color: var(--tg-class);    border: 1px solid rgba(34,  211, 238, 0.35); }
+.tg-badge-property { background: var(--tg-property-dim); color: var(--tg-property); border: 1px solid rgba(167, 139, 250, 0.35); }
+.tg-badge-llm      { background: var(--tg-llm-dim);      color: var(--tg-llm);      border: 1px solid rgba(251, 191,  36, 0.42); }
+.tg-badge-eval     { background: var(--tg-eval-dim);     color: var(--tg-eval);     border: 1px solid rgba(52,  211, 153, 0.35); }
+.tg-badge-neuro    { background: var(--tg-neuro-dim);    color: var(--tg-neuro);    border: 1px solid rgba(232, 121, 249, 0.30); }
+
+/* ═══════════════════════════════════════════════════════════
+   3. Glass card
+   ═══════════════════════════════════════════════════════════ */
+.tg-glass-card {
+  background: var(--tg-glass-bg);
+  backdrop-filter: blur(var(--tg-blur));
+  -webkit-backdrop-filter: blur(var(--tg-blur));
+  border: 1px solid var(--tg-border);
+  border-radius: var(--tg-radius);
+  box-shadow: var(--tg-inner-glow), var(--tg-glow-outer), var(--tg-shadow);
+  padding: 1.5rem;
+  transition: background-color var(--tg-transition), border-color var(--tg-transition), box-shadow var(--tg-transition);
+}
+.tg-glass-card:hover {
+  background: var(--tg-glass-bg-strong);
+  border-color: var(--tg-border-mid);
+  box-shadow: var(--tg-inner-glow-accent), var(--tg-glow-outer-strong), var(--tg-shadow);
+}
+.tg-glass-card .card-title {
+  color: var(--tg-text); font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem;
+}
+.tg-glass-card .card-body {
+  color: var(--tg-text-secondary); font-size: 0.875rem;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   4. Data table
+   ═══════════════════════════════════════════════════════════ */
+.tg-table-wrap {
+  background: var(--tg-surface);
+  backdrop-filter: blur(var(--tg-blur));
+  -webkit-backdrop-filter: blur(var(--tg-blur));
+  border: 1px solid var(--tg-border);
+  border-radius: var(--tg-radius);
+  overflow: hidden;
+  box-shadow: var(--tg-shadow);
+}
+.tg-table { width: 100%; border-collapse: collapse; }
+.tg-table thead {
+  position: sticky; top: 0; z-index: 1;
+  background: rgba(8, 18, 44, 0.97);
+  color: var(--tg-text-secondary);
+  font-size: 0.71rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.tg-table th {
+  padding: 13px 16px; text-align: left;
+  border-bottom: 1px solid var(--tg-border);
+}
+.tg-table th[aria-sort] { cursor: pointer; }
+.tg-table th:hover { color: var(--tg-accent-1); }
+.tg-table td {
+  padding: 12px 16px; border-bottom: 1px solid var(--tg-border);
+  font-size: 0.875rem; color: var(--tg-text);
+}
+.tg-table tbody tr { transition: background-color var(--tg-transition); }
+.tg-table tbody tr:hover {
+  background: var(--tg-surface-hover);
+  box-shadow: inset 3px 0 0 var(--tg-accent-1);
+}
+.tg-table tbody tr:last-child td { border-bottom: none; }
+
+/* Filter chips */
+.tg-filter-chips {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  padding: 12px 16px; border-bottom: 1px solid var(--tg-border);
+  background: rgba(8, 18, 44, 0.55);
+}
+.tg-chip {
+  padding: 5px 12px; border-radius: 9999px;
+  border: 1px solid var(--tg-border); background: var(--tg-surface);
+  color: var(--tg-text-secondary); font-size: 0.8rem; cursor: pointer;
+  transition: border-color var(--tg-transition), color var(--tg-transition), box-shadow var(--tg-transition);
+}
+.tg-chip:hover, .tg-chip.tg-chip-active {
+  border-color: var(--tg-accent-1); color: var(--tg-accent-1);
+  box-shadow: 0 0 10px var(--tg-accent-glow);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   5. Pipeline step badge
+   ═══════════════════════════════════════════════════════════ */
+.tg-pipeline-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 14px; background: var(--tg-surface);
+  backdrop-filter: blur(var(--tg-blur-sm));
+  border: 1px solid var(--tg-border);
+  border-left: 3px solid var(--tg-accent-1);
+  border-radius: var(--tg-radius-sm);
+  color: var(--tg-text); font-size: 0.875rem; font-weight: 500;
+  transition: background-color var(--tg-transition), border-color var(--tg-transition), box-shadow var(--tg-transition);
+}
+.tg-pipeline-badge:hover {
+  background: var(--tg-surface-hover); border-color: var(--tg-border-mid);
+  box-shadow: 0 0 14px var(--tg-accent-glow);
+}
+.tg-pipeline-badge .tg-step-num { color: var(--tg-accent-1); font-weight: 700; min-width: 1.25rem; }
+.tg-pipeline-badge.tg-step-active {
+  border-left-color: var(--tg-accent-2);
+  box-shadow: 0 0 28px var(--tg-accent-glow), 0 0 10px rgba(6, 239, 207, 0.2);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   6. Metric card
+   ═══════════════════════════════════════════════════════════ */
+.tg-metric-card {
+  background: var(--tg-surface);
+  backdrop-filter: blur(var(--tg-blur));
+  -webkit-backdrop-filter: blur(var(--tg-blur));
+  border: 1px solid var(--tg-border);
+  border-radius: var(--tg-radius);
+  padding: 1.25rem 1.5rem;
+  position: relative; overflow: hidden;
+  transition: border-color var(--tg-transition), box-shadow var(--tg-transition);
+}
+.tg-metric-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--tg-gradient-accent);
+  opacity: 0.75;
+}
+.tg-metric-card:hover {
+  border-color: var(--tg-border-mid);
+  box-shadow: var(--tg-glow-outer-strong);
+}
+.tg-metric-card .tg-metric-value {
+  font-size: 2rem; font-weight: 700; color: var(--tg-text); line-height: 1.2;
+  text-shadow: 0 0 30px var(--tg-accent-glow);
+  font-variant-numeric: tabular-nums;
+}
+.tg-metric-card .tg-metric-label {
+  font-size: 0.72rem; color: var(--tg-text-secondary);
+  text-transform: uppercase; letter-spacing: 0.08em;
+  margin-top: 6px; font-weight: 700;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   7. Buttons
+   ═══════════════════════════════════════════════════════════ */
+body.tg-theme .btn-tg-primary {
+  background: linear-gradient(135deg, var(--tg-accent-1), var(--tg-accent-2));
+  color: #051020; border: none;
+  border-radius: var(--tg-radius-sm);
+  padding: 10px 22px; font-weight: 700; letter-spacing: 0.01em;
+  transition: filter var(--tg-transition), box-shadow var(--tg-transition), transform var(--tg-transition);
+}
+body.tg-theme .btn-tg-primary:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 0 28px var(--tg-accent-glow-strong), 0 0 56px var(--tg-accent-glow);
+  transform: translateY(-1px);
+}
+body.tg-theme .btn-tg-secondary {
+  background: transparent; color: var(--tg-text);
+  border: 1px solid var(--tg-border-strong);
+  border-radius: var(--tg-radius-sm); padding: 10px 22px;
+  transition: background-color var(--tg-transition), border-color var(--tg-transition), box-shadow var(--tg-transition);
+}
+body.tg-theme .btn-tg-secondary:hover {
+  background: var(--tg-surface-hover); border-color: var(--tg-accent-1);
+  box-shadow: 0 0 16px var(--tg-accent-glow);
+}
+body.tg-theme .btn-tg-ghost {
+  background: transparent; color: var(--tg-text-secondary);
+  border: none; padding: 8px 16px; border-radius: var(--tg-radius-sm);
+  transition: background-color var(--tg-transition), color var(--tg-transition);
+}
+body.tg-theme .btn-tg-ghost:hover { background: var(--tg-surface-hover); color: var(--tg-text); }
+
+/* ═══════════════════════════════════════════════════════════
+   8. Graph view panel
+   ═══════════════════════════════════════════════════════════ */
+.tg-graph-container {
+  background: var(--tg-bg); border: 1px solid var(--tg-border);
+  border-radius: var(--tg-radius); overflow: hidden;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   9. Animations & keyframes
+   ═══════════════════════════════════════════════════════════ */
+@keyframes tg-orb-float-1 {
+  0%, 100% { transform: translate(0, 0)    scale(1);    }
+  33%       { transform: translate(35px, -22px) scale(1.06); }
+  66%       { transform: translate(-18px, 16px) scale(0.96); }
+}
+@keyframes tg-orb-float-2 {
+  0%, 100% { transform: translate(0, 0)     scale(1);    }
+  40%       { transform: translate(-28px, 20px) scale(1.05); }
+  70%       { transform: translate(22px, -14px) scale(0.97); }
+}
+@keyframes tg-orb-float-3 {
+  0%, 100% { transform: translate(0, 0)   scale(1);    }
+  50%       { transform: translate(20px, 28px) scale(1.07); }
+}
+@keyframes tg-nav-scan {
+  0%   { transform: translateX(-100%); opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { transform: translateX(350%); opacity: 0; }
+}
+@keyframes tg-pulse-ring {
+  0%   { transform: scale(0.85); opacity: 0.9; }
+  70%  { transform: scale(1.5);  opacity: 0;   }
+  100% { transform: scale(1.5);  opacity: 0;   }
+}
+@keyframes tg-ekg-flow {
+  to { stroke-dashoffset: -200; }
+}
+@keyframes tg-blink {
+  0%, 100% { opacity: 1; } 50% { opacity: 0; }
+}
+@keyframes tg-fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+@keyframes progress-graph-llm-ring-pulse {
+  0%, 100% { opacity: 0.45; }
+  50%       { opacity: 1;   }
+}
+@keyframes progress-graph-pulse-ring {
+  0%, 100% { opacity: 0.8; }
+  50%       { opacity: 0.3; }
+}
+@keyframes progress-graph-edge-flow {
+  to { stroke-dashoffset: -24; }
+}
+@keyframes progress-graph-triple-flash {
+  from { opacity: 0.3; }
+  to   { opacity: 1;   }
+}
+
+/* ── Reduced motion ─────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .tg-glass-card, .tg-table tbody tr, .tg-pipeline-badge,
+  .tg-metric-card, .tg-chip, .tg-orb,
+  .app-nav::after { transition: none; animation: none; }
+}

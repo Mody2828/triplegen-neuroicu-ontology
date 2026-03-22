@@ -1,0 +1,373 @@
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing the EXACT, verbatim sentence fragment from the text.
+
+3. **Extraction Scope:** Extract clinical and biomedical content: conditions, physiological parameters, monitoring variables, treatments/therapies/interventions, outcomes, assessments, laboratory values, nursing interventions, surgical procedures, and clinical dataset categories when explicitly named.
+   Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+   If a sentence or paragraph is mainly about these excluded topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+6. **Label Mapping Rule:** If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+   Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+   For other abbreviations, expand to their full clinical name as used in the text.
+
+7. **Structural Completeness Rule:** When the text mentions specific clinical items, also extract their general category if the text supports it.
+   For example, if the text discusses 'ventilation, sedation, fluids' as therapies, also extract the general class 'Therapy' or 'Baseline Therapy' if the text uses that grouping.
+   Use the text's own categories and groupings — do not impose an external hierarchy.
+
+**Default priority: classes first, then relations.** Extract relations when the text clearly states a connection between two concepts — both domain and range must be extracted classes. If a phase instruction below overrides this priority, follow the phase instruction.
+
+**Completeness:** Extract every distinct clinical concept the text names — err on the side of inclusion when evidence exists.
+
+### CURRENT TASK: Phase 2 — RELATION & HIERARCHY EXTRACTION (+ supplementary classes)
+Primary task: extract semantic RELATIONS between the known classes below. Extract every relation the text explicitly supports with evidence.
+Secondary task: if you notice clinical concepts in the text that Phase 1 missed (e.g. a concept needed as domain/range), add them to the classes array with evidence.
+Also extract hierarchy (subClassOf) edges wherever the text shows parent-child relationships — look for cues like 'such as', 'includes', 'type of', 'consists of', 'categorized as', enumeration lists, or even implied groupings.
+
+### WHAT IS AN ONTOLOGY RELATION?
+An ontology relation (object property) defines a typed semantic link between two class types. The DOMAIN is the subject class; the RANGE is the object class. Think: 'Every instance of [domain] can be linked via [relation] to an instance of [range].' Relations model the SCHEMA of the domain, not individual facts.
+Example: 'has monitoring data(Patient → Monitoring Data)' means every Patient can have Monitoring Data associated with them.
+
+### RELATION EXTRACTION METHOD (Chain-of-Thought)
+For each pair of known classes, reason step by step:
+1. Do these two classes co-occur or interact in the text?
+2. What is the SEMANTIC NATURE of their link? (measurement, treatment, assessment, outcome, composition, causation, etc.)
+3. Which class is the subject (domain) and which is the object (range)?
+4. Assign a descriptive relation label from the patterns below, or create a meaningful label if none fits.
+5. Find an exact text quote that supports this relationship.
+
+### ONTOLOGY DESIGN PATTERNS (use when the text supports them)
+These are reusable structural patterns showing how clinical concepts relate.
+Match them against the text — extract every supported edge.
+
+**Pattern 1 — Clinical Monitoring:**
+  Patient --[has monitoring data]--> Monitoring Data
+  Monitoring Data --[includes]--> Parameter
+  Observation --[measures parameter]--> Parameter
+  Observation --[produced by sensor]--> Sensor
+  Observation --[has quality assessment]--> Data Quality Assessment
+  Session --[has timepoint]--> Timepoint
+  Timepoint --[has observation]--> Observation
+
+**Pattern 2 — Clinical Intervention:**
+  Patient --[receives therapy]--> Therapy
+  Therapy --[targets condition]--> Condition
+  Condition --[triggers intervention]--> Therapy
+  Patient --[has surgical procedure]--> Surgical Procedure
+  Patient --[has nursing intervention]--> Nursing Intervention
+
+**Pattern 3 — Clinical Assessment and Outcome:**
+  Patient --[has clinical assessment]--> Clinical Assessment
+  Patient --[has outcome]--> Outcome
+  Patient --[has laboratory value]--> Laboratory Values
+  Monitoring Data --[monitoring indicates condition]--> Condition
+
+**Pattern 4 — Patient Context:**
+  Patient --[has session]--> Session
+  Patient --[has demographic data]--> Demographic Data
+  Patient --[has injury mechanism]--> Injury Mechanism
+
+**Pattern 5 — Data Quality:**
+  Data Quality Assessment --[affected by treatment]--> Therapy
+  Data Quality Assessment --[associated with condition]--> Condition
+
+**Pattern 6 — Composition:**
+  Category --[includes]--> Member
+  Derived Parameter --[derived from]--> Source Parameter
+
+You SHOULD also extract other relations the text supports beyond these patterns.
+Do not invent relations not stated or clearly implied in the text.
+
+### RELATION EVIDENCE RULES
+- Each relation MUST have an 'evidence' field with an exact verbatim quote from the source text.
+- The evidence should mention or clearly imply at least one of the two endpoint classes (domain or range).
+- Use the ABSTRACT superclass as the range, not specific instances (e.g., 'Monitoring Data' not 'ICP').
+- Do NOT reuse the same evidence quote for multiple relations.
+
+### SELF-CHECK (before finalising output)
+- Do all domain and range labels match known classes from Phase 1?
+- Are there any duplicate relations (same domain-label-range)? Remove duplicates.
+- Does every evidence field contain a verbatim quote from the text?
+
+Output JSON with keys classes, relations, hierarchy.
+
+Known classes (use only these labels): Partial Pressure of Brain Tissue Oxygen (PbtO2); Intracranial Pressure (ICP); Metabolic Activity; Disease Severity; Mortality; Traumatic Brain Injury (TBI); Mean Arterial Pressure (MAP); Partial Pressure of Carbon Dioxide (pCO2); Glasgow Outcome Scale Extended (GOSe); Intensive Care Unit (ICU); Secondary Injury; Condition; Vital Signs Monitoring Modalities; Neurotrauma Guidelines; Cerebral Perfusion Pressure (CPP); Arterial Blood Pressure (ABP)
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+**REASONING STEP:** Before producing JSON, mentally scan the text for: (1) every named clinical concept, (2) explicit relations between them, (3) hierarchy cues (such as, is a, type of, include:). Then output only items with verbatim evidence.
+
+---
+--- Retrieved examples (3) ---
+
+Text: The minimum minute by minute monitoring data required for inclusion in the BrainIT Database include: Heart Rate, Respiration Rate, Mean Arterial Pressure, ICP, SaO2 and Temperature. Data is collected from patients every minute.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Patient",
+      "evidence": "patients"
+    },
+    {
+      "label": "Monitoring Data",
+      "evidence": "monitoring data"
+    },
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate"
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate"
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature"
+    }
+  ],
+  "relations": [
+    {
+      "label": "has monitoring data",
+      "domain": "Patient",
+      "range": "Monitoring Data",
+      "evidence": "Data is collected from patients every minute"
+    },
+    {
+      "label": "includes",
+      "domain": "Monitoring Data",
+      "range": "Heart Rate",
+      "evidence": "monitoring data include: Heart Rate"
+    },
+    {
+      "label": "includes",
+      "domain": "Monitoring Data",
+      "range": "Temperature",
+      "evidence": "monitoring data include: Heart Rate, Respiration Rate, Mean Arterial Pressure, ICP, SaO2 and Temperature"
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+
+Text: To help quantify the current pathophysiology and provide information on changing injury status, a variety of vital signs monitoring modalities are used concurrently in neuro-intensive care units. Monitoring of ICP is indicated in the current neurotrauma guidelines for patients with TBI. Metabolic activity, disease severity and mortality is related to the partial pressure of brain tissue oxygen (PbtO2).
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Monitoring Data",
+      "evidence": "vital signs monitoring modalities"
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "Monitoring of ICP"
+    },
+    {
+      "label": "PbrO2",
+      "evidence": "partial pressure of brain tissue oxygen (PbtO2)"
+    },
+    {
+      "label": "Outcome",
+      "evidence": "disease severity and mortality"
+    },
+    {
+      "label": "Patient",
+      "evidence": "patients with TBI"
+    }
+  ],
+  "relations": [
+    {
+      "label": "has monitoring data",
+      "domain": "Patient",
+      "range": "Monitoring Data",
+      "evidence": "vital signs monitoring modalities are used concurrently in neuro-intensive care units"
+    },
+    {
+      "label": "monitoring indicates condition",
+      "domain": "Monitoring Data",
+      "range": "Condition",
+      "evidence": "quantify the current pathophysiology and provide information on changing injury status"
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+
+Text: One of the cornerstones of brain-protective strategies is to reduce and control intracranial pressure (ICP), thereby avoiding secondary ischemic damage. When despite first and second-tier interventions ICP remained unacceptably high, decompressive craniectomy was chosen as a next step. Patient outcome was assessed using the Glasgow Outcome Scale Extended (GOSe) at six months post-injury.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "reduce and control intracranial pressure (ICP)"
+    },
+    {
+      "label": "Intracranial Hypertension",
+      "evidence": "ICP remained unacceptably high"
+    },
+    {
+      "label": "Secondary Insult Treatment",
+      "evidence": "decompressive craniectomy was chosen as a next step"
+    },
+    {
+      "label": "GOSe Outcome",
+      "evidence": "Glasgow Outcome Scale Extended (GOSe) at six months"
+    },
+    {
+      "label": "Patient",
+      "evidence": "Patient outcome was assessed"
+    }
+  ],
+  "relations": [
+    {
+      "label": "targets condition",
+      "domain": "Therapy",
+      "range": "Condition",
+      "evidence": "ICP remained unacceptably high, decompressive craniectomy was chosen"
+    },
+    {
+      "label": "has outcome",
+      "domain": "Patient",
+      "range": "Outcome",
+      "evidence": "Patient outcome was assessed using the Glasgow Outcome Scale Extended (GOSe)"
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+TEXT TO ANALYZE:
+Brain and Spine 4 (2024) 102848
+
+Exploration of the relationship between partial pressure of brain tissue
+oxygen and intracranial pressure
+Martin Shaw a, b, *, Laura Moss a, b, Ian Piper c, Maya Kommer a, d, Richard Boulton b,
+a
+College of Medicine, Veterinary and Life Sciences, University Of Glasgow, Glasgow, United Kingdom
+b
+Dept. of Clinical Physics, NHS Greater Glasgow and Clyde, Glasgow, United Kingdom
+c
+Usher Institute of Informatics, University of Edinburgh, Edinburgh, United Kingdom
+d
+Dept. of Neurosurgery, NHS Greater Glasgow and Clyde, Glasgow, United Kingdom
+e
+Dept. of Neuroanaesthesia, NHS Greater Glasgow and Clyde, Glasgow, United Kingdom
+
+A R T I C L E I N F O A B S T R A C T
+
+Handling Editor: Dr W Peul Introduction: Partial pressure of brain tissue oxygen (PbtO2) has been shown to be a safe an effective monitoring
+modality to compliment intracranial pressure (ICP) monitoring. It is related to metabolic activity, disease
+Keywords: severity and mortality.
+Intracranial pressure Research question: Understanding the complex relationship between PbtO2 and ICP for patients with traumatic
+Partial pressure of brain tissue oxygen
+brain injury will enable better clinical decision making beyond simple threshold treatment strategies.
+Non-linear model
+Material and methods: Patients with PbtO2 monitoring were identified from the BrainIT database, a multi-centre
+dataset, containing minute by minute PbtO2 and ICP readings. Missing data was imputed and a multi-level log-
+increased correlation due to the repeated measurements. The model was adjusted for mean arterial pressure and
+the partial pressure of carbon dioxide. Non-linearity was assessed using analysis of deviance and trends using
+expected marginal means.
+Results: 11 subjects with over 82,000 readings were included. They had a median age of 38 (IQR: 37-47), 73%
+were male, a median length of stay of 11.8 (IQR: 6.6-19.7) days and a median extended Glasgow outcome scale
+of 7.00 (IQR: 5-8).
+There is a statistically significant (p < 0.001) non-linear effect of ICP on PbtO2. With an overall increase in PbtO2
+of 5.2% (95% CI 4%-6.4%, p < 0.001) for a 10 mmHg increase in ICP below 22 mmHg and a decrease of 5.5%
+(95% CI 2.7%-8.3%, p=<0.001) in PbtO2 for a 10 mmHg increase in ICP above 22 mmHg. As well as a decrease
+of 40.9% (95% CI 2.3%-64.3%, p = 0.040) in PbtO2 per day in the intensive care unit.
+Discussion and conclusion: This model demonstrates that there is a significant non-linear relationship between ICP
+and PbtO2, however, this is a small heterogeneous cohort and further validation will be required.
+
+1. Introduction (ICP) (Carney et al., 2016). To help quantify the current pathophysi­
+ology and provide information on changing injury status, a variety of
+Traumatic brain injury (TBI) is a leading cause of death and long- vital signs monitoring modalities are used concurrently in
+term disability worldwide, with 346 (interquartile range (IQR) 298, neuro-intensive care unit (ICU)s. Monitoring of ICP is indicated in the
+401) per 100,000 people injured every year (Traumatic brain injury, current neurotrauma guidelines for patients with TBI (Carney et al.,
+2022). In Europe, mortality from TBI is between 9 and 28.1 per 100,000 2016) and management protocols including ICP have also been shown to
+people with similar incidence recorded in America (Brazinova et al., have better functional outcomes (Chesnut et al., 2023). Metabolic ac­
+2021). Clinical management of this population is focused on minimising tivity, disease severity and mortality is related to the partial pressure of
+any secondary injury, such as ischemia or raised intracranial pressure brain tissue oxygen (PbtO2) (Ngwenya et al., 2016). Monitoring PbtO2
+
+M. Shaw et al. Brain and Spine 4 (2024) 102848
+
+has been shown to be safe, effective, and when used in conjunction with Table 1
+ICP monitoring, adds additional contextual information on the overall Cohort demographic and outcome summary stratified by the extended Glasgow
+patient state (Okonkwo et al., 2017). outcome scale (GOSe).
+The currently proposed treatment protocols using a combined PbtO2 Characteristic Overall, N = GOSe: 1-4, N GOSe: 5-8, N
+and ICP monitoring strategy are still using singular cut-offs, 20 mmHg 11 =3 =8
+for PbtO2 and 22 mmHg for ICP, for these parameters (Bernard et al., Gender (Male), n (%) 8 (73%) 2 (67%) 6 (75%)
+2022; BONANZA-GT, 2020). Worsening outcome driven by ICP has a Age (years), Median (IQR) 38 (37, 47) 38 (38, 51) 38 (33, 44)
+dynamic threshold that is related to time above this cut-off (Güiza et al., Type of Trauma, n (%)
+Fall 6 (60%) 1 (33%) 5 (71%)
+2015). There is also a known non-linear effect of PbtO2 on cerebral
+Sport 1 (10%) 0 (0%) 1 (14%)
+perfusion pressure (CPP) (Megjhani et al., 2023), which is the net Traffic Accident 3 (30%) 2 (67%) 1 (14%)
+pressure differential driving cerebral blood flow across the cerebrovas­ GOSe, Median (IQR)a 7.00 (4.50, 3.00 (2.00, 7.00 (6.75,
+cular bed and directly influenced by ICP. The relationship between these 7.50) 3.50) 8.00)
+two parameters has been investigated previously (Flynn et al., 2015) and pH, Median (IQR) 7.430 (7.420, 7.480 (7.460, 7.420 (7.420,
+7.450) 7.500) 7.430)
+the non-linear nature of the relationship assessed in a paediatric context pCO2 (mmHg), Median 36.0 (32.6, 34.2 (32.7, 36.0 (33.5,
+(Figaji et al., 2009; Rohlwink et al., 2012). Finally, the increased cor­ (IQR)a 37.8) 35.6) 39.3)
+relation in temporal trends between PbtO2 and ICP has been quantified paO2 (mmHg), Median 141 (108, 152 (119, 141 (120,
+and shown to improve the overall fit when accounted for (Zeiler et al., (IQR)a 311) 185) 478)
+Haematocrit (%), Median 27.50 (26.25, 23.00 (23.00, 28.00 (27.00,
+2021).
+(IQR) 29.50) 23.00) 30.00)
+The main aim of this study was to investigate the non-linear nature of Glucose (mmol/l), Median 6.16 (5.66, 5.66 (5.55, 7.41 (6.17,
+the relationship between PbtO2 and ICP whilst accounting for the (IQR) 7.60) 5.91) 8.10)
+temporal correlation over the length of the ICU stay. The study will GCS Eye, n (%)a
+contribute to a more complete understanding of the complex relation­ 1 8 (80%) 2 (67%) 6 (86%)
+2 2 (20%) 1 (33%) 1 (14%)
+ship for patients with TBI and hence enable better clinical decision
+GCS Motor, n (%)a
+making beyond the currently proposed simple threshold treatment 1 8 (80%) 2 (67%) 6 (86%)
+strategies. 2 2 (20%) 1 (33%) 1 (14%)
+GCS Verbal, n (%)a
+1 8 (80%) 2 (67%) 6 (86%)
+2. Methods
+2 2 (20%) 1 (33%) 1 (14%)
+CT lesion type, n (%)a
+2.1. Study design Extradural 1 (9.1%) 0 (0%) 1 (13%)
+Intraparenchymal 9 (82%) 3 (100%) 6 (75%)
+The study utilised a retrospective observational cohort of prospec­ Subdural 1 (9.1%) 0 (0%) 1 (13%)
+CT Volume, n (%)a
+<25 ml 3 (30%) 0 (0%) 3 (43%)
+et al., 2008). This database consists of 261 TBI patients, recruited from >25 ml 7 (70%) 3 (100%) 4 (57%)
+22 neuro-ICU's across 11 countries as part of two EU framework grants Initial PbtO2 (mmHg), 15 (8, 33) 9 (7, 9) 29 (13, 34)
+(FP5 QLGT-2002-00160 and FP7 IST-2007-217049). It contains 2.9 Median (IQR)a
+Initial ICP (mmHg), Median 13.0 (10.5, 13.0 (12.5, 13.5 (9.5,
+million measurements of vital signs monitoring data such as minute by
+(IQR)a 17.0) 15.0) 17.8)
+minute arterial blood pressure (ABP), ICP and PbtO2. Initial ABP (mmHg), 86 (80, 98) 80 (78, 80) 92 (85, 101)
+Median (IQR)a
+2.2. Eligibility Length of Stay (days), 11.8 (6.6, 11.8 (10.0, 9.5 (6.1, 19.7)
+Median (IQR) 19.7) 17.8)
+---

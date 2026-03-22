@@ -1,0 +1,311 @@
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing the EXACT, verbatim sentence fragment from the text.
+
+3. **Extraction Scope:** Extract clinical and biomedical content: conditions, physiological parameters, monitoring variables, treatments/therapies/interventions, outcomes, assessments, laboratory values, nursing interventions, surgical procedures, and clinical dataset categories when explicitly named.
+   Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+   If a sentence or paragraph is mainly about these excluded topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+6. **Label Mapping Rule:** If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+   Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+   For other abbreviations, expand to their full clinical name as used in the text.
+
+7. **Structural Completeness Rule:** When the text mentions specific clinical items, also extract their general category if the text supports it.
+   For example, if the text discusses 'ventilation, sedation, fluids' as therapies, also extract the general class 'Therapy' or 'Baseline Therapy' if the text uses that grouping.
+   Use the text's own categories and groupings — do not impose an external hierarchy.
+
+**Default priority: classes first, then relations.** Extract relations when the text clearly states a connection between two concepts — both domain and range must be extracted classes. If a phase instruction below overrides this priority, follow the phase instruction.
+
+**Completeness:** Extract every distinct clinical concept the text names — err on the side of inclusion when evidence exists.
+
+### CURRENT TASK: Phase 1 — COMPREHENSIVE CLASS EXTRACTION
+Extract all clinical and biomedical classes mentioned in the text.
+
+### CHAIN-OF-THOUGHT (follow these steps before producing output)
+1. Read each paragraph and identify every clinical noun phrase (conditions, parameters, therapies, assessments, outcomes, devices, data categories).
+2. For each candidate, classify it: Is it a clinical condition? A physiological parameter? A treatment? An assessment? A laboratory value? A nursing intervention? A data category? A device or sensor?
+3. Check: does the text provide a verbatim phrase you can cite as evidence?
+4. If yes, include it. If the concept is purely organisational, governance, or publication metadata, skip it.
+
+### CONCEPT TYPES TO LOOK FOR
+  - Clinical conditions, diseases, injuries, syndromes, secondary insults
+  - Physiological parameters and monitoring variables (e.g. ICP, MAP, HR, SpO2)
+  - Treatments, therapies, interventions, drugs, medications
+  - Surgical procedures and clinical procedures
+  - Clinical assessments, scores, and scales (e.g. GCS, GOSe, pupil assessment)
+  - Patient outcomes and outcome measures
+  - Laboratory values and test categories (e.g. blood gases, biochemistry)
+  - Nursing interventions and bedside care (e.g. suctioning, sedation)
+  - Medical devices and sensors
+  - Data categories and abstract grouping classes (e.g. Monitoring Data, Therapy, Condition, Outcome, Core Monitoring Parameter, Optional Monitoring Parameter, Baseline Therapy, Demographic Data, Admission Data, Treatment Data, Outcome Data)
+  - Clinical guidelines and management protocols
+
+### LABEL GUIDANCE
+  - Use short, clean noun-phrase labels.
+  - Expand common abbreviations: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+  - For other abbreviations, expand to their full clinical name.
+
+### STRUCTURAL COMPLETENESS
+When the text mentions specific clinical items, also extract their general category if the text supports it. Use the text's own categories and groupings. For example, if the text lists 'heart rate, ICP, MAP' under 'core monitoring parameters', extract BOTH the individual parameters AND 'Core Monitoring Parameter' as a class.
+
+### EXTRACTION PRINCIPLE
+Extract every clinical concept the text explicitly names. Do not invent concepts not present in the text. Each concept needs a verbatim evidence quote from the source.
+
+### SELF-CHECK (before finalising output)
+- Is every label a clinical TYPE (not an instance or a person's name)?
+- Are there any duplicate or synonym labels? Merge them.
+- Does every evidence field contain a verbatim quote from the text?
+
+Output JSON with keys classes, relations, hierarchy. Set relations and hierarchy to empty arrays.
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+**REASONING STEP:** Before producing JSON, mentally scan the text for: (1) every named clinical concept, (2) explicit relations between them, (3) hierarchy cues (such as, is a, type of, include:). Then output only items with verbatim evidence.
+
+---
+--- Retrieved examples (3) ---
+
+Text: This is the minimum minute by minute monitoring data required for inclusion in the BrainIT Database and include: Heart Rate (specifying source: ECG or Pulse Oximetry), Respiration Rate (sources: impedance plethmography or ventilator), Mean Arterial Pressure, mean ICP, Pulse Oximetry (SaO2) and Temperature (sources: rectal=oesophageal= bladder=skin.) However, additional variables: Central Venous Pressure (CVP), EtCO2, SjO2, TCD, PbrO2, Brain Temperature, Microdialysis. . . will also be included in the database if they are monitored, in a given patient, as part of their usual clinical management.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate (specifying source: ECG or Pulse Oximetry)"
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate (sources: impedance plethmography or ventilator)"
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "Mean Arterial Pressure"
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "mean ICP"
+    },
+    {
+      "label": "SaO2",
+      "evidence": "Pulse Oximetry (SaO2)"
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature (sources: rectal=oesophageal= bladder=skin.)"
+    },
+    {
+      "label": "CVP",
+      "evidence": "Central Venous Pressure (CVP)"
+    },
+    {
+      "label": "EtCO2",
+      "evidence": "EtCO2"
+    },
+    {
+      "label": "SjO2",
+      "evidence": "SjO2"
+    },
+    {
+      "label": "TCD",
+      "evidence": "TCD"
+    },
+    {
+      "label": "PbrO2",
+      "evidence": "PbrO2"
+    },
+    {
+      "label": "Brain Temperature",
+      "evidence": "Brain Temperature"
+    },
+    {
+      "label": "Microdialysis",
+      "evidence": "Microdialysis"
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+
+Text: Arterial hypotension and increased intracranial pressure (ICP) are secondary insults that are associated with poor outcome in patients suffering traumatic brain injury (TBI). Through the acquisition of high-frequency physiological data and using predictive modelling techniques there is now the potential to predict these secondary insults with the possibility of intervening before the event.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Arterial Hypotension",
+      "evidence": "Arterial hypotension"
+    },
+    {
+      "label": "Intracranial Hypertension",
+      "evidence": "increased intracranial pressure (ICP)"
+    },
+    {
+      "label": "Secondary Insult",
+      "evidence": "secondary insults that are associated with poor outcome"
+    },
+    {
+      "label": "Outcome",
+      "evidence": "poor outcome"
+    },
+    {
+      "label": "Monitoring Data",
+      "evidence": "high-frequency physiological data"
+    },
+    {
+      "label": "Patient",
+      "evidence": "patients suffering traumatic brain injury"
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+
+Text: Secondary insults such as intracranial hypertension, systemic hypotension, arterial hypotension, jugular venous desaturation, and acute respiratory distress syndrome (ARDS) are adverse physiological events that occur frequently in head injured patients despite baseline intensive care management.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Secondary Insult",
+      "evidence": "Secondary insults"
+    },
+    {
+      "label": "Condition",
+      "evidence": "adverse physiological events that occur frequently in head injured patients"
+    },
+    {
+      "label": "Intracranial Hypertension",
+      "evidence": "intracranial hypertension"
+    },
+    {
+      "label": "Systemic Hypotension",
+      "evidence": "systemic hypotension"
+    },
+    {
+      "label": "Arterial Hypotension",
+      "evidence": "arterial hypotension"
+    },
+    {
+      "label": "Jugular Venous Desaturation",
+      "evidence": "jugular venous desaturation"
+    },
+    {
+      "label": "Acute Respiratory Distress Syndrome",
+      "evidence": "acute respiratory distress syndrome (ARDS)"
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+TEXT TO ANALYZE:
+ORIGINAL RESEARCH
+
+Forewarning of hypotensive events using a Bayesian artificial neural
+network in neurocritical care
+Rob Donald1 · Tim Howells2 · Ian Piper3 · P. Enblad4 · P. Nilsson4 · I. Chambers5 · B. Gregson6 · G. Citerio7 ·
+
+Traumatically brain injured (TBI) patients are at risk from secondary insults. Arterial hypotension, critically low blood
+pressure, is one of the most dangerous secondary insults and is related to poor outcome in patients. The overall aim of this
+study was to get proof of the concept that advanced statistical techniques (machine learning) are methods that are able to
+provide early warning of impending hypotensive events before they occur during neuro-critical care. A Bayesian artificial
+neural network (BANN) model predicting episodes of hypotension was developed using data from 104 patients selected
+from the BrainIT multi-center database. Arterial hypotension events were recorded and defined using the Edinburgh University Secondary Insult Grades (EUSIG) physiological adverse event scoring system. The BANN was trained on a random
+selection of 50% of the available patients (n = 52) and validated on the remaining cohort. A multi-center prospective pilot
+study (Phase 1, n = 30) was then conducted with the system running live in the clinical environment, followed by a second
+validation pilot study (Phase 2, n = 49). From these prospectively collected data, a final evaluation study was done on 69 of
+these patients with 10 patients excluded from the Phase 2 study because of insufficient or invalid data. Each data collection
+phase was a prospective non-interventional observational study conducted in a live clinical setting to test the data collection
+systems and the model performance. No prediction information was available to the clinical teams during a patient's stay in
+the ICU. The final cohort (n = 69), using a decision threshold of 0.4, and including false positive checks, gave a sensitivity
+of 39.3% (95% CI 32.9-46.1) and a specificity of 91.5% (95% CI 89.0-93.7). Using a decision threshold of 0.3, and false
+positive correction, gave a sensitivity of 46.6% (95% CI 40.1-53.2) and specificity of 85.6% (95% CI 82.3-88.8). With a
+decision threshold of 0.3, > 15 min warning of patient instability can be achieved. We have shown, using advanced machine
+learning techniques running in a live neuro-critical care environment, that it would be possible to give neurointensive teams
+early warning of potential hypotensive events before they emerge, allowing closer monitoring and earlier clinical assessment
+in an attempt to prevent the onset of hypotension. The multi-centre clinical infrastructure developed to support the clinical
+studies provides a solid base for further collaborative research on data quality, false positive correction and the display of
+early warning data in a clinical setting.
+
+Keywords Traumatic brain injury · Neuro-intensive care · Bayesian prediction · Clinical study results
+
+1 Introduction complications during neurocritical care (NCC) known as
+secondary insults [2]. The secondary insults can be both
+One of the primary aims in treating emergency admission intracranial and systemic. The intracranial insults predomipatients with physical trauma is to stabilise vital physiologi- nantly result from high intracranial pressure caused by
+cal systems [1]. It is also recognised that patients who have mass lesions and ischaemic mechanisms resulting in brain
+suffered a traumatic brain injury (TBI) are at risk of having swelling. One of the most critical types of systemic sectheir "primary" brain damage exacerbated from a class of ondary insult is arterial hypotension, defined as abnormally
+low arterial blood pressure. Research has shown [3] that
+increased incidence of hypotensive episodes is related to
+* Ian Piper
+ian.piper@brainit.org poor neurological outcome. The physiological vital func-
+tions are extensively monitored in critical care and alarms
+Extended author information available on the last page of the article
+
+Vol.:(0123456789)
+
+40 Journal of Clinical Monitoring and Computing (2019) 33:39-51
+
+are sent out when a secondary insult, e.g. an hypotensive generation as well as the development and testing of new
+event, occurs so effective treatment can be initiated immedi- data analysis methods. The group defined a core data set [5]
+ately without delay to reduce the development of secondary and then collected a database of over 200 patients containing
+injuries. The ideal situation in the future would be to have a demographic data (e.g. age, gender, time of injury, initial
+monitoring system that sends out alarms before a secondary admission data both at pre-neurosurgical and neurosurgical
+insult will take place so relevant precautions can be insti- admission), episodic data (e.g. treatments given, lab results
+tuted to avoid the secondary event completely. from routine blood samples and nursing procedures) and
+The overall aim of this study was to get proof of the con- minute-by-minute physiological data from bedside monicept that advanced statistical techniques (machine learning) tors [6]. The BANN was constructed using data from 104
+are methods that are not only able to provide early warn- patients from the BrainIT database, which was recruited
+ing of impending hypotensive events before they occur, but from 22 European neuro-intensive care centers between
+can do so prospectively in a live neuro-critical care envi- March 2003 and June 2005 [6, 7].
+ronment. This project had two specific aims: to develop a To support a pilot study of the prediction system, 30
+prediction of hypotensive events; and to run a prospective 2009 and October 2010 from six BrainIT centres (Prospecmulti-centre clinical study to test the system in a real clinical tive Phase I Dataset): Uppsala, Sweden; Glasgow, Scotland;
+environment. For the clinical study a secure software and Vilnius, Lithuania; Heidelberg, Germany; Monza, Italy;
+hardware infrastructure was developed and used for collec- and Barcelona, Spain. Then in support of this data, 49 more
+tion of anonymised data from hospital intensive care units patients were prospectively recruited from the same centers
+(ICUs). between December 2010 and July 2011 (Prospective Phase
+II dataset). The Phase II prospective study used a "Hanfelt"
+two stage design consisting of an initial collection of 13
+2 Materials and methods patients (Phase II-Stage 1) followed by a subsequent 36
+patients (Phase II-Stage 2). The Hanfelt design is used to
+2.1 Patient data minimise the recruitment of patients in Phase II trials [14].
+See Fig. 1 outlining the design and timing of the clinical
+In 1997 an international group of clinicians and clinical sci- studies.
+entists set up the BrainIT consortium [4] with an aim to In the final analysis reported here the initial Phase I and
+collect high resolution physiological and clinical data from repeat Phase II cohorts were combined. Ten patients had
+TBI patients in a standardized manner, and to use that data to to be excluded due to excessive missing or invalid data
+undertake further research in this domain through hypothesis (seven patients did not have the required minimum of 24 h
+
+Fig. 1 Graphical representation of the clinical study design
+broken down by testing stage
+---

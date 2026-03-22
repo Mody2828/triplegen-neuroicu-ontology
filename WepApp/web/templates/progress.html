@@ -1,0 +1,447 @@
+{% extends "base.html" %}
+
+{% block title %}Running experiment · TripleGen{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+  <h1 class="mb-0"><i class="bi bi-graph-up-arrow tg-semantic-class"></i> Building your ontology</h1>
+  <p class="mb-0 mt-1 text-muted">Run ID: <span class="run-id-badge">{{ run_id }}</span></p>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div class="d-flex align-items-center gap-2">
+      <span class="text-muted small">Progress</span>
+      <span id="run-status-pill" class="badge text-bg-primary">Running</span>
+    </div>
+    <button
+      type="button"
+      id="cancel-btn"
+      class="btn btn-outline-danger btn-sm"
+      title="Cancel run and delete generated files"
+      data-bs-toggle="modal"
+      data-bs-target="#cancelConfirmModal"
+    >
+      <i class="bi bi-x-circle me-1"></i>Cancel
+    </button>
+  </div>
+  <div class="card-body py-4">
+    <div id="progress-area">
+      <p id="progress-message" class="mb-2 text-muted">Starting…</p>
+      <div class="d-flex align-items-center mb-2">
+        <p id="chunk-count" class="mb-0 text-muted small"></p>
+      </div>
+      <div class="progress progress-lg">
+        <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+      </div>
+      <p id="progress-pct" class="progress-pct mt-2 mb-0" aria-hidden="true">0%</p>
+      <div class="progress-graph-wrap mt-4" aria-hidden="true" role="img" aria-label="Building ontology">
+        <div class="progress-graph-panel">
+          <div class="progress-graph-title">
+            <i class="bi bi-diagram-3"></i> Knowledge graph · Classes &amp; object properties
+          </div>
+          <div class="progress-graph-viz-container">
+            <div id="ontology-graph-viz" class="progress-graph-svg-wrap"></div>
+            <div class="progress-graph-triple-stream" aria-hidden="true">
+              <span class="progress-graph-triple-stream-label tg-semantic-llm"><i class="bi bi-cpu me-1"></i>Producing triple</span>
+              <div id="progress-graph-triple-pills" class="progress-graph-triple-pills">
+                <span id="progress-graph-s" class="tg-badge-class progress-graph-pill"></span>
+                <span class="progress-graph-pill-sep" aria-hidden="true">·</span>
+                <span id="progress-graph-p" class="tg-badge-property progress-graph-pill"></span>
+                <span class="progress-graph-pill-sep" aria-hidden="true">·</span>
+                <span id="progress-graph-o" class="tg-badge-class progress-graph-pill"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="error-area" class="d-none">
+      <div class="alert alert-danger">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        <span id="error-text"></span>
+      </div>
+      <a href="{{ url_for('index') }}" class="btn btn-outline-tech">
+        <i class="bi bi-arrow-left me-1"></i>Back to form
+      </a>
+    </div>
+    <div id="cancelled-area" class="d-none">
+      <div class="alert alert-warning">
+        <i class="bi bi-info-circle me-2"></i>
+        <span id="cancelled-text">Run cancelled. Generated files have been deleted.</span>
+      </div>
+      <a href="{{ url_for('index') }}" class="btn btn-outline-tech">
+        <i class="bi bi-arrow-left me-1"></i>Back to form
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Cancel confirmation modal -->
+<div class="modal fade" id="cancelConfirmModal" tabindex="-1" aria-labelledby="cancelConfirmModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="cancelConfirmModalLabel"><i class="bi bi-x-circle me-2"></i>Cancel run?</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        This will stop the current run and <strong>delete any generated files</strong> for this run.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Keep running</button>
+        <button type="button" class="btn btn-danger" id="confirm-cancel-btn">
+          <i class="bi bi-trash3 me-1"></i>Cancel &amp; delete
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const runId = "{{ run_id }}";
+  const statusUrl = "{{ url_for('run_status', run_id=run_id) }}";
+  const cancelUrl = "/run/" + runId + "/cancel";
+  const resultsUrl = "{{ url_for('results', run_id=run_id) }}";
+  const pollInterval = 800;
+
+  const progressBar = document.getElementById("progress-bar");
+  const progressMessage = document.getElementById("progress-message");
+  const chunkCountEl = document.getElementById("chunk-count");
+  const progressPctEl = document.getElementById("progress-pct");
+  const progressArea = document.getElementById("progress-area");
+  const errorArea = document.getElementById("error-area");
+  const errorText = document.getElementById("error-text");
+  const cancelledArea = document.getElementById("cancelled-area");
+  const cancelledText = document.getElementById("cancelled-text");
+  const cancelBtn = document.getElementById("cancel-btn");
+  const confirmCancelBtn = document.getElementById("confirm-cancel-btn");
+  const statusPill = document.getElementById("run-status-pill");
+
+  let lastMessage = "Starting…";
+  let pollTimeout = null;
+
+  function stopPolling() {
+    if (pollTimeout) clearTimeout(pollTimeout);
+    pollTimeout = null;
+  }
+
+  function showError(msg) {
+    stopPolling();
+    progressArea.classList.add("d-none");
+    errorArea.classList.remove("d-none");
+    errorText.textContent = msg;
+  }
+
+  function showCancelled(msg) {
+    stopPolling();
+    progressArea.classList.add("d-none");
+    if (cancelledText) cancelledText.textContent = msg || "Run cancelled. Generated files have been deleted.";
+    cancelledArea.classList.remove("d-none");
+  }
+
+  function setPill(status) {
+    if (!statusPill) return;
+    statusPill.classList.remove("text-bg-primary", "text-bg-warning", "text-bg-success", "text-bg-danger", "text-bg-secondary");
+    if (status === "running") {
+      statusPill.classList.add("text-bg-primary");
+      statusPill.textContent = "Running";
+    } else if (status === "cancelling") {
+      statusPill.classList.add("text-bg-warning");
+      statusPill.textContent = "Cancelling";
+    } else if (status === "cancelled") {
+      statusPill.classList.add("text-bg-secondary");
+      statusPill.textContent = "Cancelled";
+    } else if (status === "completed") {
+      statusPill.classList.add("text-bg-success");
+      statusPill.textContent = "Done";
+    } else if (status === "failed") {
+      statusPill.classList.add("text-bg-danger");
+      statusPill.textContent = "Failed";
+    } else {
+      statusPill.classList.add("text-bg-secondary");
+      statusPill.textContent = "Status";
+    }
+  }
+
+  // Optional tooltip (without interfering with modal trigger)
+  try {
+    if (window.bootstrap && cancelBtn) {
+      new bootstrap.Tooltip(cancelBtn, { placement: "left" });
+    }
+  } catch (e) {}
+
+  if (confirmCancelBtn) {
+    confirmCancelBtn.addEventListener("click", function() {
+      confirmCancelBtn.disabled = true;
+      confirmCancelBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span>Cancelling…';
+      setPill("cancelling");
+      if (cancelBtn) cancelBtn.disabled = true;
+      fetch(cancelUrl, { method: "POST", headers: { "Content-Type": "application/json" } })
+        .then(function(r) { return r.json().catch(function() { return {}; }); })
+        .then(function(data) {
+          if (data.ok) {
+            progressMessage.textContent = "Cancelling…";
+            // Close modal
+            const modalEl = document.getElementById("cancelConfirmModal");
+            if (modalEl && window.bootstrap) {
+              const inst = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+              inst.hide();
+            }
+          } else {
+            confirmCancelBtn.disabled = false;
+            confirmCancelBtn.innerHTML = '<i class="bi bi-trash3 me-1"></i>Cancel &amp; delete';
+            if (cancelBtn) cancelBtn.disabled = false;
+            setPill("running");
+            alert(data.error || "Could not cancel.");
+          }
+        })
+        .catch(function() {
+          confirmCancelBtn.disabled = false;
+          confirmCancelBtn.innerHTML = '<i class="bi bi-trash3 me-1"></i>Cancel &amp; delete';
+          if (cancelBtn) cancelBtn.disabled = false;
+          setPill("running");
+          alert("Request failed. Try again.");
+        });
+    });
+  }
+
+  function poll() {
+    fetch(statusUrl)
+      .then(r => r.json())
+      .then(data => {
+        const status = data.status || "unknown";
+        const message = (data.message != null && String(data.message).trim() !== "") ? String(data.message).trim() : lastMessage;
+        lastMessage = message;
+        const current = parseInt(data.current, 10) || 0;
+        const total = parseInt(data.total, 10) || 0;
+
+        setPill(status);
+
+        if (total > 0 && /chunk \d+ of \d+/i.test(message)) {
+          progressMessage.textContent = "Processing…";
+          chunkCountEl.textContent = "Chunk " + current + " of " + total;
+          chunkCountEl.style.visibility = "visible";
+        } else {
+          progressMessage.textContent = message;
+          chunkCountEl.textContent = total > 0 ? "Chunk " + current + " of " + total : "";
+          chunkCountEl.style.visibility = total > 0 ? "visible" : "hidden";
+        }
+        if (total > 0) {
+          const pct = Math.min(100, Math.round((current / total) * 100));
+          progressBar.style.width = pct + "%";
+          progressBar.setAttribute("aria-valuenow", pct);
+          progressPctEl.textContent = pct + "%";
+        } else {
+          progressPctEl.textContent = "0%";
+        }
+
+        if (status === "completed") {
+          stopPolling();
+          if (cancelBtn) cancelBtn.disabled = true;
+          window.location.href = resultsUrl;
+          return;
+        }
+        if (status === "failed") {
+          if (cancelBtn) cancelBtn.disabled = true;
+          showError(data.error || "Run failed.");
+          return;
+        }
+        if (status === "cancelled") {
+          if (cancelBtn) cancelBtn.disabled = true;
+          showCancelled(data.message || "Run cancelled. Generated files have been deleted.");
+          return;
+        }
+        pollTimeout = setTimeout(poll, pollInterval);
+      })
+      .catch(() => {
+        showError("Could not fetch status. The run may still be in progress.");
+      });
+  }
+
+  poll();
+})();
+
+(function progressGraphDemo() {
+  const container = document.getElementById("ontology-graph-viz");
+  if (!container) return;
+
+  var SVG_NS = "http://www.w3.org/2000/svg";
+  var PAD = 60;
+  var NODE_R = 28;
+  var nodes = [
+    { id: "n1", label: "Patient", x: 120 + PAD, y: 40 + PAD },
+    { id: "n2", label: "Condition", x: 280 + PAD, y: 40 + PAD },
+    { id: "n3", label: "Therapy", x: 60 + PAD, y: 140 + PAD },
+    { id: "n4", label: "MonitoringData", x: 340 + PAD, y: 140 + PAD },
+    { id: "n5", label: "CoreDataset", x: 200 + PAD, y: 220 + PAD }
+  ];
+  var edges = [
+    { id: "e1", from: "n1", to: "n2", label: "hasCondition" },
+    { id: "e2", from: "n1", to: "n3", label: "receivesTherapy" },
+    { id: "e3", from: "n1", to: "n4", label: "hasMonitoringData" },
+    { id: "e4", from: "n3", to: "n2", label: "treats" },
+    { id: "e5", from: "n4", to: "n5", label: "partOf" },
+    { id: "e6", from: "n2", to: "n5", label: "inDataset" }
+  ];
+  var maxX = 340 + PAD * 2;
+  var maxY = 220 + PAD * 2;
+
+  function el(tag, attrs) {
+    var e = document.createElementNS(SVG_NS, tag);
+    for (var k in attrs) if (attrs.hasOwnProperty(k)) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+  function stop(offset, color, opacity) {
+    var s = el("stop", { offset: offset, stopColor: color });
+    if (opacity != null) s.setAttribute("stop-opacity", opacity);
+    return s;
+  }
+
+  var svg = el("svg", { class: "progress-graph-svg", viewBox: "0 0 " + maxX + " " + maxY, "aria-hidden": "true" });
+
+  var defs = el("defs");
+  var lg1 = el("linearGradient", { id: "pg-nodeGlass", x1: "0%", y1: "0%", x2: "100%", y2: "100%" });
+  lg1.appendChild(stop("0%", "rgba(255,255,255,0.25)"));
+  lg1.appendChild(stop("100%", "rgba(0,229,255,0.15)"));
+  var lg2 = el("linearGradient", { id: "pg-nodeGlassActive", x1: "0%", y1: "0%", x2: "100%", y2: "100%" });
+  lg2.appendChild(stop("0%", "rgba(0,229,255,0.5)"));
+  lg2.appendChild(stop("100%", "rgba(0,229,255,0.15)"));
+  var llmGrad = el("linearGradient", { id: "pg-llmFill", x1: "0%", y1: "0%", x2: "100%", y2: "100%" });
+  llmGrad.appendChild(stop("0%", "rgba(251,191,36,0.4)"));
+  llmGrad.appendChild(stop("100%", "rgba(34,211,238,0.2)"));
+  function fe(name, attrs) {
+    var e = document.createElementNS("http://www.w3.org/2000/svg", name);
+    for (var k in attrs) if (attrs.hasOwnProperty(k)) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+  var fg = el("filter", { id: "pg-glow" });
+  fg.appendChild(fe("feGaussianBlur", { stdDeviation: "2", result: "coloredBlur" }));
+  var feMerge = fe("feMerge", {});
+  feMerge.appendChild(fe("feMergeNode", { in: "coloredBlur" }));
+  feMerge.appendChild(fe("feMergeNode", { in: "SourceGraphic" }));
+  fg.appendChild(feMerge);
+  var fgStrong = el("filter", { id: "pg-glowStrong" });
+  fgStrong.appendChild(fe("feGaussianBlur", { stdDeviation: "4", result: "coloredBlur" }));
+  var feMergeStrong = fe("feMerge", {});
+  feMergeStrong.appendChild(fe("feMergeNode", { in: "coloredBlur" }));
+  feMergeStrong.appendChild(fe("feMergeNode", { in: "SourceGraphic" }));
+  fgStrong.appendChild(feMergeStrong);
+  var edgeGrad = el("linearGradient", { id: "pg-edgeGrad", x1: "0%", y1: "0%", x2: "100%", y2: "0%" });
+  edgeGrad.appendChild(stop("0%", "#00E5FF", "0.9"));
+  edgeGrad.appendChild(stop("100%", "#B026FF", "0.6"));
+  defs.appendChild(lg1);
+  defs.appendChild(lg2);
+  defs.appendChild(fg);
+  defs.appendChild(llmGrad);
+  defs.appendChild(fgStrong);
+  defs.appendChild(edgeGrad);
+  svg.appendChild(defs);
+
+  var pos = {};
+  nodes.forEach(function (n) { pos[n.id] = { x: n.x, y: n.y }; });
+
+  var centerX = (180 + 340 + 120 + 400 + 260) / 5;
+  var centerY = (100 + 100 + 200 + 200 + 280) / 5;
+  var llmR = 36;
+  var llmGroup = el("g", { class: "progress-graph-llm-center" });
+  var llmRing = el("circle", { cx: centerX, cy: centerY, r: llmR + 10, fill: "none", stroke: "rgba(251,191,36,0.5)", "stroke-width": "2", class: "progress-graph-llm-ring" });
+  var llmCircle = el("circle", { cx: centerX, cy: centerY, r: llmR, fill: "url(#pg-llmFill)", stroke: "rgba(251,191,36,0.7)", "stroke-width": "2", filter: "url(#pg-glowStrong)" });
+  var llmText = el("text", { x: centerX, y: centerY, "text-anchor": "middle", "dominant-baseline": "middle", fill: "rgba(255,255,255,0.95)", "font-size": "10", "font-weight": "700" });
+  llmText.textContent = "LLM";
+  llmGroup.appendChild(llmRing);
+  llmGroup.appendChild(llmCircle);
+  llmGroup.appendChild(llmText);
+
+  var edgeGroup = el("g", { class: "progress-graph-edges" });
+  edges.forEach(function (e) {
+    var from = pos[e.from];
+    var to = pos[e.to];
+    if (!from || !to) return;
+    var midX = (from.x + to.x) / 2;
+    var midY = (from.y + to.y) / 2;
+    var line1 = el("line", { x1: from.x, y1: from.y, x2: to.x, y2: to.y, stroke: "url(#pg-edgeGrad)", "stroke-width": "2", fill: "none", "stroke-opacity": "0.8", class: "progress-graph-edge-line", filter: "url(#pg-glow)" });
+    var line2 = el("line", { x1: from.x, y1: from.y, x2: to.x, y2: to.y, stroke: "rgba(0,229,255,0.5)", "stroke-width": "1.5", fill: "none", "stroke-dasharray": "8 16", class: "progress-graph-edge-dash" });
+    var label = el("text", { x: midX, y: midY, "text-anchor": "middle", "dominant-baseline": "middle", fill: "rgba(255,255,255,0.7)", "font-size": "9" });
+    label.textContent = e.label;
+    edgeGroup.appendChild(line1);
+    edgeGroup.appendChild(line2);
+    edgeGroup.appendChild(label);
+  });
+  svg.appendChild(edgeGroup);
+
+  var nodeGroup = el("g", { class: "progress-graph-nodes" });
+  nodes.forEach(function (n) {
+    var g = el("g", { class: "progress-graph-node", "data-id": n.id });
+    var ring = el("circle", { cx: n.x, cy: n.y, r: NODE_R + 14, fill: "none", stroke: "rgba(0,229,255,0.6)", "stroke-width": "2", class: "progress-graph-node-ring", filter: "url(#pg-glowStrong)" });
+    var circle = el("circle", { cx: n.x, cy: n.y, r: NODE_R, fill: "url(#pg-nodeGlass)", stroke: "rgba(0,229,255,0.5)", "stroke-width": "1.5", class: "progress-graph-node-circle", filter: "url(#pg-glow)" });
+    var label = el("text", { x: n.x, y: n.y, "text-anchor": "middle", "dominant-baseline": "middle", fill: "rgba(255,255,255,0.95)", "font-size": "11", "font-weight": "600" });
+    label.textContent = n.label;
+    g.appendChild(ring);
+    g.appendChild(circle);
+    g.appendChild(label);
+    nodeGroup.appendChild(g);
+  });
+  svg.appendChild(nodeGroup);
+  svg.appendChild(llmGroup);
+
+  container.appendChild(svg);
+
+  var nodeEls = nodeGroup.querySelectorAll(".progress-graph-node");
+  var ringEls = nodeGroup.querySelectorAll(".progress-graph-node-ring");
+  var circleEls = nodeGroup.querySelectorAll(".progress-graph-node-circle");
+  var ids = ["n1", "n2", "n3", "n4", "n5"];
+  var activeIndex = 0;
+
+  function setActive(id) {
+    nodeEls.forEach(function (el, i) {
+      var isActive = el.getAttribute("data-id") === id;
+      el.classList.toggle("progress-graph-node--active", isActive);
+      ringEls[i].style.display = isActive ? "block" : "none";
+      circleEls[i].setAttribute("fill", isActive ? "url(#pg-nodeGlassActive)" : "url(#pg-nodeGlass)");
+      circleEls[i].setAttribute("stroke", isActive ? "#00E5FF" : "rgba(0,229,255,0.5)");
+      circleEls[i].setAttribute("filter", isActive ? "url(#pg-glowStrong)" : "url(#pg-glow)");
+    });
+  }
+
+  setActive(ids[0]);
+  setInterval(function () {
+    activeIndex = (activeIndex + 1) % ids.length;
+    setActive(ids[activeIndex]);
+  }, 2200);
+})();
+
+(function llmTripleStream() {
+  var sEl = document.getElementById("progress-graph-s");
+  var pEl = document.getElementById("progress-graph-p");
+  var oEl = document.getElementById("progress-graph-o");
+  if (!sEl || !pEl || !oEl) return;
+  var triples = [
+    { s: "Patient", p: "hasCondition", o: "Condition" },
+    { s: "Patient", p: "receivesTherapy", o: "Therapy" },
+    { s: "Patient", p: "hasMonitoringData", o: "MonitoringData" },
+    { s: "Therapy", p: "treats", o: "Condition" },
+    { s: "MonitoringData", p: "partOf", o: "CoreDataset" },
+    { s: "Condition", p: "inDataset", o: "CoreDataset" },
+    { s: "Class", p: "rdf:type", o: "Patient" },
+    { s: "ObjectProperty", p: "", o: "hasCondition" }
+  ];
+  var index = 0;
+  function showNext() {
+    var t = triples[index % triples.length];
+    sEl.textContent = t.s;
+    pEl.textContent = t.p || "—";
+    oEl.textContent = t.o;
+    [sEl, pEl, oEl].forEach(function (el) {
+      el.classList.remove("progress-graph-triple-flash");
+      el.offsetHeight;
+      el.classList.add("progress-graph-triple-flash");
+    });
+    index++;
+  }
+  showNext();
+  setInterval(showNext, 1600);
+})();
+</script>
+{% endblock %}

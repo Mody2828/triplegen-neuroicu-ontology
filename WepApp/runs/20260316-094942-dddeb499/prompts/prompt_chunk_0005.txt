@@ -1,0 +1,234 @@
+
+
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+### PRIMARY GOAL
+Extract a COMPREHENSIVE, evidence-grounded ontology from the text.
+Every item must have verbatim evidence from the source text.
+Be thorough — extract every clinical concept the text explicitly names.
+
+### RULES
+
+1. EVIDENCE FIRST
+- EVERY class, relation, and hierarchy edge MUST include an `evidence` field.
+- `evidence` must be an EXACT verbatim fragment copied from the text.
+- If exact evidence is not available, omit the item.
+
+2. SOURCE FIDELITY
+- Extract concepts and relations stated or clearly implied in the text.
+- You may use standard medical knowledge for hierarchy (e.g. TBI is a type of Brain Injury).
+- Use short noun-phrase labels only.
+- Do NOT output sentence fragments, clauses, or paraphrases as class labels.
+
+3. EXTRACTION SCOPE
+Extract ALL clinical and biomedical content: conditions, diseases, injuries, syndromes, secondary insults, physiological parameters, monitoring variables, treatments/therapies/interventions/drugs, outcomes, assessments, scores, laboratory values, nursing interventions, surgical procedures, medical devices, sensors, clinical guidelines, management protocols, and data categories (Monitoring Data, Demographic Data, Admission Data, Treatment Data, Outcome Data, Core Monitoring Parameter, Optional Monitoring Parameter, Baseline Therapy, etc.).
+Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+
+4. CLASS RULES
+- Prefer concrete clinical labels from the text.
+- Prefer specific labels over abstract ones (e.g. prefer 'Heart Rate' over 'Monitoring Data' when both are mentioned). If an allowed class list is provided, you may use those labels; otherwise avoid abstract categories unless the text explicitly names them.
+- Keep labels close to the wording in the text.
+- Do not invent CamelCase labels.
+
+5. LABEL MAPPING
+- If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+  Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+- For other abbreviations, expand to their full clinical name as used in the text.
+
+6. STRUCTURAL COMPLETENESS
+- When the text mentions specific clinical items, also extract their general category if the text supports it.
+- Use the text’s own categories and groupings — do not impose an external hierarchy.
+
+7. RELATION RULES
+- Extract relations when the text clearly states a connection between two extracted class labels.
+- Domain and range must both be extracted class labels from the same text.
+- Prefer concise, domain-appropriate relation labels (e.g. includes, treats, targets condition, has monitoring data).
+- If an allowed relation list was provided, use those labels. Otherwise, prefer labels that reflect the text’s wording.
+
+8. HIERARCHY RULES
+- Extract hierarchy edges when the text supports them. Look for:
+  - Explicit cues: "is a", "type of", "kind of", "such as", "include:", "includes:", "consists of", "comprises"
+  - Implicit grouping: items listed under a heading or category
+  - Medical knowledge: when both concepts are in the text and one is clearly a subtype (e.g. TBI is a type of Brain Injury)
+- For enumeration cues, extract EACH listed item as a subclass.
+- NEVER output long clauses, verb phrases, or sentence fragments as subclass or superclass.
+- If either side is not a clean noun phrase, omit the hierarchy edge.
+
+### REASONING STEP
+Before producing JSON, mentally scan the text for:
+(1) every named clinical concept,
+(2) explicit relations between them,
+(3) hierarchy cues (such as, is a, type of, include:).
+Then output only items with verbatim evidence.
+
+### OUTPUT FORMAT (JSON ONLY)
+Return ONLY valid JSON.
+Do not include markdown, explanations, headings, or commentary.
+
+Use exactly this structure:
+{
+  "classes": [
+    {"label": "string", "evidence": "string"}
+  ],
+  "relations": [
+    {"label": "string", "domain": "string", "range": "string", "evidence": "string"}
+  ],
+  "hierarchy": [
+    {"subClass": "string", "superClass": "string", "evidence": "string"}
+  ]
+}
+
+### NON-GOAL EXAMPLE
+The following sentence should produce NO extraction:
+Text: "The study was funded by the BrainIT Group and data were collected from 22 centres across 11 countries."
+Expected output: {"classes": [], "relations": [], "hierarchy": []}
+Reason: Funding, governance, study logistics, and multi-centre coordination are out of scope — only extract clinical concepts.
+
+### SELF-CHECK (before finalising output)
+- Is every label a clinical TYPE (not an instance, a person's name, or a study name)?
+- Are there any duplicate or synonym labels? Merge them.
+- Do all relation domain/range labels match extracted class labels?
+- Are there any circular hierarchy edges (A subClassOf B AND B subClassOf A)? Remove them.
+- Does every evidence field contain a verbatim quote from the text?
+- Do not invent concepts not present in the text.
+
+---
+TEXT TO ANALYZE:
+Fabian Güiza
+Bart Depreitere
+Visualizing the pressure and time burden
+Ian Piper of intracranial hypertension in adult
+Giuseppe Citerio
+Iain Chambers and paediatric traumatic brain injury
+Patricia A. Jones
+Tsz-Yan Milly Lo
+Per Enblad
+Pelle Nillson
+Bart Feyen
+Philippe Jorens
+Andrew Maas
+Martin U. Schuhmann
+Rob Donald
+Laura Moss
+Greet Van den Berghe
+Geert Meyfroidt
+
+I. Piper R. Donald
+ESICM 2015 G. Citerio L. Moss
+San Gerardo Hospital, Monza, Italy Department of Clinical Physics and
+F. Güiza and B. Depreitere contributed Bioengineering, NHS Greater Glasgow &
+equally. I. Chambers Clyde, Glasgow, UK
+James Cook University Hospital, Medical
+Take-home message: In adult and Physics, Middlesbroughnza, UK
+paediatric patients suffering from severe Abstract Purpose: To assess the
+traumatic brain injury, an approximately
+exponential curve describes the relationship
+P. A. Jones impact of the duration and intensity
+between intensity and duration of episodes Department of Paediatric Neurology, Royal of episodes of increased intracranial
+of increased intracranial pressure (ICP) and Hospital for Sick Children, Edinburgh, UK pressure on 6-month neurological
+worse clinical outcomes. In children, outcome in adult and paediatric traucompared to adults, this occurs at lower ICP T.-Y. M. Lo
+thresholds of shorter duration. Department of Paediatric Intensive Care, matic brain injury.
+Royal Hospital for Sick Children, Methods: Analysis of prospectively
+to authorized users. paediatric traumatic brain injury pa-
+Uppsala, Sweden
+tients from multiple European
+B. Feyen A. Maas centres. The relationship of episodes
+Department of Neurosurgery, Antwerp of elevated intracranial pressure (deF. Güiza G. Van den Berghe University Hospital, Edegem, Belgium fined as a pressure above a certain
+G. Meyfroidt ()) threshold during a certain time) with
+Department of Intensive Care Medicine, P. Jorens 6-month Glasgow Outcome Scale
+University Hospitals Leuven, Herestraat 49, Department of Intensive Care Medicine, was visualized in a colour-coded plot.
+3000 Leuven, Belgium Antwerp University Hospital, Edegem,
+Belgium
+Results: The colour-coded plot ile-mail: geert.meyfroidt@uzleuven.be
+Tel.: ?32 16 344021 lustrates the intuitive concept that
+M. U. Schuhmann episodes of higher intracranial presB. Depreitere Klinik für Neurochirurgie, sure can only be tolerated for shorter
+Department of Neurosurgery, University Universitätsklinikum Tübingen, Tübingen, durations: the curve that delineates
+Hospitals Leuven, Leuven, Belgium Germany the duration and intensity of those
+
+intracranial pressure episodes associ- intracranial pressure-time burden is lower intracranial pressure thresholds
+ated with worse outcome is an independently associated with mor- as compared to adults. Impaired
+approximately exponential decay tality. When cerebrovascular cerebrovascular autoregulation recurve. In children, the curve resem- autoregulation, assessed with the low- duces the ability to tolerate
+bles that of adults, but the delineation frequency autoregulation index, is intracranial pressure insults. Thus,
+between episodes associated with impaired, the ability to tolerate 50 mmHg might be the lower acworse outcome occurs at lower in- elevated intracranial pressures is re- ceptable threshold for cerebral
+tracranial pressure thresholds. duced. When the cerebral perfusion perfusion pressure.
+Intracranial pressures above pressure is below 50 mmHg, all in20 mmHg lasting longer than 37 min tracranial pressure insults, regardless Keywords Traumatic brain injury
+in adults, and longer than 8 min in of duration, are associated with worse Adults Children Intracranial
+children, are associated with worse outcome. Conclusions: The in- pressure Cerebral perfusion
+outcomes. In a multivariate model, tracranial pressure-time burden pressure Cerebrovascular
+together with known baseline risk associated with worse outcome is vi- autoregulation
+factors for outcome in severe trau- sualised in a colour-coded plot. In
+matic brain injury, the cumulative children, secondary injury occurs at
+
+Introduction superiority of a TBI management strategy with ICP
+monitoring and treatment at 20 mmHg, versus a purely
+Traumatic brain injury (TBI) remains one of the most clinical and radiological management strategy. Notwithimportant health care problems worldwide [1], even when standing these results, ICP monitoring is still considered
+advancements in TBI management have led to improve- to provide important information to detect and prevent
+ments in outcome over the past decades [2-4]. secondary injury after severe TBI [22-24]. The BESTIntracranial pressure (ICP) monitoring, first described in TRIP trial has fostered a renewed interest in the definition
+the 1950s [5], was introduced as a monitoring tool for of secondary insults and therapeutic thresholds for ICP
+severe TBI in the 1960s [6]. The most recent version of and CPP.
+mends monitoring of ICP in every salvageable patient analysis on prospective data from continuously monitored
+with severe TBI [7]. Although these guidelines ac- adult and paediatric TBI patients to assess the impact of
+knowledge a lack of level I evidence, the recommended duration and intensity of ICP insults, on 6 months neutreatment threshold for ICP-lowering therapies is rological outcome. In addition, we will assess the impact
+20 mmHg, based mainly on observational data [8-12]. An of cerebrovascular autoregulation and CPP on the caincreased ICP is an independent risk factor for mortality pacity to tolerate these insults. This research has been
+[13, 14], and the total burden of ICP derangements, cal- presented before, in part, at the 2014 International Symculated as the area under the ICP curve (measured over posium on Intensive Care and Emergency Medicine
+time) above 20 mmHg, is an independent predictor of (ISICEM, Brussels) [25], and at the 2014 European Soworse outcome in adults [15, 16] and children [17]. ciety of Intensive Care Medicine Congress (ESICM,
+Paediatric guidelines on ICP/cerebral perfusion pressure Barcelona) [26].
+(CPP) management [18] have largely followed those for
+adults. An observational study of 81 children with TBI
+demonstrated that the ICP threshold associated with
+worse outcomes is lower, and differs in three age bands
+[17].
+Aggressive ICP management is not free of risk [19]. In Patients and data
+the Decompressive Craniectomy in Patients with Severe
+TBI (DECRA) trial [20], early decompressive craniecto- The adult cohort comprised 261 TBI patients, aged
+my when ICP rose above 20 mmHg resulted in a higher 16 years and older.
+proportion of patients with poor neurological outcome as
+compared to standard care; however, after correction of • From the European Union Brain-IT project [27, 28],
+baseline group imbalance (pupil reactivity), the outcomes 166 patients admitted to 22 neuro-ICUs in 11 European
+were not different in the two groups. The multicentre countries between March 2003 and July 2005 were
+Evidence from South American Trials: Treatment of In- for Scotland (MREC/02/0/9) granted the use of these
+tracranial Pressure) [21] could not demonstrate the data for scientific purposes on 14 February 2002.
+
+• Data of the remaining 95 adult patients were collected database was recorded and stored every second; the me-
+from the ICUs of four centres: 38 patients from the San dian value of each minute interval was taken to obtain a
+Gerardo Hospital Monza, Italy, between March 2010 minute-by-minute value. In all data sets, minute-by-min-
+and April 2013; 25 patients from the University ute signals were reviewed independently by two clinicians
+Hospitals Leuven, Belgium, between September 2010 in Leuven (GM, BDP), and artefacts that were obvious
+and September 2013; 20 patients from the University through visual inspection of the time series were removed
+Hospital Edegem (Antwerp), Belgium, as part of the and not used for further analysis (ESM Table 10).
+'Individualized targeted monitoring in neurocritical
+care' (NEMO) project, between May 2010 and June
+2013 [29]; and 12 patients from University Hospital
+Tübingen, Germany, between February and December
+2009. All data referring to the identity of these patients
+The univariate association between ICP insults and GOS
+were removed; ethical committee approval was ob-
+at 6 months was done using the visualization method
+tained in all centres to use these data for analysis.
+explained in Fig. 1. First, each time series of minute-by-
+The paediatric cohort consisted of 99 TBI patients, minute ICP data was segmented into different episodes,
+aged between 2 and 16 years. called 'ICP insults'. ICP insults were defined according to
+their intensity (I) and duration (D). Intensity thresholds
+• 81 patients were part of a study on TBI in children, from 10 to 40 mmHg on the X-axis and duration thresh-
+recruited during 62 non-consecutive months up to July olds from 5 to 360 min on the Y-axis were considered. For
+2003, from two paediatric centres in Edinburgh and every ICP insult, the Pearson correlation coefficient be-
+Newcastle, UK [17]. The study had local ethics tween GOS and the average number of these types of ICP
+committee and management approval in both centres insults per patient in each GOS category was computed.
+• The remaining 18 paediatric patients were part of the measures the degree of linear dependency: a negative
+Brain-IT database. value indicates that the particular ICP insult occurs more
+frequently with lower GOS; a positive correlation indi-
+Patients were managed according to BTF guidelines cates that the particular ICP insult is more frequent with
+[30]. Data collection in both cohorts included baseline higher GOS. A contour plot showing lines of equal corrisk factors (age, gender, admission GCS, admission pupil relation was derived from the grid and colour coded:
+reactivity), minute-by-minute ICP and mean arterial correlations of -1 and ?1 are shown in dark red and dark
+blood pressure (MAP) monitoring data, and Glasgow blue, respectively. The contour for zero correlation was
+Outcome Score (GOS) at 6 months [Electronic Supple- highlighted in black, and defined as the 'transition curve',
+mentary Material (ESM) Table 1]. For the paediatric because it indicates the transition into the region of insult
+patients, a modified GOS was used, as described in the types that occur more frequently in patients with lower
+original paper [17]. Monitoring data in the NEMO GOS.
+
+Fig. 1 Visualization methodology. The average number of insults correlation between GOS and the average number of insults per
+of ICP above an intensity threshold I (in mmHg), lasting for at least GOS category is computed for all I and D combinations (b) and
+a duration threshold D (in minutes) is computed for each GOS given a colour according to a predefined colour map ranging from
+---
