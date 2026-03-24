@@ -1458,7 +1458,7 @@ def _dedupe_classes(ontology: Ontology, gold_label_by_norm: Dict[str, str],
                 + list(getattr(c, "aliases", None) or [])
                 + ([c.label] if c.label and c.label != existing.label and c.label not in (existing.aliases or []) else [])
             ))
-            if c.definition and not existing.definition:
+            if c.definition and (not existing.definition or len(c.definition) > len(existing.definition or "")):
                 existing.definition = c.definition
             if getattr(c, "evidence", None) and (not getattr(existing, "evidence", None) or len((c.evidence or "")) > len((existing.evidence or ""))):
                 existing.evidence = c.evidence

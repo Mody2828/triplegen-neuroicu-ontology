@@ -235,6 +235,11 @@ const OntologyGraph = (() => {
       _showDetail(node);
     });
 
+    cy.on("tap", "edge", function (e) {
+      var edge = e.target;
+      _showEdgeDetail(edge);
+    });
+
     cy.on("tap", function (e) {
       if (e.target === cy) {
         _clearHighlight();
@@ -306,6 +311,25 @@ const OntologyGraph = (() => {
       html += '<div class="og-detail-evidence"><span class="og-detail-label">Evidence:</span> ' + _esc(d.evidence) + "</div>";
     }
 
+    _detailEl.innerHTML = html;
+    _detailEl.classList.add("og-detail-visible");
+  }
+
+  function _showEdgeDetail(edge) {
+    if (!_detailEl) return;
+    var d = edge.data();
+    var html = '<div class="og-detail-title">' + _esc(d.label || d.type) + "</div>";
+    if (d.type === "relation") {
+      html += '<div class="og-detail-section"><span class="og-detail-label">Domain:</span> ' + _esc(d.source) + ' <span class="og-detail-label">→ Range:</span> ' + _esc(d.target) + "</div>";
+    } else {
+      html += '<div class="og-detail-section"><span class="og-detail-label">SubClass:</span> ' + _esc(d.source) + ' <span class="og-detail-label">⊑ SuperClass:</span> ' + _esc(d.target) + "</div>";
+    }
+    if (d.definition) {
+      html += '<div class="og-detail-def">' + _esc(d.definition) + "</div>";
+    }
+    if (d.evidence) {
+      html += '<div class="og-detail-evidence"><span class="og-detail-label">Evidence:</span> ' + _esc(d.evidence) + "</div>";
+    }
     _detailEl.innerHTML = html;
     _detailEl.classList.add("og-detail-visible");
   }

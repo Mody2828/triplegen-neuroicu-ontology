@@ -361,7 +361,8 @@ def write_run_summary(
     for r in ontology.relations:
         d = getattr(r, "domain", "") or ""
         rg = getattr(r, "range", "") or ""
-        lines.append(f"  • {r.label}({d} → {rg})")
+        rdefn = getattr(r, "definition", None) and str(r.definition).strip()
+        lines.append(f"  • {r.label}({d} → {rg})" + (f" — {rdefn}" if rdefn else ""))
     lines.extend([
         "",
         "--- Hierarchy (subclass → superclass) ---",

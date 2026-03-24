@@ -21,6 +21,7 @@ class RunCancelledError(Exception):
     """Raised when the user cancels a run from the progress page."""
     pass
 
+# Sanitize JSON strings that may contain invalid control chars (e.g. from old runs or LLM output).
 _CONTROL_CHAR = re.compile(r"[\x00-\x1f]")
 
 
@@ -32,10 +33,12 @@ def _safe_json_loads(text: str):
     return json.loads(cleaned)
 
 
+# Add project root so "from src. ..." works when run as python web/app.py
 _project_root = Path(__file__).resolve().parent.parent
 if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
 
+# Runs directory: always under project root so runs are found whether app is run from web/ or project root
 RUNS_DIR = _project_root / "runs"
 
 _SAFE_ID_RE = re.compile(r"^[a-zA-Z0-9_\-]+$")
@@ -115,12 +118,15 @@ from src.experiments.run_experiments import run_one
 from src.analysis.load_runs import load_run
 from src.analysis.report import write_comparison, write_plot
 
+# Async run status (run_id -> status dict). Access under run_status_lock.
 run_statuses: Dict[str, Dict[str, Any]] = {}
 run_status_lock = threading.Lock()
 
+# Batch comparison: batch_id -> { run_ids: [], labels: [], status, corpus_path, error? }
 batch_states: Dict[str, Dict[str, Any]] = {}
 batch_lock = threading.Lock()
 
+# Load .env from project root so OPENAI_API_KEY is set no matter where you start the app
 try:
     from dotenv import load_dotenv
     load_dotenv(_project_root / ".env")
@@ -129,24 +135,34 @@ except ImportError:
 
 app = Flask(__name__)
 
+# Default gold standard: BrainIT Core 2003 (Piper et al.)
 _DEFAULT_GOLD_PATH = (
     Path(__file__).resolve().parent.parent / "resources" / "brainit_core_2003.ttl"
 )
 
+# Pipeline diagram — HTML version is the primary source
 _PIPELINE_HTML_PATH = _project_root / "docs" / "pipeline_diagram.html"
 _PIPELINE_PNG_PATH  = _project_root / "web" / "static" / "Generated_image.png"
 _PIPELINE_SVG_PATH  = _project_root / "web" / "static" / "pipeline_v2.svg"
 
+# Active strategies for UI and comparison dashboard
 _STRATEGY_LABELS = {
     "baseline": "Zero-Shot",
     "one_shot": "One-Shot",
     "phased_3step": "Few-Shot",
+    # Legacy — kept for backfilling old run labels; not shown in UI
+    "simple_fewshot": "Few-Shot I (legacy)",
+    "phased_2step": "Few-Shot II (legacy)",
 }
 
+# Abbreviations for run name: PromptingMethod - PipelineMode - LLMModel - ReasoningLLM
 _STRATEGY_SHORT = {
     "baseline": "Zero-Shot",
     "one_shot": "One-Shot",
     "phased_3step": "Few-Shot",
+    # Legacy labels preserved so old run names display correctly
+    "simple_fewshot": "Few-Shot I",
+    "phased_2step": "Few-Shot II",
 }
 _LLM_MODEL_ABBREV = {
     "gpt-4o-mini": "GPT",
@@ -158,6 +174,7 @@ _LLM_MODEL_ABBREV = {
     "mistralai/Mistral-7B-Instruct-v0.1": "M7B",
     "deepseek-chat": "D.S",
 }
+# Full display names — must match JS modelLabels / providerLabels in all templates
 _LLM_MODEL_FULL = {
     "gpt-4o-mini": "GPT-4o-mini",
     "gpt-4o": "GPT-4o",
@@ -219,12 +236,15 @@ def _format_run_label(run_opts: Dict[str, Any]) -> str:
         strategy = str(opts.get("strategy", "baseline")).strip() or "baseline"
         prompting = _STRATEGY_SHORT.get(strategy, _STRATEGY_LABELS.get(strategy, strategy))
         mode = _pipeline_mode_label(opts)
+        # LLM full name
         model_id = (str(opts.get("llm_model") or "").strip()) or None
         provider = (str(opts.get("llm_provider") or "")).strip() or "openai"
         llm = _LLM_MODEL_FULL.get(model_id) if model_id else None
         if llm is None:
             llm = _LLM_PROVIDER_FULL.get(provider, provider)
+        # Eval settings
         eval_s = "Gold-vocab" if opts.get("eval_restrict_to_gold") else "None"
+        # Advanced (Reasoning LLM if DSR + Medical NER flag)
         imp_provider = (str(opts.get("improvements_llm_provider") or "").strip() or None)
         imp_model = (str(opts.get("improvements_llm_model") or "")).strip() or ""
         has_llm_imp = opts.get("schema_guided_completion")
@@ -232,6 +252,7 @@ def _format_run_label(run_opts: Dict[str, Any]) -> str:
         if has_llm_imp and imp_provider == "deepseek" and "reasoner" in imp_model.lower():
             adv_parts.append("DSR")
         adv = "+".join(adv_parts) if adv_parts else "None"
+        # Paper identifier
         paper_id = opts.get("paper_id")
         paper_suffix = ""
         if paper_id is not None:
@@ -282,6 +303,7 @@ def _build_comparison_combinations() -> list:
     """
     out = []
 
+    # ── Group A: Cross-LLM baseline (Zero-Shot + Few-Shot × 6 providers) ──────
     for strategy in ("baseline", "phased_3step"):
         for llm_provider, llm_model in [
             ("openai",      "gpt-4o-mini"),
@@ -299,22 +321,27 @@ def _build_comparison_combinations() -> list:
                 "cross_llm",
             ))
 
+    # ── Group B: Pipeline modes (Few-Shot + GPT, all 4 modes) ────────────────
+    # Mode 1 — Strict Extraction (raw: no vocab guardrails, no gold filtering)
     out.append(_make_combo(
         "mode_1_strict", "phased_3step", "openai", "gpt-4o-mini",
         False, False, False, False, False, False, "", "",
         "pipeline_modes",
     ))
+    # Mode 2 — Guided Extraction (M.NER now part of this mode)
     out.append(_make_combo(
         "mode_2_guided", "phased_3step", "openai", "gpt-4o-mini",
         True, True, False, False, True, True, "", "",
         "pipeline_modes",
     ))
+    # Mode 3 — Schema-Completed (inherits M.NER from Mode 2, adds gold-schema injection)
     out.append(_make_combo(
         "mode_3_schema", "phased_3step", "openai", "gpt-4o-mini",
         True, True, True, True, True, True, "openai", "",
         "pipeline_modes",
     ))
 
+    # ── Group C: Schema-Completed × OpenAI vs DeepSeek Reasoner for SGC ─
     out.append(_make_combo(
         "rlm_openai", "phased_3step", "openai", "gpt-4o-mini",
         True, True, True, True, True, True, "openai", "",
@@ -397,7 +424,7 @@ def _safe_filename(name: str) -> str:
         return "document"
     base = os.path.basename(name.strip())
     safe = re.sub(r"[^\w\s\-\.]", "", base) or "document"
-    return safe[:200]
+    return safe[:200]  # limit length
 
 
 def save_uploaded_files_to_corpus_dir(uploaded_files: List, corpus_dir: Path) -> Path:
@@ -463,19 +490,28 @@ def extract_text_from_uploaded_file(uploaded_file) -> str:
     """Extract text from an uploaded file (text or PDF)."""
     if not uploaded_file:
         return ""
-
+    
+    # Get file extension
     filename = uploaded_file.filename
     ext = os.path.splitext(filename)[1].lower()
+    
+    # Create temporary file with a unique name
+    # Use mkstemp for better Windows compatibility
     fd, tmp_path_str = tempfile.mkstemp(suffix=ext)
     tmp_path = Path(tmp_path_str)
-
+    
     try:
+        # Save uploaded file to temporary location
         uploaded_file.save(tmp_path_str)
+        
+        # Close the file descriptor immediately to release the lock (Windows requirement)
         os.close(fd)
-
+        
+        # Now read the file content
         if ext == '.pdf':
             content = extract_text_from_pdf(tmp_path)
         elif ext == '.txt':
+            # Try multiple encodings
             encodings = ['utf-8', 'utf-8-sig', 'latin-1', 'cp1252']
             content = None
             for encoding in encodings:
@@ -485,14 +521,17 @@ def extract_text_from_uploaded_file(uploaded_file) -> str:
                 except UnicodeDecodeError:
                     continue
             if content is None:
+                # Fallback with error handling
                 content = tmp_path.read_text(encoding='utf-8', errors='replace')
         else:
             raise ValueError(f"Unsupported file type: {ext}. Only .txt and .pdf are supported.")
-
+        
         return content
     finally:
+        # Clean up temporary file (ensure it's closed first)
         try:
             if tmp_path.exists():
+                # On Windows, wait a moment and retry if file is locked
                 import time
                 for _ in range(3):
                     try:
@@ -501,6 +540,7 @@ def extract_text_from_uploaded_file(uploaded_file) -> str:
                     except (PermissionError, OSError):
                         time.sleep(0.1)
         except Exception:
+            # Ignore cleanup errors - temp file will be cleaned up by OS eventually
             pass
 
 
@@ -544,6 +584,7 @@ def load_analysis(run_root: Path) -> Optional[dict]:
     }
 
 
+# Config registry: map config fingerprint -> list of run_ids (so we can show "last result" and "analysis" per config)
 CONFIG_REGISTRY_PATH = RUNS_DIR / "_config_registry.json"
 
 _CONFIG_KEYS = (
@@ -559,6 +600,7 @@ _CONFIG_KEYS = (
     "cleanup_structural", "cleanup_axioms",
 )
 
+# Defaults for every key used by _format_run_label so we never fail on missing/dirty config
 _LABEL_DEFAULTS = {
     "strategy": "baseline",
     "medical_ner_anchor": False,
@@ -757,20 +799,26 @@ def controlled_experiment():
 @app.route("/run", methods=["POST"])
 def run():
     from_page = request.form.get("from_page", "")
+
+    # Get input method (paste or upload)
     input_method = request.form.get("input_method", "paste")
     use_default_paper = request.form.get("use_default_paper") == "on"
+
+    # Controlled experiment page may supply a paper_id instead of pasted text
     paper_id_raw = request.form.get("paper_id", "").strip() if from_page == "controlled_experiment" else ""
 
+    # Get text content based on input method
     text_input = ""
     uploaded_files = []
     paper_name = request.form.get("paper_name", "").strip()
 
+    # Resolve paper_id first (controlled experiment page)
     if paper_id_raw:
         try:
             pid = int(paper_id_raw)
             resolved = _resolve_paper_corpus(pid)
             if resolved:
-                text_input = "__paper__"
+                text_input = "__paper__"  # sentinel handled below
                 entry = BRAINIT_PAPER_CATALOG.get(pid, {})
                 if not paper_name:
                     paper_name = entry.get("short", f"Paper {pid}")
@@ -837,14 +885,19 @@ def run():
 
     os.environ["GOLD_STANDARD_MODE"] = gold_mode
 
+    # Use a unique per-run corpus directory to avoid race conditions where a
+    # background thread from a previous run holds file locks (Windows) and
+    # prevents cleanup, causing leftover files to be processed alongside new ones.
     corpus_base = Path("data") / "corpus_ui"
     corpus_base.mkdir(parents=True, exist_ok=True)
+    # Best-effort cleanup of old per-run subdirectories (ignore locked ones)
     for old in corpus_base.iterdir():
         if old.is_dir():
             try:
                 shutil.rmtree(old)
             except OSError:
                 pass
+    # Also remove any legacy top-level files from before per-run isolation
     for old in corpus_base.iterdir():
         if old.is_file():
             try:
@@ -886,6 +939,9 @@ def run():
     improvements_llm_provider = (request.form.get("improvements_llm_provider") or "").strip()
     improvements_llm_model = (request.form.get("improvements_llm_model") or "").strip()
 
+    # Controlled-experiment flags. When from_page is controlled_experiment, unchecked
+    # checkboxes are absent from form data → False. From other pages the fields are
+    # never sent, so default to legacy on-by-default behavior.
     _is_ctrl = from_page == "controlled_experiment"
     def _flag(key, legacy_default="on"):
         if _is_ctrl:
@@ -960,6 +1016,7 @@ def run():
         gold_corpus_path=gold_corpus_path,
     )
 
+    # Async run with progress bar (when requested via X-Requested-With: XMLHttpRequest)
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         run_id = f"{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}-{uuid4().hex[:8]}"
         with run_status_lock:
@@ -1132,13 +1189,14 @@ def run_comparison():
     use_default_paper = request.form.get("use_default_paper") == "on"
     text_input = ""
     uploaded_files = []
-    paper_name = request.form.get("paper_name", "").strip()
+    paper_name = request.form.get("paper_name", "").strip()  # optional user-supplied title (paste mode)
     if input_method == "paste":
         text_input = request.form.get("text_input", "").strip()
     elif input_method == "upload":
         uploaded_files = request.files.getlist("file_input") or []
         uploaded_files = [f for f in uploaded_files if f and getattr(f, "filename", None)]
         if uploaded_files:
+            # Always use __multi_file__ sentinel so original filenames are preserved on disk.
             text_input = "__multi_file__"
     if use_default_paper and not text_input:
         text_input = _read_default_paper()
@@ -1231,6 +1289,7 @@ def run_comparison():
             normalized = _normalize_config_for_fingerprint(r) if isinstance(r, dict) else {}
             labels.append(_format_run_label(normalized))
         except Exception:
+            # Never trust frontend short label (e.g. r.get("label") -> "Few-Shot III")
             labels.append(f"Run {i + 1}")
         run_configs_stored.append(r if isinstance(r, dict) else {})
     with batch_lock:
@@ -1298,6 +1357,7 @@ def run_comparison():
                         run_statuses[run_id].update(status="completed", message="Done.")
                 _register_run_for_config(_normalize_config_for_fingerprint(run_opts), run_id)
             except RunCancelledError:
+                # Distinguish per-run skip from batch-level cancel
                 was_skip = False
                 with run_status_lock:
                     if run_id in run_statuses and run_statuses[run_id].get("skip_requested"):
@@ -1333,6 +1393,7 @@ def run_comparison():
                             status="failed",
                             error=f"{e}\n\n{tb}",
                         )
+                # Continue to the next run instead of aborting the batch
                 continue
         with batch_lock:
             if batch_id in batch_states:
@@ -1348,6 +1409,7 @@ def run_comparison():
             if entry.get("skip_requested"):
                 raise RunCancelledError("Run skipped by user")
             entry.update(current=c, total=t, message=m)
+        # Pause spin-wait (outside lock so status polling still works)
         import time as _time
         while True:
             with run_status_lock:
@@ -1379,10 +1441,12 @@ def comparison_status(batch_id: str):
     run_configs = state.get("run_configs") or []
     if not isinstance(run_configs, list):
         run_configs = []
+    # Pad or truncate run_configs to match run_ids (strict 1:1)
     if len(run_configs) < len(run_ids):
         run_configs = run_configs + ([{}] * (len(run_ids) - len(run_configs)))
     else:
         run_configs = run_configs[: len(run_ids)]
+    # Rebuild labels from run_configs when possible so we never send short frontend labels
     rebuilt_labels = []
     for i, cfg in enumerate(run_configs):
         try:
@@ -1725,6 +1789,8 @@ def run_status(run_id: str):
     """Return current run status (for progress polling)."""
     with run_status_lock:
         data = dict(run_statuses.get(run_id, {"status": "unknown"}))
+    # If the server was restarted (debug reloader / crash), in-memory state is lost.
+    # Provide a best-effort fallback based on run artifacts on disk so the UI can recover.
     if data.get("status") == "unknown":
         run_root = _safe_run_path(run_id)
         if not run_root:
@@ -1886,6 +1952,8 @@ def api_ontology_graph(run_id: str):
             edges.append({"data": {
                 "id": f"rel_{i}", "source": domain, "target": range_,
                 "label": r.get("label", ""), "type": "relation",
+                "definition": r.get("definition") or "",
+                "evidence": r.get("evidence") or "",
             }})
 
     for i, h in enumerate(data.get("hierarchy", [])):
@@ -1897,6 +1965,7 @@ def api_ontology_graph(run_id: str):
             edges.append({"data": {
                 "id": f"hier_{i}", "source": sub, "target": sup,
                 "label": "subClassOf", "type": "hierarchy",
+                "evidence": h.get("evidence") or "",
             }})
 
     return jsonify({
@@ -1940,4 +2009,7 @@ def artifact_file(run_id: str, artifact_type: str):
 
 
 if __name__ == "__main__":
+    # Keep debug features, but disable the auto-reloader.
+    # The reloader restarts the process on file changes, which would kill background runs
+    # and clear in-memory progress state (making the progress page appear "stuck").
     app.run(debug=True, use_reloader=False)

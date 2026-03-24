@@ -96,6 +96,10 @@ def build_ontology(parsed_chunks: List[Dict], metadata: Dict[str, str]) -> Ontol
                     existing.aliases.append(label)
                 if evidence and (not existing.evidence or len(evidence) > len(existing.evidence or "")):
                     existing.evidence = evidence
+                # Merge definition: keep the longest non-empty definition
+                new_defn = (cls.get("definition") or "").strip()
+                if new_defn and (not existing.definition or len(new_defn) > len(existing.definition or "")):
+                    existing.definition = new_defn
                 continue
             seen_class_keys[key] = (canonical_label, len(ontology.classes))
             entity_aliases = list(aliases_to_add)
@@ -104,7 +108,7 @@ def build_ontology(parsed_chunks: List[Dict], metadata: Dict[str, str]) -> Ontol
             ontology.add_class(
                 ClassEntity(
                     label=canonical_label,
-                    definition=None,
+                    definition=(cls.get("definition") or "").strip() or None,
                     synonyms=cls.get("synonyms", []),
                     provenance=provenance,
                     stratum=stratum,
@@ -143,6 +147,10 @@ def build_ontology(parsed_chunks: List[Dict], metadata: Dict[str, str]) -> Ontol
                     existing.aliases.append(label)
                 if evidence and (not existing.evidence or len(evidence) > len(existing.evidence or "")):
                     existing.evidence = evidence
+                # Merge definition: keep the longest non-empty definition
+                new_defn = (rel.get("definition") or "").strip()
+                if new_defn and (not existing.definition or len(new_defn) > len(existing.definition or "")):
+                    existing.definition = new_defn
                 continue
             seen_relation_keys[rel_key] = (label, len(ontology.relations))
             ontology.add_relation(
@@ -150,7 +158,7 @@ def build_ontology(parsed_chunks: List[Dict], metadata: Dict[str, str]) -> Ontol
                     label=label,
                     domain=dom_canon,
                     range=rng_canon,
-                    definition=None,
+                    definition=(rel.get("definition") or "").strip() or None,
                     provenance=provenance,
                     stratum=stratum,
                     evidence=evidence,

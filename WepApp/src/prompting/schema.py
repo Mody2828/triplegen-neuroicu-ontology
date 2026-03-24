@@ -197,25 +197,21 @@ def filter_parsed_to_vocabulary(
                 return False
         return True
 
-    def _strip_definition_if_not_text_derived(item: Dict, key: str = "evidence") -> None:
-        """Clear definition when evidence is missing or when definition is not a substring of evidence (avoid external/encyclopedic definitions). Uses normalized whitespace for substring check."""
+    def _strip_definition_if_no_evidence(item: Dict, key: str = "evidence") -> None:
+        """Clear definition when evidence is missing (safety net against hallucinated definitions on evidenceless items).
+        Definitions are now LLM-generated scope notes, so we no longer require them to be substrings of evidence."""
         ev = (item.get(key) or "").strip()
         defn = (item.get("definition") or "").strip()
         if not defn:
             return
         if not ev:
             item["definition"] = ""
-            return
-        ev_norm = _normalize_whitespace(ev)
-        defn_norm = _normalize_whitespace(defn)
-        if defn_norm not in ev_norm:
-            item["definition"] = ""
 
     classes = []
     for c in parsed.get("classes") or []:
         if not keep_class(c):
             continue
-        _strip_definition_if_not_text_derived(c)
+        _strip_definition_if_no_evidence(c)
         canonical = class_map[_normalize_label(c.get("label") or "")]
         c["label"] = canonical
         classes.append(c)
@@ -224,7 +220,7 @@ def filter_parsed_to_vocabulary(
     for r in parsed.get("relations") or []:
         if not keep_relation(r):
             continue
-        _strip_definition_if_not_text_derived(r)
+        _strip_definition_if_no_evidence(r)
         canonical = rel_map[_normalize_label(r.get("label") or "")]
         r["label"] = canonical
         # Normalize domain/range to canonical class labels when possible.

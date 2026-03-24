@@ -93,6 +93,8 @@ def write_summary(path: str | Path, ontology: Ontology) -> None:
         domain = getattr(rel, "domain", "") or ""
         range_ = getattr(rel, "range", "") or ""
         parts = [f"- {label}({domain} -> {range_})"]
+        if getattr(rel, "definition", None) and str(rel.definition).strip():
+            parts.append(f"  definition: {rel.definition}")
         if getattr(rel, "evidence", None) and str(rel.evidence).strip():
             parts.append(f"  evidence: {rel.evidence}")
         lines.append("\n".join(parts))

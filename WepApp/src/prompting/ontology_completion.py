@@ -70,6 +70,16 @@ def _generate_with_cancel_check(
     return result[0]
 
 
+def build_ontology_completion_prompt(
+    text: str,
+    phase1_results: Dict,
+    gold_schema: Dict,
+    examples: Optional[List[str]] = None,
+) -> str:
+    """DEPRECATED — superseded by build_whole_ontology_completion_prompt. Returns empty string."""
+    return ""
+
+
 def _canonical_norm(label: str) -> str:
     """Resolve label through canonical alias map, then compute canonical_key.
     This handles abbreviation-to-full-label matching (e.g., "ICP" -> "Intracranial Pressure (ICP)")."""
@@ -270,7 +280,8 @@ def build_whole_ontology_completion_prompt(
         "the missing items below are gold schema items NOT yet in the ontology.\n\n"
         "Task: From the corpus evidence below, which of these missing items are SUPPORTED by the text?\n"
         "1. Consider ONLY the missing classes, relations, and hierarchy edges listed.\n"
-        "2. For each item, provide an evidence span: an EXACT quote or short phrase copied from the corpus text below.\n"
+        "2. For each item, provide an evidence span: an EXACT VERBATIM quote copied from the corpus text below.\n"
+        "   Do NOT paraphrase, summarize, truncate, or rephrase — copy the text exactly as it appears.\n"
         "   IMPORTANT: Evidence must be actual text from the corpus, NOT ontology URIs (e.g. 'pd:Session'), "
         "NOT the label repeated, and NOT definitions. Copy a real fragment from the corpus.\n"
         "3. A brief mention (even 1-3 words) in the corpus IS sufficient evidence. Do not require a full sentence.\n"
@@ -285,10 +296,12 @@ def build_whole_ontology_completion_prompt(
 
     return instruction + few_shot_example + missing_section + corpus_section + """Output JSON format:
 {
-  "classes": [{"label": "...", "evidence": "exact span from corpus"}],
-  "relations": [{"label": "...", "domain": "...", "range": "...", "evidence": "exact span from corpus"}],
+  "classes": [{"label": "...", "definition": "one-sentence scope note describing what this class represents", "evidence": "exact span from corpus"}],
+  "relations": [{"label": "...", "domain": "...", "range": "...", "definition": "one-sentence description of what this relation means", "evidence": "exact span from corpus"}],
   "hierarchy": [{"subClass": "...", "superClass": "...", "evidence": "span or phrase from corpus that implies the is-a relationship"}]
 }
+
+Every class and relation MUST include a `definition` field: a concise one-sentence scope note clarifying what it represents in the clinical domain.
 
 Include every missing item that has ANY support in the corpus. Your answer:"""
 
@@ -380,6 +393,9 @@ def run_schema_guided_completion(
         evidence = (cls.get("evidence") or "").strip()
         if not label or not evidence:
             continue
+        # Verify evidence actually appears in source text (reject LLM fabrications)
+        if corpus_text and not _evidence_appears_in_text(evidence, corpus_text):
+            continue
         key = _norm_label(label)
         if key in existing_classes_norm:
             continue
@@ -412,6 +428,9 @@ def run_schema_guided_completion(
         range_ = (rel.get("range") or "").strip()
         evidence = (rel.get("evidence") or "").strip()
         if not rlabel or not evidence:
+            continue
+        # Verify evidence actually appears in source text (relaxed threshold for relations)
+        if corpus_text and not _evidence_appears_in_text(evidence, corpus_text, relaxed=True):
             continue
         if not domain or not range_:
             continue
@@ -447,7 +466,11 @@ def run_schema_guided_completion(
             continue
         existing_hierarchy_norm.add(norm_pair)
         llm_evidence = (edge.get("evidence") or "").strip()
-        evidence = llm_evidence if llm_evidence else f"Schema-inferred: {sub} is a subclass of {sup}."
+        # Use LLM evidence only if it appears in corpus; otherwise mark as inferred
+        if llm_evidence and corpus_text and _evidence_appears_in_text(llm_evidence, corpus_text):
+            evidence = llm_evidence
+        else:
+            evidence = f"[inferred] {sub} is a subclass of {sup}."
         ontology.hierarchy.append({
             "subClass": sub,
             "superClass": sup,
@@ -750,9 +773,9 @@ def run_llm_reasoning_layer_patch(
             {
                 "subClass": sub_label,
                 "superClass": sup_label,
-                # Synthetic evidence satisfies require_evidence=True in filter_parsed_to_vocabulary
-                # (called during eval_restrict_to_gold) and contains "is a" — a HIERARCHY_LEXICAL_TRIGGER.
-                "evidence": f"Schema-inferred: {sub_label} is a subclass of {sup_label}.",
+                # Synthetic evidence — marked [inferred] for provenance clarity.
+                # Contains "is a" to satisfy HIERARCHY_LEXICAL_TRIGGERS if needed.
+                "evidence": f"[inferred] {sub_label} is a subclass of {sup_label} (LLM reasoning layer).",
                 "provenance": ["llm_reasoning_layer_patch"],
                 "stratum": "llm_reasoning",
                 "justification": edge.get("justification") or None,
@@ -805,16 +828,18 @@ TEXT_GROUNDED_MAX_TOKENS = 8192
 _TGC_MAX_TEXT_CHARS = int(os.environ.get("TGC_MAX_TEXT_CHARS", "20000"))
 
 _EVIDENCE_DUPLICATE_THRESHOLD = 3
-_EVIDENCE_MIN_MATCH_RATIO = 0.55
+_EVIDENCE_MIN_MATCH_RATIO = 0.70
+_EVIDENCE_MIN_MATCH_RATIO_RELATIONS = 0.55
 
 
-def _evidence_appears_in_text(evidence: str, corpus_text: str) -> bool:
+def _evidence_appears_in_text(evidence: str, corpus_text: str, *, relaxed: bool = False) -> bool:
     """Verify that an evidence string genuinely appears in the corpus.
 
     Uses progressive matching:
     1. Exact substring match (after whitespace normalisation).
     2. Word-overlap ratio — the fraction of evidence words found in the corpus
-       must meet _EVIDENCE_MIN_MATCH_RATIO.
+       must meet the threshold (_EVIDENCE_MIN_MATCH_RATIO for classes/hierarchy,
+       _EVIDENCE_MIN_MATCH_RATIO_RELATIONS when relaxed=True for relations).
     """
     if not evidence or not corpus_text:
         return False
@@ -827,7 +852,8 @@ def _evidence_appears_in_text(evidence: str, corpus_text: str) -> bool:
         return False
     ct_words = set(re.findall(r"[a-z0-9]+", norm_ct))
     overlap = len(ev_words & ct_words) / len(ev_words)
-    return overlap >= _EVIDENCE_MIN_MATCH_RATIO
+    threshold = _EVIDENCE_MIN_MATCH_RATIO_RELATIONS if relaxed else _EVIDENCE_MIN_MATCH_RATIO
+    return overlap >= threshold
 
 
 def _filter_bulk_fabricated(items: List[Dict], evidence_key: str = "evidence") -> List[Dict]:
@@ -1075,11 +1101,14 @@ def _build_classes_relations_prompt(
         "- Are there any duplicate or synonym labels? Merge them.\n"
         "- Do all relation domain/range labels match extracted class labels?\n"
         "- Does every evidence field contain a verbatim quote from the text?\n\n"
+        "### DEFINITION REQUIREMENT\n"
+        "Every class and relation MUST include a `definition` field: a concise "
+        "one-sentence scope note clarifying what it represents in the clinical domain.\n\n"
         "### OUTPUT FORMAT (JSON only, no commentary)\n"
         "{\n"
-        '  "classes": [{"label": "ClassName", "evidence": "exact quote from text"}],\n'
+        '  "classes": [{"label": "ClassName", "definition": "one-sentence scope note", "evidence": "exact quote from text"}],\n'
         '  "relations": [{"label": "rel_name", "domain": "DomainClass", '
-        '"range": "RangeClass", "evidence": "exact quote from text"}],\n'
+        '"range": "RangeClass", "definition": "one-sentence description of this relation", "evidence": "exact quote from text"}],\n'
         '  "hierarchy": [{"subClass": "ChildClass", "superClass": "ParentClass", '
         '"evidence": "exact quote from text"}]\n'
         "}\n\n"
@@ -1187,10 +1216,13 @@ def _build_relation_completion_prompt(
         "- Do NOT reuse the same evidence for multiple relations.\n"
         "- Do NOT invent or paraphrase — if no supporting text exists, skip.\n"
         "- Use the abstract superclass as the range (e.g., 'Monitoring Data' not 'ICP').\n\n"
+        "### DEFINITION REQUIREMENT\n"
+        "Every relation MUST include a `definition` field: a concise one-sentence "
+        "description of what the relation means between domain and range.\n\n"
         "### OUTPUT FORMAT (JSON only, no commentary)\n"
         "{\n"
         '  "relations": [{"label": "rel_name", "domain": "DomainClass", '
-        '"range": "RangeClass", "evidence": "exact quote from text"}]\n'
+        '"range": "RangeClass", "definition": "one-sentence description", "evidence": "exact quote from text"}]\n'
         "}\n\n"
         "Extract as many valid relations as the text supports. Be thorough — "
         "especially for the classes that currently have NO relations.\n\n"
@@ -1430,7 +1462,7 @@ def _add_deterministic_hierarchy(
         ontology.hierarchy.append({
             "subClass": sub,
             "superClass": sup,
-            "evidence": f"Structural: {sub} is a subclass of {sup}.",
+            "evidence": f"[inferred] {sub} is a subclass of {sup} (deterministic hierarchy checklist).",
             "provenance": ["text_grounded_completion"],
             "stratum": "deterministic_hierarchy",
         })
@@ -1520,13 +1552,13 @@ def run_text_grounded_completion(
     parsed1["relations"] = _filter_bulk_fabricated(parsed1.get("relations") or [])
     parsed1["relations"] = [
         r for r in parsed1["relations"]
-        if _evidence_appears_in_text(r.get("evidence", ""), corpus_text)
+        if _evidence_appears_in_text(r.get("evidence", ""), corpus_text, relaxed=True)
     ]
 
     new_class_labels: List[str] = []
     from ..ontology.model import ClassEntity, RelationEntity
 
-    # Classes: accept any LLM-suggested class with non-empty evidence.
+    # Classes: accept any LLM-suggested class with corpus-verified evidence.
     for c in parsed1.get("classes") or []:
         label = (c.get("label") or "").strip()
         if not label or label.lower() in existing_class_norms:
@@ -1534,7 +1566,11 @@ def run_text_grounded_completion(
         evidence = (c.get("evidence") or "").strip()
         if not evidence:
             continue
-        ontology.classes.append(ClassEntity(label=label, evidence=evidence))
+        # Verify evidence actually appears in source text
+        if not _evidence_appears_in_text(evidence, corpus_text):
+            continue
+        defn = (c.get("definition") or "").strip() or None
+        ontology.classes.append(ClassEntity(label=label, definition=defn, evidence=evidence))
         existing_class_norms.add(label.lower())
         new_class_labels.append(label)
         classes_added += 1
@@ -1558,8 +1594,9 @@ def run_text_grounded_completion(
         key = (_norm_label(label), _norm_label(domain), _norm_label(range_))
         if key in existing_rel_keys:
             continue
+        rel_defn = (r.get("definition") or "").strip() or None
         ontology.relations.append(RelationEntity(
-            label=label, domain=domain, range=range_, evidence=evidence,
+            label=label, domain=domain, range=range_, definition=rel_defn, evidence=evidence,
         ))
         existing_rel_keys.add(key)
         relations_added += 1
@@ -1571,6 +1608,9 @@ def run_text_grounded_completion(
         sup = (edge.get("superClass") or "").strip()
         evidence = (edge.get("evidence") or "").strip()
         if not sub or not sup or not evidence:
+            continue
+        # Verify evidence actually appears in source text
+        if not _evidence_appears_in_text(evidence, corpus_text):
             continue
         key = (_norm_label(sub), _norm_label(sup))
         if key in existing_hier_keys:
@@ -1619,7 +1659,7 @@ def run_text_grounded_completion(
         parsed_rel["relations"] = _filter_bulk_fabricated(parsed_rel.get("relations") or [])
         parsed_rel["relations"] = [
             r for r in parsed_rel["relations"]
-            if _evidence_appears_in_text(r.get("evidence", ""), corpus_text)
+            if _evidence_appears_in_text(r.get("evidence", ""), corpus_text, relaxed=True)
         ]
 
         for r in parsed_rel.get("relations") or []:
@@ -1634,8 +1674,9 @@ def run_text_grounded_completion(
             key = (_norm_label(label), _norm_label(domain), _norm_label(range_))
             if key in existing_rel_keys:
                 continue
+            rel_defn2 = (r.get("definition") or "").strip() or None
             ontology.relations.append(RelationEntity(
-                label=label, domain=domain, range=range_, evidence=evidence,
+                label=label, domain=domain, range=range_, definition=rel_defn2, evidence=evidence,
                 provenance=["relation_completion_pass"],
             ))
             existing_rel_keys.add(key)
@@ -1686,7 +1727,7 @@ def run_text_grounded_completion(
             if not sup_known:
                 ontology.classes.append(ClassEntity(
                     label=sup,
-                    evidence=f"Intermediate category introduced by Chain-of-Layer taxonomy construction",
+                    evidence=f"[inferred] Intermediate category introduced by Chain-of-Layer taxonomy construction.",
                 ))
                 existing_class_norms.add(sup.lower())
                 new_class_labels.append(sup)
@@ -1695,15 +1736,21 @@ def run_text_grounded_completion(
             if not sub_known:
                 ontology.classes.append(ClassEntity(
                     label=sub,
-                    evidence=f"Intermediate category introduced by Chain-of-Layer taxonomy construction",
+                    evidence=f"[inferred] Intermediate category introduced by Chain-of-Layer taxonomy construction.",
                 ))
                 existing_class_norms.add(sub.lower())
                 new_class_labels.append(sub)
                 valid_class_norms[_norm_label(sub)] = sub
                 classes_added += 1
+            col_ev = (edge.get("evidence") or "").strip()
+            # CoL evidence is taxonomy-derived, not a corpus quote — mark as inferred
+            if col_ev and not col_ev.startswith("[inferred]"):
+                col_ev = f"[inferred] {col_ev}"
+            elif not col_ev:
+                col_ev = f"[inferred] {sub} is a subclass of {sup} (Chain-of-Layer taxonomy)."
             ontology.hierarchy.append({
                 "subClass": sub, "superClass": sup,
-                "evidence": edge.get("evidence", ""),
+                "evidence": col_ev,
                 "provenance": ["chain_of_layer"],
                 "stratum": "col_hierarchy",
             })
@@ -1849,10 +1896,13 @@ def _build_orphan_rescue_prompt(
         "- Do NOT invent or paraphrase evidence. If you cannot find real evidence, "
         "skip that orphan — not every class needs a connection.\n"
         "- Use the abstract superclass as the range (e.g., 'Monitoring Data' not 'ICP').\n\n"
+        "### DEFINITION REQUIREMENT\n"
+        "Every relation MUST include a `definition` field: a concise one-sentence "
+        "description of what the relation means between domain and range.\n\n"
         "### OUTPUT FORMAT (JSON only, no commentary)\n"
         "{\n"
         '  "relations": [{"label": "rel_name", "domain": "DomainClass", '
-        '"range": "RangeClass", "evidence": "exact quote from text"}],\n'
+        '"range": "RangeClass", "definition": "one-sentence description", "evidence": "exact quote from text"}],\n'
         '  "hierarchy": [{"subClass": "ChildClass", "superClass": "ParentClass", '
         '"evidence": "exact quote from text"}]\n'
         "}\n\n"
@@ -1938,11 +1988,11 @@ def run_orphan_rescue(
     relations_added = 0
     hierarchy_added = 0
 
-    # Filter relations: evidence must appear in text
+    # Filter relations: evidence must appear in text (relaxed threshold for relations)
     parsed["relations"] = _filter_bulk_fabricated(parsed.get("relations") or [])
     parsed["relations"] = [
         r for r in parsed["relations"]
-        if _evidence_appears_in_text(r.get("evidence", ""), corpus_text)
+        if _evidence_appears_in_text(r.get("evidence", ""), corpus_text, relaxed=True)
     ]
 
     for r in parsed.get("relations") or []:
@@ -1963,16 +2013,17 @@ def run_orphan_rescue(
         # If one endpoint is new (e.g. LLM inferred a superclass), add it as a class
         if not dom_known:
             ontology.classes.append(ClassEntity(
-                label=domain, evidence=f"Added via orphan rescue: endpoint for relation '{label}'.",
+                label=domain, evidence=f"[inferred] Added via orphan rescue: endpoint for relation '{label}'.",
             ))
             valid_class_norms[_norm_label(domain)] = domain
         if not ran_known:
             ontology.classes.append(ClassEntity(
-                label=range_, evidence=f"Added via orphan rescue: endpoint for relation '{label}'.",
+                label=range_, evidence=f"[inferred] Added via orphan rescue: endpoint for relation '{label}'.",
             ))
             valid_class_norms[_norm_label(range_)] = range_
+        orph_defn = (r.get("definition") or "").strip() or None
         ontology.relations.append(RelationEntity(
-            label=label, domain=domain, range=range_, evidence=evidence,
+            label=label, domain=domain, range=range_, definition=orph_defn, evidence=evidence,
             provenance=["orphan_rescue"],
         ))
         existing_rel_keys.add(key)
@@ -1995,12 +2046,12 @@ def run_orphan_rescue(
             continue
         if not sup_known:
             ontology.classes.append(ClassEntity(
-                label=sup, evidence=f"Superclass introduced by orphan rescue.",
+                label=sup, evidence=f"[inferred] Superclass introduced by orphan rescue.",
             ))
             valid_class_norms[_norm_label(sup)] = sup
         if not sub_known:
             ontology.classes.append(ClassEntity(
-                label=sub, evidence=f"Subclass introduced by orphan rescue.",
+                label=sub, evidence=f"[inferred] Subclass introduced by orphan rescue.",
             ))
             valid_class_norms[_norm_label(sub)] = sub
         ontology.hierarchy.append({
@@ -2038,16 +2089,27 @@ def _build_refinement_prompt(ontology, corpus_text: str) -> str:
     classes_block = []
     for c in ontology.classes:
         lab = (c.label or "").strip()
+        defn = (getattr(c, "definition", None) or "").strip()
         ev = (getattr(c, "evidence", None) or "")[:200]
-        classes_block.append(f"  - {lab}  [evidence: {ev}]" if ev else f"  - {lab}")
+        parts = [f"  - {lab}"]
+        if defn:
+            parts[0] += f"  [definition: {defn}]"
+        if ev:
+            parts[0] += f"  [evidence: {ev}]"
+        classes_block.append(parts[0])
 
     relations_block = []
     for r in ontology.relations:
         lab = (r.label or "").strip()
         dom = (r.domain or "").strip()
         ran = (r.range or "").strip()
+        defn = (getattr(r, "definition", None) or "").strip()
         ev = (getattr(r, "evidence", None) or "")[:200]
-        relations_block.append(f"  - {lab}({dom} → {ran})  [evidence: {ev}]")
+        line = f"  - {lab}({dom} → {ran})"
+        if defn:
+            line += f"  [definition: {defn}]"
+        line += f"  [evidence: {ev}]"
+        relations_block.append(line)
 
     hierarchy_block = []
     for h in ontology.hierarchy:
