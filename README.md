@@ -2,7 +2,6 @@
 
 **TripleGen** is a research framework that uses Large Language Models to build ontologies from Neuro-ICU literature. It takes BrainIT consortium publications as input, extracts ontology elements (classes, relations, hierarchy), and evaluates the result against a reference ontology.
 
-MSci Capstone — CMM304 Knowledge Modelling and Reasoning, Robert Gordon University.
 
 ## Quick Start
 
