@@ -69,4 +69,4 @@ For a full visual walkthrough with screenshots, see [TripleGen_WepApp.md](Triple
 | Reasoning LLMs | OpenAI GPT-4o-mini, DeepSeek Reasoner R1 |
 | Medical NER | ScispaCy `en_ner_bc5cdr_md` |
 | Web UI | Flask + Jinja2 + Cytoscape.js |
-| Reference Ontology | BrainIT v2.0 (72 classes, 16 relations, 57 hierarchy edges) |
+| Reference Ontology | BrainIT Golden Standard ontology |
