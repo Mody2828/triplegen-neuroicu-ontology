@@ -84,24 +84,26 @@ Examples are retrieved using **MMR (λ=0.7)** with TF-IDF cosine similarity. Few
 
 ---
 
-### Zone 3 — Post-Processing (Steps 9–12)
+### Zone 3 — Post-Processing (Steps 9–14)
 
-Fixed order: **TGC → SGC → Built-in Cleanup → Rule-based Reasoning → Gold-Vocabulary Filter**
+Fixed order: **TGC → SGC → Built-in Cleanup → Orphan Rescue → LLM CoT Refinement → Rule-based Reasoning → Gold-Vocabulary Filter**
 
 | Step | Name | What it does | Mode |
 |------|------|-------------|------|
 | 9 | **Text-Grounded Completion (TGC)** | Second-pass extraction: LLM reviews full document + current ontology to find missed items. Uses Chain-of-Layer taxonomy for structured multi-pass review. | Schema-Completed |
 | 10 | **Schema-Guided Completion (SGC)** | Compares merged ontology against gold schema; identifies missing classes, relations, hierarchy edges. Asks the LLM: *"Which of these missing items are supported by the corpus?"* Adds only corpus-evidenced items with valid domain/range; lenient evidence threshold; 8192 token budget. Diagnostic artifacts: `sgc_prompt.txt`, `sgc_response.txt`, `sgc_diagnostic.json` | Schema-Completed |
-| 11 | **Built-in Cleanup** | 10-step deterministic cleanup: ① Deduplicate ② Out-of-scope class pruning ③ Abstract data label pruning ④ Broad contextual label pruning ⑤ Class evidence pruning (30+ gold anchors exempt) ⑥ Dangling hierarchy endpoint pruning ⑦ Relation domain/range pruning ⑧ Relation evidence pruning ⑨ Hierarchy fragment pruning ⑩ Axiom constraint enforcement (29 forbidden hierarchy pairs) | Schema-Completed |
-| 12 | **Rule-based Reasoning** | Schema completion — adds gold hierarchy edges where both endpoint classes exist; synthetic evidence strings. Orphan pruning — removes classes not referenced by any relation or hierarchy edge (gold-aligned classes always preserved) | Schema-Completed |
+| 11 | **Built-in Cleanup** | 11-step deterministic cleanup: deduplicate, out-of-scope pruning, abstract/broad label pruning, class evidence pruning (30+ gold anchors exempt), dangling hierarchy/relation pruning, relation evidence pruning, hierarchy fragment pruning, axiom constraint enforcement (forbidden hierarchy pairs). | Schema-Completed |
+| 12 | **Orphan Rescue** + post-orphan scope cleanup | Recovers classes that survive cleanup but have no incoming/outgoing edges if they are gold-aligned, then re-prunes anything still out of scope. | Schema-Completed |
+| 13 | **LLM CoT Refinement** | Optional Chain-of-Thought refinement pass over the cleaned ontology. | Schema-Completed |
+| 14 | **Rule-based Reasoning** | Schema completion — adds gold hierarchy edges where both endpoint classes exist; synthetic evidence strings. Orphan pruning — removes classes not referenced by any relation or hierarchy edge (gold-aligned classes always preserved) | Schema-Completed |
 
 **Gold-Vocabulary Filter** — When `eval_restrict_to_gold` is enabled, restricts the final ontology to gold-vocabulary items only before computing metrics. Precision becomes 100% by design; used as a recall control. Available in all modes.
 
-**Stage snapshots saved (in order):** `after_tgc` → `after_sgc` → `after_cleanup` → `after_rule_based` → `after_gold_filter`
+**Stage snapshots saved (in order):** `extraction` → `after_text_grounded` → `after_sgc` → `after_cleanup` → `after_orphan_rescue` → `after_llm_refinement` → `after_rule_based` → `after_gold_filter`
 
 ---
 
-### Zone 4 — Evaluation and Artifact Generation (Step 13)
+### Zone 4 — Evaluation and Artifact Generation (Step 15)
 
 Metrics are computed across all stage snapshots for per-stage ablation analysis.
 
@@ -135,9 +137,27 @@ Metrics are computed across all stage snapshots for per-stage ablation analysis.
 
 | Mode | Steps active | What it adds |
 |------|-------------|-------------|
-| **Strict** | 1–8, 13 | Extraction with vocab guardrails + gold-restricted evaluation |
-| **Guided** | 1–8, 13 *(+ NER & candidates in step 5)* | + Medical NER anchor + candidate term injection in prompts |
-| **Schema-Completed** | 1–13 (all) | + TGC + SGC + built-in cleanup + rule-based reasoning |
+| **Strict** | 1–8, 15 | Extraction with vocab guardrails + gold-restricted evaluation |
+| **Guided** | 1–8, 15 *(+ NER & candidates in step 5)* | + Medical NER anchor + candidate term injection in prompts |
+| **Schema-Completed** | 1–15 (all) | + TGC + SGC + built-in cleanup + orphan rescue + LLM CoT refinement + rule-based reasoning |
+
+---
+
+## Cross-Paper Ontology Engineering (separate page)
+
+Independent of the per-paper pipeline above, the **Ontology Engineering** page reconstructs a single ontology from the output of multiple prior runs:
+
+1. **Pick prior runs** — any saved runs whose `ontology.json` is on disk.
+2. **Merge** — `src/ontology/merge.py` deduplicates classes by canonical key and relations by `(label, domain, range)`. The merged source ontology becomes the seed.
+3. **Cluster** — semantic clustering over class labels and definitions (default 25 clusters).
+4. **LLM enrichment per cluster** — `src/ontology/cluster_completion.py` issues one LLM call per cluster. The prompt is constrained:
+   - **No new classes** — the LLM may only reference classes already in the cluster (or other clusters listed for cross-linking). Inferred classes are dropped post-parse.
+   - **Closed relation vocabulary** — the allowed relation labels are self-seeded from the merged source's existing relations (preserving exact casing). The LLM is told the closed list inline and any out-of-vocabulary label is dropped post-parse. **No gold standard is read** at any point.
+   - **Hierarchy passthrough** — the LLM is told not to emit hierarchy. Any hierarchy edges in its response are discarded; the source seed's hierarchy is the authoritative one.
+5. **Source-seeded merge** — the original merged source ontology is prepended to the cluster fragments before final merge, so anything the LLM forgets to re-emit is rescued from the source.
+6. **Evaluate** — the reconstructed ontology runs through the same evaluator as a normal run; the page's Compare Metrics modal ranks reconstruction runs by an Overall F1 (mean of class/hierarchy/relation F1).
+
+Run metadata (`metadata.json`) records `closed_relation_vocab`, `n_allowed_relations`, `hierarchy_from_source_only`, and `source_seeded` so reconstruction runs are traceable.
 
 ---
 

@@ -1,38 +1,46 @@
-"""Embedding interface using TF-IDF for lightweight runs.
+"""Embedding interface using sentence-transformers for semantic retrieval.
 
-Text is preprocessed before TF-IDF (lowercase, punctuation normalization,
-stopwords, stemming) so variant forms (e.g. "Core Dataset", "core-dataset")
-map consistently and MMR retrieval quality improves (CE4145 W5).
+Replaces TF-IDF with dense semantic embeddings (all-MiniLM-L6-v2, 384-dim)
+so that synonym-rich clinical terms (e.g. "CPP" vs "Cerebral Perfusion Pressure")
+map to nearby vectors and MMR retrieval quality improves.
 """
 
 from __future__ import annotations
 
 import pickle
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List
 
-from sklearn.feature_extraction.text import TfidfVectorizer
+import numpy as np
+from sentence_transformers import SentenceTransformer
 
-from .preprocess import preprocess_texts
+# Singleton model instance — loaded once, reused across calls
+_model: SentenceTransformer | None = None
+
+
+def _get_model() -> SentenceTransformer:
+    global _model
+    if _model is None:
+        _model = SentenceTransformer("all-MiniLM-L6-v2")
+    return _model
 
 
 @dataclass
 class EmbeddingIndex:
-    vectorizer: TfidfVectorizer
-    matrix: object
+    matrix: np.ndarray  # (n_docs, 384) dense float32
 
-    def query(self, texts: List[str]):
-        preprocessed = preprocess_texts(texts)
-        return self.vectorizer.transform(preprocessed)
+    def query(self, texts: List[str]) -> np.ndarray:
+        """Encode query texts into the same embedding space."""
+        model = _get_model()
+        return model.encode(texts, show_progress_bar=False, batch_size=64)
 
 
 def build_index(texts: List[str]) -> EmbeddingIndex:
-    preprocessed = preprocess_texts(texts)
-    # ngram_range=(1,2): unigrams + bigrams so phrases ("core dataset", "monitoring data", "traumatic brain injury") get semantic weight
-    vectorizer = TfidfVectorizer(stop_words="english", ngram_range=(1, 2))
-    matrix = vectorizer.fit_transform(preprocessed)
-    return EmbeddingIndex(vectorizer=vectorizer, matrix=matrix)
+    """Encode a list of texts into dense semantic vectors."""
+    model = _get_model()
+    matrix = model.encode(texts, show_progress_bar=False, batch_size=64)
+    return EmbeddingIndex(matrix=matrix)
 
 
 def save_index(path: str | Path, index: EmbeddingIndex) -> None:

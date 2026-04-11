@@ -31,13 +31,14 @@ The `runs/` directory contains pre-computed experiment results. All previous run
 
 ## Web Application
 
-The app has four main pages:
+The app has five main pages:
 
 | Page | Purpose |
 |------|---------|
 | **Run Experiment** | Run a single extraction with configurable prompting strategy, pipeline mode, and LLM provider. |
-| **Controlled Experiment** | Fine-grained ablation with 17 individual pipeline toggles and a built-in BrainIT paper selector. |
+| **Controlled Experiment** | Fine-grained ablation with 19 individual pipeline toggles and a built-in BrainIT paper selector. |
 | **Run Comparison** | Batch mode — build a list of configurations, run them sequentially, and compare metrics side by side. |
+| **Ontology Engineering** | Cross-paper ontology reconstruction — pick prior runs, merge them, semantically cluster the merged classes, and ask the LLM to enrich each cluster (closed relation vocabulary, hierarchy passthrough from source). |
 | **Results** | View evaluation metrics, per-stage ablation tables, download artifacts, and explore an interactive ontology graph. |
 
 For a full visual walkthrough with screenshots, see [TripleGen_WepApp.md](TripleGen_WepApp.md).
@@ -48,10 +49,11 @@ For a full visual walkthrough with screenshots, see [TripleGen_WepApp.md](Triple
 - **Three pipeline modes**: Strict, Guided (+ Medical NER), Schema-Completed (+ schema-guided completion + rule-based reasoning)
 - **Seven LLM providers**: OpenAI GPT-4o-mini, OpenAI GPT-4o, Anthropic Claude Haiku 4.5, Google Gemini 2.5 Flash, Groq Llama 3.1 8B, Hugging Face Mistral 7B, DeepSeek
 - **Configurable reasoning LLM**: OpenAI GPT-4o-mini or DeepSeek Reasoner R1
-- **17 pipeline toggles** for controlled ablation studies
+- **19 pipeline toggles** for controlled ablation studies
 - **Built-in BrainIT paper selector** with 11 pre-loaded papers
 - **Per-stage ablation metrics** showing exactly where improvements or degradations occur
 - **Interactive ontology graph** powered by Cytoscape.js
+- **Cross-paper ontology engineering** — merge multiple prior runs, semantically cluster the union, and reconstruct an enriched ontology one cluster at a time using an LLM with a closed relation vocabulary self-seeded from the merged source
 
 ## Documentation
 
@@ -70,4 +72,4 @@ For a full visual walkthrough with screenshots, see [TripleGen_WepApp.md](Triple
 | Reasoning LLMs | OpenAI GPT-4o-mini, DeepSeek Reasoner R1 |
 | Medical NER | ScispaCy `en_ner_bc5cdr_md` |
 | Web UI | Flask + Jinja2 + Cytoscape.js |
-| Reference Ontology | BrainIT v2.0 (72 classes, 16 relations, 57 hierarchy edges) |
+| Reference Ontology | BrainIT proxy (93 classes, 18 relations, 76 hierarchy edges) — placeholder for pipeline validation while the full BrainIT ontology is sourced |

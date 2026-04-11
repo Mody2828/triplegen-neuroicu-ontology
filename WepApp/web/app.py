@@ -1905,6 +1905,27 @@ def results(run_id: str):
     )
 
 
+@app.route("/api/run/<run_id>/cluster", methods=["POST"])
+def api_cluster_results(run_id: str):
+    """Cluster extracted ontology classes using semantic embeddings + Ward's hierarchical clustering."""
+    run_root = _safe_run_path(run_id)
+    if not run_root:
+        return jsonify({"error": "Invalid run ID"}), 400
+    ontology_path = run_root / "generated" / "ontology.json"
+    if not ontology_path.exists():
+        return jsonify({"error": "Ontology not found — run the pipeline first"}), 404
+    try:
+        data = json.loads(ontology_path.read_text(encoding="utf-8"))
+        classes = data.get("classes", [])
+        if not classes:
+            return jsonify({"error": "No classes found in ontology"}), 400
+        from src.analysis.cluster_results import cluster_classes
+        result = cluster_classes(classes)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": f"Clustering failed: {str(e)}"}), 500
+
+
 @app.route("/api/run/<run_id>/ontology-graph", methods=["GET"])
 def api_ontology_graph(run_id: str):
     """Return ontology as Cytoscape.js-compatible graph elements (nodes + edges)."""
@@ -2006,6 +2027,720 @@ def artifact_file(run_id: str, artifact_type: str):
         )
     except FileNotFoundError:
         return "File not found", 404
+
+
+# ── Cluster Results API ──────────────────────────────────────────────
+@app.route("/api/run/<run_id>/cluster", methods=["POST"])
+def api_cluster(run_id):
+    """Run semantic clustering on the ontology classes of a completed run."""
+    from src.analysis.cluster_results import cluster_classes
+
+    run_path = _safe_run_path(run_id)
+    if run_path is None:
+        return jsonify({"error": "Invalid run ID"}), 400
+
+    ontology_file = run_path / "generated" / "ontology.json"
+    if not ontology_file.exists():
+        return jsonify({"error": "ontology.json not found for this run"}), 404
+
+    try:
+        ontology = _safe_json_loads(ontology_file.read_text(encoding="utf-8"))
+    except Exception as exc:
+        return jsonify({"error": f"Could not parse ontology.json: {exc}"}), 500
+
+    classes = ontology.get("classes", [])
+    if not classes:
+        return jsonify({"error": "No classes found in ontology.json"}), 400
+
+    try:
+        result = cluster_classes(classes)
+        return jsonify(result)
+    except Exception as exc:
+        traceback.print_exc()
+        return jsonify({"error": f"Clustering failed: {exc}"}), 500
+
+
+# ── Ontology Engineering ──────────────────────────────────────────────
+# Three-stage pipeline: Merge → Cluster → LLM Reconstruct
+
+_OE_DIR = _project_root / "data" / "ontology_engineering"
+
+
+def _save_oe_run_as_full_run(
+    reconstructed: Dict[str, Any],
+    source_run_ids: List[str],
+    provider: str,
+    model: Optional[str],
+    session_id: str,
+    n_clusters: int,
+) -> Optional[str]:
+    """Persist a reconstructed (merge + cluster + LLM) ontology as a standard run
+    under ``runs/<run_id>/`` with full evaluation against the gold standard.
+
+    Mirrors the artifact layout produced by ``run_experiments.run_one`` so the
+    existing results page (`/results/<run_id>`) works without modification.
+    Returns the new run_id, or None on failure.
+    """
+    from src.experiments.run_registry import create_run_dirs
+    from src.experiments.metadata import build_metadata, write_metadata
+    from src.experiments.artifacts import write_run_summary
+    from src.experiments.run_experiments import _flatten_metrics_for_table
+    from src.ontology.export import ontology_from_dict, write_ontology_json
+    from src.evaluation.gold_standard import load_gold_standard
+    from src.evaluation.align import align_entities
+    from src.evaluation.metrics import (
+        compute_coverage,
+        compute_precision_recall,
+        compute_structural_metrics,
+        compute_relation_metrics,
+        compute_hierarchy_metrics,
+    )
+    from src.evaluation.errors import error_taxonomy
+    from src.evaluation.report import write_metrics, write_table
+
+    try:
+        ontology = ontology_from_dict(reconstructed)
+    except Exception:
+        traceback.print_exc()
+        return None
+
+    run_paths = create_run_dirs(base_dir=str(RUNS_DIR), run_id=None)
+
+    # Primary ontology artefact
+    write_ontology_json(run_paths.generated / "ontology.json", ontology)
+
+    # Synthetic config & strategy so write_run_summary renders a coherent header.
+    # Keys mirror the shape produced by StrategyConfig runs, but describe this
+    # run as an Ontology Engineering (cluster-completion) reconstruction.
+    oe_config: Dict[str, Any] = {
+        "llm_provider": provider or "",
+        "llm_model": model or "",
+        "strategies": [{"prompt_strategy": "ontology_engineering"}],
+        "method": "ontology_engineering",
+        "source_runs": source_run_ids,
+        "n_clusters": n_clusters,
+        "session_id": session_id,
+    }
+
+    class _OEStrategy:
+        prompt_strategy = "ontology_engineering"
+        gold_standard_path = get_default_gold_path() or None
+
+    strategy = _OEStrategy()
+
+    # Evaluation — best effort, gold may be absent.
+    metrics: Dict[str, Any] = {}
+    gold_path = get_default_gold_path()
+    gold: Optional[Dict[str, Any]] = None
+    if gold_path:
+        try:
+            gold = load_gold_standard(gold_path)
+        except Exception:
+            traceback.print_exc()
+            gold = None
+
+    if gold:
+        try:
+            gold_classes = gold.get("classes", [])
+            generated_classes = [c.__dict__ for c in ontology.classes]
+            alignment = align_entities(generated=generated_classes, gold=gold_classes)
+            matched = alignment["matched_exact"] + alignment["matched_semantic"]
+            unmatched = alignment["unmatched"]
+            unique_gold_matched = len(alignment.get("gold_labels_matched", set()))
+
+            metrics = {
+                "coverage": compute_coverage(unique_gold_matched, gold_classes),
+                **compute_precision_recall(
+                    len(matched), generated_classes, unique_gold_matched, gold_classes
+                ),
+                "errors": error_taxonomy(
+                    unmatched, [],
+                    relations=[r.__dict__ for r in ontology.relations],
+                ),
+                "structural": compute_structural_metrics(ontology),
+            }
+            if gold.get("relations"):
+                metrics["relations"] = compute_relation_metrics(
+                    [r.__dict__ for r in ontology.relations],
+                    gold.get("relations", []),
+                )
+            if gold.get("hierarchy"):
+                metrics["hierarchy"] = compute_hierarchy_metrics(
+                    ontology.hierarchy, gold.get("hierarchy", []),
+                )
+
+            hallucinated = [
+                {"label": u.get("label"), "definition": u.get("definition")}
+                for u in unmatched
+            ]
+            (run_paths.evaluation / "hallucinated_classes.json").write_text(
+                json.dumps(hallucinated, indent=2), encoding="utf-8"
+            )
+        except Exception:
+            traceback.print_exc()
+
+    # Metrics files (written even when empty so the results page renders cleanly)
+    write_metrics(run_paths.evaluation / "metrics.json", metrics)
+    table_rows = _flatten_metrics_for_table(metrics) if metrics else []
+    write_table(run_paths.evaluation / "table.csv", table_rows)
+
+    # Metadata — treat the source runs as "input papers" so the results page lists them.
+    source_docs = [{"source": "", "id": rid} for rid in source_run_ids]
+    metadata = build_metadata(
+        oe_config, run_paths.run_id, source_run_ids, docs=source_docs
+    )
+    metadata["oe_session_id"] = session_id
+    metadata["oe_source_runs"] = source_run_ids
+    metadata["oe_method"] = "merge + cluster + LLM reconstruction"
+    write_metadata(run_paths.root / "metadata.json", metadata)
+
+    # Human-readable summary (falls back to a minimal summary on failure)
+    try:
+        write_run_summary(
+            run_paths.generated,
+            run_paths.run_id,
+            ontology,
+            metrics,
+            oe_config,
+            strategy,
+            docs=source_docs,
+            timestamp_utc=metadata.get("timestamp_utc"),
+        )
+    except Exception:
+        traceback.print_exc()
+        (run_paths.generated / "summary.txt").write_text(
+            "\n".join([
+                "Ontology Engineering — reconstructed run",
+                f"Run ID: {run_paths.run_id}",
+                f"Source runs: {', '.join(source_run_ids)}",
+                f"LLM: {provider} {model or ''}".strip(),
+                f"Clusters processed: {n_clusters}",
+                f"Classes: {len(ontology.classes)}",
+                f"Relations: {len(ontology.relations)}",
+                f"Hierarchy edges: {len(ontology.hierarchy)}",
+            ]),
+            encoding="utf-8",
+        )
+
+    return run_paths.run_id
+
+
+def _list_runs_with_ontology() -> List[Dict[str, Any]]:
+    """Return runs that have a generated/ontology.json file, with metadata for the UI.
+
+    Each row also carries the latest evaluation metrics (f1/precision/recall/coverage)
+    so the Ontology Engineering page can show a "Last result" column without an
+    extra round-trip.
+    """
+    if not RUNS_DIR.exists():
+        return []
+    runs = []
+    for p in sorted(RUNS_DIR.iterdir(), reverse=True):
+        if not p.is_dir():
+            continue
+        ontology_path = p / "generated" / "ontology.json"
+        if not ontology_path.exists():
+            continue
+        meta = {}
+        meta_path = p / "metadata.json"
+        if meta_path.exists():
+            try:
+                meta = _safe_json_loads(meta_path.read_text(encoding="utf-8")) or {}
+            except Exception:
+                pass
+        # Strategy is stored under metadata.config.strategies[0].prompt_strategy for
+        # normal runs; fall back to top-level `strategy` for older/legacy runs.
+        strategy = meta.get("strategy", "") or (
+            (meta.get("config") or {}).get("strategies", [{}])[0].get("prompt_strategy", "")
+        )
+        papers = meta.get("input_papers") or meta.get("papers") or []
+        if isinstance(papers, list):
+            names = []
+            for pp in papers[:3]:
+                if isinstance(pp, dict):
+                    names.append((pp.get("stem") or pp.get("name", ""))[:25])
+                elif isinstance(pp, str):
+                    names.append(Path(pp).stem[:25])
+            papers_short = ", ".join(names)
+        else:
+            papers_short = str(papers)[:40]
+        # Count classes
+        n_classes = 0
+        try:
+            onto_data = _safe_json_loads(ontology_path.read_text(encoding="utf-8")) or {}
+            n_classes = len(onto_data.get("classes", []))
+        except Exception:
+            pass
+        # Latest metrics (optional — runs without evaluation still show up).
+        # We also compute hierarchy F1, relation F1, and an Overall F1 (mean of
+        # class/hier/rel F1) so the Stage-1 run list can rank by the same signal
+        # the Compare Metrics modal uses.
+        metrics = load_metrics(p)
+        f1_val: Optional[float] = None
+        precision_val: Optional[float] = None
+        recall_val: Optional[float] = None
+        coverage_val: Optional[float] = None
+        rel_f1_val: Optional[float] = None
+        hier_f1_val: Optional[float] = None
+        overall_f1_val: Optional[float] = None
+
+        def _pair_f1(pp: Any, rr: Any) -> Optional[float]:
+            try:
+                ppf = float(pp); rrf = float(rr)
+            except (TypeError, ValueError):
+                return None
+            return (2 * ppf * rrf / (ppf + rrf)) if (ppf + rrf) else 0.0
+
+        if metrics:
+            precision_val = metrics.get("precision")
+            recall_val = metrics.get("recall")
+            coverage_val = metrics.get("coverage")
+            f1_val = _f1_from_metrics(metrics)
+            rel_block = metrics.get("relations") or {}
+            hier_block = metrics.get("hierarchy") or {}
+            rel_f1_val = _pair_f1(rel_block.get("precision"), rel_block.get("recall"))
+            hier_f1_val = _pair_f1(hier_block.get("precision"), hier_block.get("recall"))
+            parts = [x for x in (f1_val, rel_f1_val, hier_f1_val) if x is not None]
+            overall_f1_val = (sum(parts) / len(parts)) if parts else None
+        runs.append({
+            "id": p.name,
+            "strategy": strategy,
+            "papers": papers_short,
+            "n_classes": n_classes,
+            "has_metrics": metrics is not None,
+            "f1": f1_val,
+            "precision": precision_val,
+            "recall": recall_val,
+            "coverage": coverage_val,
+            "rel_f1": rel_f1_val,
+            "hier_f1": hier_f1_val,
+            "overall_f1": overall_f1_val,
+            "label": f"{p.name} — {_STRATEGY_LABELS.get(strategy, strategy)} ({n_classes} classes)",
+        })
+    return runs
+
+
+@app.route("/ontology-engineering")
+def ontology_engineering():
+    """Ontology Engineering page — merge, cluster, reconstruct pipeline."""
+    runs = _list_runs_with_ontology()
+    return render_template("ontology_engineering.html", runs=runs)
+
+
+@app.route("/api/ontology-engineering/merge", methods=["POST"])
+def api_oe_merge():
+    """Merge selected ontologies from multiple runs into one."""
+    from src.ontology.merge import merge_ontologies as _merge
+
+    data = request.get_json(force=True)
+    run_ids = data.get("run_ids", [])
+    if not run_ids or len(run_ids) < 1:
+        return jsonify({"error": "Select at least one run to merge"}), 400
+
+    ontology_dicts = []
+    for rid in run_ids:
+        run_path = _safe_run_path(rid)
+        if not run_path:
+            return jsonify({"error": f"Invalid run ID: {rid}"}), 400
+        onto_file = run_path / "generated" / "ontology.json"
+        if not onto_file.exists():
+            return jsonify({"error": f"No ontology.json for run {rid}"}), 404
+        try:
+            ontology_dicts.append(
+                _safe_json_loads(onto_file.read_text(encoding="utf-8"))
+            )
+        except Exception as e:
+            return jsonify({"error": f"Could not read ontology for {rid}: {e}"}), 500
+
+    session_id = f"oe-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}-{uuid4().hex[:8]}"
+    session_dir = _OE_DIR / session_id
+    session_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        merged = _merge(ontology_dicts, metadata={
+            "source_runs": run_ids,
+            "method": "merge",
+        })
+    except Exception as e:
+        return jsonify({"error": f"Merge failed: {e}"}), 500
+
+    # Save artifacts
+    (session_dir / "merged_ontology.json").write_text(
+        json.dumps(merged, indent=2, default=str), encoding="utf-8"
+    )
+    stats = {
+        "source_runs": run_ids,
+        "total_classes": len(merged.get("classes", [])),
+        "total_relations": len(merged.get("relations", [])),
+        "total_hierarchy": len(merged.get("hierarchy", [])),
+    }
+    (session_dir / "merge_stats.json").write_text(
+        json.dumps(stats, indent=2), encoding="utf-8"
+    )
+
+    return jsonify({"ok": True, "session_id": session_id, "stats": stats})
+
+
+@app.route("/api/ontology-engineering/cluster", methods=["POST"])
+def api_oe_cluster():
+    """Cluster the merged ontology classes."""
+    from src.analysis.cluster_results import cluster_classes
+
+    data = request.get_json(force=True)
+    session_id = data.get("session_id", "")
+    if not session_id or not re.match(r"^oe-[\w-]+$", session_id):
+        return jsonify({"error": "Invalid session ID"}), 400
+
+    session_dir = _OE_DIR / session_id
+    merged_path = session_dir / "merged_ontology.json"
+    if not merged_path.exists():
+        return jsonify({"error": "Merged ontology not found — run merge first"}), 404
+
+    try:
+        merged = _safe_json_loads(merged_path.read_text(encoding="utf-8"))
+    except Exception as e:
+        return jsonify({"error": f"Could not read merged ontology: {e}"}), 500
+
+    classes = merged.get("classes", [])
+    if len(classes) < 5:
+        return jsonify({"error": f"Need at least 5 classes to cluster (found {len(classes)})"}), 400
+
+    try:
+        result = cluster_classes(classes)
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": f"Clustering failed: {e}"}), 500
+
+    # Save cluster data
+    (session_dir / "cluster_data.json").write_text(
+        json.dumps(result, indent=2, default=str), encoding="utf-8"
+    )
+
+    return jsonify(result)
+
+
+@app.route("/api/ontology-engineering/reconstruct", methods=["POST"])
+def api_oe_reconstruct():
+    """Start async LLM cluster-to-ontology completion."""
+    data = request.get_json(force=True)
+    session_id = data.get("session_id", "")
+    provider = data.get("provider", "openai")
+    model = data.get("model", "") or None
+
+    if not session_id or not re.match(r"^oe-[\w-]+$", session_id):
+        return jsonify({"error": "Invalid session ID"}), 400
+
+    session_dir = _OE_DIR / session_id
+    merged_path = session_dir / "merged_ontology.json"
+    cluster_path = session_dir / "cluster_data.json"
+
+    if not merged_path.exists() or not cluster_path.exists():
+        return jsonify({"error": "Merged ontology or cluster data not found"}), 404
+
+    try:
+        merged = _safe_json_loads(merged_path.read_text(encoding="utf-8"))
+        cluster_data = _safe_json_loads(cluster_path.read_text(encoding="utf-8"))
+    except Exception as e:
+        return jsonify({"error": f"Could not read data: {e}"}), 500
+
+    task_id = f"oe-recon-{uuid4().hex[:8]}"
+
+    with run_status_lock:
+        run_statuses[task_id] = {
+            "status": "running",
+            "current": 0,
+            "total": len(cluster_data.get("clusters", [])),
+            "message": "Starting reconstruction...",
+            "task_id": task_id,
+            "session_id": session_id,
+            "error": None,
+        }
+
+    def job():
+        from src.ontology.cluster_completion import run_cluster_completion
+
+        def progress(current, total, message):
+            with run_status_lock:
+                if task_id in run_statuses:
+                    run_statuses[task_id].update(
+                        current=current, total=total, message=message,
+                    )
+
+        try:
+            result, log_entries = run_cluster_completion(
+                merged_ontology=merged,
+                cluster_data=cluster_data,
+                provider=provider,
+                model=model,
+                progress_callback=progress,
+            )
+
+            # Save session artefacts (used by the inline graph preview on the OE page)
+            (session_dir / "reconstructed_ontology.json").write_text(
+                json.dumps(result, indent=2, default=str), encoding="utf-8"
+            )
+            (session_dir / "reconstruction_log.json").write_text(
+                json.dumps(log_entries, indent=2, default=str), encoding="utf-8"
+            )
+
+            # Promote this reconstruction to a standard run with evaluation so it
+            # appears in comparisons, /results/, and the normal run listings.
+            source_run_ids = list(
+                (merged.get("metadata") or {}).get("source_runs", [])
+            )
+            new_run_id: Optional[str] = None
+            try:
+                new_run_id = _save_oe_run_as_full_run(
+                    reconstructed=result,
+                    source_run_ids=source_run_ids,
+                    provider=provider,
+                    model=model,
+                    session_id=session_id,
+                    n_clusters=len(cluster_data.get("clusters", [])),
+                )
+            except Exception:
+                traceback.print_exc()
+
+            with run_status_lock:
+                if task_id in run_statuses:
+                    update = {
+                        "status": "completed",
+                        "message": (
+                            f"Reconstruction complete. Saved as run {new_run_id}."
+                            if new_run_id
+                            else "Reconstruction complete."
+                        ),
+                        "current": run_statuses[task_id]["total"],
+                    }
+                    if new_run_id:
+                        update["run_id"] = new_run_id
+                        update["results_url"] = f"/results/{new_run_id}"
+                    run_statuses[task_id].update(**update)
+        except Exception as e:
+            traceback.print_exc()
+            with run_status_lock:
+                if task_id in run_statuses:
+                    run_statuses[task_id].update(
+                        status="failed", error=str(e), message=f"Failed: {e}",
+                    )
+
+    threading.Thread(target=job, daemon=True).start()
+
+    return jsonify({
+        "task_id": task_id,
+        "session_id": session_id,
+        "status_url": f"/api/ontology-engineering/reconstruct/{task_id}/status",
+    })
+
+
+@app.route("/api/ontology-engineering/reconstruct/<task_id>/status")
+def api_oe_reconstruct_status(task_id):
+    """Poll reconstruction task status."""
+    with run_status_lock:
+        data = dict(run_statuses.get(task_id, {"status": "unknown"}))
+    return jsonify(data)
+
+
+@app.route("/api/ontology-engineering/<session_id>/result")
+def api_oe_result(session_id):
+    """Return the reconstructed ontology as Cytoscape-compatible graph elements."""
+    if not session_id or not re.match(r"^oe-[\w-]+$", session_id):
+        return jsonify({"error": "Invalid session ID"}), 400
+
+    session_dir = _OE_DIR / session_id
+    recon_path = session_dir / "reconstructed_ontology.json"
+    if not recon_path.exists():
+        return jsonify({"error": "Reconstructed ontology not found"}), 404
+
+    try:
+        data = _safe_json_loads(recon_path.read_text(encoding="utf-8"))
+    except Exception:
+        return jsonify({"error": "Could not parse reconstructed ontology"}), 500
+
+    # Build Cytoscape graph elements (same logic as api_ontology_graph)
+    nodes = []
+    edges = []
+    class_labels: set = set()
+
+    for c in data.get("classes", []):
+        label = c.get("label", "")
+        if not label or label in class_labels:
+            continue
+        class_labels.add(label)
+        is_inferred = label.startswith("[inferred]")
+        nodes.append({"data": {
+            "id": label, "label": label, "type": "class",
+            "definition": c.get("definition") or "",
+            "stratum": "inferred" if is_inferred else (c.get("stratum") or "core"),
+            "evidence": c.get("evidence") or "",
+        }})
+
+    def _ensure_node(lbl: str):
+        if lbl and lbl not in class_labels:
+            class_labels.add(lbl)
+            nodes.append({"data": {
+                "id": lbl, "label": lbl, "type": "class",
+                "definition": "", "stratum": "inferred", "evidence": "",
+            }})
+
+    for i, r in enumerate(data.get("relations", [])):
+        domain = r.get("domain", "")
+        range_ = r.get("range", "")
+        _ensure_node(domain)
+        _ensure_node(range_)
+        if domain and range_:
+            edges.append({"data": {
+                "id": f"rel_{i}", "source": domain, "target": range_,
+                "label": r.get("label", ""), "type": "relation",
+                "definition": r.get("definition") or "",
+                "evidence": r.get("evidence") or "",
+            }})
+
+    for i, h in enumerate(data.get("hierarchy", [])):
+        sub = h.get("subClass", "")
+        sup = h.get("superClass", "")
+        _ensure_node(sub)
+        _ensure_node(sup)
+        if sub and sup:
+            edges.append({"data": {
+                "id": f"hier_{i}", "source": sub, "target": sup,
+                "label": "subClassOf", "type": "hierarchy",
+                "evidence": h.get("evidence") or "",
+            }})
+
+    return jsonify({
+        "nodes": nodes, "edges": edges,
+        "stats": {
+            "classes": len(data.get("classes", [])),
+            "relations": len(data.get("relations", [])),
+            "hierarchy": len(data.get("hierarchy", [])),
+            "inferred_classes": sum(
+                1 for c in data.get("classes", [])
+                if (c.get("label") or "").startswith("[inferred]")
+            ),
+        },
+    })
+
+
+# ── Generic run-metrics endpoints (used by Ontology Engineering "Analyze") ──
+
+def _run_label_from_metadata(run_id: str, run_root: Path) -> str:
+    """Build a short human-readable label for a run from its metadata."""
+    label = run_id
+    meta_path = run_root / "metadata.json"
+    if not meta_path.exists():
+        return label
+    try:
+        meta = _safe_json_loads(meta_path.read_text(encoding="utf-8")) or {}
+    except Exception:
+        return label
+    strat = (
+        meta.get("strategy")
+        or ((meta.get("config") or {}).get("strategies", [{}])[0] or {}).get("prompt_strategy")
+        or ""
+    )
+    short_id = run_id[:16]
+    if strat:
+        return f"{short_id}… — {_STRATEGY_LABELS.get(strat, strat)}"
+    return short_id
+
+
+@app.route("/api/runs-metrics", methods=["POST"])
+def api_runs_metrics():
+    """Return metrics for each of the given run_ids (one row per run, in order).
+
+    Request body: ``{"run_ids": ["...","..."]}``. Response shape mirrors
+    ``api_configs_last_runs`` so the same dashboard renderer can reuse it.
+    Runs without saved metrics produce a row with ``run_id`` populated but all
+    metric fields set to ``None``.
+    """
+    data = request.get_json(silent=True) or {}
+    run_ids = data.get("run_ids") or []
+
+    def _f1(p, r):
+        if p is None or r is None:
+            return None
+        try:
+            p = float(p); r = float(r)
+        except (TypeError, ValueError):
+            return None
+        return (2 * p * r / (p + r)) if (p + r) else 0.0
+
+    rows: List[Dict[str, Any]] = []
+    for rid in run_ids:
+        run_root = _safe_run_path(rid)
+        if not run_root or not run_root.exists():
+            rows.append({
+                "run_id": rid,
+                "label": rid,
+                "metrics": None,
+                "f1": None,
+                "precision": None,
+                "recall": None,
+                "coverage": None,
+                "hallucinations": None,
+                "hierarchy_edges": None,
+                "rel_f1": None,
+                "hier_f1": None,
+                "overall_f1": None,
+            })
+            continue
+        metrics = load_metrics(run_root)
+        m = metrics or {}
+        err = m.get("errors") or {}
+        struct = m.get("structural") or {}
+        he = struct.get("hierarchy_edges")
+
+        # Structural F1s — rel_f1 and hier_f1 come straight from metrics.json's
+        # relations/hierarchy sub-objects. overall_f1 is the mean of the three
+        # available F1s (class, hierarchy, relation), skipping missing ones.
+        class_f1 = _f1_from_metrics(metrics) if metrics else None
+        rel = m.get("relations") or {}
+        hier = m.get("hierarchy") or {}
+        rel_f1 = _f1(rel.get("precision"), rel.get("recall"))
+        hier_f1 = _f1(hier.get("precision"), hier.get("recall"))
+        f1_parts = [x for x in (class_f1, rel_f1, hier_f1) if x is not None]
+        overall_f1 = (sum(f1_parts) / len(f1_parts)) if f1_parts else None
+
+        rows.append({
+            "run_id": rid,
+            "label": _run_label_from_metadata(rid, run_root),
+            "metrics": m if metrics else None,
+            "f1": class_f1,
+            "precision": m.get("precision"),
+            "recall": m.get("recall"),
+            "coverage": m.get("coverage"),
+            "hallucinations": err.get("hallucinations"),
+            "hierarchy_edges": int(he) if he is not None else None,
+            "rel_f1": rel_f1,
+            "hier_f1": hier_f1,
+            "overall_f1": overall_f1,
+        })
+    return jsonify({"rows": rows})
+
+
+@app.route("/api/run/<run_id>/summary", methods=["GET"])
+def api_run_summary(run_id: str):
+    """Return the generated ``summary.txt`` for a single run."""
+    run_root = _safe_run_path(run_id)
+    if not run_root or not run_root.exists():
+        return jsonify({"found": False, "message": "Run not found."}), 404
+    summary_path = run_root / "generated" / "summary.txt"
+    if not summary_path.exists():
+        return jsonify({
+            "found": False,
+            "run_id": run_id,
+            "message": "No summary saved for this run.",
+        })
+    try:
+        summary = summary_path.read_text(encoding="utf-8")
+    except Exception:
+        return jsonify({
+            "found": False,
+            "run_id": run_id,
+            "message": "Could not read summary.",
+        })
+    return jsonify({"found": True, "run_id": run_id, "summary": summary})
 
 
 if __name__ == "__main__":

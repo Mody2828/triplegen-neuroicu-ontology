@@ -42,13 +42,14 @@ The `runs/` directory contains pre-computed experiment results. When you open th
 
 ## 1. Navigation
 
-The navigation bar has four items:
+The navigation bar has five items:
 
 | Link | What it does |
 |------|-------------|
 | **Run experiment** | Run a single configuration (the home page). |
 | **Controlled experiment** | Fine-grained ablation with 19 individual pipeline toggles. |
 | **Run comparison** | Batch mode to compare multiple configurations at once. |
+| **Ontology engineering** | Cross-paper reconstruction — merge multiple prior runs, cluster the merged classes, and ask the LLM to enrich each cluster. |
 | **Contrast** | Accessibility toggle for a higher-contrast theme. |
 
 ---
@@ -436,6 +437,86 @@ Strategy - PipelineMode - LLM - EvalSettings - Advanced
 | `Few-Shot - Controlled - GPT-4o-mini - Gold-vocab - None` | Few-Shot with custom pipeline toggle overrides from the Controlled Experiment page. |
 
 This label appears everywhere — the comparison table, run list, batch progress, summary file, and metadata.
+
+---
+
+## 11. Ontology engineering page
+
+Click **Ontology engineering** in the navigation bar. This page is different from every other page in the app — instead of running an extraction over a corpus, it reconstructs a single, richer ontology by combining the output of *multiple prior runs* and asking the LLM to enrich each semantic cluster of classes.
+
+The key design properties:
+
+- **No new classes** — the LLM is constrained to rearrange and enrich the merged source. Any class it tries to invent is dropped post-parse.
+- **Closed relation vocabulary** — the allowed relation labels are self-seeded from the merged source's existing relations. The LLM never sees the gold standard, and any out-of-vocabulary relation it produces is dropped.
+- **Hierarchy passthrough** — the LLM is told not to emit hierarchy. All hierarchy in the final ontology comes from the source seed.
+- **Source-seeded merge** — the merged source ontology is prepended to the cluster fragments, so anything the LLM forgets to re-emit is rescued from the source.
+
+![Screenshot: Ontology engineering page overview](screenshots/25_ontology_engineering_overview.png)
+
+---
+
+### 11.1 Picking source runs
+
+The left panel lists all prior runs whose `ontology.json` is on disk. Tick the runs you want to combine — these become the source set for reconstruction. You can pick a single run, a handful of runs covering different papers, or every run in the list.
+
+![Screenshot: Source run picker with multiple runs selected](screenshots/26_oe_source_runs.png)
+
+---
+
+### 11.2 Configuring the reconstruction
+
+The right panel has a small set of options:
+
+| Option | What it does |
+|--------|-------------|
+| **Number of clusters** | How many semantic clusters to split the merged classes into. Defaults to **25**. Smaller numbers produce broader clusters with more cross-cluster relations; larger numbers produce tighter, more specific clusters. |
+| **LLM provider** | Which model performs the per-cluster enrichment. Same provider list as the rest of the app. |
+
+When you click **Run reconstruction**, the app:
+
+1. Loads each selected run's `ontology.json`.
+2. Merges them by canonical key into one source ontology.
+3. Embeds the class labels and definitions and clusters them semantically.
+4. For each cluster, calls the LLM with the closed relation vocabulary inline in the prompt and asks it to enrich the cluster.
+5. Filters the LLM output (drops new classes, drops out-of-vocab relations, drops any hierarchy edges).
+6. Merges all cluster fragments back together with the source seed.
+7. Runs the result through the standard evaluator.
+
+![Screenshot: Reconstruction in progress with cluster counter](screenshots/27_oe_progress.png)
+
+---
+
+### 11.3 Cluster results view
+
+When the reconstruction finishes, the page lists each cluster as a card. Each card shows the cluster name, member classes, the relations the LLM added (or kept), and how many relations were dropped by the closed-vocabulary filter and how many "inferred" classes were dropped.
+
+This view is the cleanest way to *see* what the LLM did per cluster — and to confirm that no new classes leaked through.
+
+![Screenshot: Cluster results — one card per cluster with member classes and added relations](screenshots/28_oe_cluster_results.png)
+
+---
+
+### 11.4 Compare metrics modal
+
+The page also has a **Compare metrics** button that opens a modal showing every reconstruction run side by side, ranked by **Overall F1** (the mean of class F1, hierarchy F1, and relation F1). Each row also shows the individual class / hierarchy / relation F1, the source run IDs, and a link to open the reconstructed ontology's full Results page.
+
+A bar chart underneath the table plots the four F1 values per run so you can spot trade-offs at a glance — for example, a reconstruction that gains hierarchy F1 at the cost of a small drop in relation F1.
+
+![Screenshot: Compare metrics modal — table and bar chart of reconstruction runs](screenshots/29_oe_compare_metrics.png)
+
+---
+
+### 11.5 Reconstruction artifacts
+
+A reconstruction run produces the same artifact set as a normal run (`ontology.json`, `metrics.json`, `summary.txt`, etc.) plus an extra `cluster_completion_log.json` recording:
+
+- the number of clusters
+- the prompt and response length per cluster
+- how many "inferred" classes were dropped
+- how many relations were dropped by the closed-vocabulary filter
+- how many hierarchy edges were dropped
+
+The run's `metadata.json` is also tagged with `closed_relation_vocab: true`, `n_allowed_relations: <count>`, `hierarchy_from_source_only: true`, and `source_seeded: true` so reconstruction runs are clearly distinguishable from normal extraction runs.
 
 ---
 

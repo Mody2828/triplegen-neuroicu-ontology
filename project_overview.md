@@ -26,7 +26,8 @@ Most prior work in biomedical ontology engineering has focused on well-establish
 
 - **Three prompting strategies**: Zero-Shot (baseline), One-Shot (single MMR example), and Few-Shot (three-phase extraction with dedicated example pools per phase and anti-anchoring instructions).
 - **Three progressive pipeline modes**: Strict → Guided → Schema-Completed, with each mode adding further post-processing so the contribution of each component can be observed.
-- **Controlled experiment page**: 17 individual pipeline toggles for fine-grained ablation, grouped into Preprocessing (4), Prompt Injection (5), and Post-Processing (8).
+- **Controlled experiment page**: 19 individual pipeline toggles for fine-grained ablation, grouped into Preprocessing, Prompt Injection, and Post-Processing.
+- **Cross-paper Ontology Engineering page**: takes the output of multiple prior runs, merges them into a single source ontology, semantically clusters the union (default 25 clusters), and asks the LLM to enrich each cluster as a separate call. The reconstruction enforces a closed relation vocabulary self-seeded from the merged source (no gold leakage), forbids the LLM from inventing new classes, and passes hierarchy through directly from the source seed.
 - **Built-in BrainIT paper selector**: dropdown with 11 pre-loaded papers for quick experiment setup without manual file handling.
 - **Medical NER anchor**: ScispaCy biomedical named entity recognition integrated into Guided mode and above, giving the LLM a structured starting point for clinical terminology.
 - **Schema-guided completion**: LLM-based gap-filling against the gold schema, restricted to items supported by corpus evidence.
@@ -85,15 +86,11 @@ Three modes progressively layer on functionality. Each mode is a superset of the
 
 Schema-Completed is the default, balancing capability and speed.
 
-The **Controlled Experiment** page bypasses predefined modes entirely, exposing 17 individual toggles so each feature can be tested independently:
-
-- **Preprocessing (4)**: Scope Filter, Chunk-level Clinical Filter, Clinical-only Routing, Require Label in Evidence.
-- **Prompt Injection (5)**: Vocabulary Guardrails, Candidate Terms, Medical NER Anchoring, Filter to Gold Vocabulary, Strict Relations.
-- **Post-Processing (8)**: Text-Grounded Completion, Schema-Guided Completion, Symbolic Reasoner, Deduplication, Scope/Abstract Pruning, Evidence Pruning, Structural Validation, Axiom Constraints.
+The **Controlled Experiment** page bypasses predefined modes entirely, exposing 19 individual toggles so each feature can be tested independently, grouped into Preprocessing, Prompt Injection, and Post-Processing.
 
 ### Post-Processing
 
-Post-processing runs after merge in a fixed order: TGC → SGC → built-in cleanup → Rule-based Reasoning.
+Post-processing runs after merge in a fixed order: TGC → SGC → built-in cleanup → orphan rescue → LLM CoT refinement → Rule-based Reasoning → gold-vocabulary filter.
 
 **Text-Grounded Completion (TGC)** is a second-pass extraction where the LLM reviews the full document alongside the current ontology to find missed items. It uses a Chain-of-Layer taxonomy approach for structured multi-pass review.
 
@@ -109,7 +106,7 @@ Chunk-level extractions are merged by canonical key for classes and by `(label, 
 
 ### Evaluation
 
-The generated ontology is compared against the **BrainIT v2.0 reference ontology** (72 classes, 16 relations, 57 hierarchy edges).
+The generated ontology is compared against a **BrainIT proxy reference ontology** (93 classes, 18 relations, 76 hierarchy edges). This proxy was constructed from BrainIT publications as a placeholder for pipeline validation while the full BrainIT consortium ontology is being sourced; final evaluation will be re-run against the canonical reference once available.
 
 - **Class evaluation** — coverage, precision, and recall across overall, clinical-only, and by-stratum (core/governance/provenance) views. Extraction-only metrics isolate the raw LLM contribution before any improvement stage.
 - **Relation evaluation** — label-level precision and recall via alias-aware matching, with per-gold-relation breakdown.
@@ -129,11 +126,12 @@ Each run produces a timestamped directory containing:
 
 ## Web Application
 
-The web interface provides four main pages:
+The web interface provides five main pages:
 
 - **Run Experiment** — strategy selection (Zero-Shot, One-Shot, Few-Shot), pipeline mode cards, LLM provider selector with 7 providers, evaluation settings, and an Advanced section for reasoning LLM override.
 - **Controlled Experiment** — 19 individual pipeline toggles for fine-grained ablation, with a built-in BrainIT paper selector dropdown (11 papers). Each toggle can be independently enabled or disabled to measure its contribution.
 - **Run Comparison** — batch mode with per-run paper selection. Build a list of configurations, run them sequentially with pause/resume/skip controls, and compare metrics side by side with F1, precision, recall charts.
+- **Ontology Engineering** — cross-paper reconstruction page. Pick any prior runs, merge them into a single source ontology, semantically cluster the merged classes (default 25 clusters), and ask the LLM to enrich each cluster as a separate call. The reconstruction enforces a closed relation vocabulary self-seeded from the merged source (no gold leakage), forbids new class invention, and passes hierarchy through directly from the source seed. A Compare Metrics modal ranks reconstruction runs by Overall F1 (mean of class/hierarchy/relation F1).
 - **Results** — evaluation metrics card, per-stage ablation table, downloadable artifacts, and an interactive ontology graph (Cytoscape.js) with four layout modes, node detail panels, and PNG export.
 
 Run labels follow the format `Strategy - PipelineMode - LLM - EvalSettings - Advanced` and appear consistently across all pages.

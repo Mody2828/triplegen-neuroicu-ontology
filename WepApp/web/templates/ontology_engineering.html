@@ -1,0 +1,409 @@
+{% extends "base.html" %}
+
+{% block title %}Ontology Engineering · TripleGen{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/cytoscape@3.27.0/dist/cytoscape.min.js"></script>
+<style>
+  /* ── Stepper ── */
+  .oe-stepper {
+    display: flex; align-items: center; justify-content: center; gap: 0; padding: 1.2rem 0;
+  }
+  .oe-step {
+    display: flex; flex-direction: column; align-items: center; gap: 0.35rem; min-width: 120px;
+    opacity: 0.4; transition: opacity 0.3s;
+  }
+  .oe-step.active  { opacity: 1; }
+  .oe-step.done    { opacity: 0.85; }
+  .oe-step-number {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.95rem;
+    background: var(--tg-surface); border: 2px solid var(--tg-border);
+    color: var(--tg-text-secondary); transition: all 0.3s;
+  }
+  .oe-step.active .oe-step-number {
+    background: linear-gradient(135deg, var(--tg-accent-1), var(--tg-accent-2));
+    color: #051020; border-color: transparent;
+  }
+  .oe-step.done .oe-step-number {
+    background: var(--tg-eval); color: #051020; border-color: transparent;
+  }
+  .oe-step-label {
+    font-size: 0.78rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.03em; color: var(--tg-text-secondary);
+  }
+  .oe-step.active .oe-step-label { color: var(--tg-accent-1); }
+  .oe-step-line {
+    flex: 1; max-width: 80px; height: 2px;
+    background: var(--tg-border); margin: 0 0.5rem; margin-bottom: 1.2rem;
+  }
+
+  /* ── Stage cards ── */
+  .oe-stage { transition: opacity 0.3s, filter 0.3s; }
+  .oe-stage.locked { opacity: 0.4; pointer-events: none; filter: grayscale(0.3); }
+
+  /* ── Run checkbox list ── */
+  .oe-run-list { max-height: 360px; overflow-y: auto; padding-right: 0.5rem; }
+  .oe-run-item {
+    display: flex; align-items: center; gap: 0.6rem; padding: 0.45rem 0.6rem;
+    border-radius: var(--tg-radius-xs); transition: background 0.15s;
+  }
+  .oe-run-item:hover { background: rgba(255,255,255,0.04); }
+  .oe-run-label { font-size: 0.82rem; flex: 1; min-width: 0; }
+  .oe-run-label .run-id { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .oe-run-badge {
+    font-size: 0.7rem; padding: 2px 8px; border-radius: 9999px;
+    background: var(--tg-class-dim); color: var(--tg-class);
+    white-space: nowrap;
+  }
+  /* Last-result F1 pill: colour-graded so the eye catches best/worst at a glance. */
+  .oe-result-pill {
+    font-size: 0.72rem; padding: 2px 10px; border-radius: 9999px;
+    font-weight: 600; white-space: nowrap; min-width: 56px; text-align: center;
+    border: 1px solid var(--tg-border);
+  }
+  .oe-result-pill.good  { background: rgba(46, 214, 161, 0.18); color: #2ED6A1; border-color: rgba(46, 214, 161, 0.4); }
+  .oe-result-pill.ok    { background: rgba(245, 166, 91, 0.18); color: #F5A65B; border-color: rgba(245, 166, 91, 0.4); }
+  .oe-result-pill.bad   { background: rgba(255, 107, 129, 0.18); color: #FF6B81; border-color: rgba(255, 107, 129, 0.4); }
+  .oe-result-pill.none  { background: transparent; color: var(--tg-text-secondary); }
+  .oe-run-view-btn {
+    font-size: 0.7rem; padding: 2px 8px; border-radius: var(--tg-radius-xs);
+    border: 1px solid var(--tg-border); background: var(--tg-surface);
+    color: var(--tg-text-secondary); cursor: pointer; white-space: nowrap;
+  }
+  .oe-run-view-btn:hover { background: var(--tg-surface-hover); color: var(--tg-accent-1); border-color: var(--tg-accent-1); }
+
+  /* Analyze-modal bits (reused chart styling) */
+  #oe-analyze-modal .metrics-pre,
+  #oe-result-modal  .metrics-pre { font-size: 0.78rem; max-height: 60vh; overflow: auto; }
+  #oe-analyze-chart-wrap { height: 280px; margin-bottom: 1rem; }
+  #oe-analyze-chart-wrap.chart-many-runs { height: 440px; }
+  #oe-analyze-modal .table th { cursor: pointer; user-select: none; white-space: nowrap; }
+  #oe-analyze-modal .summary-card {
+    background: var(--tg-surface); border: 1px solid var(--tg-border);
+    border-radius: var(--tg-radius-sm); color: var(--tg-text);
+  }
+  #oe-analyze-modal .summary-card .small.text-muted { color: var(--tg-text-secondary); }
+
+  /* ── Stat cards ── */
+  .oe-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem; }
+  .oe-stat-card {
+    background: var(--tg-surface); border: 1px solid var(--tg-border);
+    border-radius: var(--tg-radius-sm); padding: 1rem; text-align: center;
+  }
+  .oe-stat-value { font-size: 1.6rem; font-weight: 700; color: var(--tg-accent-1); }
+  .oe-stat-label { font-size: 0.72rem; color: var(--tg-text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
+
+  /* ── Cluster cards ── */
+  .oe-cluster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.75rem; }
+  .oe-cluster-card {
+    background: var(--tg-surface); border: 1px solid var(--tg-border);
+    border-radius: var(--tg-radius-sm); padding: 1rem;
+    border-left: 4px solid var(--tg-accent-1);
+  }
+  .oe-cluster-title { font-weight: 600; font-size: 0.85rem; margin-bottom: 0.3rem; }
+  .oe-cluster-size  { font-size: 0.72rem; color: var(--tg-text-secondary); margin-bottom: 0.5rem; }
+  .oe-member-pill {
+    display: inline-block; padding: 2px 8px; margin: 2px;
+    font-size: 0.72rem; border-radius: 9999px;
+    background: var(--tg-class-dim); color: var(--tg-class);
+  }
+
+  /* ── Chart containers ── */
+  .oe-chart-wrap {
+    background: var(--tg-glass-bg); border: 1px solid var(--tg-border);
+    border-radius: var(--tg-radius-sm); padding: 0.75rem; height: 340px;
+    position: relative;
+  }
+
+  /* ── Progress bar ── */
+  .oe-progress-wrap {
+    background: var(--tg-surface); border: 1px solid var(--tg-border);
+    border-radius: var(--tg-radius-sm); padding: 1.25rem;
+  }
+  .oe-progress-bar-bg {
+    height: 8px; border-radius: 4px; background: rgba(255,255,255,0.08); overflow: hidden;
+  }
+  .oe-progress-bar-fill {
+    height: 100%; border-radius: 4px; transition: width 0.4s ease;
+    background: linear-gradient(90deg, var(--tg-accent-1), var(--tg-accent-2));
+  }
+  .oe-progress-msg { font-size: 0.8rem; color: var(--tg-text-secondary); margin-top: 0.5rem; }
+
+  /* ── Cytoscape graph ── */
+  #oe-graph-container {
+    width: 100%; height: 500px;
+    background: var(--tg-glass-bg); border: 1px solid var(--tg-border);
+    border-radius: var(--tg-radius-sm);
+  }
+
+  /* ── Full-results embedded iframe modal ── */
+  #oe-full-results-modal .modal-dialog { max-width: 95vw; }
+  #oe-full-results-modal .modal-body { padding: 0; height: calc(100vh - 140px); }
+  #oe-full-results-iframe { width: 100%; height: 100%; border: 0; display: block; background: transparent; }
+
+  /* ── LLM provider switches (reuse) ── */
+  .oe-provider-switch-group .form-check { margin-bottom: 0.35rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <h2 class="fw-bold mb-1">
+    <i class="bi bi-gear me-2" style="color:var(--tg-accent-1)"></i>Ontology Engineering
+  </h2>
+  <p class="text-muted mb-0" style="font-size:0.88rem;">
+    Load one or more runs, cluster classes, and reconstruct a rich ontology with LLM assistance.
+  </p>
+</div>
+
+<!-- Stepper -->
+<div class="oe-stepper">
+  <div class="oe-step active" id="step-1">
+    <div class="oe-step-number">1</div>
+    <div class="oe-step-label">Merge</div>
+  </div>
+  <div class="oe-step-line"></div>
+  <div class="oe-step" id="step-2">
+    <div class="oe-step-number">2</div>
+    <div class="oe-step-label">Cluster</div>
+  </div>
+  <div class="oe-step-line"></div>
+  <div class="oe-step" id="step-3">
+    <div class="oe-step-number">3</div>
+    <div class="oe-step-label">Reconstruct</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     Stage 1: Merge Ontologies
+     ═══════════════════════════════════════════════════════════════════ -->
+<div id="stage-merge" class="tg-glass-card p-4 mb-4 oe-stage">
+  <h4 class="mb-3" style="color:var(--tg-accent-1)">
+    <i class="bi bi-intersect me-2"></i>Stage 1 — Load Ontologies
+  </h4>
+  <p class="text-muted" style="font-size:0.82rem;">
+    Select one or more runs. Multiple runs will be merged with canonical deduplication.
+  </p>
+
+  {% if runs %}
+  <div class="mb-2">
+    <button type="button" class="btn btn-tg-ghost btn-sm" id="btn-select-all">Select all</button>
+    <button type="button" class="btn btn-tg-ghost btn-sm" id="btn-deselect-all">Deselect all</button>
+    <span class="text-muted ms-2" style="font-size:0.75rem;" id="selected-count">0 selected</span>
+  </div>
+  <div class="oe-run-list mb-3">
+    {% for run in runs %}
+    {% set f1_class = 'none' %}
+    {% if run.f1 is not none %}
+      {% if run.f1 >= 0.5 %}{% set f1_class = 'good' %}
+      {% elif run.f1 >= 0.25 %}{% set f1_class = 'ok' %}
+      {% else %}{% set f1_class = 'bad' %}
+      {% endif %}
+    {% endif %}
+    <div class="oe-run-item">
+      <input type="checkbox" class="form-check-input oe-run-check" value="{{ run.id }}" id="run-{{ run.id }}">
+      <label class="oe-run-label" for="run-{{ run.id }}">
+        <span class="run-id">{{ run.id }}</span>
+        <span style="font-size:0.72rem;">
+          {% if run.strategy %}<span class="text-muted">{{ run.strategy }}</span>{% endif %}
+          {% if run.papers %}<span class="text-muted"> · {{ run.papers }}</span>{% endif %}
+        </span>
+      </label>
+      <span class="oe-run-badge">{{ run.n_classes }} classes</span>
+      <span class="oe-result-pill {{ f1_class }}"
+            title="{% if run.has_metrics %}Last result — Precision {{ '%.2f' % (run.precision or 0) }}, Recall {{ '%.2f' % (run.recall or 0) }}, Coverage {{ '%.2f' % (run.coverage or 0) }}{% else %}No evaluation saved for this run{% endif %}">
+        {% if run.f1 is not none %}F1 {{ '%.2f' % run.f1 }}{% else %}—{% endif %}
+      </span>
+      <button type="button" class="oe-run-view-btn oe-run-view-result" data-run-id="{{ run.id }}" title="View last result">
+        <i class="bi bi-journal-text"></i>
+      </button>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="alert alert-warning" style="font-size:0.85rem;">
+    No runs with ontology output found. Run some experiments first.
+  </div>
+  {% endif %}
+
+  <div class="d-flex flex-wrap align-items-center gap-2">
+    <button id="btn-merge" class="btn btn-tg-primary" {% if not runs %}disabled{% endif %}>
+      <i class="bi bi-intersect me-2"></i><span id="btn-merge-text">Load Selected</span>
+    </button>
+    <button id="btn-oe-analyze" class="btn btn-outline-primary" {% if not runs %}disabled{% endif %}
+            title="Compare evaluation metrics of the selected runs">
+      <i class="bi bi-graph-up-arrow me-2"></i><span id="btn-oe-analyze-text">Analyze</span>
+    </button>
+    <span id="merge-spinner" class="spinner-border spinner-border-sm ms-1 d-none" role="status"></span>
+  </div>
+
+  <div id="merge-results" class="d-none mt-3">
+    <div class="oe-stat-grid" id="merge-stats"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     Stage 2: Cluster
+     ═══════════════════════════════════════════════════════════════════ -->
+<div id="stage-cluster" class="tg-glass-card p-4 mb-4 oe-stage locked">
+  <h4 class="mb-3" style="color:var(--tg-accent-1)">
+    <i class="bi bi-diagram-3 me-2"></i>Stage 2 — Cluster Classes
+  </h4>
+  <p class="text-muted" style="font-size:0.82rem;">
+    Semantically cluster merged classes using sentence embeddings + Ward's hierarchical clustering.
+  </p>
+
+  <button id="btn-cluster" class="btn btn-tg-primary">
+    <i class="bi bi-diagram-3 me-2"></i>Run Clustering
+  </button>
+  <span id="cluster-spinner" class="spinner-border spinner-border-sm ms-2 d-none" role="status"></span>
+
+  <div id="cluster-results" class="d-none mt-3">
+    <div class="oe-stat-grid mb-3" id="cluster-stats"></div>
+    <div class="row g-3 mb-3">
+      <div class="col-lg-6"><div class="oe-chart-wrap"><canvas id="cluster-scatter"></canvas></div></div>
+      <div class="col-lg-6"><div class="oe-chart-wrap"><canvas id="cluster-sil"></canvas></div></div>
+    </div>
+    <h5 class="mb-2" style="font-size:0.85rem; color:var(--tg-text-secondary)">Cluster Details</h5>
+    <div class="oe-cluster-grid" id="cluster-cards"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     Stage 3: Reconstruct
+     ═══════════════════════════════════════════════════════════════════ -->
+<div id="stage-reconstruct" class="tg-glass-card p-4 mb-4 oe-stage locked">
+  <h4 class="mb-3" style="color:var(--tg-accent-1)">
+    <i class="bi bi-cpu me-2"></i>Stage 3 — LLM Ontology Reconstruction
+  </h4>
+  <p class="text-muted" style="font-size:0.82rem;">
+    Send each cluster to an LLM acting as ontology engineer + domain expert. It will build hierarchy, relations, and identify missing classes.
+  </p>
+
+  <!-- LLM provider selector -->
+  <div class="mb-3" style="max-width:400px;">
+    <div class="fw-semibold mb-2" style="font-size:0.82rem; color:var(--tg-accent-1)">
+      <i class="bi bi-cpu me-1"></i>LLM Provider
+    </div>
+    <div class="oe-provider-switch-group">
+      <div class="form-check form-switch">
+        <input class="form-check-input oe-llm-switch" type="checkbox" id="oe_openai" data-provider="openai" data-model="" checked>
+        <label class="form-check-label" for="oe_openai" style="font-size:0.82rem;">OpenAI <span class="text-muted">(GPT-4o-mini)</span></label>
+      </div>
+      <div class="form-check form-switch">
+        <input class="form-check-input oe-llm-switch" type="checkbox" id="oe_openai4o" data-provider="openai" data-model="gpt-4o">
+        <label class="form-check-label" for="oe_openai4o" style="font-size:0.82rem;">OpenAI <span class="text-muted">(GPT-4o)</span></label>
+      </div>
+      <div class="form-check form-switch">
+        <input class="form-check-input oe-llm-switch" type="checkbox" id="oe_anthropic" data-provider="anthropic" data-model="claude-haiku-4-5">
+        <label class="form-check-label" for="oe_anthropic" style="font-size:0.82rem;">Anthropic <span class="text-muted">(Claude Haiku 4.5)</span></label>
+      </div>
+      <div class="form-check form-switch">
+        <input class="form-check-input oe-llm-switch" type="checkbox" id="oe_google" data-provider="google" data-model="">
+        <label class="form-check-label" for="oe_google" style="font-size:0.82rem;">Google <span class="text-muted">(Gemini 2.5 Flash)</span></label>
+      </div>
+      <div class="form-check form-switch">
+        <input class="form-check-input oe-llm-switch" type="checkbox" id="oe_deepseek" data-provider="deepseek" data-model="">
+        <label class="form-check-label" for="oe_deepseek" style="font-size:0.82rem;">DeepSeek <span class="text-muted">(deepseek-chat)</span></label>
+      </div>
+    </div>
+  </div>
+
+  <button id="btn-reconstruct" class="btn btn-tg-primary">
+    <i class="bi bi-cpu me-2"></i>Reconstruct Ontology
+  </button>
+
+  <div id="reconstruct-progress" class="d-none mt-3">
+    <div class="oe-progress-wrap">
+      <div class="oe-progress-bar-bg">
+        <div class="oe-progress-bar-fill" id="recon-bar" style="width:0%"></div>
+      </div>
+      <div class="oe-progress-msg" id="recon-msg">Starting...</div>
+    </div>
+  </div>
+
+  <div id="reconstruct-results" class="d-none mt-3">
+    <div class="oe-stat-grid mb-3" id="recon-stats"></div>
+    <div id="oe-graph-container" class="mb-3"></div>
+    <div class="d-flex flex-wrap gap-2">
+      <button type="button" id="btn-view-results" class="btn btn-tg-primary btn-sm d-none"
+              data-run-id="">
+        <i class="bi bi-clipboard-data me-1"></i>View Full Results &amp; Evaluation
+      </button>
+      <button type="button" id="btn-compare-metrics" class="btn btn-outline-primary btn-sm d-none"
+              title="Compare reconstructed ontology metrics against the source run(s)">
+        <i class="bi bi-graph-up-arrow me-1"></i>Compare Metrics
+      </button>
+      <button id="btn-download-json" class="btn btn-tg-secondary btn-sm">
+        <i class="bi bi-download me-1"></i>Download Ontology JSON
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Last result (single run) ───────────────────────────────────── -->
+<div class="modal fade" id="oe-result-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-journal-text me-2"></i>Last result</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="oe-result-modal-body">
+        <p class="text-muted mb-0">Loading…</p>
+      </div>
+      <div class="modal-footer">
+        <a href="#" id="oe-result-modal-link" class="btn btn-outline-tech btn-sm me-auto" target="_blank" rel="noopener" style="display:none;">
+          <i class="bi bi-box-arrow-up-right me-1"></i>Open full results
+        </a>
+        <button type="button" class="btn btn-tg-ghost" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Full results (embedded iframe) ─────────────────────────────── -->
+<div class="modal fade" id="oe-full-results-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-fullscreen-sm-down modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-clipboard-data me-2"></i>Full results &amp; evaluation</h5>
+        <div class="ms-auto d-flex align-items-center gap-2">
+          <a href="#" id="oe-full-results-open" class="btn btn-outline-tech btn-sm" target="_blank" rel="noopener">
+            <i class="bi bi-box-arrow-up-right me-1"></i>Open in new tab
+          </a>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <iframe id="oe-full-results-iframe" src="about:blank" title="Full results"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Analyze selected runs ──────────────────────────────────────── -->
+<div class="modal fade" id="oe-analyze-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-xl modal-fullscreen-sm-down">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-graph-up-arrow me-2"></i><span id="oe-analyze-modal-title">Analyze</span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="oe-analyze-modal-body">
+        <p class="text-muted mb-0">Loading…</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-tg-ghost" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/ontology_engineering.js') }}"></script>
+{% endblock %}
