@@ -106,7 +106,7 @@ Chunk-level extractions are merged by canonical key for classes and by `(label, 
 
 ### Evaluation
 
-The generated ontology is compared against a **BrainIT proxy reference ontology** (93 classes, 18 relations, 76 hierarchy edges). This proxy was constructed from BrainIT publications as a placeholder for pipeline validation while the full BrainIT consortium ontology is being sourced; final evaluation will be re-run against the canonical reference once available.
+The generated ontology is compared against the **BrainIT golden standard ontology**.
 
 - **Class evaluation** — coverage, precision, and recall across overall, clinical-only, and by-stratum (core/governance/provenance) views. Extraction-only metrics isolate the raw LLM contribution before any improvement stage.
 - **Relation evaluation** — label-level precision and recall via alias-aware matching, with per-gold-relation breakdown.

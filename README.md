@@ -2,7 +2,6 @@
 
 **TripleGen** is a research framework that uses Large Language Models to build ontologies from Neuro-ICU literature. It takes BrainIT consortium publications as input, extracts ontology elements (classes, relations, hierarchy), and evaluates the result against a reference ontology.
 
-MSci Capstone — CMM304 Knowledge Modelling and Reasoning, Robert Gordon University.
 
 ## Quick Start
 
@@ -72,4 +71,4 @@ For a full visual walkthrough with screenshots, see [TripleGen_WepApp.md](Triple
 | Reasoning LLMs | OpenAI GPT-4o-mini, DeepSeek Reasoner R1 |
 | Medical NER | ScispaCy `en_ner_bc5cdr_md` |
 | Web UI | Flask + Jinja2 + Cytoscape.js |
-| Reference Ontology | BrainIT proxy (93 classes, 18 relations, 76 hierarchy edges) — placeholder for pipeline validation while the full BrainIT ontology is sourced |
+| Reference Ontology | BrainIT Golden Standard ontology |
