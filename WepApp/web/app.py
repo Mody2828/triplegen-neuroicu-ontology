@@ -111,6 +111,51 @@ def _resolve_paper_corpus(paper_id: int) -> Optional[str]:
     shutil.copy2(str(src), str(dest))
     return str(dest)
 
+
+# Paper group definitions for multi-paper runs
+PAPER_GROUPS: Dict[str, List[int]] = {
+    "group_1": [1, 2],
+    "group_2": [3, 4, 5, 6, 7],
+    "group_3": [8, 9, 10, 11],
+}
+
+PAPER_GROUP_LABELS: Dict[str, str] = {
+    "group_1": "Group 1 (Papers 1-2)",
+    "group_2": "Group 2 (Papers 3-7)",
+    "group_3": "Group 3 (Papers 8-11)",
+}
+
+
+def _resolve_paper_group_corpus(group_id: str) -> Optional[str]:
+    """Copy all papers in a group into a single corpus directory. Returns the directory path.
+    The corpus loader handles directories by loading all .txt/.pdf files inside."""
+    paper_ids = PAPER_GROUPS.get(group_id)
+    if not paper_ids:
+        return None
+    corpus_dir = Path("data") / "corpus_papers" / group_id
+    corpus_dir.mkdir(parents=True, exist_ok=True)
+    # Clear old files
+    for f in corpus_dir.glob("*"):
+        if f.is_file():
+            try:
+                f.unlink()
+            except OSError:
+                pass
+    # Copy all papers in the group
+    for pid in paper_ids:
+        entry = BRAINIT_PAPER_CATALOG.get(pid)
+        if not entry:
+            continue
+        src = Path(entry["path"])
+        if not src.exists():
+            continue
+        dest = corpus_dir / src.name
+        shutil.copy2(str(src), str(dest))
+    # Verify at least one file was copied
+    if not any(corpus_dir.iterdir()):
+        return None
+    return str(corpus_dir)
+
 from flask import Flask, jsonify, redirect, render_template, request, send_file, url_for
 
 from src.experiments.config import StrategyConfig
@@ -222,6 +267,12 @@ def _pipeline_mode_label(opts: Dict[str, Any]) -> str:
     sym = opts.get("symbolic_reasoner", False)
     if sgc or sym:
         return "Schema-Completed"
+    # Guided = has guardrails (NER, candidate terms, or vocab) but no SGC/reasoner
+    med = opts.get("medical_ner_anchor", False)
+    cand = opts.get("candidate_terms", False)
+    vocab = opts.get("prompt_vocab_guardrails", False)
+    if med or cand or vocab:
+        return "Guided"
     return "Strict"
 
 
@@ -256,13 +307,17 @@ def _format_run_label(run_opts: Dict[str, Any]) -> str:
         paper_id = opts.get("paper_id")
         paper_suffix = ""
         if paper_id is not None:
-            try:
-                pid = int(paper_id)
-                entry = BRAINIT_PAPER_CATALOG.get(pid)
-                if entry:
-                    paper_suffix = f" - {entry['short']}({pid})"
-            except (ValueError, TypeError):
-                pass
+            paper_id_str = str(paper_id).strip()
+            if paper_id_str in PAPER_GROUP_LABELS:
+                paper_suffix = f" - {PAPER_GROUP_LABELS[paper_id_str]}"
+            else:
+                try:
+                    pid = int(paper_id)
+                    entry = BRAINIT_PAPER_CATALOG.get(pid)
+                    if entry:
+                        paper_suffix = f" - {entry['short']}({pid})"
+                except (ValueError, TypeError):
+                    pass
         return f"{prompting} - {mode} - {llm} - {eval_s} - {adv}{paper_suffix}"
     except Exception:
         return "Zero-Shot - Strict - GPT-4o-mini - None - None"
@@ -271,7 +326,8 @@ def _format_run_label(run_opts: Dict[str, Any]) -> str:
 def _make_combo(id_: str, strategy: str, llm_provider: str, llm_model: str,
                 medical: bool, candidate: bool, sgc: bool, sym: bool,
                 vocab: bool, eval_gold: bool, imp_provider: str, imp_model: str,
-                row_group: str) -> Dict:
+                row_group: str, paper_id: int | str | None = None,
+                embedding_scope_fallback: bool = False) -> Dict:
     combo = {
         "id": id_,
         "strategy": strategy,
@@ -288,6 +344,8 @@ def _make_combo(id_: str, strategy: str, llm_provider: str, llm_model: str,
         "llm_model": llm_model,
         "row_group": row_group,
         "scope_filter": True,
+        "paper_id": paper_id,
+        "embedding_scope_fallback": embedding_scope_fallback,
     }
     combo["label"] = _format_run_label(combo)
     return combo
@@ -296,62 +354,70 @@ def _make_combo(id_: str, strategy: str, llm_provider: str, llm_model: str,
 def _build_comparison_combinations() -> list:
     """Build comparison combinations for the dashboard.
 
-    Groups:
-      A — Cross-LLM: Zero-Shot and Few-Shot × 6 providers (baseline comparison)
-      B — Pipeline modes: Few-Shot × 4 modes × GPT (the core ablation table)
-      C — Reasoning LLM: Fully-Reasoned mode × OpenAI vs DeepSeek Reasoner
+    Dissertation experiment matrix (39 runs):
+      A — Core Ablation: GPT-4o-mini × 7 strategy–mode combos × 3 paper groups (21 runs)
+      B — Cross-LLM Best: Few-Shot + Schema-Completed × 3 LLMs × 3 groups (9 runs)
+      C — Cross-LLM Raw:  Zero-Shot + Strict × 3 LLMs × 3 groups (9 runs)
     """
     out = []
 
-    # ── Group A: Cross-LLM baseline (Zero-Shot + Few-Shot × 6 providers) ──────
-    for strategy in ("baseline", "phased_3step"):
-        for llm_provider, llm_model in [
-            ("openai",      "gpt-4o-mini"),
-            ("openai",      "gpt-4o"),
-            ("anthropic",   "claude-haiku-4-5"),
-            ("google",      "gemini-2.0-flash"),
-            ("groq",        "llama-3.1-8b-instant"),
-            ("huggingface", "mistralai/Mistral-7B-Instruct-v0.1"),
-            ("deepseek",    "deepseek-chat"),
-        ]:
-            i = len(out)
-            out.append(_make_combo(
-                f"cross_llm_{i}", strategy, llm_provider, llm_model,
-                False, False, False, False, False, False, "", "",
-                "cross_llm",
-            ))
+    # Paper group definitions: group label → list of paper IDs
+    GROUPS = [
+        ("G1", [1, 2]),       # Foundational
+        ("G2", [3, 4, 5, 6, 7]),  # Clinical Analysis
+        ("G3", [8, 9, 10, 11]),   # Advanced Monitoring
+    ]
 
-    # ── Group B: Pipeline modes (Few-Shot + GPT, all 4 modes) ────────────────
-    # Mode 1 — Strict Extraction (raw: no vocab guardrails, no gold filtering)
-    out.append(_make_combo(
-        "mode_1_strict", "phased_3step", "openai", "gpt-4o-mini",
-        False, False, False, False, False, False, "", "",
-        "pipeline_modes",
-    ))
-    # Mode 2 — Guided Extraction (M.NER now part of this mode)
-    out.append(_make_combo(
-        "mode_2_guided", "phased_3step", "openai", "gpt-4o-mini",
-        True, True, False, False, True, True, "", "",
-        "pipeline_modes",
-    ))
-    # Mode 3 — Schema-Completed (inherits M.NER from Mode 2, adds gold-schema injection)
-    out.append(_make_combo(
-        "mode_3_schema", "phased_3step", "openai", "gpt-4o-mini",
-        True, True, True, True, True, True, "openai", "",
-        "pipeline_modes",
-    ))
+    # ── Mode presets (strategy, medical, candidate, sgc, sym, vocab, eval_gold, imp_prov, imp_model, emb_fallback) ──
+    # Strict:           Zero-Shot only, no guardrails, no gold filter, embedding fallback ON
+    STRICT  = ("baseline",      False, False, False, False, False, False, "", "", True)
+    # Guided:           all strategies, NER + candidate terms ON, no gold-vocab, no SGC
+    GUIDED  = (None,            True,  True,  False, False, False, False, "", "", False)
+    # Schema-Completed: all strategies, NER + candidate terms ON, no gold-vocab, SGC + reasoner ON
+    SCHEMA  = (None,            True,  True,  True,  True,  False, False, "openai", "", False)
 
-    # ── Group C: Schema-Completed × OpenAI vs DeepSeek Reasoner for SGC ─
-    out.append(_make_combo(
-        "rlm_openai", "phased_3step", "openai", "gpt-4o-mini",
-        True, True, True, True, True, True, "openai", "",
-        "reasoning_llm",
-    ))
-    out.append(_make_combo(
-        "rlm_deepseek", "phased_3step", "openai", "gpt-4o-mini",
-        True, True, True, True, True, True, "deepseek", "deepseek-reasoner",
-        "reasoning_llm",
-    ))
+    def _add(id_pfx, strategy, mode_tuple, llm_prov, llm_model, group_label, row_group):
+        """Add one run for the entire paper group."""
+        _, med, cand, sgc, sym, vocab, eg, ip, im, emb = mode_tuple
+        group_key = {"G1": "group_1", "G2": "group_2", "G3": "group_3"}[group_label]
+        out.append(_make_combo(
+            id_pfx, strategy, llm_prov, llm_model,
+            med, cand, sgc, sym, vocab, eg, ip, im,
+            row_group, paper_id=group_key, embedding_scope_fallback=emb,
+        ))
+
+    # ── Batch A: Core Ablation (GPT-4o-mini, 7 combos × 3 groups = 21 runs) ──
+    GPT = ("openai", "gpt-4o-mini")
+    for gl, _pids in GROUPS:
+        # 1. Zero-Shot + Strict
+        _add(f"A_zs_strict_{gl}", "baseline", STRICT, *GPT, gl, "batch_a")
+        # 2. Zero-Shot + Guided
+        _add(f"A_zs_guided_{gl}", "baseline", GUIDED, *GPT, gl, "batch_a")
+        # 3. Zero-Shot + Schema-Completed
+        _add(f"A_zs_schema_{gl}", "baseline", SCHEMA, *GPT, gl, "batch_a")
+        # 4. One-Shot + Guided
+        _add(f"A_os_guided_{gl}", "one_shot", GUIDED, *GPT, gl, "batch_a")
+        # 5. One-Shot + Schema-Completed
+        _add(f"A_os_schema_{gl}", "one_shot", SCHEMA, *GPT, gl, "batch_a")
+        # 6. Few-Shot + Guided
+        _add(f"A_fs_guided_{gl}", "phased_3step", GUIDED, *GPT, gl, "batch_a")
+        # 7. Few-Shot + Schema-Completed
+        _add(f"A_fs_schema_{gl}", "phased_3step", SCHEMA, *GPT, gl, "batch_a")
+
+    # ── Batch B: Cross-LLM Best Config (Few-Shot + Schema-Completed × 3 LLMs × 3 groups = 9 runs) ──
+    CROSS_LLMS = [
+        ("anthropic", "claude-haiku-4-5"),
+        ("google",    "gemini-2.0-flash"),
+        ("deepseek",  "deepseek-chat"),
+    ]
+    for llm_prov, llm_model in CROSS_LLMS:
+        for gl, _pids in GROUPS:
+            _add(f"B_fs_schema_{llm_prov}_{gl}", "phased_3step", SCHEMA, llm_prov, llm_model, gl, "batch_b")
+
+    # ── Batch C: Cross-LLM Raw Baseline (Zero-Shot + Strict × 3 LLMs × 3 groups = 9 runs) ──
+    for llm_prov, llm_model in CROSS_LLMS:
+        for gl, _pids in GROUPS:
+            _add(f"C_zs_strict_{llm_prov}_{gl}", "baseline", STRICT, llm_prov, llm_model, gl, "batch_c")
 
     return out
 
@@ -593,7 +659,7 @@ _CONFIG_KEYS = (
     "eval_restrict_to_gold",
     "improvements_llm_provider", "improvements_llm_model",
     "paper_id",
-    "text_grounded_completion", "chunk_clinical_filter",
+    "text_grounded_completion", "chunk_clinical_filter", "embedding_scope_fallback",
     "clinical_only_routing", "require_label_in_evidence",
     "filter_to_gold_vocabulary", "strict_relations",
     "cleanup_dedupe", "cleanup_scope_pruning", "cleanup_evidence_pruning",
@@ -617,6 +683,7 @@ _LABEL_DEFAULTS = {
     "paper_id": None,
     "text_grounded_completion": True,
     "chunk_clinical_filter": True,
+    "embedding_scope_fallback": False,
     "clinical_only_routing": True,
     "require_label_in_evidence": True,
     "filter_to_gold_vocabulary": False,
@@ -950,6 +1017,7 @@ def run():
 
     text_grounded_completion = _flag("text_grounded_completion")
     chunk_clinical_filter = _flag("chunk_clinical_filter")
+    embedding_scope_fallback = _flag("embedding_scope_fallback", legacy_default="")
     clinical_only_routing = _flag("clinical_only_routing")
     require_label_in_evidence = _flag("require_label_in_evidence")
     filter_to_gold_vocabulary = _flag("filter_to_gold_vocabulary", legacy_default="")
@@ -980,6 +1048,7 @@ def run():
         "paper_name": paper_name or None,
         "text_grounded_completion": text_grounded_completion,
         "chunk_clinical_filter": chunk_clinical_filter,
+        "embedding_scope_fallback": embedding_scope_fallback,
         "clinical_only_routing": clinical_only_routing,
         "require_label_in_evidence": require_label_in_evidence,
         "filter_to_gold_vocabulary": filter_to_gold_vocabulary,
@@ -1133,6 +1202,7 @@ def _build_run_config(
         "paper_name": (paper_name or run_opts.get("paper_name") or "").strip() or None,
         "text_grounded_completion": run_opts.get("text_grounded_completion", True),
         "chunk_clinical_filter": run_opts.get("chunk_clinical_filter", True),
+        "embedding_scope_fallback": run_opts.get("embedding_scope_fallback", False),
         "clinical_only_routing": run_opts.get("clinical_only_routing", scope_filter),
         "require_label_in_evidence": run_opts.get("require_label_in_evidence", True),
         "filter_to_gold_vocabulary": run_opts.get("filter_to_gold_vocabulary", False),
@@ -1335,14 +1405,25 @@ def run_comparison():
                 paper_id_raw = run_opts.get("paper_id") if isinstance(run_opts, dict) else None
                 if paper_id_raw is not None:
                     try:
-                        pid = int(paper_id_raw)
-                        resolved = _resolve_paper_corpus(pid)
-                        if resolved:
-                            run_corpus_path = resolved
-                            entry = BRAINIT_PAPER_CATALOG.get(pid)
-                            run_paper_name = entry["short"] if entry else run_paper_name
+                        paper_id_str = str(paper_id_raw).strip()
+                        if paper_id_str in PAPER_GROUPS:
+                            # Paper group → multi-paper corpus directory
+                            resolved = _resolve_paper_group_corpus(paper_id_str)
+                            if resolved:
+                                run_corpus_path = resolved
+                                run_paper_name = PAPER_GROUP_LABELS.get(paper_id_str, paper_id_str)
+                            else:
+                                raise ValueError(f"Could not resolve paper group '{paper_id_str}'")
                         else:
-                            raise ValueError(f"Could not resolve BrainIT paper #{pid}")
+                            # Individual paper ID
+                            pid = int(paper_id_raw)
+                            resolved = _resolve_paper_corpus(pid)
+                            if resolved:
+                                run_corpus_path = resolved
+                                entry = BRAINIT_PAPER_CATALOG.get(pid)
+                                run_paper_name = entry["short"] if entry else run_paper_name
+                            else:
+                                raise ValueError(f"Could not resolve BrainIT paper #{pid}")
                     except (ValueError, TypeError) as exc:
                         with run_status_lock:
                             run_statuses[run_id] = {"status": "error", "error": str(exc)}
@@ -1643,6 +1724,14 @@ def api_config_analysis():
     if not run_ids:
         return jsonify({"found": False, "message": "No data saved for this run."})
     rows = []
+
+    def _pair_f1(pp, rr):
+        try:
+            ppf = float(pp); rrf = float(rr)
+        except (TypeError, ValueError):
+            return None
+        return (2 * ppf * rrf / (ppf + rrf)) if (ppf + rrf) else 0.0
+
     for i, run_id in enumerate(run_ids):
         run_root = RUNS_DIR / run_id
         if not run_root.exists() or not (run_root / "evaluation" / "metrics.json").exists():
@@ -1650,6 +1739,12 @@ def api_config_analysis():
         metrics = load_metrics(run_root)
         f1 = _f1_from_metrics(metrics)
         m = metrics or {}
+        rel_block = m.get("relations") or {}
+        hier_block = m.get("hierarchy") or {}
+        rel_f1 = _pair_f1(rel_block.get("precision"), rel_block.get("recall"))
+        hier_f1 = _pair_f1(hier_block.get("precision"), hier_block.get("recall"))
+        parts = [x for x in (f1, rel_f1, hier_f1) if x is not None]
+        overall_f1 = (sum(parts) / len(parts)) if parts else None
         err = m.get("errors") or {}
         struct = m.get("structural") or {}
         he = struct.get("hierarchy_edges")
@@ -1658,6 +1753,9 @@ def api_config_analysis():
             "label": f"Run {len(rows) + 1}",
             "metrics": m,
             "f1": f1,
+            "overall_f1": overall_f1,
+            "hier_f1": hier_f1,
+            "rel_f1": rel_f1,
             "precision": m.get("precision"),
             "recall": m.get("recall"),
             "coverage": m.get("coverage"),
@@ -1714,12 +1812,30 @@ def api_configs_last_runs():
                 "precision": None,
                 "recall": None,
                 "coverage": None,
+                "overall_f1": None,
+                "hier_f1": None,
+                "rel_f1": None,
             })
             continue
         run_root = RUNS_DIR / run_id
         metrics = load_metrics(run_root) if run_root.exists() else None
         f1 = _f1_from_metrics(metrics)
         m = metrics or {}
+
+        def _pair_f1(pp, rr):
+            try:
+                ppf = float(pp); rrf = float(rr)
+            except (TypeError, ValueError):
+                return None
+            return (2 * ppf * rrf / (ppf + rrf)) if (ppf + rrf) else 0.0
+
+        rel_block = m.get("relations") or {}
+        hier_block = m.get("hierarchy") or {}
+        rel_f1 = _pair_f1(rel_block.get("precision"), rel_block.get("recall"))
+        hier_f1 = _pair_f1(hier_block.get("precision"), hier_block.get("recall"))
+        parts = [x for x in (f1, rel_f1, hier_f1) if x is not None]
+        overall_f1 = (sum(parts) / len(parts)) if parts else None
+
         rows.append({
             "run_id": run_id,
             "metrics": m,
@@ -1727,6 +1843,9 @@ def api_configs_last_runs():
             "precision": m.get("precision"),
             "recall": m.get("recall"),
             "coverage": m.get("coverage"),
+            "overall_f1": overall_f1,
+            "hier_f1": hier_f1,
+            "rel_f1": rel_f1,
         })
     return jsonify({"rows": rows})
 
@@ -1742,7 +1861,7 @@ def comparison_progress(batch_id: str):
 
 @app.route("/run-comparison/<batch_id>/analyze", endpoint="comparison_analyze")
 def comparison_analyze(batch_id: str):
-    """Compare all runs in the batch and highlight the best one (by F1)."""
+    """Compare all runs in the batch and highlight the best one (by Overall F1)."""
     with batch_lock:
         state = dict(batch_states.get(batch_id, {}))
     if not state:
@@ -1752,16 +1871,30 @@ def comparison_analyze(batch_id: str):
     rows = []
     best_idx = -1
     best_f1 = -1.0
+
+    def _pair_f1(pp, rr):
+        try:
+            ppf = float(pp); rrf = float(rr)
+        except (TypeError, ValueError):
+            return None
+        return (2 * ppf * rrf / (ppf + rrf)) if (ppf + rrf) else 0.0
+
     for i, run_id in enumerate(run_ids):
         if not run_id:
             continue
         run_root = RUNS_DIR / run_id
         metrics = load_metrics(run_root) if run_root.exists() else None
         f1 = _f1_from_metrics(metrics)
-        if f1 > best_f1:
-            best_f1 = f1
-            best_idx = len(rows)
         m = metrics or {}
+        rel_block = m.get("relations") or {}
+        hier_block = m.get("hierarchy") or {}
+        rel_f1 = _pair_f1(rel_block.get("precision"), rel_block.get("recall"))
+        hier_f1 = _pair_f1(hier_block.get("precision"), hier_block.get("recall"))
+        parts = [x for x in (f1, rel_f1, hier_f1) if x is not None]
+        overall_f1 = (sum(parts) / len(parts)) if parts else None
+        if overall_f1 is not None and overall_f1 > best_f1:
+            best_f1 = overall_f1
+            best_idx = len(rows)
         err = m.get("errors") or {}
         struct = m.get("structural") or {}
         he = struct.get("hierarchy_edges")
@@ -1770,6 +1903,9 @@ def comparison_analyze(batch_id: str):
             "label": labels[i] if i < len(labels) else f"Run {i + 1}",
             "metrics": m,
             "f1": f1,
+            "overall_f1": overall_f1,
+            "hier_f1": hier_f1,
+            "rel_f1": rel_f1,
             "precision": m.get("precision"),
             "recall": m.get("recall"),
             "coverage": m.get("coverage"),
@@ -2073,6 +2209,8 @@ def _save_oe_run_as_full_run(
     model: Optional[str],
     session_id: str,
     n_clusters: int,
+    log_entries: Optional[List[Dict[str, Any]]] = None,
+    session_dir: Optional[Path] = None,
 ) -> Optional[str]:
     """Persist a reconstructed (merge + cluster + LLM) ontology as a standard run
     under ``runs/<run_id>/`` with full evaluation against the gold standard.
@@ -2108,6 +2246,28 @@ def _save_oe_run_as_full_run(
 
     # Primary ontology artefact
     write_ontology_json(run_paths.generated / "ontology.json", ontology)
+
+    # Save cluster-completion prompts (one file per cluster)
+    if log_entries:
+        prompts_dir = run_paths.prompts
+        prompts_dir.mkdir(parents=True, exist_ok=True)
+        for entry in log_entries:
+            cluster_id = entry.get("cluster_id", "unknown")
+            cluster_name = entry.get("cluster_name", "unknown")
+            prompt_text = entry.get("prompt", "")
+            if prompt_text:
+                safe_name = str(cluster_name).replace(" ", "_").replace("/", "_")[:60]
+                filename = f"cluster_{cluster_id}_{safe_name}.txt"
+                (prompts_dir / filename).write_text(
+                    prompt_text, encoding="utf-8"
+                )
+
+    # Copy cluster report from OE session into run artifacts
+    if session_dir:
+        cluster_src = Path(session_dir) / "cluster_data.json"
+        if cluster_src.exists():
+            import shutil
+            shutil.copy2(str(cluster_src), str(run_paths.generated / "cluster_data.json"))
 
     # Synthetic config & strategy so write_run_summary renders a coherent header.
     # Keys mirror the shape produced by StrategyConfig runs, but describe this
@@ -2302,6 +2462,17 @@ def _list_runs_with_ontology() -> List[Dict[str, Any]]:
             hier_f1_val = _pair_f1(hier_block.get("precision"), hier_block.get("recall"))
             parts = [x for x in (f1_val, rel_f1_val, hier_f1_val) if x is not None]
             overall_f1_val = (sum(parts) / len(parts)) if parts else None
+        # Derive pipeline mode from config flags
+        cfg = meta.get("config") or {}
+        if cfg.get("schema_guided_completion"):
+            pipeline_mode = "schema"
+        elif cfg.get("prompt_vocab_guardrails") or cfg.get("medical_ner_anchor") or cfg.get("eval_restrict_to_gold"):
+            pipeline_mode = "guided"
+        elif cfg.get("method") == "ontology_engineering":
+            pipeline_mode = "oe"
+        else:
+            pipeline_mode = "strict"
+
         runs.append({
             "id": p.name,
             "strategy": strategy,
@@ -2315,6 +2486,7 @@ def _list_runs_with_ontology() -> List[Dict[str, Any]]:
             "rel_f1": rel_f1_val,
             "hier_f1": hier_f1_val,
             "overall_f1": overall_f1_val,
+            "pipeline_mode": pipeline_mode,
             "label": f"{p.name} — {_STRATEGY_LABELS.get(strategy, strategy)} ({n_classes} classes)",
         })
     return runs
@@ -2497,6 +2669,8 @@ def api_oe_reconstruct():
                     model=model,
                     session_id=session_id,
                     n_clusters=len(cluster_data.get("clusters", [])),
+                    log_entries=log_entries,
+                    session_dir=session_dir,
                 )
             except Exception:
                 traceback.print_exc()
@@ -2538,6 +2712,110 @@ def api_oe_reconstruct_status(task_id):
     """Poll reconstruction task status."""
     with run_status_lock:
         data = dict(run_statuses.get(task_id, {"status": "unknown"}))
+    return jsonify(data)
+
+
+@app.route("/api/ontology-engineering/sessions")
+def api_oe_sessions():
+    """List completed OE sessions (those with a reconstructed ontology)."""
+    if not _OE_DIR.exists():
+        return jsonify([])
+    sessions = []
+    for p in sorted(_OE_DIR.iterdir(), reverse=True):
+        if not p.is_dir():
+            continue
+        recon_path = p / "reconstructed_ontology.json"
+        if not recon_path.exists():
+            continue
+        merge_stats = {}
+        ms_path = p / "merge_stats.json"
+        if ms_path.exists():
+            try:
+                merge_stats = _safe_json_loads(ms_path.read_text(encoding="utf-8")) or {}
+            except Exception:
+                pass
+        # Count classes in reconstructed ontology
+        n_classes = 0
+        try:
+            recon = _safe_json_loads(recon_path.read_text(encoding="utf-8")) or {}
+            n_classes = len(recon.get("classes", []))
+        except Exception:
+            pass
+        # Find the promoted run_id if it exists
+        run_id = None
+        source_runs = merge_stats.get("source_runs", [])
+        for rp in sorted(RUNS_DIR.iterdir(), reverse=True) if RUNS_DIR.exists() else []:
+            meta_path = rp / "metadata.json"
+            if not meta_path.exists():
+                continue
+            try:
+                meta = _safe_json_loads(meta_path.read_text(encoding="utf-8")) or {}
+                if meta.get("oe_session_id") == p.name:
+                    run_id = rp.name
+                    source_runs = meta.get("oe_source_runs", source_runs)
+                    break
+            except Exception:
+                continue
+        sessions.append({
+            "session_id": p.name,
+            "n_classes": n_classes,
+            "total_source_classes": merge_stats.get("total_classes", 0),
+            "source_runs": source_runs,
+            "run_id": run_id,
+        })
+    return jsonify(sessions)
+
+
+@app.route("/api/ontology-engineering/cluster-sessions")
+def api_oe_cluster_sessions():
+    """List OE sessions that have cluster data."""
+    if not _OE_DIR.exists():
+        return jsonify([])
+    sessions = []
+    for p in sorted(_OE_DIR.iterdir(), reverse=True):
+        if not p.is_dir():
+            continue
+        cluster_path = p / "cluster_data.json"
+        if not cluster_path.exists():
+            continue
+        merge_stats = {}
+        ms_path = p / "merge_stats.json"
+        if ms_path.exists():
+            try:
+                merge_stats = _safe_json_loads(ms_path.read_text(encoding="utf-8")) or {}
+            except Exception:
+                pass
+        # Read cluster summary
+        n_clusters = 0
+        total_classes = 0
+        try:
+            cd = _safe_json_loads(cluster_path.read_text(encoding="utf-8")) or {}
+            n_clusters = cd.get("optimal_k", len(cd.get("clusters", [])))
+            total_classes = cd.get("total_classes", 0)
+        except Exception:
+            pass
+        source_runs = merge_stats.get("source_runs", [])
+        sessions.append({
+            "session_id": p.name,
+            "n_clusters": n_clusters,
+            "total_classes": total_classes or merge_stats.get("total_classes", 0),
+            "source_runs": source_runs,
+        })
+    return jsonify(sessions)
+
+
+@app.route("/api/ontology-engineering/<session_id>/cluster-data")
+def api_oe_cluster_data(session_id):
+    """Return cluster data for a given OE session."""
+    if not session_id or not re.match(r"^oe-[\w-]+$", session_id):
+        return jsonify({"error": "Invalid session ID"}), 400
+    cluster_path = _OE_DIR / session_id / "cluster_data.json"
+    if not cluster_path.exists():
+        return jsonify({"error": "Cluster data not found"}), 404
+    try:
+        data = _safe_json_loads(cluster_path.read_text(encoding="utf-8"))
+    except Exception:
+        return jsonify({"error": "Could not parse cluster data"}), 500
     return jsonify(data)
 
 
@@ -2620,6 +2898,30 @@ def api_oe_result(session_id):
             ),
         },
     })
+
+
+@app.route("/api/ontology-engineering/<session_id>/ttl")
+def api_oe_ttl(session_id):
+    """Return the reconstructed ontology as Turtle (TTL) format."""
+    if not session_id or not re.match(r"^oe-[\w-]+$", session_id):
+        return "Invalid session ID", 400
+
+    recon_path = _OE_DIR / session_id / "reconstructed_ontology.json"
+    if not recon_path.exists():
+        return "Reconstructed ontology not found", 404
+
+    try:
+        data = _safe_json_loads(recon_path.read_text(encoding="utf-8"))
+    except Exception:
+        return "Could not parse reconstructed ontology", 500
+
+    from src.ontology.export import ontology_to_ttl
+    ttl = ontology_to_ttl(data)
+    return app.response_class(
+        ttl,
+        mimetype="text/turtle",
+        headers={"Content-Disposition": f"attachment; filename={session_id}.ttl"},
+    )
 
 
 # ── Generic run-metrics endpoints (used by Ontology Engineering "Analyze") ──

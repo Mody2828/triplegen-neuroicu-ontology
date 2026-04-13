@@ -262,6 +262,7 @@
           <input type="hidden" name="medical_ner_anchor"      id="hid_medical_ner_anchor"      value="">
           <input type="hidden" name="schema_guided_completion" id="hid_schema_guided_completion" value="">
           <input type="hidden" name="symbolic_reasoner"       id="hid_symbolic_reasoner"       value="">
+          <input type="hidden" name="embedding_scope_fallback" id="hid_embedding_scope_fallback" value="">
 
           <div class="row g-4">
             <!-- ── Prompting Method (3 strategies) ── -->
@@ -716,9 +717,9 @@
     // Mode 1 = Strict (raw extraction: no vocab guardrails, no gold filter).
     // Mode 2 = Guided (vocab + eval_gold + NER + candidates). Mode 3 = Schema-Completed (+ SGC + reasoner).
     const MODES = {
-      '1': { candidate_terms: false, medical_ner_anchor: false, schema_guided_completion: false, symbolic_reasoner: false, prompt_vocab_guardrails: false, eval_restrict_to_gold: false },
-      '2': { candidate_terms: true,  medical_ner_anchor: true,  schema_guided_completion: false, symbolic_reasoner: false, prompt_vocab_guardrails: true,  eval_restrict_to_gold: true  },
-      '3': { candidate_terms: true,  medical_ner_anchor: true,  schema_guided_completion: true,  symbolic_reasoner: true,  prompt_vocab_guardrails: true,  eval_restrict_to_gold: true  },
+      '1': { candidate_terms: false, medical_ner_anchor: false, schema_guided_completion: false, symbolic_reasoner: false, prompt_vocab_guardrails: false, eval_restrict_to_gold: false, embedding_scope_fallback: true  },
+      '2': { candidate_terms: true,  medical_ner_anchor: true,  schema_guided_completion: false, symbolic_reasoner: false, prompt_vocab_guardrails: true,  eval_restrict_to_gold: true,  embedding_scope_fallback: false },
+      '3': { candidate_terms: true,  medical_ner_anchor: true,  schema_guided_completion: true,  symbolic_reasoner: true,  prompt_vocab_guardrails: true,  eval_restrict_to_gold: true,  embedding_scope_fallback: false },
     };
     const FLAG_IDS = {
       candidate_terms:          'hid_candidate_terms',
@@ -726,6 +727,7 @@
       schema_guided_completion: 'hid_schema_guided_completion',
       symbolic_reasoner:        'hid_symbolic_reasoner',
       prompt_vocab_guardrails:  'hid_prompt_vocab_guardrails',
+      embedding_scope_fallback: 'hid_embedding_scope_fallback',
     };
 
     function applyMode(mode) {

@@ -6,12 +6,21 @@ clinical-positive score so mixed chunks are classified correctly.
 
 Chunk-level: drop if admin high and clinical low; keep if clinical high even if some admin.
 Set config min_clinical_score when scope_filter is True to drop low-density chunks.
+
+Embedding fallback: when enabled (embedding_scope_fallback=True), borderline chunks where both
+keyword scores are low are classified using cosine similarity against pre-computed clinical and
+administrative centroid vectors (all-MiniLM-L6-v2). This improves generalisation to unseen
+papers that use terminology not covered by the keyword lists.
 """
 
 from __future__ import annotations
 
+import json
 import re
+from pathlib import Path
 from typing import List, Optional
+
+import numpy as np
 
 # Default minimum clinical density score when strict chunk filtering is desired (config: min_clinical_score).
 # 1.0 is recommended for strict BrainIT clinical runs; 0.0 is permissive.
@@ -660,6 +669,68 @@ _PUB_METADATA_PATTERNS = (
 )
 
 
+# ---------------------------------------------------------------------------
+# Embedding-based scope fallback (optional, loaded lazily)
+# ---------------------------------------------------------------------------
+_CENTROIDS_PATH = Path(__file__).resolve().parent.parent.parent / "resources" / "scope_centroids.json"
+_centroids_cache: dict | None = None
+_embed_model = None
+
+
+def _load_centroids() -> dict | None:
+    """Load pre-computed clinical/admin centroids from JSON. Returns None if file missing."""
+    global _centroids_cache
+    if _centroids_cache is not None:
+        return _centroids_cache
+    if not _CENTROIDS_PATH.exists():
+        return None
+    data = json.loads(_CENTROIDS_PATH.read_text())
+    _centroids_cache = {
+        "clinical": np.array(data["clinical_centroid"], dtype=np.float32),
+        "admin": np.array(data["admin_centroid"], dtype=np.float32),
+    }
+    return _centroids_cache
+
+
+def _get_embed_model():
+    """Lazy-load the sentence-transformer model (shared with retrieval module)."""
+    global _embed_model
+    if _embed_model is not None:
+        return _embed_model
+    try:
+        from sentence_transformers import SentenceTransformer
+        _embed_model = SentenceTransformer("all-MiniLM-L6-v2")
+    except ImportError:
+        _embed_model = None
+    return _embed_model
+
+
+def _cosine_sim(a: np.ndarray, b: np.ndarray) -> float:
+    """Cosine similarity between two vectors."""
+    norm_a = np.linalg.norm(a)
+    norm_b = np.linalg.norm(b)
+    if norm_a == 0 or norm_b == 0:
+        return 0.0
+    return float(np.dot(a, b) / (norm_a * norm_b))
+
+
+def embedding_classify_chunk(text: str) -> str | None:
+    """Classify a chunk as 'clinical' or 'admin' using embedding similarity.
+
+    Returns None if centroids or model are unavailable.
+    """
+    centroids = _load_centroids()
+    if centroids is None:
+        return None
+    model = _get_embed_model()
+    if model is None:
+        return None
+    vec = model.encode([text], show_progress_bar=False, batch_size=1)[0]
+    sim_clinical = _cosine_sim(vec, centroids["clinical"])
+    sim_admin = _cosine_sim(vec, centroids["admin"])
+    return "clinical" if sim_clinical > sim_admin else "admin"
+
+
 def _normalize_line(s: str) -> str:
     return " ".join((s or "").lower().split())
 
@@ -842,6 +913,7 @@ def chunk_is_administrative(
     governance_dominance_drop_threshold: int = 2,
     admin_ratio_threshold: float = 0.5,
     admin_ratio_very_high: float = 0.8,
+    embedding_scope_fallback: bool = False,
 ) -> bool:
     """
     True if the chunk should be dropped for clinical-only extraction.
@@ -853,6 +925,7 @@ def chunk_is_administrative(
     - Keep if clinical_score >= 3 (even if some admin content)
     - Always keep if section matches clinical dataset sections
     - Section in admin headings → drop
+    - Embedding fallback: when both scores are low, use sentence-transformer similarity
     - Fallback: legacy admin_ratio logic for edge cases
     """
     text = (chunk.get("text") or "").strip()
@@ -879,6 +952,12 @@ def chunk_is_administrative(
     # Drop if admin-heavy and clinically sparse
     if admin_score >= admin_score_drop_threshold and clinical_score <= clinical_score_drop_max:
         return True
+    # Embedding fallback: when both keyword scores are low, use semantic similarity
+    # to break the tie. This helps with unseen papers that use novel terminology.
+    if embedding_scope_fallback and admin_score < admin_score_drop_threshold and clinical_score < clinical_score_keep_threshold:
+        label = embedding_classify_chunk(text)
+        if label is not None:
+            return label == "admin"
     # Fallback: legacy ratio-based logic for mixed chunks
     admin_ratio = _chunk_admin_ratio(chunk)
     if admin_ratio >= admin_ratio_very_high:
@@ -946,17 +1025,23 @@ def filter_chunks_to_clinical(
     admin_ratio_threshold: float = 0.5,
     min_clinical_score: Optional[float] = None,
     reorder_clinical_first: bool = True,
+    embedding_scope_fallback: bool = False,
 ) -> List[dict]:
     """
     When clinical_only is True, drop chunks classified as predominantly administrative.
     When min_clinical_score is set, also drop chunks whose clinical density score is below the threshold
     (score from score_chunk_clinical_density: clinical variable mentions + section bonus - admin lines).
     When reorder_clinical_first is True, sort chunks so clinical dataset sections come first.
+    When embedding_scope_fallback is True, borderline chunks are classified using sentence-transformer
+    cosine similarity against clinical/admin centroids.
     Returns the list of chunks to keep; when clinical_only is False, returns chunks unchanged.
     """
     if not clinical_only or not chunks:
         return list(chunks)
-    out = [c for c in chunks if not chunk_is_administrative(c, admin_ratio_threshold=admin_ratio_threshold)]
+    out = [c for c in chunks if not chunk_is_administrative(
+        c, admin_ratio_threshold=admin_ratio_threshold,
+        embedding_scope_fallback=embedding_scope_fallback,
+    )]
     if min_clinical_score is not None:
         scored = []
         for c in out:

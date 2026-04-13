@@ -167,6 +167,7 @@ def run_one(
                 chunks,
                 clinical_only=True,
                 min_clinical_score=min_clinical_score,
+                embedding_scope_fallback=config.get("embedding_scope_fallback", False),
             )
             if n_before != len(chunks):
                 log_lines_chunk = [log_event("scope_filter_chunk_suppression", {"chunks_before": n_before, "chunks_after": len(chunks), "dropped": n_before - len(chunks)})]

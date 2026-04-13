@@ -13,17 +13,17 @@
     <i class="bi bi-trophy"></i> Compare all runs — best run highlighted
   </div>
   <div class="card-body">
-    <p class="text-muted small mb-3">Runs are ranked by F1 (harmonic mean of precision and recall). The best run is marked below.</p>
+    <p class="text-muted small mb-3">Runs are ranked by Overall F1 (mean of Class, Hierarchy, and Relation F1). The best run is marked below.</p>
     <div class="table-responsive">
       <table class="table table-hover align-middle mb-0" id="analysis-table">
         <thead>
           <tr class="text-muted small">
             <th>Configuration</th>
             <th>Run ID</th>
-            <th>Precision</th>
-            <th>Recall</th>
-            <th>F1</th>
-            <th>Coverage</th>
+            <th>Overall F1</th>
+            <th>Class F1</th>
+            <th>Hier F1</th>
+            <th>Rel F1</th>
             <th>Hallucinations</th>
             <th>Hierarchy edges</th>
             <th>Action</th>
@@ -39,10 +39,10 @@
               {{ row.label }}
             </td>
             <td><code class="small">{{ row.run_id }}</code></td>
-            <td>{% if row.precision is not none %}{{ "%.2f"|format(row.precision * 100) }}%{% else %}—{% endif %}</td>
-            <td>{% if row.recall is not none %}{{ "%.2f"|format(row.recall * 100) }}%{% else %}—{% endif %}</td>
-            <td>{% if row.f1 is not none %}{{ "%.2f"|format(row.f1 * 100) }}%{% else %}—{% endif %}</td>
-            <td>{% if row.coverage is not none %}{{ "%.2f"|format(row.coverage * 100) }}%{% else %}—{% endif %}</td>
+            <td>{% if row.overall_f1 is not none %}{{ "%.1f"|format(row.overall_f1 * 100) }}%{% else %}—{% endif %}</td>
+            <td>{% if row.f1 is not none %}{{ "%.1f"|format(row.f1 * 100) }}%{% else %}—{% endif %}</td>
+            <td>{% if row.hier_f1 is not none %}{{ "%.1f"|format(row.hier_f1 * 100) }}%{% else %}—{% endif %}</td>
+            <td>{% if row.rel_f1 is not none %}{{ "%.1f"|format(row.rel_f1 * 100) }}%{% else %}—{% endif %}</td>
             <td>{% if row.hallucinations is not none %}{{ row.hallucinations }}{% else %}—{% endif %}</td>
             <td>{% if row.hierarchy_edges is not none %}{{ row.hierarchy_edges }}{% else %}—{% endif %}</td>
             <td><a href="{{ url_for('results', run_id=row.run_id) }}" class="btn btn-outline-tech btn-sm">View results</a></td>

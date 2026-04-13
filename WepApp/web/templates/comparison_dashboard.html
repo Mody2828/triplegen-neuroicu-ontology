@@ -168,11 +168,12 @@
 
       <!-- Hidden flag inputs set by pipeline mode JS -->
       <input type="hidden" id="comp_hid_scope_filter"            value="on">
-      <input type="hidden" id="comp_hid_prompt_vocab_guardrails" value="on">
+      <input type="hidden" id="comp_hid_prompt_vocab_guardrails" value="">
       <input type="hidden" id="comp_hid_candidate_terms"         value="">
       <input type="hidden" id="comp_hid_medical_ner_anchor"      value="">
       <input type="hidden" id="comp_hid_schema_guided_completion" value="">
       <input type="hidden" id="comp_hid_symbolic_reasoner"       value="">
+      <input type="hidden" id="comp_hid_embedding_scope_fallback" value="">
       <input type="hidden" id="comp_improvements_llm_provider"   value="openai">
       <input type="hidden" id="comp_improvements_llm_model"      value="">
       <input type="hidden" id="comp_llm_model"                   value="gpt-4o-mini">
@@ -241,9 +242,16 @@
           </div>
           <select id="comp_paper_select" class="form-select form-select-sm" style="max-width: 22rem;">
             <option value="">Default corpus (paste / upload / default)</option>
+            <optgroup label="Paper Groups">
+              <option value="group_1">Group 1 — Papers 1 &amp; 2 (Foundational)</option>
+              <option value="group_2">Group 2 — Papers 3–7 (Clinical Analysis)</option>
+              <option value="group_3">Group 3 — Papers 8–11 (Advanced Monitoring)</option>
+            </optgroup>
+            <optgroup label="Individual Papers">
             {% for p in paper_options %}
             <option value="{{ p.id }}">{{ p.label }}</option>
             {% endfor %}
+            </optgroup>
           </select>
           <div class="text-muted mt-1" style="font-size:0.72rem;">
             Select a BrainIT paper to use for this run, or leave as "Default" to use the shared corpus input above.
@@ -301,7 +309,7 @@
             <i class="bi bi-clipboard-data me-2 icon-gradient-accent"></i>Evaluation settings
           </div>
           <div class="form-check form-check-inline">
-            <input class="form-check-input" type="checkbox" id="comp_eval_restrict_to_gold" value="on" checked>
+            <input class="form-check-input" type="checkbox" id="comp_eval_restrict_to_gold" value="on">
             <label class="form-check-label" for="comp_eval_restrict_to_gold">Gold-vocabulary-only</label>
           </div>
         </div>
@@ -509,7 +517,7 @@
 
 <script type="application/json" id="comparison-initial-runs">[
   {% for combo in comparison_combinations %}
-  {% set rc = {'label': combo.label, 'strategy': combo.strategy, 'medical_ner_anchor': combo.medical_ner_anchor, 'candidate_terms': combo.candidate_terms, 'llm_provider': combo.get('llm_provider') or 'openai', 'llm_model': combo.get('llm_model'), 'schema_guided_completion': combo.get('schema_guided_completion', False), 'symbolic_reasoner': combo.get('symbolic_reasoner', False), 'prompt_vocab_guardrails': combo.get('prompt_vocab_guardrails', True), 'eval_restrict_to_gold': combo.get('eval_restrict_to_gold', True), 'scope_filter': combo.get('scope_filter', True), 'improvements_llm_provider': combo.get('improvements_llm_provider'), 'improvements_llm_model': combo.get('improvements_llm_model')} %}
+  {% set rc = {'label': combo.label, 'strategy': combo.strategy, 'medical_ner_anchor': combo.medical_ner_anchor, 'candidate_terms': combo.candidate_terms, 'llm_provider': combo.get('llm_provider') or 'openai', 'llm_model': combo.get('llm_model'), 'schema_guided_completion': combo.get('schema_guided_completion', False), 'symbolic_reasoner': combo.get('symbolic_reasoner', False), 'prompt_vocab_guardrails': combo.get('prompt_vocab_guardrails', False), 'eval_restrict_to_gold': combo.get('eval_restrict_to_gold', False), 'scope_filter': combo.get('scope_filter', True), 'improvements_llm_provider': combo.get('improvements_llm_provider'), 'improvements_llm_model': combo.get('improvements_llm_model'), 'paper_id': combo.get('paper_id'), 'embedding_scope_fallback': combo.get('embedding_scope_fallback', False)} %}
   {{ {"config": rc, "checked": true} | tojson }}{% if not loop.last %},{% endif %}
   {% endfor %}
 ]</script>
@@ -535,9 +543,17 @@
     paperCatalogRaw.forEach(function(p) { paperCatalog[String(p.id)] = p; });
   } catch (e) {}
 
+  var PAPER_GROUP_LABELS = {
+    'group_1': 'G1 (Papers 1-2)',
+    'group_2': 'G2 (Papers 3-7)',
+    'group_3': 'G3 (Papers 8-11)',
+  };
+
   function paperLabel(config) {
     var pid = config.paper_id;
     if (pid == null || pid === '' || pid === 0 || pid === '0') return '';
+    // Check paper groups first
+    if (PAPER_GROUP_LABELS[String(pid)]) return PAPER_GROUP_LABELS[String(pid)];
     var entry = paperCatalog[String(pid)];
     return entry ? entry.short + '(' + pid + ')' : 'Paper ' + pid;
   }
@@ -553,6 +569,8 @@
     var sgc = config.schema_guided_completion,
         sym = config.symbolic_reasoner;
     if (sgc || sym)  return 'Schema-Completed';
+    if (config.medical_ner_anchor || config.candidate_terms || config.prompt_vocab_guardrails)
+      return 'Guided';
     return 'Strict';
   }
 
@@ -596,13 +614,38 @@
   document.querySelectorAll('.comp-add-strategy').forEach(function(radio) {
     radio.addEventListener('change', function() {
       if (compAddStrategySelect) compAddStrategySelect.value = this.value;
+      updateCompStrictAvailability();
     });
   });
   if (compAddStrategySelect) {
     compAddStrategySelect.addEventListener('change', function() {
       const r = document.querySelector('.comp-add-strategy[value="' + this.value + '"]');
       if (r) r.checked = true;
+      updateCompStrictAvailability();
     });
+  }
+
+  // Disable Strict pipeline mode when One-Shot or Few-Shot is selected
+  function updateCompStrictAvailability() {
+    var selected = compAddStrategySelect ? compAddStrategySelect.value : '';
+    var strictCard = document.querySelector('.comp-pipeline-mode-card[data-mode="1"]');
+    var strictRadio = document.getElementById('comp_pm_1');
+    if (!strictCard || !strictRadio) return;
+    var isZeroShot = (selected === 'baseline' || selected === '');
+    if (isZeroShot) {
+      strictCard.style.opacity = '';
+      strictCard.style.pointerEvents = '';
+      strictRadio.disabled = false;
+    } else {
+      strictCard.style.opacity = '0.45';
+      strictCard.style.pointerEvents = 'none';
+      strictRadio.disabled = true;
+      // If Strict was selected, bump to Guided
+      if (strictRadio.checked) {
+        var guidedRadio = document.getElementById('comp_pm_2');
+        if (guidedRadio) { guidedRadio.checked = true; if (window._applyCompMode) window._applyCompMode('2'); }
+      }
+    }
   }
 
   const compLlmProviderSelect = document.getElementById('comp_llm_provider');
@@ -636,7 +679,7 @@
     return (el && el.value && el.value.trim()) ? el.value.trim() : null;
   }
 
-  var STORAGE_KEY = 'comparison_runs_list_v5';
+  var STORAGE_KEY = 'comparison_runs_list_v8';
 
   function saveRunsToStorage() {
     var list = [];
@@ -724,11 +767,11 @@
 
   // ── Pipeline mode → hidden flag inputs (mirrors index.html) ─────────────
   (function setupCompPipelineMode() {
-    // Mode 1 = Strict (raw: no vocab guardrails, no gold filter). Mode 2 = Guided. Mode 3 = Schema-Completed.
+    // Mode 1 = Strict (raw, no guardrails). Mode 2 = Guided (NER + candidates, no gold-vocab). Mode 3 = Schema-Completed (+ SGC + reasoner).
     var MODES = {
-      '1': { candidate_terms: false, medical_ner_anchor: false, schema_guided_completion: false, symbolic_reasoner: false, prompt_vocab_guardrails: false, eval_restrict_to_gold: false },
-      '2': { candidate_terms: true,  medical_ner_anchor: true,  schema_guided_completion: false, symbolic_reasoner: false, prompt_vocab_guardrails: true,  eval_restrict_to_gold: true  },
-      '3': { candidate_terms: true,  medical_ner_anchor: true,  schema_guided_completion: true,  symbolic_reasoner: true,  prompt_vocab_guardrails: true,  eval_restrict_to_gold: true  },
+      '1': { candidate_terms: false, medical_ner_anchor: false, schema_guided_completion: false, symbolic_reasoner: false, prompt_vocab_guardrails: false, eval_restrict_to_gold: false, embedding_scope_fallback: true  },
+      '2': { candidate_terms: true,  medical_ner_anchor: true,  schema_guided_completion: false, symbolic_reasoner: false, prompt_vocab_guardrails: false, eval_restrict_to_gold: false, embedding_scope_fallback: false },
+      '3': { candidate_terms: true,  medical_ner_anchor: true,  schema_guided_completion: true,  symbolic_reasoner: true,  prompt_vocab_guardrails: false, eval_restrict_to_gold: false, embedding_scope_fallback: false },
     };
     var FLAG_IDS = {
       candidate_terms:          'comp_hid_candidate_terms',
@@ -736,6 +779,7 @@
       schema_guided_completion: 'comp_hid_schema_guided_completion',
       symbolic_reasoner:        'comp_hid_symbolic_reasoner',
       prompt_vocab_guardrails:  'comp_hid_prompt_vocab_guardrails',
+      embedding_scope_fallback: 'comp_hid_embedding_scope_fallback',
     };
     function applyCompMode(mode) {
       var flags = MODES[mode]; if (!flags) return;
@@ -750,6 +794,8 @@
         card.classList.toggle('comp-pm-active', active);
       });
     }
+    // Expose so updateCompStrictAvailability can call it
+    window._applyCompMode = applyCompMode;
     document.querySelectorAll('.comp-pipeline-mode-radio').forEach(function(radio) {
       radio.addEventListener('change', function() { if (this.checked) applyCompMode(this.value); });
     });
@@ -764,6 +810,8 @@
     });
     var checked = document.querySelector('.comp-pipeline-mode-radio:checked');
     if (checked) applyCompMode(checked.value);
+    // Apply Strict availability based on initial strategy selection
+    if (typeof updateCompStrictAvailability === 'function') updateCompStrictAvailability();
   })();
 
   // ── Advanced panel toggle ────────────────────────────────────────────────
@@ -813,14 +861,23 @@
     var scopeFilter       = hidVal('comp_hid_scope_filter') === 'on';
     var schemaGuided      = hidVal('comp_hid_schema_guided_completion') === 'on';
     var symbolicReasoner  = hidVal('comp_hid_symbolic_reasoner') === 'on';
+    var embeddingScopeFb  = hidVal('comp_hid_embedding_scope_fallback') === 'on';
     var evalGold          = !!(document.getElementById('comp_eval_restrict_to_gold') && document.getElementById('comp_eval_restrict_to_gold').checked);
     var impProvider       = hidVal('comp_improvements_llm_provider') || 'openai';
     var impModel          = hidVal('comp_improvements_llm_model') || '';
     var pageLlmProvider   = getPageLlmProvider();
     var pageLlmModel      = getPageLlmModel();
     var paperSelect       = document.getElementById('comp_paper_select');
-    var paperId           = (paperSelect && paperSelect.value) ? parseInt(paperSelect.value, 10) : null;
-    if (isNaN(paperId)) paperId = null;
+    var paperVal          = (paperSelect && paperSelect.value) ? paperSelect.value.trim() : '';
+
+    // Paper ID: group string (e.g. "group_1") or integer, or null
+    var paperId;
+    if (paperVal.startsWith('group_')) {
+      paperId = paperVal;  // pass group string directly — backend resolves to multi-paper corpus
+    } else {
+      paperId = paperVal ? parseInt(paperVal, 10) : null;
+      if (isNaN(paperId)) paperId = null;
+    }
 
     var runConfig = {
       label: strategyLabels[strategy] || strategy,
@@ -833,6 +890,7 @@
       schema_guided_completion: schemaGuided,
       symbolic_reasoner: symbolicReasoner,
       prompt_vocab_guardrails: vocabGuardrails,
+      embedding_scope_fallback: embeddingScopeFb,
       eval_restrict_to_gold: evalGold,
       improvements_llm_provider: schemaGuided ? impProvider : null,
       improvements_llm_model:    schemaGuided ? impModel : null,
@@ -842,10 +900,11 @@
     var index = tbody.querySelectorAll('tr').length + 1;
     var tr = renderRunRow(runConfig, index, true);
     tbody.appendChild(tr);
-    if (emptyMsg) emptyMsg.style.display = 'none';
     tr.querySelector('.comp-remove-run').addEventListener('click', function() {
       tr.remove(); renumberRunIndices(); updateRunsState(); saveRunsToStorage();
     });
+
+    if (emptyMsg) emptyMsg.style.display = 'none';
     updateRunsState();
     saveRunsToStorage();
   }
@@ -932,6 +991,8 @@
       // Paper → reset to default
       var paperSel = document.getElementById('comp_paper_select');
       if (paperSel) paperSel.value = '';
+      // Refresh Strict availability (Few-Shot → Strict disabled)
+      updateCompStrictAvailability();
     });
   }
 
@@ -986,7 +1047,7 @@
           runIdsSeen[row.run_id] = (runIdsSeen[row.run_id] || 0) + 1;
         });
         var bestF1 = -1, bestIdx = -1;
-        chartRows.forEach(function(row, i) { if (row.f1 != null && row.f1 > bestF1) { bestF1 = row.f1; bestIdx = i; } });
+        chartRows.forEach(function(row, i) { if (row.overall_f1 != null && row.overall_f1 > bestF1) { bestF1 = row.overall_f1; bestIdx = i; } });
         var duplicateRunIds = Object.keys(runIdsSeen).filter(function(rid) { return runIdsSeen[rid] > 1; });
         var warningHtml = duplicateRunIds.length ? '<div class="alert alert-warning py-2 mb-2 small" role="alert"><i class="bi bi-exclamation-triangle me-1"></i>Some selected configs share the same last run. Run each config separately (e.g. one at a time) so each gets its own result, then use Analyze selected again.</div>' : '';
 
@@ -996,38 +1057,40 @@
             if (window._compSelectedAnalyzeChart) { window._compSelectedAnalyzeChart.destroy(); window._compSelectedAnalyzeChart = null; }
             if (window._compAnalyzeScatterChart) { window._compAnalyzeScatterChart.destroy(); window._compAnalyzeScatterChart = null; }
             var items = chartRows.map(function(row, i) {
-              var f1 = row.f1 != null ? Math.round(row.f1 * 100) / 100 : 0;
-              var p = row.precision != null ? Math.round(row.precision * 100) / 100 : 0;
-              var r = row.recall != null ? Math.round(row.recall * 100) / 100 : 0;
-              var cov = row.coverage != null ? Math.round(row.coverage * 100) / 100 : 0;
-              return { label: chartLabels[i], row: row, f1: f1, p: p, r: r, cov: cov };
+              var overallF1 = row.overall_f1 != null ? Math.round(row.overall_f1 * 1000) / 1000 : 0;
+              var classF1 = row.f1 != null ? Math.round(row.f1 * 1000) / 1000 : 0;
+              var hierF1 = row.hier_f1 != null ? Math.round(row.hier_f1 * 1000) / 1000 : 0;
+              var relF1 = row.rel_f1 != null ? Math.round(row.rel_f1 * 1000) / 1000 : 0;
+              return { label: chartLabels[i], row: row, overallF1: overallF1, classF1: classF1, hierF1: hierF1, relF1: relF1 };
             });
-            items.sort(function(a, b) { return b.f1 - a.f1; });
-            var sumF1 = 0, countF1 = 0;
-            items.forEach(function(x) { if (x.row.f1 != null) { sumF1 += x.row.f1; countF1++; } });
-            var avgF1 = countF1 ? (Math.round((sumF1 / countF1) * 100) / 100) : 0;
-            var bestP = items.reduce(function(best, x) { return (x.p > best.p) ? x : best; }, items[0] || {});
-            var bestR = items.reduce(function(best, x) { return (x.r > best.r) ? x : best; }, items[0] || {});
-            var bestF1Item = items[0];
+            items.sort(function(a, b) { return b.overallF1 - a.overallF1; });
+            var sumOF1 = 0, countOF1 = 0;
+            items.forEach(function(x) { if (x.row.overall_f1 != null) { sumOF1 += x.row.overall_f1; countOF1++; } });
+            var avgOF1 = countOF1 ? (Math.round((sumOF1 / countOF1) * 1000) / 1000) : 0;
+            var bestClass = items.reduce(function(best, x) { return (x.classF1 > best.classF1) ? x : best; }, items[0] || {});
+            var bestHier = items.reduce(function(best, x) { return (x.hierF1 > best.hierF1) ? x : best; }, items[0] || {});
+            var bestRel = items.reduce(function(best, x) { return (x.relF1 > best.relF1) ? x : best; }, items[0] || {});
+            var bestOF1Item = items[0];
             var cardsHtml = '<div class="row g-2 mb-3 comp-analyze-dashboard">' +
-              '<div class="col"><div class="card summary-card border-success"><div class="card-body py-2"><div class="small text-muted">Best F1</div><div class="fw-bold">' + (bestF1Item ? bestF1Item.f1 : '—') + '</div><div class="small text-truncate" title="' + (bestF1Item ? bestF1Item.label : '') + '">' + (bestF1Item ? bestF1Item.label : '') + '</div></div></div></div>' +
-              '<div class="col"><div class="card summary-card border-primary"><div class="card-body py-2"><div class="small text-muted">Best Precision</div><div class="fw-bold">' + (bestP ? bestP.p : '—') + '</div><div class="small text-truncate">' + (bestP ? bestP.label : '') + '</div></div></div></div>' +
-              '<div class="col"><div class="card summary-card border-warning"><div class="card-body py-2"><div class="small text-muted">Best Recall</div><div class="fw-bold">' + (bestR ? bestR.r : '—') + '</div><div class="small text-truncate">' + (bestR ? bestR.label : '') + '</div></div></div></div>' +
-              '<div class="col"><div class="card summary-card"><div class="card-body py-2"><div class="small text-muted">Avg F1</div><div class="fw-bold">' + avgF1 + '</div><div class="small">' + countF1 + ' runs</div></div></div></div>' +
+              '<div class="col"><div class="card summary-card" style="border-color:#2ED6A1"><div class="card-body py-2"><div class="small text-muted">Best Overall F1</div><div class="fw-bold">' + (bestOF1Item ? bestOF1Item.overallF1 : '—') + '</div><div class="small text-truncate" title="' + (bestOF1Item ? bestOF1Item.label : '') + '">' + (bestOF1Item ? bestOF1Item.label : '') + '</div></div></div></div>' +
+              '<div class="col"><div class="card summary-card" style="border-color:#39C6E6"><div class="card-body py-2"><div class="small text-muted">Best Class F1</div><div class="fw-bold">' + (bestClass ? bestClass.classF1 : '—') + '</div><div class="small text-truncate">' + (bestClass ? bestClass.label : '') + '</div></div></div></div>' +
+              '<div class="col"><div class="card summary-card" style="border-color:#F5A65B"><div class="card-body py-2"><div class="small text-muted">Best Hier F1</div><div class="fw-bold">' + (bestHier ? bestHier.hierF1 : '—') + '</div><div class="small text-truncate">' + (bestHier ? bestHier.label : '') + '</div></div></div></div>' +
+              '<div class="col"><div class="card summary-card" style="border-color:#C485FF"><div class="card-body py-2"><div class="small text-muted">Best Rel F1</div><div class="fw-bold">' + (bestRel ? bestRel.relF1 : '—') + '</div><div class="small text-truncate">' + (bestRel ? bestRel.label : '') + '</div></div></div></div>' +
+              '<div class="col"><div class="card summary-card"><div class="card-body py-2"><div class="small text-muted">Avg Overall F1</div><div class="fw-bold">' + avgOF1 + '</div><div class="small">' + countOF1 + ' runs</div></div></div></div>' +
               '</div>';
             var topN = 15;
             var topItems = items.slice(0, topN);
-            var scatterPoints = items.map(function(x, i) { return { x: x.r, y: x.p, label: x.label, f1: x.f1, run_id: x.row.run_id }; });
-            var barHtml = '<h6 class="mb-2" style="color: #EAF6FF;">Top ' + topN + ' by F1</h6><div id="compAnalyzeTopBarWrap"><canvas id="compAnalyzeTopBarChart"></canvas></div>';
-            var scatterHtml = '<h6 class="mb-2" style="color: #EAF6FF;">Precision vs Recall (all runs)</h6><div id="compAnalyzeScatterWrap"><canvas id="compAnalyzeScatterChart"></canvas></div>';
+            var scatterPoints = items.map(function(x, i) { return { x: x.classF1, y: x.hierF1, label: x.label, overallF1: x.overallF1, relF1: x.relF1, run_id: x.row.run_id }; });
+            var barHtml = '<h6 class="mb-2" style="color: #EAF6FF;">Top ' + topN + ' by Overall F1</h6><div id="compAnalyzeTopBarWrap"><canvas id="compAnalyzeTopBarChart"></canvas></div>';
+            var scatterHtml = '<h6 class="mb-2" style="color: #EAF6FF;">Class F1 vs Hierarchy F1 (all runs)</h6><div id="compAnalyzeScatterWrap"><canvas id="compAnalyzeScatterChart"></canvas></div>';
             var tableControlHtml = '<div class="d-flex flex-wrap align-items-center gap-2 mb-2"><input type="text" id="compAnalyzeSearch" class="form-control form-control-sm" style="max-width: 14rem;" placeholder="Search run name…">' +
               '<span class="text-muted small">Show:</span>' +
               '<div class="btn-group btn-group-sm"><button type="button" class="btn btn-outline-secondary comp-analyze-topn" data-n="10">Top 10</button><button type="button" class="btn btn-outline-secondary comp-analyze-topn" data-n="20">Top 20</button><button type="button" class="btn btn-outline-secondary comp-analyze-topn active" data-n="0">All</button></div>' +
               '</div>';
-            var tableHtml = '<table class="table table-sm table-hover"><thead><tr><th data-sort="label">Run</th><th data-sort="f1">F1</th><th data-sort="p">Precision</th><th data-sort="r">Recall</th><th data-sort="cov">Coverage</th><th></th></tr></thead><tbody id="compAnalyzeTableBody"></tbody></table>';
+            var tableHtml = '<table class="table table-sm table-hover"><thead><tr><th data-sort="label">Run</th><th data-sort="overallF1">Overall F1</th><th data-sort="classF1">Class F1</th><th data-sort="hierF1">Hier F1</th><th data-sort="relF1">Rel F1</th><th></th></tr></thead><tbody id="compAnalyzeTableBody"></tbody></table>';
             modalBody.innerHTML = warningHtml + cardsHtml + '<div class="mb-3">' + barHtml + '</div><div class="mb-3">' + scatterHtml + '</div><div class="comp-analyze-dashboard"><h6 class="mb-2" style="color: #EAF6FF;">Sortable results table</h6>' + tableControlHtml + tableHtml + '</div>';
 
-            var sortKey = 'f1', sortDir = 'desc', searchText = '', topNVal = 0;
+            var sortKey = 'overallF1', sortDir = 'desc', searchText = '', topNVal = 0;
             function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
             function renderTable() {
               var sorted = items.slice();
@@ -1038,8 +1101,8 @@
               var tbody = document.getElementById('compAnalyzeTableBody');
               if (!tbody) return;
               tbody.innerHTML = show.map(function(x, i) {
-                var badge = (sortKey === 'f1' && sortDir === 'desc' && i === 0) ? ' <span class="badge bg-success">best</span>' : '';
-                return '<tr><td>' + esc(x.label) + badge + '</td><td>' + x.f1 + '</td><td>' + x.p + '</td><td>' + x.r + '</td><td>' + x.cov + '</td><td><a href="{{ url_for("results", run_id="") }}' + (x.row.run_id || '') + '" class="btn btn-outline-tech btn-sm comp-modal-view-link" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right me-1"></i>View</a></td></tr>';
+                var badge = (sortKey === 'overallF1' && sortDir === 'desc' && i === 0) ? ' <span class="badge bg-success">best</span>' : '';
+                return '<tr><td>' + esc(x.label) + badge + '</td><td>' + x.overallF1 + '</td><td>' + x.classF1 + '</td><td>' + x.hierF1 + '</td><td>' + x.relF1 + '</td><td><a href="{{ url_for("results", run_id="") }}' + (x.row.run_id || '') + '" class="btn btn-outline-tech btn-sm comp-modal-view-link" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right me-1"></i>View</a></td></tr>';
               }).join('');
             }
             function updateSortHeader() {
@@ -1072,7 +1135,12 @@
                   type: 'bar',
                   data: {
                     labels: topItems.map(function(x) { return x.label.length > 35 ? x.label.slice(0, 32) + '…' : x.label; }),
-                    datasets: [{ label: 'F1', data: topItems.map(function(x) { return x.f1; }), backgroundColor: 'rgba(46, 214, 161, 0.9)', borderColor: '#2ED6A1', borderWidth: 1, borderRadius: 4 }]
+                    datasets: [
+                      { label: 'Overall F1', data: topItems.map(function(x) { return x.overallF1; }), backgroundColor: 'rgba(46, 214, 161, 0.9)', borderColor: '#2ED6A1', borderWidth: 1, borderRadius: 4 },
+                      { label: 'Class F1', data: topItems.map(function(x) { return x.classF1; }), backgroundColor: 'rgba(57, 198, 230, 0.9)', borderColor: '#39C6E6', borderWidth: 1, borderRadius: 4 },
+                      { label: 'Hier F1', data: topItems.map(function(x) { return x.hierF1; }), backgroundColor: 'rgba(245, 166, 91, 0.9)', borderColor: '#F5A65B', borderWidth: 1, borderRadius: 4 },
+                      { label: 'Rel F1', data: topItems.map(function(x) { return x.relF1; }), backgroundColor: 'rgba(196, 133, 255, 0.9)', borderColor: '#C485FF', borderWidth: 1, borderRadius: 4 }
+                    ]
                   },
                   options: {
                     indexAxis: 'y',
@@ -1084,7 +1152,7 @@
                       y: { grid: { display: false }, ticks: { color: '#7FA2BA', font: { size: 10 } }, border: { color: 'rgba(120,170,210,0.18)' } }
                     },
                     plugins: {
-                      legend: { display: false },
+                      legend: { position: 'top', labels: { color: '#A8C4D8' } },
                       tooltip: {
                         backgroundColor: '#0B1E33',
                         borderColor: '#2A5D86',
@@ -1100,8 +1168,8 @@
               var ctxScatter = document.getElementById('compAnalyzeScatterChart');
               if (ctxScatter) {
                 var colors = scatterPoints.map(function(pt) {
-                  var f = pt.f1;
-                  if (f >= 0.7) return 'rgba(57, 198, 230, 0.9)';
+                  var f = pt.overallF1;
+                  if (f >= 0.7) return 'rgba(46, 214, 161, 0.9)';
                   if (f >= 0.4) return 'rgba(245, 166, 91, 0.9)';
                   return 'rgba(255, 107, 129, 0.9)';
                 });
@@ -1115,8 +1183,8 @@
                     maintainAspectRatio: false,
                     color: '#EAF6FF',
                     scales: {
-                      x: { title: { display: true, text: 'Recall', color: '#A8C4D8', font: { size: 12 } }, min: 0, max: 1, ticks: { color: '#7FA2BA', font: { size: 11 }, callback: function(v) { return (v * 100) + '%'; } }, grid: { color: 'rgba(120,170,210,0.12)' }, border: { color: 'rgba(120,170,210,0.18)' } },
-                      y: { title: { display: true, text: 'Precision', color: '#A8C4D8', font: { size: 12 } }, min: 0, max: 1, ticks: { color: '#7FA2BA', font: { size: 11 }, callback: function(v) { return (v * 100) + '%'; } }, grid: { color: 'rgba(120,170,210,0.12)' }, border: { color: 'rgba(120,170,210,0.18)' } }
+                      x: { title: { display: true, text: 'Class F1', color: '#A8C4D8', font: { size: 12 } }, min: 0, max: 1, ticks: { color: '#7FA2BA', font: { size: 11 }, callback: function(v) { return (v * 100) + '%'; } }, grid: { color: 'rgba(120,170,210,0.12)' }, border: { color: 'rgba(120,170,210,0.18)' } },
+                      y: { title: { display: true, text: 'Hierarchy F1', color: '#A8C4D8', font: { size: 12 } }, min: 0, max: 1, ticks: { color: '#7FA2BA', font: { size: 11 }, callback: function(v) { return (v * 100) + '%'; } }, grid: { color: 'rgba(120,170,210,0.12)' }, border: { color: 'rgba(120,170,210,0.18)' } }
                     },
                     plugins: {
                       legend: { display: false },
@@ -1129,7 +1197,7 @@
                         callbacks: {
                           label: function(ctx) {
                             var pt = scatterPoints[ctx.dataIndex];
-                            return pt ? [pt.label, 'Precision: ' + (pt.y * 100).toFixed(1) + '%', 'Recall: ' + (pt.x * 100).toFixed(1) + '%', 'F1: ' + (pt.f1 * 100).toFixed(1) + '%'] : [];
+                            return pt ? [pt.label, 'Class F1: ' + (pt.x * 100).toFixed(1) + '%', 'Hier F1: ' + (pt.y * 100).toFixed(1) + '%', 'Rel F1: ' + (pt.relF1 * 100).toFixed(1) + '%', 'Overall F1: ' + (pt.overallF1 * 100).toFixed(1) + '%'] : [];
                           }
                         }
                       }
@@ -1142,11 +1210,11 @@
           return;
         }
 
-        // Sort rows by F1 descending so the best run is always at the top
+        // Sort rows by Overall F1 descending so the best run is always at the top
         var sortedIndices = rows.map(function(_, i) { return i; });
         sortedIndices.sort(function(a, b) {
-          var fa = (rows[a].f1 != null) ? rows[a].f1 : -1;
-          var fb = (rows[b].f1 != null) ? rows[b].f1 : -1;
+          var fa = (rows[a].overall_f1 != null) ? rows[a].overall_f1 : -1;
+          var fb = (rows[b].overall_f1 != null) ? rows[b].overall_f1 : -1;
           return fb - fa;
         });
         var sortedRows = sortedIndices.map(function(i) { return rows[i]; });
@@ -1157,7 +1225,7 @@
 
         var chartWrapClass = chartRows.length > 25 ? ' chart-many-runs' : '';
         var chartHtml = '<div class="mb-3">' + warningHtml + '<h6 class="mb-2" style="color: #EAF6FF;">Last result per selected run</h6><div id="compSelectedAnalyzeChartWrap" class="' + chartWrapClass + '"><canvas id="compSelectedAnalyzeChart"></canvas></div></div>';
-        var table = '<div class="table-responsive"><table class="table table-sm table-hover"><thead><tr><th>Run</th><th>F1</th><th>Precision</th><th>Recall</th><th>Coverage</th><th></th></tr></thead><tbody>';
+        var table = '<div class="table-responsive"><table class="table table-sm table-hover"><thead><tr><th>Run</th><th>Overall F1</th><th>Class F1</th><th>Hier F1</th><th>Rel F1</th><th></th></tr></thead><tbody>';
         sortedRows.forEach(function(row, i) {
           var label = (sortedLabels[i] != null ? sortedLabels[i] : 'Run ' + (i + 1));
           var badge = (i === 0 && row.run_id) ? ' <span class="badge bg-success">best</span>' : '';
@@ -1165,12 +1233,12 @@
             table += '<tr><td>' + label + '</td><td>—</td><td>—</td><td>—</td><td>—</td><td><span class="text-muted small">No data</span></td></tr>';
             return;
           }
-          var f1 = (row.f1 != null) ? (Math.round(row.f1 * 100) / 100) : '—';
-          var p = (row.precision != null) ? (Math.round(row.precision * 100) / 100) : '—';
-          var r = (row.recall != null) ? (Math.round(row.recall * 100) / 100) : '—';
-          var cov = (row.coverage != null) ? (Math.round(row.coverage * 100) / 100) : '—';
+          var oF1 = (row.overall_f1 != null) ? (Math.round(row.overall_f1 * 1000) / 1000) : '—';
+          var cF1 = (row.f1 != null) ? (Math.round(row.f1 * 1000) / 1000) : '—';
+          var hF1 = (row.hier_f1 != null) ? (Math.round(row.hier_f1 * 1000) / 1000) : '—';
+          var rF1 = (row.rel_f1 != null) ? (Math.round(row.rel_f1 * 1000) / 1000) : '—';
           var viewHref2 = (row.run_id) ? '{{ url_for("results", run_id="") }}' + row.run_id : '#';
-          table += '<tr><td>' + label + badge + '</td><td>' + f1 + '</td><td>' + p + '</td><td>' + r + '</td><td>' + cov + '</td><td><a href="' + viewHref2 + '" class="btn btn-outline-tech btn-sm comp-modal-view-link" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right me-1"></i>View</a></td></tr>';
+          table += '<tr><td>' + label + badge + '</td><td>' + oF1 + '</td><td>' + cF1 + '</td><td>' + hF1 + '</td><td>' + rF1 + '</td><td><a href="' + viewHref2 + '" class="btn btn-outline-tech btn-sm comp-modal-view-link" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right me-1"></i>View</a></td></tr>';
         });
         table += '</tbody></table></div>';
         modalBody.innerHTML = chartHtml + table;
@@ -1179,17 +1247,19 @@
           if (window._compAnalyzeScatterChart) { window._compAnalyzeScatterChart.destroy(); window._compAnalyzeScatterChart = null; }
           var ctx = document.getElementById('compSelectedAnalyzeChart');
           if (ctx) {
-            var f1Vals = chartRows.map(function(row) { return row.f1 != null ? Math.round(row.f1 * 100) / 100 : 0; });
-            var pVals = chartRows.map(function(row) { return row.precision != null ? Math.round(row.precision * 100) / 100 : 0; });
-            var rVals = chartRows.map(function(row) { return row.recall != null ? Math.round(row.recall * 100) / 100 : 0; });
+            var overallF1Vals = chartRows.map(function(row) { return row.overall_f1 != null ? Math.round(row.overall_f1 * 1000) / 1000 : 0; });
+            var classF1Vals = chartRows.map(function(row) { return row.f1 != null ? Math.round(row.f1 * 1000) / 1000 : 0; });
+            var hierF1Vals = chartRows.map(function(row) { return row.hier_f1 != null ? Math.round(row.hier_f1 * 1000) / 1000 : 0; });
+            var relF1Vals = chartRows.map(function(row) { return row.rel_f1 != null ? Math.round(row.rel_f1 * 1000) / 1000 : 0; });
             window._compSelectedAnalyzeChart = new Chart(ctx, {
               type: 'bar',
               data: {
                 labels: chartLabels,
                 datasets: [
-                  { label: 'F1', data: f1Vals, backgroundColor: 'rgba(46, 214, 161, 0.9)', borderColor: '#2ED6A1', borderWidth: 1, borderRadius: 4 },
-                  { label: 'Precision', data: pVals, backgroundColor: 'rgba(57, 198, 230, 0.9)', borderColor: '#39C6E6', borderWidth: 1, borderRadius: 4 },
-                  { label: 'Recall', data: rVals, backgroundColor: 'rgba(245, 166, 91, 0.9)', borderColor: '#F5A65B', borderWidth: 1, borderRadius: 4 }
+                  { label: 'Overall F1', data: overallF1Vals, backgroundColor: 'rgba(46, 214, 161, 0.9)', borderColor: '#2ED6A1', borderWidth: 1, borderRadius: 4 },
+                  { label: 'Class F1', data: classF1Vals, backgroundColor: 'rgba(57, 198, 230, 0.9)', borderColor: '#39C6E6', borderWidth: 1, borderRadius: 4 },
+                  { label: 'Hier F1', data: hierF1Vals, backgroundColor: 'rgba(245, 166, 91, 0.9)', borderColor: '#F5A65B', borderWidth: 1, borderRadius: 4 },
+                  { label: 'Rel F1', data: relF1Vals, backgroundColor: 'rgba(196, 133, 255, 0.9)', borderColor: '#C485FF', borderWidth: 1, borderRadius: 4 }
                 ]
               },
               options: {
@@ -1344,18 +1414,18 @@
       }).then(function(r) { return r.json(); }).then(function(data) {
         if (data.found && data.rows && data.rows.length) {
           var bestF1 = -1, bestIdx = -1;
-          data.rows.forEach(function(row, i) { if (row.f1 > bestF1) { bestF1 = row.f1; bestIdx = i; } });
+          data.rows.forEach(function(row, i) { var of1 = row.overall_f1 != null ? row.overall_f1 : (row.f1 || 0); if (of1 > bestF1) { bestF1 = of1; bestIdx = i; } });
           var labels = data.rows.map(function(row, i) { return row.label || ('Run ' + (i + 1)); });
           var chartHtml = '<div class="mb-3"><h6 class="mb-2" style="color: #EAF6FF;">Metrics across runs</h6><div id="compAnalysisChartWrap"><canvas id="compAnalysisChart"></canvas></div></div>';
-          var table = '<div class="table-responsive"><table class="table table-sm table-hover"><thead><tr><th>Run</th><th>F1</th><th>Precision</th><th>Recall</th><th>Coverage</th><th></th></tr></thead><tbody>';
+          var table = '<div class="table-responsive"><table class="table table-sm table-hover"><thead><tr><th>Run</th><th>Overall F1</th><th>Class F1</th><th>Hier F1</th><th>Rel F1</th><th></th></tr></thead><tbody>';
           data.rows.forEach(function(row, i) {
-            var f1 = (row.f1 != null) ? (Math.round(row.f1 * 100) / 100) : '—';
-            var p = (row.precision != null) ? (Math.round(row.precision * 100) / 100) : '—';
-            var r = (row.recall != null) ? (Math.round(row.recall * 100) / 100) : '—';
-            var cov = (row.coverage != null) ? (Math.round(row.coverage * 100) / 100) : '—';
+            var oF1 = (row.overall_f1 != null) ? (Math.round(row.overall_f1 * 1000) / 1000) : '—';
+            var cF1 = (row.f1 != null) ? (Math.round(row.f1 * 1000) / 1000) : '—';
+            var hF1 = (row.hier_f1 != null) ? (Math.round(row.hier_f1 * 1000) / 1000) : '—';
+            var rF1 = (row.rel_f1 != null) ? (Math.round(row.rel_f1 * 1000) / 1000) : '—';
             var badge = (i === bestIdx) ? ' <span class="badge bg-success">best</span>' : '';
             var viewHref = (row.run_id) ? '{{ url_for("results", run_id="") }}' + row.run_id : '#';
-            table += '<tr><td>' + (row.label || row.run_id) + badge + '</td><td>' + f1 + '</td><td>' + p + '</td><td>' + r + '</td><td>' + cov + '</td><td><a href="' + viewHref + '" class="btn btn-outline-tech btn-sm comp-modal-view-link" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right me-1"></i>View</a></td></tr>';
+            table += '<tr><td>' + (row.label || row.run_id) + badge + '</td><td>' + oF1 + '</td><td>' + cF1 + '</td><td>' + hF1 + '</td><td>' + rF1 + '</td><td><a href="' + viewHref + '" class="btn btn-outline-tech btn-sm comp-modal-view-link" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right me-1"></i>View</a></td></tr>';
           });
           table += '</tbody></table></div>';
           analysisBody.innerHTML = chartHtml + table;
@@ -1363,17 +1433,19 @@
             if (window._compAnalysisChart) { window._compAnalysisChart.destroy(); window._compAnalysisChart = null; }
             var ctx = document.getElementById('compAnalysisChart');
             if (ctx) {
-              var f1Vals = data.rows.map(function(row) { return row.f1 != null ? Math.round(row.f1 * 100) / 100 : 0; });
-              var pVals = data.rows.map(function(row) { return row.precision != null ? Math.round(row.precision * 100) / 100 : 0; });
-              var rVals = data.rows.map(function(row) { return row.recall != null ? Math.round(row.recall * 100) / 100 : 0; });
+              var overallF1Vals = data.rows.map(function(row) { return row.overall_f1 != null ? Math.round(row.overall_f1 * 1000) / 1000 : 0; });
+              var classF1Vals = data.rows.map(function(row) { return row.f1 != null ? Math.round(row.f1 * 1000) / 1000 : 0; });
+              var hierF1Vals = data.rows.map(function(row) { return row.hier_f1 != null ? Math.round(row.hier_f1 * 1000) / 1000 : 0; });
+              var relF1Vals = data.rows.map(function(row) { return row.rel_f1 != null ? Math.round(row.rel_f1 * 1000) / 1000 : 0; });
               window._compAnalysisChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
                   labels: labels,
                   datasets: [
-                    { label: 'F1', data: f1Vals, backgroundColor: 'rgba(46, 214, 161, 0.9)', borderColor: '#2ED6A1', borderWidth: 1, borderRadius: 4 },
-                    { label: 'Precision', data: pVals, backgroundColor: 'rgba(57, 198, 230, 0.9)', borderColor: '#39C6E6', borderWidth: 1, borderRadius: 4 },
-                    { label: 'Recall', data: rVals, backgroundColor: 'rgba(245, 166, 91, 0.9)', borderColor: '#F5A65B', borderWidth: 1, borderRadius: 4 }
+                    { label: 'Overall F1', data: overallF1Vals, backgroundColor: 'rgba(46, 214, 161, 0.9)', borderColor: '#2ED6A1', borderWidth: 1, borderRadius: 4 },
+                    { label: 'Class F1', data: classF1Vals, backgroundColor: 'rgba(57, 198, 230, 0.9)', borderColor: '#39C6E6', borderWidth: 1, borderRadius: 4 },
+                    { label: 'Hier F1', data: hierF1Vals, backgroundColor: 'rgba(245, 166, 91, 0.9)', borderColor: '#F5A65B', borderWidth: 1, borderRadius: 4 },
+                    { label: 'Rel F1', data: relF1Vals, backgroundColor: 'rgba(196, 133, 255, 0.9)', borderColor: '#C485FF', borderWidth: 1, borderRadius: 4 }
                   ]
                 },
                 options: {
