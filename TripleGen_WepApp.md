@@ -47,7 +47,7 @@ The navigation bar has five items:
 | Link | What it does |
 |------|-------------|
 | **Run experiment** | Run a single configuration (the home page). |
-| **Controlled experiment** | Fine-grained ablation with 19 individual pipeline toggles. |
+| **Controlled experiment** | Fine-grained ablation with 18 individual pipeline toggles. |
 | **Run comparison** | Batch mode to compare multiple configurations at once. |
 | **Ontology engineering** | Cross-paper reconstruction — merge multiple prior runs, cluster the merged classes, and ask the LLM to enrich each cluster. |
 | **Contrast** | Accessibility toggle for a higher-contrast theme. |
@@ -108,8 +108,8 @@ Each mode adds a layer on top of the previous one:
 
 | Mode | What it adds |
 |------|-------------|
-| **1 · Strict** | Raw extraction with scope and vocabulary filtering. No extra steps. |
-| **2 · Guided** | Everything in Mode 1, plus medical NER and candidate term suggestions fed into the prompt. |
+| **1 · Strict** | Raw extraction with no vocabulary guardrails, no gold filtering, no NER. Evidence is the only quality gate. Restricted to Zero-Shot prompting only. |
+| **2 · Guided** | Everything in Mode 1, plus vocabulary guardrails, gold-vocabulary evaluation filtering, medical NER anchoring, and candidate term suggestions. |
 | **3 · Schema-Completed** | Everything in Mode 2, plus schema-guided completion (fills in gold-schema items supported by corpus evidence) and rule-based reasoning to tidy the hierarchy. |
 
 **LLM provider**
@@ -146,7 +146,7 @@ Click **Run experiment** at the bottom of the left panel. The app takes you to t
 
 ## 3. Controlled experiment page
 
-This page gives full granular control over every pipeline stage. Instead of the three predefined pipeline modes, you get **17 individual pipeline toggles** grouped into three sections:
+This page gives full granular control over every pipeline stage. Instead of the three predefined pipeline modes, you get **18 individual pipeline toggles** grouped into three sections:
 
 ![Screenshot: Controlled experiment page with pipeline toggles](screenshots/05_controlled_experiment.png)
 
@@ -160,12 +160,13 @@ At the top of the left panel, a **BrainIT Paper** dropdown lets you select any o
 
 The right panel exposes every pipeline feature as an independent on/off switch:
 
-**1. Preprocessing (4 toggles)**
+**1. Preprocessing (5 toggles)**
 
 | Toggle | What it does |
 |--------|-------------|
 | **Scope Filter** | Remove admin/non-clinical sections at document load time. |
 | **Chunk-level Clinical Filter** | Drop low clinical-density chunks after chunking. |
+| **Embedding Scope Fallback** | Use sentence-transformer embeddings to classify borderline chunks when keyword scores are ambiguous. |
 | **Clinical-only Routing** | Restrict prompt routing to clinical vocabulary paths. |
 | **Require Label in Evidence** | Only keep extracted classes whose label appears in the evidence text. |
 
@@ -367,13 +368,13 @@ From the **Run comparison** page (no need to re-run anything), tick the configur
 | Column | What it shows |
 |--------|--------------|
 | **Run** | Row label. |
-| **F1** | F1 score (harmonic mean of precision and recall). |
-| **Precision** | Class precision. |
-| **Recall** | Class recall. |
-| **Coverage** | Class coverage. |
+| **Overall F1** | Mean of Class, Hierarchy, and Relation F1. |
+| **Class F1** | F1 for class extraction (harmonic mean of precision and recall). |
+| **Hier F1** | F1 for hierarchy edge extraction. |
+| **Rel F1** | F1 for relation extraction. |
 | **View** | Opens the full Results page for that run in a new tab. |
 
-The best-performing run (by F1) gets a "best" badge. A bar chart and a precision-vs-recall scatter plot are shown alongside the table. You can search by run name and switch between Top 10, Top 20, or All views.
+The best-performing run (by Overall F1) gets a "best" badge. A grouped bar chart shows all four F1 dimensions per run (Overall in green, Class in cyan, Hierarchy in orange, Relation in purple), and a Class F1 vs Hierarchy F1 scatter plot is shown alongside the table. You can search by run name and switch between Top 10, Top 20, or All views.
 
 ![Screenshot: Analyze selected modal with comparison table and chart](screenshots/20_analyze_selected.png)
 
@@ -386,7 +387,7 @@ In the runs table, each row has two action buttons:
 | Button | What it does |
 |--------|-------------|
 | **Last result** (clipboard icon) | Shows a summary of the most recent completed run for this configuration. |
-| **Analysis** (chart icon) | Shows metrics for every past run with this exact configuration — useful for seeing consistency across repeated runs. |
+| **Analysis** (chart icon) | Shows Overall F1, Class F1, Hier F1, and Rel F1 for every past run with this exact configuration — useful for seeing consistency across repeated runs. |
 
 ![Screenshot: Per-run action buttons — Last result and Analysis](screenshots/21_per_run_actions.png)
 
@@ -396,7 +397,7 @@ In the runs table, each row has two action buttons:
 
 ### 8.3 Batch analysis
 
-After a batch finishes from the Batch progress page, click **Analyze** to see a full comparison table with metrics for every run. The best run is highlighted, and each row has a **View** link to open its Results page.
+After a batch finishes from the Batch progress page, click **Analyze** to see a full comparison table showing Overall F1, Class F1, Hier F1, and Rel F1 for every run. The best run (by Overall F1) is highlighted, and each row has a **View** link to open its Results page.
 
 ---
 
