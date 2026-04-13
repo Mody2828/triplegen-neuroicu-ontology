@@ -137,8 +137,8 @@ Metrics are computed across all stage snapshots for per-stage ablation analysis.
 
 | Mode | Steps active | What it adds |
 |------|-------------|-------------|
-| **Strict** | 1–8, 15 | Extraction with vocab guardrails + gold-restricted evaluation |
-| **Guided** | 1–8, 15 *(+ NER & candidates in step 5)* | + Medical NER anchor + candidate term injection in prompts |
+| **Strict** | 1–8, 15 | Raw extraction — no vocab guardrails, no gold filtering, no NER. Evidence is the only quality gate. Zero-Shot prompting only. |
+| **Guided** | 1–8, 15 *(+ NER & candidates in step 5)* | + Vocabulary guardrails + gold-vocabulary evaluation filtering + Medical NER anchor + candidate term injection |
 | **Schema-Completed** | 1–15 (all) | + TGC + SGC + built-in cleanup + orphan rescue + LLM CoT refinement + rule-based reasoning |
 
 ---

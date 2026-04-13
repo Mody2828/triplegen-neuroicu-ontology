@@ -26,7 +26,7 @@ Most prior work in biomedical ontology engineering has focused on well-establish
 
 - **Three prompting strategies**: Zero-Shot (baseline), One-Shot (single MMR example), and Few-Shot (three-phase extraction with dedicated example pools per phase and anti-anchoring instructions).
 - **Three progressive pipeline modes**: Strict → Guided → Schema-Completed, with each mode adding further post-processing so the contribution of each component can be observed.
-- **Controlled experiment page**: 19 individual pipeline toggles for fine-grained ablation, grouped into Preprocessing, Prompt Injection, and Post-Processing.
+- **Controlled experiment page**: 18 individual pipeline toggles for fine-grained ablation, grouped into Preprocessing, Prompt Injection, and Post-Processing.
 - **Cross-paper Ontology Engineering page**: takes the output of multiple prior runs, merges them into a single source ontology, semantically clusters the union (default 25 clusters), and asks the LLM to enrich each cluster as a separate call. The reconstruction enforces a closed relation vocabulary self-seeded from the merged source (no gold leakage), forbids the LLM from inventing new classes, and passes hierarchy through directly from the source seed.
 - **Built-in BrainIT paper selector**: dropdown with 11 pre-loaded papers for quick experiment setup without manual file handling.
 - **Medical NER anchor**: ScispaCy biomedical named entity recognition integrated into Guided mode and above, giving the LLM a structured starting point for clinical terminology.
@@ -44,7 +44,7 @@ Input is BrainIT publications and Neuro-ICU literature supplied as pasted text, 
 
 The load sequence for each document is: strip control characters → normalise (citation stripping, abbreviation expansion) → optionally apply the clinical scope filter. Normalisation handles hyphenation repair, Unicode symbol normalisation, and removal of repeated headers and footers. PDF documents also retain page-level segments for header/footer detection.
 
-The **clinical scope filter** is an important preprocessing step. BrainIT papers mix clinical content with governance, organisational, and administrative material. The filter operates at two levels: document-level paragraph and line filtering using compound-phrase blacklists, and chunk-level dual-score routing based on administrative and clinical scores. Clinical sections (Monitoring, ICU Management, Secondary Insult Treatment) are always kept; governance sections are filtered out.
+The **clinical scope filter** is an important preprocessing step. BrainIT papers mix clinical content with governance, organisational, and administrative material. The filter operates at two levels: document-level paragraph and line filtering using compound-phrase blacklists, and chunk-level dual-score routing based on administrative and clinical scores. Clinical sections (Monitoring, ICU Management, Secondary Insult Treatment) are always kept; governance sections are filtered out. An **embedding scope fallback** uses sentence-transformer embeddings (`all-MiniLM-L6-v2`) with pre-computed clinical/admin centroid vectors to classify borderline chunks when keyword scores are ambiguous — default ON in Strict mode for unseen-paper generalisation.
 
 **Section-aware chunking** classifies chunks as high/medium/low/skip priority based on their content type, and injects section context into LLM prompts. Reference chunks are skipped entirely. Chunk size is optimised at target 2000 tokens, hard max 3200, min 400, overlap 200.
 
@@ -80,13 +80,13 @@ Three modes progressively layer on functionality. Each mode is a superset of the
 
 | Mode | What it adds |
 |------|-------------|
-| **Strict** | Vocabulary guardrails + gold-restricted evaluation. No NER, no post-processing. |
-| **Guided** | + Medical NER anchor + candidate term injection. |
+| **Strict** | Raw extraction — no vocab guardrails, no gold filtering, no NER. Evidence only. Zero-Shot prompting only. |
+| **Guided** | + Vocabulary guardrails + gold-vocabulary evaluation filtering + Medical NER anchor + candidate term injection. |
 | **Schema-Completed** | + Schema-guided completion (LLM gap-filling) + rule-based reasoning. |
 
 Schema-Completed is the default, balancing capability and speed.
 
-The **Controlled Experiment** page bypasses predefined modes entirely, exposing 19 individual toggles so each feature can be tested independently, grouped into Preprocessing, Prompt Injection, and Post-Processing.
+The **Controlled Experiment** page bypasses predefined modes entirely, exposing 18 individual toggles so each feature can be tested independently, grouped into Preprocessing, Prompt Injection, and Post-Processing.
 
 ### Post-Processing
 
@@ -129,8 +129,8 @@ Each run produces a timestamped directory containing:
 The web interface provides five main pages:
 
 - **Run Experiment** — strategy selection (Zero-Shot, One-Shot, Few-Shot), pipeline mode cards, LLM provider selector with 7 providers, evaluation settings, and an Advanced section for reasoning LLM override.
-- **Controlled Experiment** — 19 individual pipeline toggles for fine-grained ablation, with a built-in BrainIT paper selector dropdown (11 papers). Each toggle can be independently enabled or disabled to measure its contribution.
-- **Run Comparison** — batch mode with per-run paper selection. Build a list of configurations, run them sequentially with pause/resume/skip controls, and compare metrics side by side with F1, precision, recall charts.
+- **Controlled Experiment** — 18 individual pipeline toggles for fine-grained ablation, with a built-in BrainIT paper selector dropdown (11 papers). Each toggle can be independently enabled or disabled to measure its contribution.
+- **Run Comparison** — batch mode with per-run paper selection. Build a list of configurations, run them sequentially with pause/resume/skip controls, and compare metrics side by side with Overall F1, Class F1, Hierarchy F1, and Relation F1 charts.
 - **Ontology Engineering** — cross-paper reconstruction page. Pick any prior runs, merge them into a single source ontology, semantically cluster the merged classes (default 25 clusters), and ask the LLM to enrich each cluster as a separate call. The reconstruction enforces a closed relation vocabulary self-seeded from the merged source (no gold leakage), forbids new class invention, and passes hierarchy through directly from the source seed. A Compare Metrics modal ranks reconstruction runs by Overall F1 (mean of class/hierarchy/relation F1).
 - **Results** — evaluation metrics card, per-stage ablation table, downloadable artifacts, and an interactive ontology graph (Cytoscape.js) with four layout modes, node detail panels, and PNG export.
 

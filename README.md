@@ -35,7 +35,7 @@ The app has five main pages:
 | Page | Purpose |
 |------|---------|
 | **Run Experiment** | Run a single extraction with configurable prompting strategy, pipeline mode, and LLM provider. |
-| **Controlled Experiment** | Fine-grained ablation with 19 individual pipeline toggles and a built-in BrainIT paper selector. |
+| **Controlled Experiment** | Fine-grained ablation with 18 individual pipeline toggles and a built-in BrainIT paper selector. |
 | **Run Comparison** | Batch mode — build a list of configurations, run them sequentially, and compare metrics side by side. |
 | **Ontology Engineering** | Cross-paper ontology reconstruction — pick prior runs, merge them, semantically cluster the merged classes, and ask the LLM to enrich each cluster (closed relation vocabulary, hierarchy passthrough from source). |
 | **Results** | View evaluation metrics, per-stage ablation tables, download artifacts, and explore an interactive ontology graph. |
@@ -48,7 +48,7 @@ For a full visual walkthrough with screenshots, see [TripleGen_WepApp.md](Triple
 - **Three pipeline modes**: Strict, Guided (+ Medical NER), Schema-Completed (+ schema-guided completion + rule-based reasoning)
 - **Seven LLM providers**: OpenAI GPT-4o-mini, OpenAI GPT-4o, Anthropic Claude Haiku 4.5, Google Gemini 2.5 Flash, Groq Llama 3.1 8B, Hugging Face Mistral 7B, DeepSeek
 - **Configurable reasoning LLM**: OpenAI GPT-4o-mini or DeepSeek Reasoner R1
-- **19 pipeline toggles** for controlled ablation studies
+- **18 pipeline toggles** for controlled ablation studies
 - **Built-in BrainIT paper selector** with 11 pre-loaded papers
 - **Per-stage ablation metrics** showing exactly where improvements or degradations occur
 - **Interactive ontology graph** powered by Cytoscape.js
@@ -71,4 +71,5 @@ For a full visual walkthrough with screenshots, see [TripleGen_WepApp.md](Triple
 | Reasoning LLMs | OpenAI GPT-4o-mini, DeepSeek Reasoner R1 |
 | Medical NER | ScispaCy `en_ner_bc5cdr_md` |
 | Web UI | Flask + Jinja2 + Cytoscape.js |
-| Reference Ontology | BrainIT Golden Standard ontology |
+| Embeddings | Sentence-Transformers `all-MiniLM-L6-v2` (scope filter fallback, OE clustering) |
+| Reference Ontology | BrainIT proxy gold standard (93 classes, 18 relations, 76 hierarchy edges) |

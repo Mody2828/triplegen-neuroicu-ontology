@@ -493,6 +493,8 @@ The clustering results include:
 
 **Load Previous Cluster:** A dropdown above Stage 2 lets you reload clustering results from a previous session — skipping Stage 1 entirely.
 
+![Screenshot: Clustering results — scatter plot, silhouette chart, and cluster cards](screenshots/27a_oe_clustering.png)
+
 ---
 
 ### 11.3 Stage 3 — LLM Reconstruction
