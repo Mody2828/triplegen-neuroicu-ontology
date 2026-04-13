@@ -445,6 +445,8 @@ This label appears everywhere — the comparison table, run list, batch progress
 
 Click **Ontology engineering** in the navigation bar. This page is different from every other page in the app — instead of running an extraction over a corpus, it reconstructs a single, richer ontology by combining the output of *multiple prior runs* and asking the LLM to enrich each semantic cluster of classes.
 
+The page uses a **three-stage workflow**: Load → Cluster → Reconstruct. Each stage unlocks the next when it finishes.
+
 The key design properties:
 
 - **No new classes** — the LLM is constrained to rearrange and enrich the merged source. Any class it tries to invent is dropped post-parse.
@@ -456,58 +458,94 @@ The key design properties:
 
 ---
 
-### 11.1 Picking source runs
+### 11.1 Stage 1 — Picking and loading source runs
 
-The left panel lists all prior runs whose `ontology.json` is on disk. Tick the runs you want to combine — these become the source set for reconstruction. You can pick a single run, a handful of runs covering different papers, or every run in the list.
+The top card lists all prior runs whose `ontology.json` is on disk. Each run shows its strategy, pipeline mode (as a colour-coded badge), LLM provider, paper name, and class count.
+
+**Filtering and selection:**
+
+| Control | What it does |
+|---------|-------------|
+| **Pipeline mode filter** (All / Strict / Guided / Schema-Completed) | Narrows the run list by mode. |
+| **Select all / Deselect all** | Bulk toggle all visible runs. |
+| **Individual checkboxes** | Pick specific runs to combine. |
+
+Tick the runs you want to merge and click **Load Selected**. The app loads each run's `ontology.json`, merges them by canonical key into one source ontology, and displays merge statistics (total classes, relations, hierarchy edges).
+
+**Analyze button:** Before merging, you can click **Analyze** to compare evaluation metrics (Overall F1, Class F1, Hier F1, Rel F1) across the selected source runs — the same 4-bar chart format used on the comparison dashboard.
 
 ![Screenshot: Source run picker with multiple runs selected](screenshots/26_oe_source_runs.png)
 
 ---
 
-### 11.2 Configuring the reconstruction
+### 11.2 Stage 2 — Clustering
 
-The right panel has a small set of options:
+Once sources are loaded, the clustering stage unlocks. Click **Run Clustering** to semantically cluster the merged classes using `all-MiniLM-L6-v2` sentence embeddings and Ward's hierarchical clustering.
 
-| Option | What it does |
-|--------|-------------|
-| **Number of clusters** | How many semantic clusters to split the merged classes into. Defaults to **25**. Smaller numbers produce broader clusters with more cross-cluster relations; larger numbers produce tighter, more specific clusters. |
-| **LLM provider** | Which model performs the per-cluster enrichment. Same provider list as the rest of the app. |
+The clustering results include:
 
-When you click **Run reconstruction**, the app:
+| Element | What it shows |
+|---------|--------------|
+| **Merge statistics** | Total merged classes, relations, hierarchy edges. |
+| **Cluster scatter plot** | 2D t-SNE projection of class embeddings, coloured by cluster. |
+| **Silhouette chart** | Per-cluster silhouette scores showing cluster cohesion. |
+| **Cluster cards** | Each cluster listed with its member classes. |
 
-1. Loads each selected run's `ontology.json`.
-2. Merges them by canonical key into one source ontology.
-3. Embeds the class labels and definitions and clusters them semantically.
-4. For each cluster, calls the LLM with the closed relation vocabulary inline in the prompt and asks it to enrich the cluster.
-5. Filters the LLM output (drops new classes, drops out-of-vocab relations, drops any hierarchy edges).
-6. Merges all cluster fragments back together with the source seed.
-7. Runs the result through the standard evaluator.
+**Load Previous Cluster:** A dropdown above Stage 2 lets you reload clustering results from a previous session — skipping Stage 1 entirely.
+
+---
+
+### 11.3 Stage 3 — LLM Reconstruction
+
+Once clustering is complete, the reconstruction stage unlocks.
+
+**LLM provider selector:** Choose which model performs the per-cluster enrichment — the same provider list as the rest of the app (GPT-4o-mini, GPT-4o, Claude Haiku 4.5, Gemini 2.5 Flash, DeepSeek).
+
+Click **Reconstruct Ontology**. The app:
+
+1. For each cluster, calls the LLM with the closed relation vocabulary inline in the prompt and asks it to enrich the cluster.
+2. Filters the LLM output (drops new classes, drops out-of-vocab relations, drops any hierarchy edges).
+3. Merges all cluster fragments back together with the source seed.
+4. Runs the result through the standard evaluator.
+
+A progress bar and per-cluster status messages update in real time.
+
+**Load Previous OE Run:** A dropdown above Stage 3 lets you reload a previous reconstruction — skipping Stages 1 and 2.
 
 ![Screenshot: Reconstruction in progress with cluster counter](screenshots/27_oe_progress.png)
 
 ---
 
-### 11.3 Cluster results view
+### 11.4 Reconstruction results
 
-When the reconstruction finishes, the page lists each cluster as a card. Each card shows the cluster name, member classes, the relations the LLM added (or kept), and how many relations were dropped by the closed-vocabulary filter and how many "inferred" classes were dropped.
+When the reconstruction finishes, the page shows:
 
-This view is the cleanest way to *see* what the LLM did per cluster — and to confirm that no new classes leaked through.
+| Element | What it does |
+|---------|-------------|
+| **Reconstruction statistics** | Total classes, relations, hierarchy edges in the final ontology. |
+| **Per-cluster cards** | Each cluster with its member classes, added relations, dropped out-of-vocab relations, and dropped inferred classes. |
+| **View Full Results & Evaluation** | Opens the full Results page (metrics, artifacts, ontology graph) in an embedded modal or new tab. |
+| **Compare Metrics** | Opens the compare metrics modal (see Section 11.5). |
+| **Download Ontology JSON** | Download the reconstructed ontology as JSON. |
+| **Download Ontology TTL** | Download the reconstructed ontology in OWL/RDF Turtle format. |
+
+The per-cluster view is the cleanest way to *see* what the LLM did per cluster — and to confirm that no new classes leaked through.
 
 ![Screenshot: Cluster results — one card per cluster with member classes and added relations](screenshots/28_oe_cluster_results.png)
 
 ---
 
-### 11.4 Compare metrics modal
+### 11.5 Compare metrics modal
 
-The page also has a **Compare metrics** button that opens a modal showing every reconstruction run side by side, ranked by **Overall F1** (the mean of class F1, hierarchy F1, and relation F1). Each row also shows the individual class / hierarchy / relation F1, the source run IDs, and a link to open the reconstructed ontology's full Results page.
+The **Compare Metrics** button opens a modal showing every reconstruction run side by side, ranked by **Overall F1** (the mean of class F1, hierarchy F1, and relation F1). Each row also shows the individual class / hierarchy / relation F1, the source run IDs, and a link to open the reconstructed ontology's full Results page.
 
-A bar chart underneath the table plots the four F1 values per run so you can spot trade-offs at a glance — for example, a reconstruction that gains hierarchy F1 at the cost of a small drop in relation F1.
+A grouped bar chart plots the four F1 values per run (Overall in green, Class in cyan, Hierarchy in orange, Relation in purple) so you can spot trade-offs at a glance — for example, a reconstruction that gains hierarchy F1 at the cost of a small drop in relation F1.
 
 ![Screenshot: Compare metrics modal — table and bar chart of reconstruction runs](screenshots/29_oe_compare_metrics.png)
 
 ---
 
-### 11.5 Reconstruction artifacts
+### 11.6 Reconstruction artifacts
 
 A reconstruction run produces the same artifact set as a normal run (`ontology.json`, `metrics.json`, `summary.txt`, etc.) plus an extra `cluster_completion_log.json` recording:
 
