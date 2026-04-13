@@ -8,7 +8,6 @@ This document is the written companion to the pipeline diagram below. The diagra
 
 ![TripleGen Pipeline](docs/PIPELINE_ARCHITECTURE.png)
 
-*Full pipeline covering all three progressive modes: Strict · Guided · Schema-Completed.*
 
 ---
 
