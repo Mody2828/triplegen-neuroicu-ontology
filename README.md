@@ -72,4 +72,4 @@ For a full visual walkthrough with screenshots, see [TripleGen_WepApp.md](Triple
 | Medical NER | ScispaCy `en_ner_bc5cdr_md` |
 | Web UI | Flask + Jinja2 + Cytoscape.js |
 | Embeddings | Sentence-Transformers `all-MiniLM-L6-v2` (scope filter fallback, OE clustering) |
-| Reference Ontology | BrainIT proxy gold standard (93 classes, 18 relations, 76 hierarchy edges) |
+| Reference Ontology | BrainIT gold standard ontology (OWL/RDF Turtle) |
