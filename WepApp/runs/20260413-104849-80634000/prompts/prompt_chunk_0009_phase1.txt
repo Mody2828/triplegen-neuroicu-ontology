@@ -1,0 +1,348 @@
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+Suggested concepts (pre-identified by biomedical NER in this text): Trauma, ischaemia, CPPs, acute respiratory distress syndrome, ARDS, traumatic brain injury, head injury, tragus-atrium, Selfotel, HF, N, Prapruettham S, Mock C, Guideline, CHIRAG, hypertension, Carney N, traumatic, LA, KP, Neurological Kolias AG.
+These are entity mentions detected in this chunk. Use them as additional evidence that a concept is present, but only extract labels from the allowed class list above.
+
+Candidate domain terms (contextual hints from this chunk — use only if supported by the text): blood pressure; hypertension; icp; map; monitoring; outcome; vasopressors; CPP; Cerebral Perfusion; Cerebral Perfusion Pressure; Intracranial Pressure; Mean Arterial Pressure
+
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing an EXACT VERBATIM sentence or clause COPIED from the text — do NOT paraphrase, summarize, truncate, or rephrase. Copy the text exactly as it appears, preserving original wording, word order, and punctuation. If you cannot find an exact quote, OMIT the item.
+
+3. **Extraction Scope:** Extract clinical and biomedical content: conditions, physiological parameters, monitoring variables, treatments/therapies/interventions, outcomes, assessments, laboratory values, nursing interventions, surgical procedures, and clinical dataset categories when explicitly named.
+   Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+   If a sentence or paragraph is mainly about these excluded topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+6. **Label Mapping Rule:** If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+   Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+   For other abbreviations, expand to their full clinical name as used in the text.
+
+7. **Structural Completeness Rule:** When the text mentions specific clinical items, also extract their general category if the text supports it.
+   For example, if the text discusses 'ventilation, sedation, fluids' as therapies, also extract the general class 'Therapy' or 'Baseline Therapy' if the text uses that grouping.
+   Use the text's own categories and groupings — do not impose an external hierarchy.
+
+**Default priority: classes first, then relations.** Extract relations when the text clearly states a connection between two concepts — both domain and range must be extracted classes. If a phase instruction below overrides this priority, follow the phase instruction.
+
+**Completeness:** Extract every distinct clinical concept the text names — err on the side of inclusion when evidence exists.
+
+### CURRENT TASK: Phase 1 — COMPREHENSIVE CLASS EXTRACTION
+Extract all clinical and biomedical classes mentioned in the text.
+
+### CHAIN-OF-THOUGHT (follow these steps before producing output)
+1. Read each paragraph and identify every clinical noun phrase (conditions, parameters, therapies, assessments, outcomes, devices, data categories).
+2. For each candidate, classify it: Is it a clinical condition? A physiological parameter? A treatment? An assessment? A laboratory value? A nursing intervention? A data category? A device or sensor?
+3. Check: does the text provide a verbatim phrase you can cite as evidence?
+4. If yes, include it. If the concept is purely organisational, governance, or publication metadata, skip it.
+
+### CONCEPT TYPES TO LOOK FOR
+  - Clinical conditions, diseases, injuries, syndromes, secondary insults
+  - Physiological parameters and monitoring variables (e.g. ICP, MAP, HR, SpO2)
+  - Treatments, therapies, interventions, drugs, medications
+  - Surgical procedures and clinical procedures
+  - Clinical assessments, scores, and scales (e.g. GCS, GOSe, pupil assessment)
+  - Patient outcomes and outcome measures
+  - Laboratory values and test categories (e.g. blood gases, biochemistry)
+  - Nursing interventions and bedside care (e.g. suctioning, sedation)
+  - Medical devices and sensors
+  - Data categories and abstract grouping classes (e.g. Monitoring Data, Therapy, Condition, Outcome, Core Monitoring Parameter, Optional Monitoring Parameter, Baseline Therapy, Demographic Data, Admission Data, Treatment Data, Outcome Data)
+  - Clinical guidelines and management protocols
+
+### LABEL GUIDANCE
+  - Use short, clean noun-phrase labels.
+  - Expand common abbreviations: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+  - For other abbreviations, expand to their full clinical name.
+
+### STRUCTURAL COMPLETENESS
+When the text mentions specific clinical items, also extract their general category if the text supports it. Use the text's own categories and groupings. For example, if the text lists 'heart rate, ICP, MAP' under 'core monitoring parameters', extract BOTH the individual parameters AND 'Core Monitoring Parameter' as a class.
+
+### DEFINITION REQUIREMENT
+Every class MUST include a `definition` field: a precise one-sentence scope note that captures what this concept means IN THE CONTEXT OF THIS TEXT.
+Read how the text uses this concept and write a definition that includes:
+  (1) What TYPE of concept it is (condition, parameter, therapy, assessment, lab value, device, data category).
+  (2) What it MEASURES, TREATS, MONITORS, or DESCRIBES.
+  (3) Its ROLE or PURPOSE as described in this specific text.
+Ground the definition in the text context first. Only fall back to general medical knowledge if the text provides no contextual clues.
+BAD (too vague):  "A clinical parameter used in patient care."
+GOOD (text-grounded): "A physiological parameter measuring pressure inside the cranium, recorded minute-by-minute as part of the BrainIT core monitoring dataset to detect secondary insults in TBI patients."
+Example: {"label": "Intracranial Pressure", "definition": "A core monitoring parameter measuring pressure inside the cranium, recorded continuously to detect intracranial hypertension in traumatic brain injury patients.", "evidence": "..."}
+
+### EXTRACTION PRINCIPLE
+Extract every clinical concept the text explicitly names. Do not invent concepts not present in the text. Each concept needs a verbatim evidence quote from the source.
+
+### SELF-CHECK (before finalising output)
+- Is every label a clinical TYPE (not an instance or a person's name)?
+- Are there any duplicate or synonym labels? Merge them.
+- Does every evidence field contain a verbatim quote from the text?
+
+Output JSON with keys classes, relations, hierarchy. Set relations and hierarchy to empty arrays.
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "definition": "one-sentence scope note describing what this class represents in the domain", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "definition": "one-sentence description of what this relation means between domain and range", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Definition rule:** Every class and relation MUST include a `definition` field: a concise one-sentence scope note clarifying what the class represents or what the relation means in the clinical domain. Ground definitions in the text where possible, but you may use standard medical knowledge to write a clear scope note.
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+**REASONING STEP:** Before producing JSON, mentally scan the text for: (1) every named clinical concept, (2) explicit relations between them, (3) hierarchy cues (such as, is a, type of, include:). Then output only items with verbatim evidence.
+
+---
+--- Retrieved examples (3) ---
+
+Text: This is the minimum minute by minute monitoring data required for inclusion in the BrainIT Database and include: Heart Rate (specifying source: ECG or Pulse Oximetry), Respiration Rate (sources: impedance plethmography or ventilator), Mean Arterial Pressure, mean ICP, Pulse Oximetry (SaO2) and Temperature (sources: rectal=oesophageal= bladder=skin.) However, additional variables: Central Venous Pressure (CVP), EtCO2, SjO2, TCD, PbrO2, Brain Temperature, Microdialysis. . . will also be included in the database if they are monitored, in a given patient, as part of their usual clinical management.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate (specifying source: ECG or Pulse Oximetry)",
+      "definition": "The number of cardiac contractions per minute, a core physiological monitoring parameter in neuro-ICU."
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate (sources: impedance plethmography or ventilator)",
+      "definition": "The number of breaths per minute, measured via impedance plethysmography or ventilator."
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "Mean Arterial Pressure",
+      "definition": "The average arterial blood pressure during a cardiac cycle, a key haemodynamic parameter."
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "mean ICP",
+      "definition": "The pressure inside the cranium, continuously monitored to detect intracranial hypertension in TBI patients."
+    },
+    {
+      "label": "SaO2",
+      "evidence": "Pulse Oximetry (SaO2)",
+      "definition": "Arterial oxygen saturation measured by pulse oximetry, indicating blood oxygenation levels."
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature (sources: rectal=oesophageal= bladder=skin.)",
+      "definition": "Core body temperature measured at rectal, oesophageal, bladder, or skin sites."
+    },
+    {
+      "label": "CVP",
+      "evidence": "Central Venous Pressure (CVP)",
+      "definition": "Central venous pressure, measuring the pressure in the thoracic vena cava near the right atrium."
+    },
+    {
+      "label": "EtCO2",
+      "evidence": "EtCO2",
+      "definition": "End-tidal carbon dioxide concentration, reflecting ventilation adequacy."
+    },
+    {
+      "label": "SjO2",
+      "evidence": "SjO2",
+      "definition": "Jugular venous oxygen saturation, an indicator of cerebral oxygen consumption."
+    },
+    {
+      "label": "TCD",
+      "evidence": "TCD",
+      "definition": "Transcranial Doppler ultrasonography, used to assess cerebral blood flow velocity."
+    },
+    {
+      "label": "PbrO2",
+      "evidence": "PbrO2",
+      "definition": "Partial pressure of brain tissue oxygen, measuring local cerebral oxygenation."
+    },
+    {
+      "label": "Brain Temperature",
+      "evidence": "Brain Temperature",
+      "definition": "Temperature measured directly within brain tissue, distinct from core body temperature."
+    },
+    {
+      "label": "Microdialysis",
+      "evidence": "Microdialysis",
+      "definition": "A sampling technique for measuring extracellular brain chemistry metabolites."
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+
+Text: The recommendation for targeting cerebral perfusion pressure (CPP) in the Brain Trauma Foundation guidelines on the management of severe traumatic brain injury has changed from keeping CPP above 70 mmHg to 50-70 mmHg. The change to recommending lower CPP was mainly inspired by the non-beneficial effect of keeping CPP above 70 mmHg by administering high doses of vasopressors. CPP variability was independent of intracranial pressure, and hence was also reflected in mean arterial pressure (MAP) variability.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Cerebral Perfusion Pressure (CPP)",
+      "evidence": "cerebral perfusion pressure (CPP)",
+      "definition": "The net pressure gradient driving blood flow to the brain, calculated as MAP minus ICP."
+    },
+    {
+      "label": "Vasopressors",
+      "evidence": "administering high doses of vasopressors",
+      "definition": "Vasoactive drugs administered to maintain adequate blood pressure and cerebral perfusion."
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "intracranial pressure",
+      "definition": "The pressure inside the cranium, continuously monitored to detect intracranial hypertension in TBI patients."
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "mean arterial pressure (MAP)",
+      "definition": "The average arterial blood pressure during a cardiac cycle, a key haemodynamic parameter."
+    },
+    {
+      "label": "Derived Parameter",
+      "evidence": "CPP variability was independent of intracranial pressure",
+      "definition": "A calculated variable derived from primary monitoring parameters."
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+
+Text: The pressure-time dose of intracranial hypertension, defined as the area under the ICP curve above a threshold, is an independent predictor of 6-month mortality. Cerebrovascular autoregulation status, assessed via the pressure reactivity index (PRx), modulates the relationship between ICP burden and outcome. Patients with intact autoregulation tolerate higher ICP doses than those with impaired autoregulation.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Pressure-Time Dose",
+      "evidence": "pressure-time dose of intracranial hypertension, defined as the area under the ICP curve",
+      "definition": "The cumulative burden of intracranial hypertension calculated as area under the ICP curve."
+    },
+    {
+      "label": "Intracranial Hypertension",
+      "evidence": "intracranial hypertension",
+      "definition": "Sustained elevation of intracranial pressure above normal thresholds, a major secondary insult."
+    },
+    {
+      "label": "Mortality",
+      "evidence": "independent predictor of 6-month mortality",
+      "definition": "Patient death as a clinical outcome measure."
+    },
+    {
+      "label": "Cerebrovascular Autoregulation",
+      "evidence": "Cerebrovascular autoregulation status",
+      "definition": "The brain's ability to maintain constant blood flow despite changes in perfusion pressure."
+    },
+    {
+      "label": "Pressure Reactivity Index (PRx)",
+      "evidence": "pressure reactivity index (PRx)",
+      "definition": "A derived index assessing cerebrovascular autoregulation from ICP and MAP correlation."
+    },
+    {
+      "label": "Outcome",
+      "evidence": "relationship between ICP burden and outcome",
+      "definition": "A measure of the patient's recovery or clinical result following treatment."
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+TEXT TO ANALYZE:
+range and total Cerebral Perfusion Pressure (CPP) range over the patients' monitoring
+
+a b
+100 100
+95 95
+90 ** 90
+**
+85 85
+80 * 80
+*
+75 75
+70 70
+65 65
+60 60
+55 55
+50 50
+45 45
+40 40
+
+Cerebral Perfusion Pressure Variability Between Patients and Between Centres 5
+
+Discussion values or ranges in the everyday clinical setting, given that it
+is influenced by Intracranial Pressure (ICP) variability, Mean Arterial Pressure (MAP) variability including
+The current analysis demonstrates that in the patient cohorts systemic events and responses to drugs, and by responses to
+studied, the inter-individual Cerebral Perfusion Pressure (CPP) variability exceeds the therapeutic actions intended to decrease raised Intracranial Pressure (ICP). This
+inter-centre variability as expressed in interquartile ranges question is particularly relevant in light of the recommended
+and total ranges. However, it is still possible to discern an Cerebral Perfusion Pressure (CPP) range being narrowed down to 60-70 mmHg in the lateffect of centres' Cerebral Perfusion Pressure (CPP) target policies in the data. The change est version of the Brain Trauma Foundation (BTF) guidelines issued this year, as well
+in Cerebral Perfusion Pressure (CPP) thresholds in the Brain Trauma Foundation (BTF) guidelines in 2007 did affect as in light of the emerging concept of dynamic individual
+one of the two centres where this could be measured, while Cerebral Perfusion Pressure (CPP) targets influenced by autoregulation capacity.
+the rate of 75% post-2007 having median Cerebral Perfusion Pressure (CPP) below The second question is whether deviations to the right (higher
+70 mmHg may also mean that an effort was made to follow CPPs) originate from the fear of too low Cerebral Perfusion Pressure (CPP) and possible
+the Brain Trauma Foundation (BTF) guidelines. When looking at individual data, though, associated ischaemia, while the effects of too high Cerebral Perfusion Pressure (CPP) are
+it can be stated that deviations from the Brain Trauma Foundation (BTF) guidelines less well documented or feared. In fact, the higher incidence
+occurred more frequently to the right, i.e. to higher CPPs, of acute respiratory distress syndrome (ARDS) reportedly
+than to the left, i.e. to lower CPPs. To the best of our knowl- associated with vasopressors in the Cerebral Perfusion Pressure (CPP) > 70 mmHg group
+edge, this is the first study specifically documenting Cerebral Perfusion Pressure (CPP) in the trial by Robertson et al. does not seem to be that
+adherence and variability. much of a concern in clinical practice.
+When studying Cerebral Perfusion Pressure (CPP) variability across centres and The current analysis is a spin-off of another study for which
+patients, two questions emerge. The first question is how the current data were brought together. Hence, it is limited
+accurately Cerebral Perfusion Pressure (CPP) can effectively be steered towards specific by its retrospective nature. Moreover, only four centres
+
+6 B. Depreitere et al.
+
+contributed data in the post-2007 cohort. Different centres the management of severe traumatic brain injury. IX. Cerebral perused different Cerebral Perfusion Pressure (CPP) methodology, i.e. they had the arterial fusion thresholds. J Neurotrauma. 2007;24(Suppl 1):S59-64.
+3. Robertson CS, Valadka AB, Hannay HJ, Contant CF, Gopinath SP,
+blood pressure transducer at tragus or at atrium height and Cormio M, et al. Prevention of secondary ischemic insults after
+nursed patients flat or with their head up at 30°. For patients severe head injury. Crit Care Med. 1999;27:2086-95.
+with the transducer at atrium height and being nursed at 30° 4. Juul N, Morris GF, Marshall SB, Marshall LF. Intracranial hyper-
+tension and cerebral perfusion pressure: influence on neurological
+head up, the Cerebral Perfusion Pressure (CPP) was corrected by subtracting 10 mmHg [esti-
+deterioration and outcome in severe head injury. The Executive
+mation of tragus-atrium distance × sin(30°) × 0.76 mmHg/ Committee of the International Selfotel Trial. J Neurosurg.
+cmH2O]. When we repeated the analysis without this correc- 2000;92:1-6.
+tion, all conclusions stated in the first paragraph of the discus- 5. Cnossen MC, Scholten AC, Lingsma HF, Synnot A, Tavender E,
+Gantner D, et al. Adherence to guidelines in adult patients with
+sion section remained valid. traumatic brain injury: a living systematic review. J Neurotrauma.
+While it may be irrelevant to issue Cerebral Perfusion Pressure (CPP) targets that are 2016. doi:10.1089/neu.2015.4121.
+expected to be universally valid in all patients at all times, it 6. Gupta D, Sharma D, Kannan N, Prapruettham S, Mock C, Wang
+may be useful to produce Cerebral Perfusion Pressure (CPP) safety limits. The current J, et al. Guideline adherence and outcomes in severe adult trau-
+matic brain injury for the CHIRAG (Collaborative Head Injury and
+study demonstrated that centres' Cerebral Perfusion Pressure (CPP) policies do have some Guidelines) study. World Neurosurg. 2016;89:169-79.
+effect, but that it is exceeded by intra- and inter-individual 7. Güiza F, Depreitere B, Piper I, Citerio G, Chambers I, Jones
+Cerebral Perfusion Pressure (CPP) variability. PA, et al. Visualizing the pressure and time burden of intracra-
+nial hypertension in adult and paediatric traumatic brain injury.
+Intensive Care Med. 2015;41:1067-76.
+Conflicts of interest statement We declare that we have no conflict 8. Piper I, Citerio G, Chambers I, Contant C, Enblad P, Fiddes H,
+of interest. et al. The Brain-IT group: concept and core dataset definition. Acta
+Neurochir. 2003;145:615-28.
+9. Carney N, Totten AM, O'Reilly C, Ullman JS, Hawryluk GW, Bell
+MJ, et al. Guidelines for the management of severe traumatic brain
+References injury. 4th ed. Neurosurgery. 2017;80:6-15.
+10. Steiner LA, Czosnyka M, Piechnik K, Smielewski P, Chatfield D,
+Menon DK, et al. Continuous monitoring of cerebrovascular pres-
+1. Brain Trauma Foundation; American Association of Neurological sure reactivity allows determination of optimal cerebral perfusion
+Surgeons; Joint Section on Neurotrauma and Critical Care, pressure in patients with traumatic brain injury. Crit Care Med.
+et al. Guidelines for cerebral perfusion pressure. J Neurotrauma. 2002;30:733-8.
+1996;13:693-697. 11. Aries MJ, Czosnyka M, Budohoski KP, Steiner LA, Lavinio A,
+2. Brain Trauma Foundation, American Association of Neurological Kolias AG, et al. Continuous determination of optimal cere-
+Surgeons, Congress of Neurological Surgeons, Joint Section on bral perfusion pressure in traumatic brain injury. Crit Care Med.
+Neurotrauma and Critical Care, AANS/CNS, et al. Guidelines for 2012;40:2456-63.
+---

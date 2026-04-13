@@ -1,0 +1,194 @@
+
+
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+### PRIMARY GOAL
+Extract a COMPREHENSIVE, evidence-grounded ontology from the text.
+Every item must have verbatim evidence from the source text.
+Be thorough — extract every clinical concept the text explicitly names.
+
+### RULES
+
+1. EVIDENCE FIRST
+- EVERY class, relation, and hierarchy edge MUST include an `evidence` field.
+- `evidence` must be an EXACT verbatim fragment COPIED from the text — do NOT paraphrase, summarize, truncate, or rephrase.
+- Copy the sentence or clause exactly as it appears, preserving original wording, word order, and punctuation.
+- If you cannot find an exact quote in the text, OMIT the item entirely.
+
+2. SOURCE FIDELITY
+- Extract concepts and relations stated or clearly implied in the text.
+- You may use standard medical knowledge for hierarchy (e.g. TBI is a type of Brain Injury).
+- Use short noun-phrase labels only.
+- Do NOT output sentence fragments, clauses, or paraphrases as class labels.
+
+3. EXTRACTION SCOPE
+Extract ALL clinical and biomedical content: conditions, diseases, injuries, syndromes, secondary insults, physiological parameters, monitoring variables, treatments/therapies/interventions/drugs, outcomes, assessments, scores, laboratory values, nursing interventions, surgical procedures, medical devices, sensors, clinical guidelines, management protocols, and data categories (Monitoring Data, Demographic Data, Admission Data, Treatment Data, Outcome Data, Core Monitoring Parameter, Optional Monitoring Parameter, Baseline Therapy, etc.).
+Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+
+4. CLASS RULES
+- Prefer concrete clinical labels from the text.
+- Prefer specific labels over abstract ones (e.g. prefer 'Heart Rate' over 'Monitoring Data' when both are mentioned). If an allowed class list is provided, you may use those labels; otherwise avoid abstract categories unless the text explicitly names them.
+- Keep labels close to the wording in the text.
+- Do not invent CamelCase labels.
+
+5. LABEL MAPPING
+- If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+  Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+- For other abbreviations, expand to their full clinical name as used in the text.
+
+6. STRUCTURAL COMPLETENESS
+- When the text mentions specific clinical items, also extract their general category if the text supports it.
+- Use the text’s own categories and groupings — do not impose an external hierarchy.
+
+7. RELATION RULES
+- Extract relations when the text clearly states a connection between two extracted class labels.
+- Domain and range must both be extracted class labels from the same text.
+- Prefer concise, domain-appropriate relation labels (e.g. treats, targets condition, has monitoring data).
+- If an allowed relation list was provided, use those labels. Otherwise, prefer labels that reflect the text’s wording.
+- CRITICAL: Do NOT use 'includes', 'consists of', 'comprises', 'contains', 'encompasses', 'is a type of', 'is a kind of', 'categorized as', 'classified as', 'belongs to', or 'part of' as relation labels. If X includes/contains Y, model it as HIERARCHY: Y subClassOf X. If A is a type of B, model it as HIERARCHY: A subClassOf B.
+
+8. HIERARCHY RULES
+- Extract hierarchy edges when the text supports them. Look for:
+  - Explicit cues: "is a", "type of", "kind of", "such as", "include:", "includes:", "consists of", "comprises"
+  - Implicit grouping: items listed under a heading or category
+  - Medical knowledge: when both concepts are in the text and one is clearly a subtype (e.g. TBI is a type of Brain Injury)
+- For enumeration cues, extract EACH listed item as a subclass.
+- NEVER output long clauses, verb phrases, or sentence fragments as subclass or superclass.
+- If either side is not a clean noun phrase, omit the hierarchy edge.
+
+### REASONING STEP
+Before producing JSON, mentally scan the text for:
+(1) every named clinical concept,
+(2) explicit relations between them,
+(3) hierarchy cues (such as, is a, type of, include:).
+Then output only items with verbatim evidence.
+
+### OUTPUT FORMAT (JSON ONLY)
+Return ONLY valid JSON.
+Do not include markdown, explanations, headings, or commentary.
+
+Use exactly this structure:
+{
+  "classes": [
+    {"label": "string", "definition": "one-sentence scope note describing what this class represents in the domain", "evidence": "string"}
+  ],
+  "relations": [
+    {"label": "string", "domain": "string", "range": "string", "definition": "one-sentence description of what this relation means between domain and range", "evidence": "string"}
+  ],
+  "hierarchy": [
+    {"subClass": "string", "superClass": "string", "evidence": "string"}
+  ]
+}
+
+9. DEFINITION RULES
+- Every class and relation MUST include a `definition` field: a concise one-sentence scope note.
+- The definition should clarify what the class represents or what the relation means in the clinical domain.
+- Ground definitions in the text where possible, but you may use standard medical knowledge to write a clear scope note.
+- Example class definition: "A physiological parameter measuring the pressure inside the cranium, used to monitor patients with traumatic brain injury."
+- Example relation definition: "Links a patient to the set of continuously recorded physiological measurements captured during their ICU stay."
+
+### NON-GOAL EXAMPLE
+The following sentence should produce NO extraction:
+Text: "The study was funded by the BrainIT Group and data were collected from 22 centres across 11 countries."
+Expected output: {"classes": [], "relations": [], "hierarchy": []}
+Reason: Funding, governance, study logistics, and multi-centre coordination are out of scope — only extract clinical concepts.
+
+### SELF-CHECK (before finalising output)
+- Is every label a clinical TYPE (not an instance, a person's name, or a study name)?
+- Are there any duplicate or synonym labels? Merge them.
+- Do all relation domain/range labels match extracted class labels?
+- Are there any circular hierarchy edges (A subClassOf B AND B subClassOf A)? Remove them.
+- Does every evidence field contain a verbatim quote from the text?
+- Do not invent concepts not present in the text.
+
+---
+TEXT TO ANALYZE:
+Traumatic brain injury (TBI) patients Decompressive craniectomy (DC) -% (IQR)
+who underwent Decompressive craniectomy (DC) as a last-tier intervention in two observational co­ Glasgow Outcome Scale (GOSE) d
+horts reflecting actual practice were compared with outcomes from the Unfavorable (1 57.1 (12/ 43.8 (7/16) 51.4 (19/ 72.6 (146/
+surgical patients in the RESCUEicp trial. The RESCUEicp trial similarly - 4) -% (no.) 21) 56.2 (9/16) 37) 201)
+favorable 42.9 (9/21) 48.6 (18/ 27.4 (55/
+applied Decompressive craniectomy (DC) as a last-tier intervention. However, in its study context (5 - 8) -% (no.) 37) 201)
+following a strict consecutive protocol that differs from pragmatic de­
+a
+cisions in real and actual practice, with e.g. much stricter Mean intracranial pressure (ICP) criteria For the (IQR) = Interquartile range.
+before proceeding with decompression and with a design that tends to
+
+B. Decraene et al. Injury 54 (2023) 110911
+
+b
+Pre-Decompressive craniectomy (DC) refers to a measurement period of ideally 6 h pre-Decompressive craniectomy (DC) (and 7 days The investigators of the RESCUEicp trial should be commended for
+post-DC) in all non-RCT patients and to the period after randomization and their thorough efforts and well-balanced trial protocol. From their re­
+before Decompressive craniectomy (DC) in RESCUEicp patients, which was between 4 and 6 h. For the UHL sults, they concluded that Decompressive craniectomy (DC) resulted in lower mortality rates. Still, at
+patients the average available Mean intracranial pressure (ICP)/Cerebral Perfusion Pressure (CPP) measurement duration was 5.5 h pre-Decompressive craniectomy (DC) the same time, there was an increase in a vegetative state and severe
+and 6 days and 6 h post-Decompressive craniectomy (DC). For Brain-IT patients this was 6 h pre-Decompressive craniectomy (DC) and 5 days
+disability without clear and net improvement of good outcomes.
+and 5 h post-Decompressive craniectomy (DC).
+c Nevertheless, they have been cautious in their interpretation and
+The six Mean intracranial pressure (ICP) and Cerebral Perfusion Pressure (CPP) related indexes could be calculated for 10 patients (6
+UHL and 4 Brain-IT) pre-Decompressive craniectomy (DC) and 30 patients (18 UHL patients and 12 Brain-IT)
+resulting messages, advocating to use the results in the counseling of
+post-Decompressive craniectomy (DC), for which minute-by-minute data were available. The two Pressure Reactivity Index (PRx) indexes families with respect for the quality of life and ethical considerations
+were only available for the UHL patients. The mean pre-Decompressive craniectomy (DC) Mean intracranial pressure (ICP) and Cerebral Perfusion Pressure (CPP) values. Still, the present study results highlight that transferring outcomes
+were calculated for 4 more UHL patients with only paired end-hourly data obtained in strict RCT settings to the pragmatic actual pragmatic setting
+available (and thus for 14 patients pre-Decompressive craniectomy (DC) in total). The intracranial hyperten­ of daily practice is not an easy and unambiguous task.
+sion index 20 and 25 are the number of minute-by-minute measures of Mean intracranial pressure (ICP) of Furthermore, it could be noticed that both IMPACT and CRASH
+more than respectively 20 and 25 mm Hg divided by the total number of mea­ scores were adequate predictors of the outcome in the non-RCT patients
+surements, multiplied by 100. Analogue is the cerebral hypoperfusion index 60, with estimates approximating reality. IMPACT scores predicted the
+which is the number of minute-by-minute measures of cerebral perfusion pres­ median chance of an unfavorable 6-months outcome at six months be­
+sure of less than 60 mm Hg divided by the total number of measurements,
+tween 35% and 40% in our patients (depending on the tool's modality).
+multiplied by 100; and the Pressure Reactivity Index (PRx) index 0 being the relative number of minutes
+For the CRASH score, this was estimated to be around 46%. This resulted
+with a negative Pressure Reactivity Index (PRx). All those indexes for a period of 6 h pre-Decompressive craniectomy (DC) and 7 days postDC. In the RESCUEicp only end-hourly data were used. in fairly similar percentages as the real ones. This means that, even when
+d
+All 8 outcome categories of the Glasgow Outcome Scale (GOSE) are summed up in the text. A more decompressive surgery is performed or thiopental is administered, the
+extensive description is provided in the Supplementary Appendix. prognostic models are certainly still relevant based on admission data.
+Furthermore, the fairly similar prediction scores show a more nuanced
+evaluate barbiturate administration and Decompressive craniectomy (DC) rather as two alternative picture of our two sub-cohorts (UHL and BRAIN-it) and allow better
+methods. At six months follow-up similar mortality rates of approxi­ inter-comparison as a the limitations will be further explained. There
+mately one quarter were seen in both groups. However, almost twice as was a trend towards more intense/extensive treatment pre-Decompressive craniectomy (DC) being
+many patients had a favorable outcome in the non-RCT setting (48.6%) associated with better outcome (except for the Therapy Intensity Level (TIL) 4 score). This seems
+compared to the RCT setting (27.4%). Patient and injury characteristics to align with the observations that Decompressive craniectomy (DC) has its best beneficial effect as a
+did not differ between the two settings, except for age (higher and hence third-tier option. Another factor, however, available only for the UHL
+a disadvantage for the non-RCT group) and The median initial Glasgow Motor Score (GMS) (lower and therefore a subgroup, is the technique used. In this UHL subgroup, hemi­
+disadvantage for the RESCUEicp group). Furthermore, non-RCT patients craniectomies vs. bifrontal procedures were relatively more likely to be
+had a higher mean Mean intracranial pressure (ICP) pre-Decompressive craniectomy (DC) and spent relatively more time with an performed. Although one could argue that the latter indicate a more
+Mean intracranial pressure (ICP) above 20 mmHg in the hours pre-Decompressive craniectomy (DC). More patients had combina­ severe Introduction TBI management
+
+Traumatic brain injury (TBI), severity is already taken into account through other pa­
+tions of third-tier interventions in the non-RCT setting. However, similar rameters such as Glasgow Coma Scale (GCS), pre-Decompressive craniectomy (DC) values, ... .
+proportions had combined Decompressive craniectomy (DC) and barbiturates in the favorable and The current study has several limitations. First, the non-RCT group
+unfavorable outcome groups in the non-RCT setting. In other words, consists of two cohorts (UHL and BrainI-IT) that were investigated in
+there is no clear explanation for the markedly better outcomes in the two different time episodes, slightly differ in some baseline character­
+non-RCT setting, except maybe for the setting itself. istcs, and still has a low sample size. Also with regard to some outcome
+A similar observation was made when investigating the efficacy of parameters, the values in both subgroups sometimes differ. We under­
+surgical evacuation of spontaneous intracerebral hemorrhage. Two took the present analysis since these patients were very well docu­
+RCTs (STICH I and II) showed no significant benefit of early surgery mented. Moreover, these patients not only reflect the characteristic
+versus conservative management. However, a meta-analysis of inter-patient and outcome variation in the daily clinical setting, but,
+10 prospective non-RCT series showed a substantial reduction in de­ when combined, are very similar in baseline characteristics to the
+pendency in the surgical cohorts, which may in a similar way be RESCEUicp surgical cohort. Second, two non-matched groups are being
+due to the pragmatic clinical setting in these series, including individual compared. Another point of attention is the follow-up limited to six
+decision-making and individualized treatment. In a new analysis of the months. While it is known that the majority of the recovery process takes
+International Surgical
+Trial in Intracerebral Haemorrhage (STICH) I & II data using new non-parametric methods, subgroups could place during these first months, some may argue that patients may not
+be identified that did benefit from surgery, and were mixed with patients have fully recovered neurologically after this time period. How­
+that were harmed in the initial analyses. The same may be true for ever, in the recently published long-term results (24 months) of the
+RESCUEicp. Furthermore, despite being difficult to compare, other RESCUEicp, surgical patients with traumatic intracranial hypertension
+non-RCT studies reported more favorable clinical outcomes after Decompressive craniectomy (DC) as were more likely to improve than patients in the standard medical
+well. treatment group.. Further, outcome was only evaluated in terms of
+
+Fig. 1. Glasgow Outcome Scale (GOSE) distribution (and barbiturate use
+for UHL + Information Technology (BrainIT) patients).
+The absolute number of patients was displayed
+above each bar. For non-RCT patients, the ab­
+solute number of patients who did and did not
+receive thiopental was shown separately in the
+part of the bar with the corresponding color.
+'
+Decompressive craniectomy (DC) + thiopental' can be referring to barbitu­
+rate administration either before, during or
+after Decompressive craniectomy (DC). 0-values were not written down.
+---

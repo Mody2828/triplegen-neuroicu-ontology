@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Dict
 
@@ -54,6 +55,89 @@ def ontology_from_dict(data: Dict) -> Ontology:
         )
     ont.hierarchy = list(data.get("hierarchy") or [])
     return ont
+
+
+def _to_uri_local(label: str) -> str:
+    """Convert a human label to a URI-safe local name (PascalCase)."""
+    # Remove parenthetical content, strip
+    label = re.sub(r"\([^)]*\)", "", label).strip()
+    # Split on non-alphanumeric, capitalise each word, join
+    parts = re.split(r"[^a-zA-Z0-9]+", label)
+    return "".join(p.capitalize() for p in parts if p)
+
+
+def ontology_to_ttl(data: Dict) -> str:
+    """Convert an ontology dict to Turtle (TTL) format string."""
+    ns = "http://example.org/triplegen#"
+    lines = [
+        f"@prefix : <{ns}> .",
+        "@prefix owl: <http://www.w3.org/2002/07/owl#> .",
+        "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .",
+        "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .",
+        "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .",
+        "",
+        f"<{ns}> rdf:type owl:Ontology .",
+        "",
+    ]
+
+    # Classes
+    class_uris: Dict[str, str] = {}
+    for c in data.get("classes", []):
+        label = (c.get("label") or "").strip()
+        if not label:
+            continue
+        local = _to_uri_local(label)
+        if not local:
+            continue
+        class_uris[label] = local
+        lines.append(f":{local} rdf:type owl:Class ;")
+        lines.append(f'    rdfs:label "{label}" .')
+        defn = c.get("definition")
+        if defn:
+            safe = str(defn).replace('"', '\\"').replace("\n", " ")
+            # Re-emit with comment (rdfs:comment)
+            lines[-1] = lines[-1][:-2] + " ;"
+            lines.append(f'    rdfs:comment "{safe}" .')
+        lines.append("")
+
+    # Hierarchy (subClassOf)
+    for h in data.get("hierarchy", []):
+        sub = (h.get("subClass") or "").strip()
+        sup = (h.get("superClass") or "").strip()
+        sub_uri = class_uris.get(sub) or _to_uri_local(sub)
+        sup_uri = class_uris.get(sup) or _to_uri_local(sup)
+        if sub_uri and sup_uri:
+            lines.append(f":{sub_uri} rdfs:subClassOf :{sup_uri} .")
+
+    if data.get("hierarchy"):
+        lines.append("")
+
+    # Object properties (relations)
+    seen_props: set = set()
+    for r in data.get("relations", []):
+        rlabel = (r.get("label") or "").strip()
+        domain = (r.get("domain") or "").strip()
+        range_ = (r.get("range") or "").strip()
+        if not rlabel:
+            continue
+        prop_local = _to_uri_local(rlabel)
+        # Declare property once
+        if prop_local not in seen_props:
+            seen_props.add(prop_local)
+            lines.append(f":{prop_local} rdf:type owl:ObjectProperty ;")
+            lines.append(f'    rdfs:label "{rlabel}" .')
+            lines.append("")
+        # Domain/range restriction as annotation
+        if domain and range_:
+            d_uri = class_uris.get(domain) or _to_uri_local(domain)
+            r_uri = class_uris.get(range_) or _to_uri_local(range_)
+            if d_uri:
+                lines.append(f":{prop_local} rdfs:domain :{d_uri} .")
+            if r_uri:
+                lines.append(f":{prop_local} rdfs:range :{r_uri} .")
+
+    lines.append("")
+    return "\n".join(lines)
 
 
 def write_summary(path: str | Path, ontology: Ontology) -> None:

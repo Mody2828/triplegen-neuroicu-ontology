@@ -1,0 +1,453 @@
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+Suggested concepts (pre-identified by biomedical NER in this text): hypotension, head injury, TBI, sepsis.
+These are entity mentions detected in this chunk. Use them as additional evidence that a concept is present, but only extract labels from the allowed class list above.
+
+Candidate domain terms (contextual hints from this chunk — use only if supported by the text): blood pressure; heart rate; hypotension; monitoring; outcome; Clinical Monitoring; 0.2 0.5 DT; 0.5 0.2 DT; AUC; AUC 0.3; NoFPC; ROC
+
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing an EXACT VERBATIM sentence or clause COPIED from the text — do NOT paraphrase, summarize, truncate, or rephrase. Copy the text exactly as it appears, preserving original wording, word order, and punctuation. If you cannot find an exact quote, OMIT the item.
+
+3. **Extraction Scope:** Extract clinical and biomedical content: conditions, physiological parameters, monitoring variables, treatments/therapies/interventions, outcomes, assessments, laboratory values, nursing interventions, surgical procedures, and clinical dataset categories when explicitly named.
+   Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+   If a sentence or paragraph is mainly about these excluded topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+6. **Label Mapping Rule:** If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+   Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+   For other abbreviations, expand to their full clinical name as used in the text.
+
+7. **Structural Completeness Rule:** When the text mentions specific clinical items, also extract their general category if the text supports it.
+   For example, if the text discusses 'ventilation, sedation, fluids' as therapies, also extract the general class 'Therapy' or 'Baseline Therapy' if the text uses that grouping.
+   Use the text's own categories and groupings — do not impose an external hierarchy.
+
+**Default priority: classes first, then relations.** Extract relations when the text clearly states a connection between two concepts — both domain and range must be extracted classes. If a phase instruction below overrides this priority, follow the phase instruction.
+
+**Completeness:** Extract every distinct clinical concept the text names — err on the side of inclusion when evidence exists.
+
+### CURRENT TASK: Phase 1 — COMPREHENSIVE CLASS EXTRACTION
+Extract all clinical and biomedical classes mentioned in the text.
+
+### CHAIN-OF-THOUGHT (follow these steps before producing output)
+1. Read each paragraph and identify every clinical noun phrase (conditions, parameters, therapies, assessments, outcomes, devices, data categories).
+2. For each candidate, classify it: Is it a clinical condition? A physiological parameter? A treatment? An assessment? A laboratory value? A nursing intervention? A data category? A device or sensor?
+3. Check: does the text provide a verbatim phrase you can cite as evidence?
+4. If yes, include it. If the concept is purely organisational, governance, or publication metadata, skip it.
+
+### CONCEPT TYPES TO LOOK FOR
+  - Clinical conditions, diseases, injuries, syndromes, secondary insults
+  - Physiological parameters and monitoring variables (e.g. ICP, MAP, HR, SpO2)
+  - Treatments, therapies, interventions, drugs, medications
+  - Surgical procedures and clinical procedures
+  - Clinical assessments, scores, and scales (e.g. GCS, GOSe, pupil assessment)
+  - Patient outcomes and outcome measures
+  - Laboratory values and test categories (e.g. blood gases, biochemistry)
+  - Nursing interventions and bedside care (e.g. suctioning, sedation)
+  - Medical devices and sensors
+  - Data categories and abstract grouping classes (e.g. Monitoring Data, Therapy, Condition, Outcome, Core Monitoring Parameter, Optional Monitoring Parameter, Baseline Therapy, Demographic Data, Admission Data, Treatment Data, Outcome Data)
+  - Clinical guidelines and management protocols
+
+### LABEL GUIDANCE
+  - Use short, clean noun-phrase labels.
+  - Expand common abbreviations: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+  - For other abbreviations, expand to their full clinical name.
+
+### STRUCTURAL COMPLETENESS
+When the text mentions specific clinical items, also extract their general category if the text supports it. Use the text's own categories and groupings. For example, if the text lists 'heart rate, ICP, MAP' under 'core monitoring parameters', extract BOTH the individual parameters AND 'Core Monitoring Parameter' as a class.
+
+### DEFINITION REQUIREMENT
+Every class MUST include a `definition` field: a precise one-sentence scope note that captures what this concept means IN THE CONTEXT OF THIS TEXT.
+Read how the text uses this concept and write a definition that includes:
+  (1) What TYPE of concept it is (condition, parameter, therapy, assessment, lab value, device, data category).
+  (2) What it MEASURES, TREATS, MONITORS, or DESCRIBES.
+  (3) Its ROLE or PURPOSE as described in this specific text.
+Ground the definition in the text context first. Only fall back to general medical knowledge if the text provides no contextual clues.
+BAD (too vague):  "A clinical parameter used in patient care."
+GOOD (text-grounded): "A physiological parameter measuring pressure inside the cranium, recorded minute-by-minute as part of the BrainIT core monitoring dataset to detect secondary insults in TBI patients."
+Example: {"label": "Intracranial Pressure", "definition": "A core monitoring parameter measuring pressure inside the cranium, recorded continuously to detect intracranial hypertension in traumatic brain injury patients.", "evidence": "..."}
+
+### EXTRACTION PRINCIPLE
+Extract every clinical concept the text explicitly names. Do not invent concepts not present in the text. Each concept needs a verbatim evidence quote from the source.
+
+### SELF-CHECK (before finalising output)
+- Is every label a clinical TYPE (not an instance or a person's name)?
+- Are there any duplicate or synonym labels? Merge them.
+- Does every evidence field contain a verbatim quote from the text?
+
+Output JSON with keys classes, relations, hierarchy. Set relations and hierarchy to empty arrays.
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "definition": "one-sentence scope note describing what this class represents in the domain", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "definition": "one-sentence description of what this relation means between domain and range", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Definition rule:** Every class and relation MUST include a `definition` field: a concise one-sentence scope note clarifying what the class represents or what the relation means in the clinical domain. Ground definitions in the text where possible, but you may use standard medical knowledge to write a clear scope note.
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+**REASONING STEP:** Before producing JSON, mentally scan the text for: (1) every named clinical concept, (2) explicit relations between them, (3) hierarchy cues (such as, is a, type of, include:). Then output only items with verbatim evidence.
+
+---
+--- Retrieved examples (3) ---
+
+Text: This is the minimum minute by minute monitoring data required for inclusion in the BrainIT Database and include: Heart Rate (specifying source: ECG or Pulse Oximetry), Respiration Rate (sources: impedance plethmography or ventilator), Mean Arterial Pressure, mean ICP, Pulse Oximetry (SaO2) and Temperature (sources: rectal=oesophageal= bladder=skin.) However, additional variables: Central Venous Pressure (CVP), EtCO2, SjO2, TCD, PbrO2, Brain Temperature, Microdialysis. . . will also be included in the database if they are monitored, in a given patient, as part of their usual clinical management.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate (specifying source: ECG or Pulse Oximetry)",
+      "definition": "The number of cardiac contractions per minute, a core physiological monitoring parameter in neuro-ICU."
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate (sources: impedance plethmography or ventilator)",
+      "definition": "The number of breaths per minute, measured via impedance plethysmography or ventilator."
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "Mean Arterial Pressure",
+      "definition": "The average arterial blood pressure during a cardiac cycle, a key haemodynamic parameter."
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "mean ICP",
+      "definition": "The pressure inside the cranium, continuously monitored to detect intracranial hypertension in TBI patients."
+    },
+    {
+      "label": "SaO2",
+      "evidence": "Pulse Oximetry (SaO2)",
+      "definition": "Arterial oxygen saturation measured by pulse oximetry, indicating blood oxygenation levels."
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature (sources: rectal=oesophageal= bladder=skin.)",
+      "definition": "Core body temperature measured at rectal, oesophageal, bladder, or skin sites."
+    },
+    {
+      "label": "CVP",
+      "evidence": "Central Venous Pressure (CVP)",
+      "definition": "Central venous pressure, measuring the pressure in the thoracic vena cava near the right atrium."
+    },
+    {
+      "label": "EtCO2",
+      "evidence": "EtCO2",
+      "definition": "End-tidal carbon dioxide concentration, reflecting ventilation adequacy."
+    },
+    {
+      "label": "SjO2",
+      "evidence": "SjO2",
+      "definition": "Jugular venous oxygen saturation, an indicator of cerebral oxygen consumption."
+    },
+    {
+      "label": "TCD",
+      "evidence": "TCD",
+      "definition": "Transcranial Doppler ultrasonography, used to assess cerebral blood flow velocity."
+    },
+    {
+      "label": "PbrO2",
+      "evidence": "PbrO2",
+      "definition": "Partial pressure of brain tissue oxygen, measuring local cerebral oxygenation."
+    },
+    {
+      "label": "Brain Temperature",
+      "evidence": "Brain Temperature",
+      "definition": "Temperature measured directly within brain tissue, distinct from core body temperature."
+    },
+    {
+      "label": "Microdialysis",
+      "evidence": "Microdialysis",
+      "definition": "A sampling technique for measuring extracellular brain chemistry metabolites."
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+
+Text: Vital monitoring data are bedside monitoring data which are collected at regular intervals with a minimum sampling rate of once per minute. The parameters monitored include: BP (blood pressure: mmHg; systolic, diastolic, mean), ICP (intracranial pressure: mmHg; mean), CPP (cerebral perfusion pressure: mmHg; mean), HRT (heart rate: bpm), SaO2 (arterial oxygen saturation: %; pulse oximetry), Tc (core temperature: degrees C).
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Monitoring Data",
+      "evidence": "Vital monitoring data are bedside monitoring data",
+      "definition": "Continuously recorded physiological measurements collected from bedside monitors."
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "BP (blood pressure: mmHg; systolic, diastolic, mean)",
+      "definition": "The average arterial blood pressure during a cardiac cycle, a key haemodynamic parameter."
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "ICP (intracranial pressure: mmHg; mean)",
+      "definition": "The pressure inside the cranium, continuously monitored to detect intracranial hypertension in TBI patients."
+    },
+    {
+      "label": "Cerebral Perfusion Pressure (CPP)",
+      "evidence": "CPP (cerebral perfusion pressure: mmHg; mean)",
+      "definition": "The net pressure gradient driving blood flow to the brain, calculated as MAP minus ICP."
+    },
+    {
+      "label": "Heart Rate",
+      "evidence": "HRT (heart rate: bpm)",
+      "definition": "The number of cardiac contractions per minute, a core physiological monitoring parameter in neuro-ICU."
+    },
+    {
+      "label": "SaO2",
+      "evidence": "SaO2 (arterial oxygen saturation: %; pulse oximetry)",
+      "definition": "Arterial oxygen saturation measured by pulse oximetry, indicating blood oxygenation levels."
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Tc (core temperature: degrees C)",
+      "definition": "Core body temperature measured at rectal, oesophageal, bladder, or skin sites."
+    },
+    {
+      "label": "Patient",
+      "evidence": "bedside monitoring data",
+      "definition": "An individual receiving neurointensive care for traumatic brain injury."
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+
+Text: Data collection in both cohorts included baseline risk factors (age, gender, admission GCS, admission pupil reactivity), minute-by-minute ICP and mean arterial blood pressure (MAP) monitoring data, and Glasgow Outcome Score (GOS) at 6 months. The low-frequency autoregulation index (LAx) is computed as a moving minute-by-minute correlation of previous values of ICP and MAP.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "GCS Assessment",
+      "evidence": "admission GCS",
+      "definition": "Glasgow Coma Scale assessment, a standardised neurological score for consciousness level."
+    },
+    {
+      "label": "Pupil Assessment",
+      "evidence": "admission pupil reactivity",
+      "definition": "Clinical evaluation of pupil size and reactivity to light as a neurological indicator."
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "minute-by-minute ICP",
+      "definition": "The pressure inside the cranium, continuously monitored to detect intracranial hypertension in TBI patients."
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "mean arterial blood pressure (MAP)",
+      "definition": "The average arterial blood pressure during a cardiac cycle, a key haemodynamic parameter."
+    },
+    {
+      "label": "Monitoring Data",
+      "evidence": "monitoring data",
+      "definition": "Continuously recorded physiological measurements collected from bedside monitors."
+    },
+    {
+      "label": "GOSe Outcome",
+      "evidence": "Glasgow Outcome Score (GOS) at 6 months",
+      "definition": "Extended Glasgow Outcome Scale score at 6 months post-injury, measuring functional recovery."
+    },
+    {
+      "label": "Derived Parameter",
+      "evidence": "low-frequency autoregulation index (LAx) is computed",
+      "definition": "A calculated variable derived from primary monitoring parameters."
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+TEXT TO ANALYZE:
+Journal of Clinical Monitoring and Computing (2019) 33:39-51 43
+
+3.3 Predictive accuracy: clinical studies
+test set, the project moved to the clinical environment with
+Age Demographic a prospective study collecting data using HYPO-NET on 30
+Sex Demographic patients (Phase 1). The ROC curve for this study is shown
+Mean arterial blood pressure Mean on the left hand side of Fig. 4. The results for the clinically
+Mean arterial blood pressure Slope interesting region of false positive rate 0.3-0.4 are, unuSystolic arterial blood pressure Mean sually, slightly better than predicted on the test set despite
+Systolic arterial blood pressure Slope being conducted in a live clinical setting. Improving upon a
+Heart rate Mean training model performance in a clinical setting is unusual
+Heart rate Slope and so we felt it was important to assess the repeatability
+Heart rate Standard deviation of this result. Thus, the next task was to see if we could
+Input features for the model selected for the clinical studies. The repeat these results on another group of patients (Phase 2).
+mean, slope and standard deviation features were calculated over two Using a study design given in Hanfelt, 49 patients were
+sequential time windows for the seven physiological variables: from recruited. Data from ten patients was excluded due to prob30 to 15 min before the prediction time, and from 15 min before up lems with data collection. The results of the repeat study
+to the prediction time. This produced two demographic and 14 physiological variables as inputs to the neural network (Phase 2) are shown on the right hand side of Fig. 4. Again,
+the results are slightly better than the model test set and
+similar to the Phase 1 study.
+We note that the AUC scores for the two clinical studies
+could achieve a target for sensitivity of 30% with specific- are less than the training set. This is a criticism of using
+ity at around 90%. Using the ROCR (R) package, an area the AUC metric and is noted in the literature that
+under curve value of 0.74 was generated. there are problems in comparing classifier performance
+
+44 Journal of Clinical Monitoring and Computing (2019) 33:39-51
+
+old range of 0.2-0.5 with point estimates and confidence
+1.0 intervals as error bars on the results trace. It can be seen
+from Fig. 6 that using a decision threshold of 0.4, with false
+positive techniques applied, the target sensitivity (> 30%)
+0.8 and specificity (> 90%) was achieved.
+
+3.4 Precision recall plot: clinical data
+0.6
+Sensitivity
+
+An alternative presentation of the predictive performance
+of the model is shown in Fig. 7. This plot shows precision
+aka: positive predictive value (PPV), defined as true posi-
+0.4
+tives/(true positives + false positives) on the y axis versus
+recall aka: sensitivity, defined as true positives/(true posi-
+tives + false negatives) on the x-axis. Although Fig. 7 indi-
+0.2
+cates low values of precision in the likely operating range of
+AUC: 0.74 0.3-0.4 for recall (sensitivity), the plot, similar to the ROC
+presentation also suggests that > 30% of the warnings would
+0.0 be clinically relevant.
+0.0 0.2 0.4 0.6 0.8 1.0
+3.5 Episode warning time: clinical data
+False Positive Rate (1-Specificity)
+
+Finally, Fig. 8 below presents the warning time for patients
+Fig. 3 Predictive accuracy from Bayesian artificial neural networks (BANN) test set. The decision threshold settings are marked with the crossed circles. The decision thresh- where the system was able to provide early warning of the
+olds shown start at 0.1 at the upper most mark and increase to 0.4 in onset of hypotension.
+the lower left part of the trace. Using the ROCR (R) package, an area
+under curve value of 0.74 was generated
+4 Discussion
+particularly when the ROC curves cross. For our purposes
+we are interested in false positive rates of between 0.3 It is known that the cumulative duration of arterial hypotenand 0.4. sive events is a prognostic factor for their clinical outcome
+Combining the prediction data from the prospective following a head injury. The importance of reducing
+pilot (Phase 1) and repeat pilot (Phase 2) studies produces the burden of hypotension is not restricted to the Abstract
+Traumatically brain injured (TBI) poputhe ROC curve plotted in Fig. 5. lation; for with the medical management of sepsis, it has
+been shown that duration of hypotension before initiation
+
+Fig. 4 ROC plots from clinical Phase 1, n=30 Phase 2, n=39
+studies. The solid line with
+filled circles show the results 1.0 1.0
+obtained with no false positive
+correction (FPC) applied. The
+dashed line with filled triangles 0.8 0.8
+show the results when The false positive correction (FPC)
+techniques are used. This results NoFPC NoFPC
+Sensitivity
+
+sive events is a prognostic factor for their clinical outcome
+Combining the prediction data from the prospective following a head injury. The importance of reducing
+pilot (Phase 1) and repeat pilot (Phase 2) studies produces the burden of hypotension is not restricted to the Abstract
+Traumatically brain injured (TBI) poputhe ROC curve plotted in Fig. 5. lation; for with the medical management of sepsis, it has
+been shown that duration of hypotension before initiation
+
+Sensitivity
+
+in a better sensitivity for a given 0.6 0.6
+WithFPC WithFPC
+test set results are shown with 0.4 0.4
+the dashed dot line and crossed
+circles for comparison AUC AUC
+0.2 TestSet: 0.74 0.2 TestSet: 0.74
+NoFPC: 0.67 NoFPC: 0.64
+0.0 WithFPC: 0.68 0.0 WithFPC: 0.67
+
+0.0 0.2 0.4 0.6 0.8 1.0 0.0 0.2 0.4 0.6 0.8 1.0
+False Positive Rate (1-Specificity) False Positive Rate (1-Specificity)
+
+Journal of Clinical Monitoring and Computing (2019) 33:39-51 45
+
+ROC Plot, Combined Phase 1 and 2 Data ROC Plot, Combined Phase 1 and 2 Data
+
+1.0 0.7 The false positive correction (FPC)
+NoFPC
+0.8 0.6 WithFPC
+
+0.6
+0.5 0.2 DT
+Sensitivity
+
+Sensitivity
+The false positive correction (FPC)
+NoFPC 0.4
+0.4
+WithFPC
+
+AUC 0.3
+
+lation; for with the medical management of sepsis, it has
+been shown that duration of hypotension before initiation
+
+Sensitivity
+
+in a better sensitivity for a given 0.6 0.6
+WithFPC WithFPC
+test set results are shown with 0.4 0.4
+the dashed dot line and crossed
+circles for comparison AUC AUC
+0.2 TestSet: 0.74 0.2 TestSet: 0.74
+NoFPC: 0.67 NoFPC: 0.64
+0.0 WithFPC: 0.68 0.0 WithFPC: 0.67
+
+0.0 0.2 0.4 0.6 0.8 1.0 0.0 0.2 0.4 0.6 0.8 1.0
+False Positive Rate (1-Specificity) False Positive Rate (1-Specificity)
+
+Journal of Clinical Monitoring and Computing (2019) 33:39-51 45
+
+ROC Plot, Combined Phase 1 and 2 Data ROC Plot, Combined Phase 1 and 2 Data
+
+1.0 0.7 The false positive correction (FPC)
+NoFPC
+0.8 0.6 WithFPC
+
+0.6
+0.5 0.2 DT
+Sensitivity
+
+Sensitivity
+The false positive correction (FPC)
+NoFPC 0.4
+0.4
+WithFPC
+
+0.2 TestSet: 0.74
+NoFPC: 0.65
+0.2 0.5 DT
+WithFPC: 0.68
+0.0
+
+0.0 0.2 0.4 0.6 0.8 1.0
+0.0 0.1 0.2 0.3 0.4
+False Positive Rate (1-Specificity)
+False Positive Rate (1-Specificity)
+
+Fig. 5 ROC plot from clinical data. The decision threshold markers indicate settings from 0 in the top right to 1 at the bottom left. Fig. 6 ROC plot with error bars. Using combined phase 1 and 2 cliniThe step size is 0.1. Decision threshold markers: crossed circles for cal data, this plot is a zoomed in version of Fig. 4 showing error bars
+Bayesian artificial neural networks (BANN) test set data; solid circle for clinical data with no false positive for the decision threshold (DT) settings of 0.2-0.5
+correction (FPC); solid triangle for clinical data with false positive
+correction
+AvertIT Precision Recall Plot
+---

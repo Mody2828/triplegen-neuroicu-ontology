@@ -1,0 +1,497 @@
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+Suggested concepts (pre-identified by biomedical NER in this text): Traumatic brain injury, TBI, impaired cerebral, intracranial hypertension, UHL Brain- UHL & RESCUEicp
+patients' as unit), as well as relative (fraction of patients for which it a IT Brain-IT Surgical
+certain value applies, expressed in percentages); as well as mean or group
+median values (mostly expressed as a percentage)., Barbiturates, Barbiturate, Hypoxia, hypotension, extracranial injury, Coma, UHL Brain- UHL & RESCUEicp
+(6-18) (7-41) (6-34)
+IT Brain-IT Surgical
+Unfav. 44 52 46 N/A, UHL, motor impairment, anisocoria, intracranial hypoperfusion, hypertension, death, disability, GOS 1-3, thiopental, thiopental coma.
+These are entity mentions detected in this chunk. Use them as additional evidence that a concept is present, but only extract labels from the allowed class list above.
+
+Candidate domain terms (contextual hints from this chunk — use only if supported by the text): pressure; cerebral perfusion pressure; cpp; gcs; hypertension; hypotension; icp; intracranial; intracranial hypertension; pupil; therapy; Glasgow
+
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing an EXACT VERBATIM sentence or clause COPIED from the text — do NOT paraphrase, summarize, truncate, or rephrase. Copy the text exactly as it appears, preserving original wording, word order, and punctuation. If you cannot find an exact quote, OMIT the item.
+
+3. **Extraction Scope:** Extract clinical and biomedical content: conditions, physiological parameters, monitoring variables, treatments/therapies/interventions, outcomes, assessments, laboratory values, nursing interventions, surgical procedures, and clinical dataset categories when explicitly named.
+   Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+   If a sentence or paragraph is mainly about these excluded topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+6. **Label Mapping Rule:** If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+   Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+   For other abbreviations, expand to their full clinical name as used in the text.
+
+7. **Structural Completeness Rule:** When the text mentions specific clinical items, also extract their general category if the text supports it.
+   For example, if the text discusses 'ventilation, sedation, fluids' as therapies, also extract the general class 'Therapy' or 'Baseline Therapy' if the text uses that grouping.
+   Use the text's own categories and groupings — do not impose an external hierarchy.
+
+**Default priority: classes first, then relations.** Extract relations when the text clearly states a connection between two concepts — both domain and range must be extracted classes. If a phase instruction below overrides this priority, follow the phase instruction.
+
+**Completeness:** Extract every distinct clinical concept the text names — err on the side of inclusion when evidence exists.
+
+### CURRENT TASK: Phase 2 — RELATION & HIERARCHY EXTRACTION (+ supplementary classes)
+Primary task: extract semantic RELATIONS between the known classes below. Extract every relation the text explicitly supports with evidence.
+Secondary task: if you notice clinical concepts in the text that Phase 1 missed (e.g. a concept needed as domain/range), add them to the classes array with evidence.
+Also extract hierarchy (subClassOf) edges wherever the text shows parent-child relationships — look for cues like 'such as', 'includes', 'type of', 'consists of', 'categorized as', enumeration lists, or even implied groupings.
+
+### WHAT IS AN ONTOLOGY RELATION?
+An ontology relation (object property) defines a typed semantic link between two class types. The DOMAIN is the subject class; the RANGE is the object class. Think: 'Every instance of [domain] can be linked via [relation] to an instance of [range].' Relations model the SCHEMA of the domain, not individual facts.
+Example: 'has monitoring data(Patient → Monitoring Data)' means every Patient can have Monitoring Data associated with them.
+
+### RELATION EXTRACTION METHOD (Chain-of-Thought)
+For each pair of known classes, reason step by step:
+1. Do these two classes co-occur or interact in the text?
+2. What is the SEMANTIC NATURE of their link? (measurement, treatment, assessment, outcome, composition, causation, etc.)
+3. Which class is the subject (domain) and which is the object (range)?
+4. Assign a descriptive relation label from the patterns below, or create a meaningful label if none fits.
+5. Find an exact text quote that supports this relationship.
+
+### ONTOLOGY DESIGN PATTERNS (use when the text supports them)
+These are reusable structural patterns showing how clinical concepts relate.
+Match them against the text — extract every supported edge.
+
+**Pattern 1 — Clinical Monitoring:**
+  Patient --[has monitoring data]--> Monitoring Data
+  Monitoring Data --[includes]--> Parameter
+  Observation --[measures parameter]--> Parameter
+  Observation --[produced by sensor]--> Sensor
+  Observation --[has quality assessment]--> Data Quality Assessment
+  Session --[has timepoint]--> Timepoint
+  Timepoint --[has observation]--> Observation
+
+**Pattern 2 — Clinical Intervention:**
+  Patient --[receives therapy]--> Therapy
+  Therapy --[targets condition]--> Condition
+  Condition --[triggers intervention]--> Therapy
+  Patient --[has surgical procedure]--> Surgical Procedure
+  Patient --[has nursing intervention]--> Nursing Intervention
+
+**Pattern 3 — Clinical Assessment and Outcome:**
+  Patient --[has clinical assessment]--> Clinical Assessment
+  Patient --[has outcome]--> Outcome
+  Patient --[has laboratory value]--> Laboratory Values
+  Monitoring Data --[monitoring indicates condition]--> Condition
+
+**Pattern 4 — Patient Context:**
+  Patient --[has session]--> Session
+  Patient --[has demographic data]--> Demographic Data
+  Patient --[has injury mechanism]--> Injury Mechanism
+
+**Pattern 5 — Data Quality:**
+  Data Quality Assessment --[affected by treatment]--> Therapy
+  Data Quality Assessment --[associated with condition]--> Condition
+
+**Pattern 6 — Composition (model as HIERARCHY, not relation):**
+  If X includes/comprises Y → extract as hierarchy: Y subClassOf X
+  Derived Parameter --[derived from]--> Source Parameter
+
+You SHOULD also extract other relations the text supports beyond these patterns.
+Do not invent relations not stated or clearly implied in the text.
+
+### CRITICAL: DO NOT USE 'includes' AS A RELATION LABEL
+If X includes Y, or Y is a type/kind/member of X, model it as HIERARCHY (Y subClassOf X), NOT as a relation. For example:
+  - 'Monitoring Data includes Heart Rate' → Heart Rate subClassOf Monitoring Data (hierarchy)
+  - 'Third-tier Treatment includes Barbiturates' → Barbiturates subClassOf Third-tier Treatment (hierarchy)
+The labels 'includes', 'consists of', 'comprises', 'is a type of' are NOT valid relation labels.
+
+### DEFINITION REQUIREMENT
+Every relation MUST include a `definition` field: a precise one-sentence description of what this relation means IN THE CONTEXT OF THIS TEXT.
+Read how the text describes the connection between these two concepts and capture:
+  (1) The NATURE of the link (measurement, treatment, assessment, composition, causation).
+  (2) HOW or WHY these concepts are connected according to the text.
+BAD: "Connects two clinical concepts."
+GOOD: "Links a patient to continuously recorded physiological measurements such as ICP, MAP, and heart rate captured during their ICU stay."
+Example: {"label": "has monitoring data", "domain": "Patient", "range": "Monitoring Data", "definition": "Links a patient to the set of continuously recorded physiological measurements (ICP, MAP, heart rate, etc.) captured minute-by-minute during their ICU stay.", "evidence": "..."}
+
+### RELATION EVIDENCE RULES
+- Each relation MUST have an 'evidence' field with an exact verbatim quote from the source text.
+- The evidence should mention or clearly imply at least one of the two endpoint classes (domain or range).
+- Use the ABSTRACT superclass as the range, not specific instances (e.g., 'Monitoring Data' not 'ICP').
+- Do NOT reuse the same evidence quote for multiple relations.
+
+### SELF-CHECK (before finalising output)
+- Do all domain and range labels match known classes from Phase 1?
+- Are there any duplicate relations (same domain-label-range)? Remove duplicates.
+- Does every evidence field contain a verbatim quote from the text?
+
+Output JSON with keys classes, relations, hierarchy.
+
+Known classes (use only these labels): Traumatic Brain Injury (TBI); Intracranial Pressure (ICP); Decompressive Craniectomy (DC); Cerebrovascular Autoregulation; Intracranial Hypertension; Bifrontal Craniectomy; Barbiturates; Glasgow Motor Score (GMS); Secondary Insult; Hypotension; Extracranial Injury; Pupil Abnormalities; Mortality; Glasgow Outcome Scale (GOSE); Therapy Intensity Level (TIL)
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "definition": "one-sentence scope note describing what this class represents in the domain", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "definition": "one-sentence description of what this relation means between domain and range", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Definition rule:** Every class and relation MUST include a `definition` field: a concise one-sentence scope note clarifying what the class represents or what the relation means in the clinical domain. Ground definitions in the text where possible, but you may use standard medical knowledge to write a clear scope note.
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+**REASONING STEP:** Before producing JSON, mentally scan the text for: (1) every named clinical concept, (2) explicit relations between them, (3) hierarchy cues (such as, is a, type of, include:). Then output only items with verbatim evidence.
+
+---
+--- Retrieved examples (3) ---
+
+Text: The minimum minute by minute monitoring data required for inclusion in the BrainIT Database include: Heart Rate, Respiration Rate, Mean Arterial Pressure, ICP, SaO2 and Temperature. Data is collected from patients every minute.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Patient",
+      "evidence": "patients",
+      "definition": "An individual receiving neurointensive care for traumatic brain injury."
+    },
+    {
+      "label": "Monitoring Data",
+      "evidence": "monitoring data",
+      "definition": "Continuously recorded physiological measurements collected from bedside monitors."
+    },
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate",
+      "definition": "The number of cardiac contractions per minute, a core physiological monitoring parameter in neuro-ICU."
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate",
+      "definition": "The number of breaths per minute, measured via impedance plethysmography or ventilator."
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature",
+      "definition": "Core body temperature measured at rectal, oesophageal, bladder, or skin sites."
+    }
+  ],
+  "relations": [
+    {
+      "label": "has monitoring data",
+      "domain": "Patient",
+      "range": "Monitoring Data",
+      "evidence": "Data is collected from patients every minute",
+      "definition": "Links a patient to the set of continuously recorded physiological measurements captured during their ICU stay."
+    },
+    {
+      "label": "includes",
+      "domain": "Monitoring Data",
+      "range": "Heart Rate",
+      "evidence": "monitoring data include: Heart Rate",
+      "definition": "Indicates that a data category contains or encompasses a specific parameter or subcategory."
+    },
+    {
+      "label": "includes",
+      "domain": "Monitoring Data",
+      "range": "Temperature",
+      "evidence": "monitoring data include: Heart Rate, Respiration Rate, Mean Arterial Pressure, ICP, SaO2 and Temperature",
+      "definition": "Indicates that a data category contains or encompasses a specific parameter or subcategory."
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+
+Text: One of the cornerstones of brain-protective strategies is to reduce and control intracranial pressure (ICP), thereby avoiding secondary ischemic damage. When despite first and second-tier interventions ICP remained unacceptably high, decompressive craniectomy was chosen as a next step. Patient outcome was assessed using the Glasgow Outcome Scale Extended (GOSe) at six months post-injury.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "reduce and control intracranial pressure (ICP)",
+      "definition": "The pressure inside the cranium, continuously monitored to detect intracranial hypertension in TBI patients."
+    },
+    {
+      "label": "Intracranial Hypertension",
+      "evidence": "ICP remained unacceptably high",
+      "definition": "Sustained elevation of intracranial pressure above normal thresholds, a major secondary insult."
+    },
+    {
+      "label": "Secondary Insult Treatment",
+      "evidence": "decompressive craniectomy was chosen as a next step",
+      "definition": "Therapeutic interventions targeting secondary insults such as raised ICP."
+    },
+    {
+      "label": "GOSe Outcome",
+      "evidence": "Glasgow Outcome Scale Extended (GOSe) at six months",
+      "definition": "Extended Glasgow Outcome Scale score at 6 months post-injury, measuring functional recovery."
+    },
+    {
+      "label": "Patient",
+      "evidence": "Patient outcome was assessed",
+      "definition": "An individual receiving neurointensive care for traumatic brain injury."
+    }
+  ],
+  "relations": [
+    {
+      "label": "targets condition",
+      "domain": "Therapy",
+      "range": "Condition",
+      "evidence": "ICP remained unacceptably high, decompressive craniectomy was chosen",
+      "definition": "Indicates that a therapy is administered to treat or manage a specific clinical condition."
+    },
+    {
+      "label": "has outcome",
+      "domain": "Patient",
+      "range": "Outcome",
+      "evidence": "Patient outcome was assessed using the Glasgow Outcome Scale Extended (GOSe)",
+      "definition": "Links a patient to a measure of their clinical result or functional recovery."
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+
+Text: Adherence to traumatic brain injury guidelines was calculated automatically from physiological and treatment data. The system measures guideline adherence for hypotension management, ICP management, and CPP management. Intensive care management protocols define target ranges for these parameters.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Guideline Adherence",
+      "evidence": "Adherence to traumatic brain injury guidelines"
+    },
+    {
+      "label": "Intensive Care Management",
+      "evidence": "Intensive care management protocols",
+      "definition": "The category of data covering routine ICU care activities delivered to patients."
+    },
+    {
+      "label": "Hypotension",
+      "evidence": "hypotension management",
+      "definition": "Abnormally low blood pressure, a recognised secondary insult after TBI."
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "ICP management",
+      "definition": "The pressure inside the cranium, continuously monitored to detect intracranial hypertension in TBI patients."
+    },
+    {
+      "label": "Cerebral Perfusion Pressure (CPP)",
+      "evidence": "CPP management",
+      "definition": "The net pressure gradient driving blood flow to the brain, calculated as MAP minus ICP."
+    }
+  ],
+  "relations": [
+    {
+      "label": "has guideline adherence",
+      "domain": "Intensive Care Management",
+      "range": "Guideline Adherence",
+      "evidence": "Intensive care management protocols define target ranges...adherence was calculated automatically"
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+TEXT TO ANALYZE:
+Traumatic brain injury (TBI) patients. Local Ethical Committee approval to use the anonymized and Mean intracranial pressure (ICP). It has values between - 1 and 1, with higher values
+data for this analysis was obtained. For this study, only patients who reflecting an indirect measure of more impaired cerebral autoregulation.
+underwent a Decompressive craniectomy (DC) as a second- or third-tier (last-tier) intervention were The six hours interval pre-Decompressive craniectomy (DC) was chosen as it enables comparison with
+included. Patients with intracranial hypertension treated conservatively the RESCUEicp data.
+were excluded, as well as patients who underwent a Decompressive craniectomy (DC) as a first-tier
+intervention, and patients with bilateral fixed and dilated pupils. The Statistical analysis
+Brain-IT database contained 16 eligible Decompressive craniectomy (DC) patients and the UHL cohort
+21. In the following sections both cohorts together are referred to as the Categorical variables were compared using the chi-square tests with
+RESCUEicp trial (RCT group). one-tailed exact p-value) while continuous variables were analyzed
+using Mann-Whitney U tests. Continuous variables pre-and post-Decompressive craniectomy (DC) (of
+the non-RCT group) were compared using the Wilcoxon matched-pairs
+
+B. Decraene et al. Injury 54 (2023) 110911
+
+signed-rank test. Data were compared between the non-RCT group and Table 2
+the surgical patients of the RESCUEicp (RCT) group. When possible, Treatment characteristics of non-RCT patients and RESCUEicp patients a.
+collected data are shown in both absolute numbers (with 'number of UHL Brain- UHL & RESCUEicp
+patients' as unit), as well as relative (fraction of patients for which it a IT Brain-IT Surgical
+certain value applies, expressed in percentages); as well as mean or group
+median values (mostly expressed as a percentage). A p-value less than Decompressive
+0.05 was considered significant. No correction for multiple testing was craniectomy 19/21 N/A N/A 109/173
+Bifrontal - no. (%) 2/21 64/173
+Statistics version 28. (9.5) (47.0)
+Barbiturates 11/21 3/16 14/37 19/201
+Results (52.4) (18.8) (37.8) (9.4)
+Barbiturate
+administration: 1/21 1/16 2/37 N/A
+Patient, injury and management characteristics
+Pre-Decompressive craniectomy (DC) - no. (%) (4.8) (6.3) (5.4)
+Post-Decompressive craniectomy (DC) - no. (%) 8/21 2/16 10/37 N/A
+Thirty-seven patients who underwent a Decompressive craniectomy (DC) in the Brain-IT database (38.1) (12.5) (27.0)
+and in the UHL cohort were eligible for inclusion (further referred to as Pre-& post-Decompressive craniectomy (DC) - 2/21 0/16 (0) 2/37 N/A
+the non-RCT group). Patient, injury and management characteristics are no. (%) (9.5) (5.4)
+Time between arrival at 67.7 18.7 51.0 N/A
+summarized in Tables 1 and 2. Four patients were aged less than 18 emergency department (110.0) (80.9) (84.6)
+years. The non-RCT group had a mean age of 39.6 years and was pre­ and Decompressive craniectomy (DC) b - h (IQR)
+dominantly male. Cranioplasty at six months 15/21 N/A N/A N/A
+The median initial Glasgow Motor Score (GMS) was 4, while 24.3% - no. (%) (71.4)
+Introduction TBI management
+
+Traumatic brain injury (TBI) treatment & prognostic
+of all patients had a The median initial Glasgow Motor Score (GMS) below 3. Pupil abnormalities were seen in
+scores c
+34.4% of our patients. Hypoxia and arterial hypotension were found in IMPACT - median -%
+10.0% and 6.1%, respectively. Non-evacuated mass lesions according to (IQR)
+the Marshall classification were observed in 26.5% of the non-RCT Core mort. 22 27 24 N/A
+group and 45.9% presented with an additional extracranial injury. (14-30) (19-54) (15-31)
+Core unfav. 40 40 40 N/A
+37.8% of patients (14 in absolute numbers) were treated with bar­
+(22-45) (35-69) (32-50)
+biturates in combination with Decompressive craniectomy (DC); ten of these received it only after Decompressive craniectomy (DC), Extended Core 20 24 21 N/A
+two only before and two received it before and after Decompressive craniectomy (DC). The patients mort. (14-26) (15-52) (14-35)
+who received pre-Decompressive craniectomy (DC) barbiturates did not significantly differ from the Extended core 32 42 37 N/A
+unfav. (30-50) (28-69) (29-53)
+group who did not receive it in terms of median mean pre-operative Mean intracranial pressure (ICP)
+Lab mort. 17 26 18 N/A
+(p = 0.571), median The median initial Glasgow Motor Score (GMS) or median total Glasgow Coma Scale (GCS) (p = 0.654 and p = (11-23) (15-39) (11-31)
+Lab unfav. 33 40 35 N/A
+(20-48) (27-66) (22-58)
+Table 1 CRASH -median -%
+Patient and injury characteristics of non-RCT patients and RESCUEicp patients. (IQR)
+Mort. 11 14 12 N/A
+UHL Brain- UHL & RESCUEicp
+(6-18) (7-41) (6-34)
+IT Brain-IT Surgical
+Unfav. 44 52 46 N/A
+group
+(22-57) (29-71) (28-67)
+Number of 21 16 37 202 Therapy Intensity Level (TIL) basic - no. (%)
+patients Score 0 2/21 0/15 (0) 2/36 N/A
+Age - mean - 38.9 40.6 (17 39.6 (16 32.3 (10 - P< (9.5) (5.6)
+years (range) (16 - - 72) - 72) 65) 0.001a Score 1 1/21 4/15 5/36 N/A
+70) (4.8) (26.7) (13.9)
+Glasgow Motor P= Score 2 7/21 3/15 10/36 N/A
+Score b 3/21 6/16 9/37 96/181 0.003 (33.3) (20) (27.8)
+1 - 2 - no. (14.3) (37.5) (24.3) (53.0) Score 3 10/21 7/15 17/36 N/A
+(%) 18/21 10/16 28/37 85/181 (47.6) (46.7) (47.2)
+3 - 6 - no. (85.7) (62.5) (75.6) (47.0) Score 4 1/21 1/15 2/36 N/A
+(%) (4.8) (6.7) (5.6)
+Abnormal pupils 4/21 7/11 11/32 59/202 p= a
+c
+- no. (%) (19.0) (63.6) (34.4) (29.2) 0.70 standard deviation=SD. For the (IQR) = Interquartile range. Mort. = mortality. Unfav
+Barbiturate - no. 11/21 3/16 14/37 19/202 P< = unfavorable.
+b
+(%) (52.4) (18.8) (37.8) (9.4) 0.001 Time between arrival at the emergency department and Decompressive craniectomy (DC) could be
+Extracranial 8/21 9/16 17/37 75/202 p= calculated for 20 out of 21 UHL patients and 15 out of 16 Brain-IT patients.
+injury - no. (%) (38.1) (56.0) (45.9) (37.1) 0.41 c
+All three scoring models and submodalities could be calculated for all 21
+Hypoxia - no. (%) 3/19 0/11 (0) 3/30 49/202 p= UHL patients. For Brain-IT patients TILbasic and CRASH could be calculated for
+(15.8) (10.0) (24.3) 0.13 15 out of 16 patients, IMPACT Core for all 16 patients, IMPACT Extended for 13/
+Hypotension - no. 1/21 1/12 2/33 40/202 p=
+16 patients and IMPACT lab for 9/16 patients.
+(%) (4.8) (8.3) (6.1) (19.8) 0.10
+Marshall score p=
+Diffuse - 17/21 8/13 25/34 161/198 0.41 0.114), average age (p = 0.654) or Marshall score (p = 0.661). Also, no
+no. (%) (81.0) (61.5) (73.5) (81.3) significant differences in recorded patient and injury characteristics
+NEML - no. 4/21 5/13 9/34 37/198
+(%) (19.0) (38.5) (26.5) (18.7)
+were found between patients who received barbiturates before Decompressive craniectomy (DC) and
+those who received it after Decompressive craniectomy (DC) (data not shown).
+a
+P-values of the differences between the 'UHL&Brain-IT group' and the The median time between arrival and Decompressive craniectomy (DC) was 51.0 h. About half of
+'RESCUEicp Surgical group'.
+b
+our patients received a Decompressive craniectomy (DC) after almost all other nonsurgical measures
+The Glasgow Motors Score was used for assessing motor impairment. The
+had been exhausted (TIL 3). The Therapy Intensity Level (TIL) scores before Decompressive craniectomy (DC) were 0 in 6%, 1 in
+score ranges from 1 to 6 with lower scores indicating greater impairment.
+c 14%, 2 in 28%, 3 in 47% and 4 in 6%.
+Pupil abnormality was defined as the presence of two unreactive pupils or
+anisocoria. Of the 21 UHL patients, 19 underwent a hemicraniectomy and 2 a
+
+B. Decraene et al. Injury 54 (2023) 110911
+
+bifrontal Decompressive craniectomy (DC), and 15 patients received a cranioplasty before 6 months. Table 3
+Outcome, intracranial pressure and cerebral autoregulation characteristics a,b,c.
+Physiological data UHL Brain-IT UHL & RESCUEicp
+Brain-IT Surgical
+Decompressive craniectomy (DC) resulted in an absolute reduction in median mean Mean intracranial pressure (ICP) from 19.5 group
+to 13.9 mmHg (p = 0.001) and a reduction in the median percentage Intracranialtime Mean intracranial pressure (ICP) was above 20 (from 32.8 to 5.2; p = 0.066) and above 25 (from pressure
+3.7 to 0.4; p = 0.114), as shown in Table 3 and supplementary table 2. A control
+Median mean 18.9 20.0 19.5 14.5
+varying effect on Cerebral Perfusion Pressure (CPP) was seen, as well as a trend of reduction in median Mean intracranial pressure (ICP) pre-Decompressive craniectomy (DC) (15.7-22.9) (19.5-21.5) (17.7-22.9) (1.7-18.0)
+intracranial hypoperfusion index 60 (21.0 to 8.5; p = 0.114). The (IQR) -
+reduction in median Pressure Reactivity Index (PRx) index above 0 was non-significant (64.9% to mmHg
+47.8%; p = 0.25). The latter value was only available for UHL patients. Median mean 14.1 13.5 13.9 N/A
+Mean intracranial pressure (ICP) post-Decompressive craniectomy (DC) (12.5-16.0) (11.0-15.0) (12.2-15.7)
+(IQR) -
+Outcome mmHg
+Median 20.6 42.1 32.8 18.1
+Eighteen patients (48.6%) sustained a favorable outcome at six intracranial (5.5-34.4) (36.7-53.4) (15.0-43.1) (9.9-36.7)
+months (GOSE 5-8), of whom 13 (35.1%) recovered to Glasgow Outcome Scale (GOSE) 7 (Fig. 1). hypertension
+index
+Mortality (=Glasgow Outcome Scale (GOSE) 1) was 24.3% (9/37). 20 pre-Decompressive craniectomy (DC) -%
+The exact Glasgow Outcome Scale (GOSE) distribution for the non-RCT group is: death 24.3%; (IQR)
+vegetative 2.7%; lower severe disability 10.8%; upper severe disability Median 7.8 (4.3 4.6 5.2 N/A
+13.5%; lower moderate disability 5.4%; upper moderate disability 2.7%, intracranial - 6.7) (2.6-5.7) (3.2-6.7)
+hypertension
+lower good recovery 35.1%; and upper good recovery 5.4% (Fig. 1;
+index
+supplementary table 3). 20 post-Decompressive craniectomy (DC) -%
+risk at six months of 24.0% which is comparable with the 24.3% seen in Median 0.6 16.1 3.7 6.6
+our patients. The median probability for our patients to have an unfa­ intracranial (0.1-7.5) (5.0-32.4) (0.4-21.8) (3.1-13.6)
+hypertension
+vorable outcome (GOS 1-3, corresponding to a Glasgow Outcome Scale (GOSE) of 1-4) at six index
+months according to this IMPACT score and the CRASH prediction was 25 pre-Decompressive craniectomy (DC) -%
+40.0% and 46.0%, respectively (in our cohort it was 51.3%). For the (IQR)
+remaining IMPACT models, we refer to Table 2. Median 0.2 0.5 0.4 N/A
+intracranial (0.1-1.4) (0.2-1.2) (0.1-1.5)
+Seven out of 19 patients with an unfavorable Glasgow Outcome Scale (GOSE) and 7 out of 18
+hypertension
+patients with a favorable Glasgow Outcome Scale (GOSE) received barbiturates (thiopental) index
+(Fig. 1; supplementary table 3). Mortality was similar in patients that 25 post-Decompressive craniectomy (DC) -%
+received barbiturates and those who did not. A Therapy Intensity Level (TIL) of 1,2,3 and 4 (IQR)
+resulted in a median Glasgow Outcome Scale (GOSE) of 1, 4, 7 and 2.5, respectively (supple­ Cerebral
+perfusion
+mentary table 1). control
+Median mean 74.5 60.0 71.7 N/A
+Comparison with the surgical group of the RESCUEicp trial Cerebral Perfusion Pressure (CPP) pre-Decompressive craniectomy (DC) (71.6-80.7) (57.3-62.8) (60.3-77.4)
+(IQR) -
+mmHg
+In terms of patients and injury characteristics the non-RCT group was
+Median mean 70.2 72.0 71.7 N/A
+very similar to the RCT group, with significant differences only in age, Cerebral Perfusion Pressure (CPP) post-Decompressive craniectomy (DC) (67.8-74.2) (70.8-81.5) (68.2-79.2)
+The median initial Glasgow Motor Score (GMS) on admission and application of thiopental coma: non-RCT patients (IQR) -
+were older (mean age 39.6 years versus 32.3 years in the RCT group; p < mmHg
+0.001), had a higher The median initial Glasgow Motor Score (GMS) on admission (24.3% with The median initial Glasgow Motor Score (GMS) < 3 vs 53.0% Median 3.0 47.3 21.0 6.8
+cerebral (1.3-70.5) (28.9-63.1) (1.4-76.7) (3.1-16.6)
+in the RCT group) (p = 0.003), 37.8% received thiopental (vs 9.4% in the hypoperfusion
+RCT group; p < 0.001). Patient characteristics are summarized in Ta­ index
+bles 1 and 2. The median mean Mean intracranial pressure (ICP) in the non-RCT group was above 20 60 pre-Decompressive craniectomy (DC) -%
+mmHg for a longer period in the 6 h before Decompressive craniectomy (DC) than in the RCT group. (IQR)
+Median 13.1 1.4 8.5 N/A
+The median mean pre-Decompressive craniectomy (DC) Mean intracranial pressure (ICP) was 19.5 mmHg in the non-RCT group,
+cerebral (9.8-17.4) (0.7-9.3) (1.2-13.3)
+which was higher than the median mean Mean intracranial pressure (ICP) of 14.5 mmHg in the RCT hypoperfusion
+group (Table 3). index
+When compared with the RCT group, the non-RCT group had a 60 post-Decompressive craniectomy (DC) -%
+similar mortality rate (26.9% and 24.3%, respectively) (Fig. 1; supple­ (IQR)
+Median Pressure Reactivity Index (PRx) 64.9 N/A N/A N/A
+mentary Table 3), but the non-RCT group showed a favorable Glasgow Outcome Scale (GOSE) of 5 index 0 (30.0-86.8)
+and more in 48.6% compared to 27.4% in the RCT group (p = 0.02). pre-Decompressive craniectomy (DC)
+-% (IQR)
+Discussion Median Pressure Reactivity Index (PRx) 47.8 N/A N/A N/A
+index 0 (26.8-56.4)
+post-
+In this study, prospectively collected outcome data from Introduction TBI management
+---

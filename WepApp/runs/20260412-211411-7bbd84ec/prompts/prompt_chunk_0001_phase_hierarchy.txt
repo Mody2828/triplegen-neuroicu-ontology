@@ -1,0 +1,477 @@
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+Suggested concepts (pre-identified by biomedical NER in this text): glucose, generalised, Traumatic Brain Injury, TBI, Trauma, brain injury, hypothermia, heart failure, sepsis, Dellinger et al. process, intracranial hypertensive.
+These are entity mentions detected in this chunk. Use them as additional evidence that a concept is present, but only extract labels from the allowed class list above.
+
+Candidate domain terms (contextual hints only — use only if explicitly supported by the text):
+cerebral perfusion pressure; cpp; icp; intracranial pressure; monitoring; outcome; secondary insult; log; 4 SYSTEM ARCHITECTURE; adherence; clinical; event
+
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing an EXACT VERBATIM sentence or clause COPIED from the text — do NOT paraphrase, summarize, truncate, or rephrase. Copy the text exactly as it appears, preserving original wording, word order, and punctuation. If you cannot find an exact quote, OMIT the item.
+
+3. **Extraction Scope:** Extract clinical and biomedical content: conditions, physiological parameters, monitoring variables, treatments/therapies/interventions, outcomes, assessments, laboratory values, nursing interventions, surgical procedures, and clinical dataset categories when explicitly named.
+   Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+   If a sentence or paragraph is mainly about these excluded topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+6. **Label Mapping Rule:** If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+   Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+   For other abbreviations, expand to their full clinical name as used in the text.
+
+7. **Structural Completeness Rule:** When the text mentions specific clinical items, also extract their general category if the text supports it.
+   For example, if the text discusses 'ventilation, sedation, fluids' as therapies, also extract the general class 'Therapy' or 'Baseline Therapy' if the text uses that grouping.
+   Use the text's own categories and groupings — do not impose an external hierarchy.
+
+**Default priority: classes first, then relations.** Extract relations when the text clearly states a connection between two concepts — both domain and range must be extracted classes. If a phase instruction below overrides this priority, follow the phase instruction.
+
+**Completeness:** Extract every distinct clinical concept the text names — err on the side of inclusion when evidence exists.
+
+### CURRENT TASK: Phase 3 — HIERARCHY EXTRACTION
+Extract subclass/superclass (is-a) edges supported by the text. A hierarchy edge means one class is a TYPE, SUBTYPE, CATEGORY MEMBER, or SPECIFIC INSTANCE of another. Extract every edge the text explicitly supports with evidence.
+
+### HIERARCHY DETECTION METHOD
+Look for ALL of these patterns in the text:
+  1. Explicit cues: 'such as', 'is a', 'type of', 'kind of', 'form of'
+  2. Enumeration: 'include:', 'includes:', 'consists of', 'comprises'
+  3. Category grouping: 'categorized as', 'classified as', 'grouped into'
+  4. List patterns: items listed under a heading or category name
+  5. Implicit grouping: when several specific items are mentioned alongside a general category (e.g., 'therapy: ventilation, sedation' implies both are subclasses of Therapy; 'core parameters: HR, ICP, MAP' implies all three are subclasses of Core Monitoring Parameter)
+  6. Definitional: 'X is a Y', 'X, a type of Y', 'X (a form of Y)'
+  7. Context-based: if the text organises items into sections or tables, each section heading implies a parent class for the items listed under it
+  8. Medical knowledge: TBI is a type of Brain Injury, Hypotension is a type of Secondary Insult — extract these when the text discusses them together
+
+For enumeration patterns (e.g. 'include: X, Y, Z'), extract EACH listed item as a subclass of the parent category.
+IMPORTANT: If X 'includes' Y, model it as: Y subClassOf X (a hierarchy edge). Do NOT output 'includes' as a relation label — it belongs in the hierarchy.
+
+### CHAIN-OF-THOUGHT
+For each pair of known classes, reason:
+1. Does the text describe one class as a specialization of another?
+2. Does the text list one class under another as a member/subtype?
+3. Even if not explicitly stated, does medical context clearly imply a parent-child relationship?
+4. What text evidence supports this parent-child link?
+
+Be thorough: extract every parent-child relationship the text supports. Aim for at least one hierarchy edge per class if possible.
+If the text lists items under a category heading, EACH item is a subClassOf that category. For example, if 'core monitoring' is followed by 'heart rate, ICP, MAP', then each is a subClassOf Core Monitoring Parameter.
+Use ONLY the known classes below for subClass and superClass labels.
+
+### SELF-CHECK (before finalising output)
+- Are there any circular edges (A subClassOf B AND B subClassOf A)? Remove them.
+- Are subClass and superClass labels from the known-classes list?
+- Does every evidence field contain a verbatim quote from the text?
+
+Output JSON with keys classes, relations, hierarchy. Set classes and relations to empty arrays.
+
+Known classes (use only these for subclass/superclass): Glucose; Hypothermia Therapy; Sepsis
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "definition": "one-sentence scope note describing what this class represents in the domain", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "definition": "one-sentence description of what this relation means between domain and range", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Definition rule:** Every class and relation MUST include a `definition` field: a concise one-sentence scope note clarifying what the class represents or what the relation means in the clinical domain. Ground definitions in the text where possible, but you may use standard medical knowledge to write a clear scope note.
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+**REASONING STEP:** Before producing JSON, mentally scan the text for: (1) every named clinical concept, (2) explicit relations between them, (3) hierarchy cues (such as, is a, type of, include:). Then output only items with verbatim evidence.
+
+---
+--- Retrieved examples (3) ---
+
+Text: This is the minimum minute by minute monitoring data required for inclusion in the BrainIT Database and include: Heart Rate, Respiration Rate, Mean Arterial Pressure, mean ICP, SaO2 and Temperature.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Monitoring Data",
+      "evidence": "minute by minute monitoring data",
+      "definition": "Continuously recorded physiological measurements collected from bedside monitors."
+    },
+    {
+      "label": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required",
+      "definition": "A mandatory physiological variable collected at minimum once per minute."
+    },
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate",
+      "definition": "The number of cardiac contractions per minute, a core physiological monitoring parameter in neuro-ICU."
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate",
+      "definition": "The number of breaths per minute, measured via impedance plethysmography or ventilator."
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "Mean Arterial Pressure",
+      "definition": "The average arterial blood pressure during a cardiac cycle, a key haemodynamic parameter."
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "mean ICP",
+      "definition": "The pressure inside the cranium, continuously monitored to detect intracranial hypertension in TBI patients."
+    },
+    {
+      "label": "SaO2",
+      "evidence": "SaO2",
+      "definition": "Arterial oxygen saturation measured by pulse oximetry, indicating blood oxygenation levels."
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature",
+      "definition": "Core body temperature measured at rectal, oesophageal, bladder, or skin sites."
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Heart Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required...include: Heart Rate"
+    },
+    {
+      "subClass": "Respiration Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Heart Rate, Respiration Rate"
+    },
+    {
+      "subClass": "Mean Arterial Pressure (MAP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Mean Arterial Pressure"
+    },
+    {
+      "subClass": "Intracranial Pressure (ICP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: mean ICP"
+    },
+    {
+      "subClass": "SaO2",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: SaO2"
+    },
+    {
+      "subClass": "Temperature",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Temperature"
+    }
+  ]
+}
+
+---
+
+Text: Intensive care management information. Types of data include: GCS scores, pupil scores, ventilation settings, sedation levels, fluid input and output, nutrition, use of vasopressors, antibiotics. These constitute baseline therapy — routine ICU management delivered to all patients.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Intensive Care Management",
+      "evidence": "Intensive care management information",
+      "definition": "The category of data covering routine ICU care activities delivered to patients."
+    },
+    {
+      "label": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management",
+      "definition": "Routine ICU management therapies delivered to all TBI patients as standard care."
+    },
+    {
+      "label": "Ventilation",
+      "evidence": "ventilation settings",
+      "definition": "Mechanical ventilation settings and parameters delivered as part of ICU care."
+    },
+    {
+      "label": "Sedation",
+      "evidence": "sedation levels",
+      "definition": "Administration of sedative agents to manage patient comfort and intracranial pressure."
+    },
+    {
+      "label": "Fluids",
+      "evidence": "fluid input and output",
+      "definition": "Intravenous fluid input and output management during ICU care."
+    },
+    {
+      "label": "Nutrition",
+      "evidence": "nutrition",
+      "definition": "Nutritional support provided to ICU patients, including enteral and parenteral routes."
+    },
+    {
+      "label": "Vasopressors",
+      "evidence": "use of vasopressors",
+      "definition": "Vasoactive drugs administered to maintain adequate blood pressure and cerebral perfusion."
+    },
+    {
+      "label": "Antibiotics",
+      "evidence": "antibiotics",
+      "definition": "Antimicrobial agents administered to prevent or treat infections in ICU patients."
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Ventilation",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: ventilation settings"
+    },
+    {
+      "subClass": "Sedation",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: sedation levels"
+    },
+    {
+      "subClass": "Fluids",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: fluid input and output"
+    },
+    {
+      "subClass": "Nutrition",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: nutrition"
+    },
+    {
+      "subClass": "Vasopressors",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: use of vasopressors"
+    },
+    {
+      "subClass": "Antibiotics",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: antibiotics"
+    }
+  ]
+}
+
+---
+
+Text: Artefact is a specific type of data quality issue identified in physiological monitoring signals. ECG-derived heart rate is a core monitoring parameter. Pulse pressure, calculated as the difference between systolic and diastolic blood pressure, is a derived parameter.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Artefact",
+      "evidence": "Artefact is a specific type of data quality issue",
+      "definition": "Corrupted or erroneous data in physiological signals caused by external interference."
+    },
+    {
+      "label": "Electrocardiogram (ECG)",
+      "evidence": "ECG-derived heart rate",
+      "definition": "Electrical recording of cardiac activity used to derive heart rate."
+    },
+    {
+      "label": "Pulse Pressure",
+      "evidence": "Pulse pressure, calculated as the difference between systolic and diastolic"
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Artefact",
+      "superClass": "Data Quality Assessment",
+      "evidence": "Artefact is a specific type of data quality issue"
+    },
+    {
+      "subClass": "Electrocardiogram (ECG)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "ECG-derived heart rate is a core monitoring parameter"
+    },
+    {
+      "subClass": "Pulse Pressure",
+      "superClass": "Derived Parameter",
+      "evidence": "Pulse pressure is a derived parameter"
+    }
+  ]
+}
+
+---
+TEXT TO ANALYZE:
+corporate efficiency. There have been projects where intervention by trained specialist), general education
+process models have been applied to medical (documents, leaflets, etc) and clinical reminders
+problems, but these appear to mainly concern the (automated interventions). These all had different
+administration and logistics of hospitals and other effects on adherence, with the nurse facilitator being
+large-scale corporate structures (where the fact that the most successful. indicated that
+these structures are medical in nature is largely a study of glucose measurement and regulation
+incidental). improves greatly when dissemination is provided
+Similar in nature to flow-charts, a process model through computer-assisted means rather than
+is a directed or undirected graph with a collection of through paper-based means.
+edges and nodes. They can be expressed using A systematic review of guideline dissemination
+various notations, each with slightly different strategies showed that the (non-)
+characteristics - e.g. UML (www.uml.org) or BPMN effectiveness of passive dissemination is a
+(Chinosi & Trombetta 2012). Depending on the significant result. Similar to the
+notation used, the edges and nodes represent various study, where direct intervention is taken by a person
+actions and states that can be generalised to the or automated method, the adherence rate is markedly
+specific context being described (in this case, the better than if the guideline document and
+medical output observed from a neurological Intensive Care Unit (ICU) information is published passively (e.g. using
+bedside machine). conferences, websites or didactic lectures).
+The translation to a process model in this work Other studies similarly show that
+comes from two sources: evaluation of an event log targeted and behaviourally "disruptive" methods are
+for the physiological/treatment data and the best for disseminating information and influencing
+evaluation of semantic text from the guideline. This clinical practice. Therefore, understanding the
+latter source is a manual step in this work, and is effectiveness of these different methods of
+interpretations of medical text information (Kaiser & tools to improve awareness and therefore adherence.
+Miksch 2009). Comparison of the two resulting When considering Automated Measurement of Adherence to Traumatic Brain Injury (TBI) specifically, the gold
+process models builds on the work conducted in standard in guidelines is the 1994 Brain Trauma
+, with the notions of similarity Foundation (BTF) initiative to formulate treatments
+encapsulated by the similarity of individual nodes for brain injury, which have since become
+and edges combined with relevant weighting to standardised, internationally-recognised guidelines
+represent the significance of certain aspects. . Several studies have been
+To apply these business process analysis tools - conducted that show dropping mortality rates and
+expression of medical output as process models and improved long-term outcomes since the adoption
+the use of comparison and distance calculations in and spread of use of these guidelines (Bratton &
+this context - in this particular way are believed to Chestnut 2006). In the last decade, this improvement
+be a unique feature of this work. in Automated Measurement of Adherence to Traumatic Brain Injury (TBI) management has continued, leading to
+studies indicating that overall improvements in
+3 RELATED LITERATURE have also been apparent and
+in similar studies conducted four years apart and .
+A review of related literature covers several areas:
+issues of adherence to clinical guidelines in general
+and specifically in the Automated Measurement of Adherence to Traumatic Brain Injury (TBI) domain, novel attempts guidelines is not universal - many studies outline
+their potential deficiency in various aspects such as
+to improve adherence, and the relevance and utility
+of the chosen technology. hypothermia and the need for
+Intracranial Pressure (ICP) monitoring .
+3.1 Clinical/Automated Measurement of Adherence to Traumatic Brain Injury (TBI) Guideline Adherence
+3.2 Novel Attempts to Improve
+Issues of communication appear as a common thread Adherence
+when evaluating adherence to clinical guidelines.
+looked at beta-blocker use in Evident from this discussion is the fact that
+heart failure and showed various methods and guideline adherence is subject to great variation.
+channels of disseminating the guideline information. There are many reasons for non-adherence, but these
+
+can be broken down into two broad categories: being Improvements in mobile technology have also
+unwilling to adhere to a guideline and being unable further advanced the ability to implement guideline
+to adhere. Whilst techniques to address the first adherence, as the proximity to the end user (be they
+category include improved dissemination, patient or clinician) allows immediate and real-time
+communication and various long-term social intervention or consultation. Examples of patient
+methods, improvements in the second category, interventions include the development of the
+which is usually functional in nature (e.g. lack of MobiGuide project , and other
+resources/time), can be approached using quality of life applications that allow quick reference
+"behaviourally disruptive" methods. in the form of either notifications (e.g. a message to
+Most attempts to improve adherence to a patient to take their medication) or input (e.g. a
+guidelines in the medical domain involve a direct daily symptom diary that a patient can fill in) which
+change or implementation of a care procedure. In allows the direct consequences of adherence or nonthese cases, the evidence-base for a guideline comes adherence to be measured. An example of adherence
+from a panel of experts in the field that have reached improvement tools directed at clinicians include the
+a point of consensus for various treatments. The development of the SIGN apps
+novel attempts then concern the implementation of (www.sign.ac.uk/sign-apps.html), which provide
+that guideline in patient care in a standardised and immediate triage information across many
+accountable way. emergency fields, allowing doctors to quickly
+A campaign that exemplifies this approach is consult their actions with regard to the official
+"Surviving sepsis", which has looked at targeted guidelines in this field.
+improvement of patient care by specifically
+supporting guideline adherence through the 3.3 Framework Technology
+identification of resuscitation and management
+"bundles". Part of this was an intensive data It can be seen that many novel technologies exist,
+collection arm, which - in real-time - forced but for the purposes of choosing an applicable
+clinicians to systematically add data as part of technology to address the particular challenges in
+clinical routine . The results of this this work, many of the characteristics appear to be
+have shown a marked improvement in adherence to well represented by processes and work-flows, and
+the guidelines, but an emergent complication was hence the slightly wider speciality of process
+the ability to stay current with the latest guidelines models.
+and update procedures to reflect this. Feedback from (Perimal-lewis et al. 2012) claims that the
+the first four years of this project back into the re- fundamental element required for the construction of
+development and improvement of sepsis guidelines a process model is the historical event log of a
+has been cautiously optimistic (Dellinger et al. process, and this lends itself to the description of
+2013). Whilst not specifically providing a new type actions and reactions in a medical context. This
+of analysis it does provide a large canon of data for a research area is referred to "process mining" and is
+specific condition that is potentially useful for future usually applied to the logistical higher-level patient
+studies into sepsis as well . care work-flows within a hospital. Studies, such as
+A study looking at the ability to change (Mans & Schonenberg 2009), investigate the
+behaviour where possible when implementing different management processes using various
+guidelines (Grol & Grimshaw 2003), has shown that process mining views on control-flow structures, and
+only comprehensive interventions on all levels of how these affect organisation and performance
+input and with specific targets and barriers identified within a hospital.
+stand a chance of influencing behaviour. Several This area is also related to the more general
+categories were identified: educational strategies, domain of business process management (BPM) not
+audit and feedback, use of reminders/computers, usually realized as medical processes, but critical in
+substitution of tasks, multi-professional the use of event/reaction flow-diagrams to formally
+collaboration, mass media campaigns, total quality describe processes that occur within complex
+management, financial incentives, patient-mediated organisations. An example of this is (Werf et al.
+interventions, and a combination of all of these 2012), which looks at tools to automate the
+interventions. This was a broader conclusion than compliance of an business to specific guidelines,
+that reached by on a similar typically referred to as "audit". The idea behind this
+study (which described active rather than passive work is to develop an awareness of the context of a
+interventions being more effective). process, which can often impact the perceived
+
+compliance to a guideline, without being sufficiently 4.1 Process Model from
+accounted for in the evaluation. Work such as this Physio/Treatment Data
+however, does tend to exist in abstract discussions,
+and rarely gets implemented in a real hospital The conversion of the physiological and treatment
+setting. data into a set of event logs has been conducted
+There is also a discrepancy between the level of using the Edinburgh University Secondary Insult Grades (EUSIG) event parameter definitions. As
+pattern extraction and the focus on the level of mentioned in section 2.2, the major detail of this
+patterns. The process mining work referred to above work for one of the data-sets used here can be found
+nearly always focuses on the clinician behaviour as in .
+part of a corporate body, with a view to improving In summary, the work was an audit of pressure
+those corporate processes such as (Perimal-lewis et events (specifically Intracranial Pressure (ICP) and CPP) through-out the
+al. 2012). At a lower "micro" level, pattern Brain-IT data-set (see section 5
+extraction science focuses on mathematical for a summary description of this data), using pattern
+techniques to detect individual events (again, similar matching techniques where the Edinburgh University Secondary Insult Grades (EUSIG) definition of
+to and possibly driven by signal processing). The Intracranial Pressure (ICP) or Cerebral Perfusion Pressure (CPP) event was the target pattern within the
+connection between these two levels, which is where data-set (for all pattern definitions the structure was
+the work proposed in this document is focused, is the same - see figure 2 - but the parameter values,
+rare, though it does exist. looks such as threshold and hold-down time were varied).
+at the "clinical pathway" area, where a clinical event
+log is analysed and common remedial medical
+behaviours are extracted. The work was validated by
+clinical experts as a true representation of some of
+their behaviours, but it did conclude that the general
+nature of the conclusions, meant that more specific
+work was required, and that some critical behaviours
+were missed.
+This is where the focus on a specific condition
+helps in identifying processes more exactly and in a
+way that is immediately useful to clinicians working
+in the Intensive Care Unit (ICU).
+
+4 SYSTEM ARCHITECTURE
+
+Figure 3: E-R diagram of the standardised interface - the
+The highest level schematic of the proposed "treatment profile" database - for compiling physiological
+and treatment data from Intensive Care Unit (ICU) data-sets, ready for
+technical solution in this work can be seen in figure
+conversion to logical event logs.
+1 (section 2.2). This shows the broadest steps to
+achieve a measure of guideline adherence:
+The overall results of this conversion work
+1. Convert the raw physiological and treatment
+outlined some interesting clinical results, such as the
+data into an event log
+verification of an "unofficial" event threshold of 15
+2. Convert the event log into a process model
+mmHg when clinicians feel they must intervene to
+3. Convert the text guidelines into a similarly
+manage an escalating Intracranial Pressure (ICP) (also known as an
+structured process model
+intracranial hypertensive episode). But the practical
+4. Compare the two and calculate the distance
+data output was a generalised accumulation of
+between them (this is the measure of non-
+information about Intracranial Pressure (ICP) and Cerebral Perfusion Pressure (CPP) events, alongside
+compliance, the inverse of which is adherence,
+treatment information.
+the overall goal)
+After this audit work had been concluded, the
+The architectural and design details are now next logical step was realised in storing this data
+expanded upon in this section. representation in a standardised interface, so that
+future data-sets could be compared in a similar way.
+Currently this standardised interface is implemented
+---

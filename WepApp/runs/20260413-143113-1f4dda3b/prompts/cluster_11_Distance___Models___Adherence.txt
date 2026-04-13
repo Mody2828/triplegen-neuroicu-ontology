@@ -1,0 +1,69 @@
+You are an expert ontology engineer and neurointensive care domain specialist.
+
+You are given a semantic cluster of ontology classes extracted from neurointensive care research papers. Your task is to enrich this cluster with meaningful domain relations — NOT to invent new classes or restructure the hierarchy.
+
+## Cluster: "Distance / Models / Adherence"
+
+### Classes in this cluster (8 total):
+1. **A-star Algorithm**
+   Definition: A shortest distance algorithm used for calculating distances between process models, slightly slower but more accurate.
+   Evidence: A-star (a well-known shortest distance algorithm)
+2. **Direct Algorithm**
+   Definition: One of two algorithms used to calculate the distance between process models for guideline adherence measurement.
+   Evidence: "Direct" and "Weighted"
+3. **Distance Calculation**
+   Definition: A calculation used to compare process models, such as string-edit distance or graph-edit distance.
+   Evidence: distance calculation
+4. **Graph-edit Distance**
+   Definition: A distance metric comparing graphs of nodes and edges in process models.
+   Evidence: graph-edit distance (nodes and edges)
+5. **Greedy Algorithm**
+   Definition: An algorithm searching for local optima, used for calculating distances between process models.
+   Evidence: Greedy algorithm (searching for local optima)
+6. **Similarity Calculation**
+   Definition: A quantitative measure of distance or similarity between two process models, used to assess guideline adherence.
+   Evidence: Similarity Calculations
+7. **String-edit Distance**
+   Definition: A distance metric comparing sequences of nodes in process models, used in guideline adherence work.
+   Evidence: string-edit distance
+8. **Weighted Algorithm**
+   Definition: A computational method that applies specific weightings to different factors, such as treatment types, to calculate non-adherence metrics.
+   Evidence: "Direct" and "Weighted"
+
+### Other clusters in this ontology (for cross-cluster linking):
+Guideline / Approaches / Method Of, Pupil / Body / Intervention Involving, Carbon / Dioxide / Carbon Dioxide, Hypotensive Event / Hypotensive / Event, Changes In / Changes / Elevated, Sensor / Catheter / Of Physiological, Lesion / Traumatic / Traumatic Injury, Intervention Involving / Artefact / Involving, Bedside / Rate / Heart Rate, Head / Injuries / Secondary, Outcome / Variables / Statistical, Guideline / Injured / The Of, Of Intracranial / Icp / Intensity, Glasgow Outcome / The Glasgow / Functional, None / Parameter / And, Hypotensive / Systolic / Hypotensive Event, Conditions / Approaches / Neuro, Non Adherence / Adherence / Time Window, None / Autoregulation / Impairment, Surgical / Skull / The Skull, Catheter / Arterial / Line, Time Window / Rate / Window, Tissue Oxygen / Tissue / Oxygen
+
+## Your task — produce ONLY relations:
+
+1. **Relations (object properties)**: Define meaningful domain-specific relations between classes in this cluster. You MUST use ONLY labels from the closed vocabulary below — do NOT invent new relation types.
+
+   **Allowed relation labels (closed vocabulary)**: "occurs in", "derives from", "measured via", "measured from", "targets condition", "secondary to", "has monitoring data", "calculated from", "uses", "receives therapy", "collects", "generates", "assesses", "requires", "may indicate", "informs", "has clinical assessment", "has timepoint", "observes parameter", "produced by sensor", "implements sensing process", "has measurement capability", "is a type of", "manages", "includes", "governs", "supports", "classifies", "treats", "documents", "has non-adherence reason", "affects management of", "mandates against", "calculated using", "has non-linear effect on", "monitored in", "associated with condition", "monitoring indicates condition", "interacts with", "measured in", "adjusted for", "guarantees", "delivers", "accounts for", "has relationship with", "influenced by", "achieves", "is source of", "impairs", "is monitored as", "is computed from", "is classified as", "is associated with", "is visualized for", "includes variable", "characterized by", "depends on", "has outcome", "could lead to", "is secondary insult after", "defines", "triggers intervention", "contributes to", "impacts", "uses definition", "calculates using", "used to guard against", "has definition", "identified using", "triggered by", "classified by", "has role in calculating", "includes data from", "identifies", "expressed as", "used in combination with", "lowers", "treated with", "precedes", "reduces", "management of", "lowering therapies for", "predictor of", "visualizing correlation between", "targets", "has demographic parameter", "increases", "occurs during", "impacts outcome", "determines", "occurs after", "has surgical procedure", "has demographic data", "is a", "associated with"
+
+   If none of the allowed labels fit a pair of classes, do not emit a relation for that pair. It is better to emit fewer relations than to invent a new label.
+
+2. **No new classes**: You MUST NOT invent, add, or propose any new classes. Use ONLY the classes listed above as domain/range. Any class you output that is not in the list above will be discarded.
+
+3. **No hierarchy**: Do NOT produce subClassOf / hierarchy edges. The hierarchy is already defined in the source ontology and will be preserved independently. Any hierarchy edges you emit will be discarded.
+
+4. **Cross-cluster relations**: Identify up to 5 important relations that connect classes in THIS cluster to classes that likely belong in OTHER clusters listed above. Cross-cluster relations must also use the closed vocabulary above.
+
+## Output format — strict JSON only:
+```json
+{
+  "classes": [
+    {"label": "...", "definition": "...", "evidence": "from source text", "synonyms": []}
+  ],
+  "relations": [
+    {"label": "...", "domain": "...", "range": "...", "definition": "one-sentence description"}
+  ],
+  "hierarchy": []
+}
+```
+
+## Rules:
+- Include each existing class in your output EXACTLY as given — do not rename or remove.
+- DO NOT add any new classes under any circumstances. Zero. None.
+- DO NOT emit any hierarchy edges. Leave "hierarchy" as an empty list.
+- Every relation must use a label from the closed vocabulary above.
+- Every relation must have both domain and range that reference real classes from this cluster (or another cluster listed above).
+- Output ONLY the JSON object — no markdown fences, no commentary before or after.

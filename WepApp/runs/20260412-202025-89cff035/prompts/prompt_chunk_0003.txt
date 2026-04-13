@@ -1,0 +1,331 @@
+Suggested concepts (pre-identified by biomedical NER in this text): CO2, Jugular Venous Oxygen, Oxygen, Coma, Na, K þ, Glucose, Secondary insult, pressors, hypotension.
+These are entity mentions detected in this chunk. Use them as additional evidence that a concept is present, but only extract labels from the allowed class list above.
+
+Candidate domain terms (contextual hints only — use only if explicitly supported by the text):
+biochemistry; blood gases; central venous; cerebral perfusion pressure; cpp; cvp; etco2; gcs; glasgow; haematology; hypotension; icp
+
+SYSTEM ROLE
+
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+CORE CONSTRAINTS
+
+Source fidelity
+Extract information stated or clearly implied in the current text.
+You may use standard medical knowledge to recognise parent-child relationships
+(e.g. TBI is a type of Brain Injury) when the text discusses both concepts.
+Do not invent concepts that are not mentioned in the text.
+
+Evidence anchor
+Every extracted class, relation, and hierarchy edge must include an evidence field.
+Evidence must be an EXACT VERBATIM phrase or sentence fragment COPIED from the text — do NOT paraphrase, summarize, truncate, or rephrase.
+Copy the sentence or clause exactly as it appears, preserving original wording, word order, and punctuation.
+If you cannot find an exact quote in the text, OMIT the item entirely.
+
+Extraction scope
+Extract ALL clinical and biomedical content: conditions, diseases, injuries, syndromes, secondary insults, physiological parameters, monitoring variables, treatments/therapies/interventions/drugs, outcomes, assessments, scores, laboratory values, nursing interventions, surgical procedures, medical devices, sensors, clinical guidelines, management protocols, and data categories (Monitoring Data, Demographic Data, Admission Data, Treatment Data, Outcome Data, Core Monitoring Parameter, Optional Monitoring Parameter, Baseline Therapy, etc.).
+Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+If a sentence or paragraph is mainly about these excluded topics, ignore it unless it contains a clearly named clinical concept.
+
+Relation label rule
+CRITICAL: Do NOT use 'includes', 'consists of', 'comprises', 'contains', 'encompasses', 'is a type of', 'is a kind of', 'categorized as', 'classified as', 'belongs to', or 'part of' as relation labels. If X includes/contains Y, model it as HIERARCHY: Y subClassOf X. If A is a type of B, model it as HIERARCHY: A subClassOf B.
+
+Priority rule
+Classes are the priority.
+Extract relations when the text clearly supports the connection and both endpoints are extracted classes.
+Extract hierarchy only when there is an explicit lexical cue.
+
+Confidence rule
+If a clinical concept is clearly named in the text, include it even if mentioned briefly.
+Omit only genuinely non-clinical items.
+
+Hierarchy rule
+Extract hierarchy edges generously. Look for:
+- Explicit cues: is a, type of, kind of, such as, include:, includes:, consists of, comprises
+- Implicit grouping: items listed under a heading or category (e.g. 'core parameters: HR, ICP, MAP')
+- Medical knowledge: when the text discusses both concepts and one is clearly a subtype
+  (e.g. TBI is a type of Brain Injury, Hypotension is a Secondary Insult)
+
+Label mapping rule
+If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+For other abbreviations, expand to their full clinical name as used in the text.
+
+Structural completeness rule
+When the text mentions specific clinical items, also extract their general category if the text supports it.
+For example, if the text discusses ventilation, sedation, fluids as therapies, also extract the general class Therapy or Baseline Therapy if the text uses that grouping.
+Use the text’s own categories and groupings — do not impose an external hierarchy.
+
+Anti-anchoring rule
+Use the retrieved example below as format and behaviour guidance only.
+Do not copy labels, relations, or hierarchy from the example unless the current text explicitly supports them.
+Your text may contain concept types NOT represented in the example — extract them all.
+
+REASONING STEP
+Before producing JSON, mentally scan the text for:
+(1) every named clinical concept,
+(2) explicit relations between them,
+(3) hierarchy cues (such as, is a, type of, include:).
+Then output only items with verbatim evidence.
+
+OUTPUT FORMAT (JSON ONLY)
+
+Return only valid JSON.
+Do not include markdown code fences, explanations, notes, or commentary.
+
+Structure:
+{
+  "classes": [
+    {"label": "string", "definition": "one-sentence scope note describing what this class represents in the domain", "evidence": "string"}
+  ],
+  "relations": [
+    {"label": "string", "domain": "string", "range": "string", "definition": "one-sentence description of what this relation means between domain and range", "evidence": "string"}
+  ],
+  "hierarchy": [
+    {"subClass": "string", "superClass": "string", "evidence": "string"}
+  ]
+}
+
+Definition rule
+Every class and relation MUST include a `definition` field: a concise one-sentence scope note.
+The definition should clarify what the class represents or what the relation means in the clinical domain.
+Ground definitions in the text where possible, but you may use standard medical knowledge to write a clear scope note.
+Example class definition: "A physiological parameter measuring the pressure inside the cranium, used to monitor patients with traumatic brain injury."
+Example relation definition: "Links a patient to the set of continuously recorded physiological measurements captured during their ICU stay."
+
+OUTPUT RULES
+
+Use short, clean noun-phrase labels for classes.
+Do not output duplicate items.
+Every relation must have a valid domain, range, and exact evidence.
+Domain and range must be class labels supported by the text.
+If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+Do not create hierarchy from thresholds, values, long clause fragments, or procedural text.
+If no valid relations or hierarchy are supported, return empty arrays for them.
+Extract EVERY distinct clinical concept the text names — err on the side of INCLUSION.
+Do not invent concepts, relations, or hierarchy edges not supported by the text.
+
+NON-GOAL EXAMPLE
+The following sentence should produce NO extraction:
+Text: "The study was funded by the BrainIT Group and data were collected from 22 centres across 11 countries."
+Expected output: {"classes": [], "relations": [], "hierarchy": []}
+Reason: Funding, governance, study logistics, and multi-centre coordination are out of scope — only extract clinical concepts.
+
+SELF-CHECK (before finalising output)
+- Is every label a clinical TYPE (not an instance or a person’s name)?
+- Are there any duplicate or synonym labels? Merge them.
+- Do all relation domain/range labels match extracted class labels?
+- Are there any circular hierarchy edges? Remove them.
+- Does every evidence field contain a verbatim quote from the text?
+
+--- Retrieved example ---
+Text: This is the minimum minute by minute monitoring data required for inclusion in the BrainIT Database and include: Heart Rate, Respiration Rate, Mean Arterial Pressure, mean ICP, SaO2 and Temperature. Additional variables: CVP, EtCO2, SjO2, TCD, PbrO2, Brain Temperature, Microdialysis will also be included if monitored as part of usual clinical management. Data is collected from patients every minute.
+Output (JSON):
+{{
+  "classes": [
+    {{
+      "label": "Monitoring Data",
+      "evidence": "minute by minute monitoring data",
+      "definition": "Continuously recorded physiological measurements collected from bedside monitors."
+    }},
+    {{
+      "label": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required",
+      "definition": "A mandatory physiological variable collected at minimum once per minute."
+    }},
+    {{
+      "label": "Optional Monitoring Parameter",
+      "evidence": "Additional variables...included if monitored as part of usual clinical management",
+      "definition": "An additional physiological variable collected when clinically available."
+    }},
+    {{
+      "label": "Heart Rate",
+      "evidence": "Heart Rate",
+      "definition": "The number of cardiac contractions per minute, a core physiological monitoring parameter in neuro-ICU."
+    }},
+    {{
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate",
+      "definition": "The number of breaths per minute, measured via impedance plethysmography or ventilator."
+    }},
+    {{
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "Mean Arterial Pressure",
+      "definition": "The average arterial blood pressure during a cardiac cycle, a key haemodynamic parameter."
+    }},
+    {{
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "mean ICP",
+      "definition": "The pressure inside the cranium, continuously monitored to detect intracranial hypertension in TBI patients."
+    }},
+    {{
+      "label": "SaO2",
+      "evidence": "SaO2",
+      "definition": "Arterial oxygen saturation measured by pulse oximetry, indicating blood oxygenation levels."
+    }},
+    {{
+      "label": "Temperature",
+      "evidence": "Temperature",
+      "definition": "Core body temperature measured at rectal, oesophageal, bladder, or skin sites."
+    }},
+    {{
+      "label": "CVP",
+      "evidence": "CVP",
+      "definition": "Central venous pressure, measuring the pressure in the thoracic vena cava near the right atrium."
+    }},
+    {{
+      "label": "EtCO2",
+      "evidence": "EtCO2",
+      "definition": "End-tidal carbon dioxide concentration, reflecting ventilation adequacy."
+    }},
+    {{
+      "label": "SjO2",
+      "evidence": "SjO2",
+      "definition": "Jugular venous oxygen saturation, an indicator of cerebral oxygen consumption."
+    }},
+    {{
+      "label": "TCD",
+      "evidence": "TCD",
+      "definition": "Transcranial Doppler ultrasonography, used to assess cerebral blood flow velocity."
+    }},
+    {{
+      "label": "PbrO2",
+      "evidence": "PbrO2",
+      "definition": "Partial pressure of brain tissue oxygen, measuring local cerebral oxygenation."
+    }},
+    {{
+      "label": "Brain Temperature",
+      "evidence": "Brain Temperature",
+      "definition": "Temperature measured directly within brain tissue, distinct from core body temperature."
+    }},
+    {{
+      "label": "Microdialysis",
+      "evidence": "Microdialysis",
+      "definition": "A sampling technique for measuring extracellular brain chemistry metabolites."
+    }},
+    {{
+      "label": "Patient",
+      "evidence": "collected from patients every minute",
+      "definition": "An individual receiving neurointensive care for traumatic brain injury."
+    }}
+  ],
+  "relations": [
+    {{
+      "label": "has monitoring data",
+      "domain": "Patient",
+      "range": "Monitoring Data",
+      "evidence": "Data is collected from patients every minute",
+      "definition": "Links a patient to the set of continuously recorded physiological measurements captured during their ICU stay."
+    }}
+  ],
+  "hierarchy": [
+    {{
+      "subClass": "Core Monitoring Parameter",
+      "superClass": "Monitoring Data",
+      "evidence": "minute by minute monitoring data required...include: Heart Rate"
+    }},
+    {{
+      "subClass": "Optional Monitoring Parameter",
+      "superClass": "Monitoring Data",
+      "evidence": "Additional variables...included if monitored"
+    }},
+    {{
+      "subClass": "Heart Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Heart Rate"
+    }},
+    {{
+      "subClass": "Intracranial Pressure (ICP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: mean ICP"
+    }},
+    {{
+      "subClass": "CVP",
+      "superClass": "Optional Monitoring Parameter",
+      "evidence": "Additional variables: CVP"
+    }},
+    {{
+      "subClass": "EtCO2",
+      "superClass": "Optional Monitoring Parameter",
+      "evidence": "Additional variables: CVP, EtCO2"
+    }}
+  ]
+}}
+
+--- TEXT TO ANALYZE ---
+Minute by minute monitoring data
+This is the minimum minute by minute monitoring data required for
+inclusion in the Brain Monitoring with Information
+Technology (BrainIT) Database and include: Heart Rate (specifying
+source: Electrocardiogram (ECG) or Pulse Oximetry), Respiration Rate (sources: impedance
+plethmography or ventilator), Mean Arterial Pressure, mean Intracranial Pressure (ICP), Pulse
+Oximetry (SaO2) and Temperature (sources: rectal=oesophageal= bladder=skin.)
+
+I. Piper et al.
+However, additional variables: Central Venous Pressure (CVP),
+End-Tidal CO2 (EtCO2), Jugular Venous Oxygen Saturation (SjO2), Transcranial Doppler (TCD), Brain Tissue Oxygen (PbrO2), Brain Temperature, Microdialysis. . . will
+also be included in the database if they are monitored, in a given patient,
+as part of their usual clinical management.
+Thus the emphasis is to not exclude data which is part of any given
+centre's normal monitoring practice and in so doing build a rich and
+varied database for post-hoc analysis.
+
+Intensive care management information
+This section focuses on the baseline medical management and
+monitoring of clinical status that occurs to patients more than once in
+their stay in ITU. Our intention is to collect this time-series information
+with a greater frequency and accuracy than has been previously
+attempted.
+To acquire the information with the required frequency, data here will
+typically be collected by menu driven PC software or in some cases by
+direct links to hardware (e.g.: infusion pump links). Start times and end
+times will be given for any change in condition. Data collection methodology varies between centres.
+Types of data include: Glasgow Coma Scale (GCS) scores, pupil scores, ventilation settings,
+sedation levels, fluid input and output, nutrition, use of vasopressors,
+antibiotics.
+Coded fields will annotate routine nursing (eye=mouth care, ET tube
+suction, bed care.), physiotherapy and bedside interventions= investigations (line insertion=renewal, transducer calibration, x-ray.) and patient
+transport (to and from Theatre=Computed Tomography (CT)-Scan.).
+Routine blood gases and daily laboratory values will also be recorded -
+Biochemistry (Na, K þ , Glucose), Haematology (Haemaglobin, White
+Cell Count, Haematocrit).
+Further detail can be obtained by viewing the core dataset definition
+or by downloading it from the Brain Monitoring with Information
+Technology (BrainIT) web-site (go to core dataset link
+at: www.brainit.org).
+
+Secondary insult management data
+This is medical management=therapy given to patients specifically to
+treat secondary insults which occur to patients despite their baseline
+intensive care medical management.
+To distinguish therapy given to patients to treat secondary insults from
+those of baseline intensive care, we have devised a coding system which
+allows specific categories of therapy to be assigned a ''therapy target''.
+For example, arterial pressors may be given to treat systemic hypotension or to treat reduced cerebral perfusion pressure (CPP) secondary to
+raised Intracranial Pressure (ICP). By choosing an appropriate target for each secondary
+insult therapy will enhance the usefulness of the database on medical
+therapy.
+Data here will typically be collected by menu driven PC software. It is
+to be limited to non-surgical management. Start and end times must be
+given.
+Each Therapy must be assigned a ''Target'' chosen from a drop down
+list. If drugs are given then one can indicate continuous infusion if drugs
+are delivered by a continuous infusion pump or one can indicate boluses
+if it is delivered non-continuously.
+Figure 3 summarise the minimum choice of therapy categories and
+associated targets for the Brain Monitoring with Information
+Technology (BrainIT) core dataset.
+
+Paper based feasibility exercise
+Having met and defined a core dataset, the group next performed a
+paper based feasibility exercise. The intention being to determine if the
+core data elements can be collected from the majority of centres. If only
+
+The Brain Monitoring with Information
+Technology (BrainIT) group: concept and core dataset definition
+
+Fig. 3. Tracking Therapies and Targets. Lists Brain Monitoring with Information
+Technology (BrainIT) core dataset definition therapies and therapy targets. This therapy tracking model has been
+designed to be easily implemented in software
+---

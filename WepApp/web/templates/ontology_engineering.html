@@ -68,6 +68,10 @@
   .oe-result-pill.ok    { background: rgba(245, 166, 91, 0.18); color: #F5A65B; border-color: rgba(245, 166, 91, 0.4); }
   .oe-result-pill.bad   { background: rgba(255, 107, 129, 0.18); color: #FF6B81; border-color: rgba(255, 107, 129, 0.4); }
   .oe-result-pill.none  { background: transparent; color: var(--tg-text-secondary); }
+  .oe-mode-strict { background: rgba(255, 107, 129, 0.18); color: #FF6B81; }
+  .oe-mode-guided { background: rgba(245, 166, 91, 0.18); color: #F5A65B; }
+  .oe-mode-schema { background: rgba(46, 214, 161, 0.18); color: #2ED6A1; }
+  .oe-mode-oe     { background: rgba(108, 145, 255, 0.18); color: #6C91FF; }
   .oe-run-view-btn {
     font-size: 0.7rem; padding: 2px 8px; border-radius: var(--tg-radius-xs);
     border: 1px solid var(--tg-border); background: var(--tg-surface);
@@ -189,10 +193,22 @@
   </p>
 
   {% if runs %}
-  <div class="mb-2">
-    <button type="button" class="btn btn-tg-ghost btn-sm" id="btn-select-all">Select all</button>
-    <button type="button" class="btn btn-tg-ghost btn-sm" id="btn-deselect-all">Deselect all</button>
-    <span class="text-muted ms-2" style="font-size:0.75rem;" id="selected-count">0 selected</span>
+  <div class="mb-2 d-flex flex-wrap align-items-center gap-3">
+    <div class="btn-group btn-group-sm" role="group" aria-label="Filter by pipeline mode">
+      <input type="radio" class="btn-check" name="oe-mode-filter" id="oe-filter-all" value="all" checked autocomplete="off">
+      <label class="btn btn-outline-secondary" for="oe-filter-all">All</label>
+      <input type="radio" class="btn-check" name="oe-mode-filter" id="oe-filter-strict" value="strict" autocomplete="off">
+      <label class="btn btn-outline-secondary" for="oe-filter-strict">Strict</label>
+      <input type="radio" class="btn-check" name="oe-mode-filter" id="oe-filter-guided" value="guided" autocomplete="off">
+      <label class="btn btn-outline-secondary" for="oe-filter-guided">Guided</label>
+      <input type="radio" class="btn-check" name="oe-mode-filter" id="oe-filter-schema" value="schema" autocomplete="off">
+      <label class="btn btn-outline-secondary" for="oe-filter-schema">Schema-Completed</label>
+    </div>
+    <div>
+      <button type="button" class="btn btn-tg-ghost btn-sm" id="btn-select-all">Select all</button>
+      <button type="button" class="btn btn-tg-ghost btn-sm" id="btn-deselect-all">Deselect all</button>
+      <span class="text-muted ms-2" style="font-size:0.75rem;" id="selected-count">0 selected</span>
+    </div>
   </div>
   <div class="oe-run-list mb-3">
     {% for run in runs %}
@@ -203,7 +219,7 @@
       {% else %}{% set f1_class = 'bad' %}
       {% endif %}
     {% endif %}
-    <div class="oe-run-item">
+    <div class="oe-run-item" data-mode="{{ run.pipeline_mode }}">
       <input type="checkbox" class="form-check-input oe-run-check" value="{{ run.id }}" id="run-{{ run.id }}">
       <label class="oe-run-label" for="run-{{ run.id }}">
         <span class="run-id">{{ run.id }}</span>
@@ -212,6 +228,7 @@
           {% if run.papers %}<span class="text-muted"> · {{ run.papers }}</span>{% endif %}
         </span>
       </label>
+      <span class="oe-run-badge oe-mode-{{ run.pipeline_mode }}">{{ run.pipeline_mode | capitalize }}</span>
       <span class="oe-run-badge">{{ run.n_classes }} classes</span>
       <span class="oe-result-pill {{ f1_class }}"
             title="{% if run.has_metrics %}Last result — Precision {{ '%.2f' % (run.precision or 0) }}, Recall {{ '%.2f' % (run.recall or 0) }}, Coverage {{ '%.2f' % (run.coverage or 0) }}{% else %}No evaluation saved for this run{% endif %}">
@@ -246,6 +263,20 @@
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════════
+     Load Previous Cluster
+     ═══════════════════════════════════════════════════════════════════ -->
+<div class="tg-glass-card p-3 mb-4" style="border-left: 3px solid var(--tg-accent-2);">
+  <div class="d-flex flex-wrap align-items-center gap-3">
+    <div style="font-size:0.82rem; font-weight:600; color:var(--tg-accent-2); white-space:nowrap;">
+      <i class="bi bi-clock-history me-1"></i>Load Previous Cluster
+    </div>
+    <select id="oe-load-prev-cluster" class="form-select form-select-sm" style="max-width:400px; font-size:0.8rem;">
+      <option value="">Select a previous cluster run...</option>
+    </select>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
      Stage 2: Cluster
      ═══════════════════════════════════════════════════════════════════ -->
 <div id="stage-cluster" class="tg-glass-card p-4 mb-4 oe-stage locked">
@@ -269,6 +300,20 @@
     </div>
     <h5 class="mb-2" style="font-size:0.85rem; color:var(--tg-text-secondary)">Cluster Details</h5>
     <div class="oe-cluster-grid" id="cluster-cards"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     Load Previous OE Run
+     ═══════════════════════════════════════════════════════════════════ -->
+<div class="tg-glass-card p-3 mb-4" style="border-left: 3px solid var(--tg-accent-2);">
+  <div class="d-flex flex-wrap align-items-center gap-3">
+    <div style="font-size:0.82rem; font-weight:600; color:var(--tg-accent-2); white-space:nowrap;">
+      <i class="bi bi-clock-history me-1"></i>Load Previous OE Run
+    </div>
+    <select id="oe-load-previous" class="form-select form-select-sm" style="max-width:400px; font-size:0.8rem;">
+      <option value="">Select a previous reconstruction...</option>
+    </select>
   </div>
 </div>
 
@@ -340,6 +385,9 @@
       <button id="btn-download-json" class="btn btn-tg-secondary btn-sm">
         <i class="bi bi-download me-1"></i>Download Ontology JSON
       </button>
+      <button id="btn-download-ttl" class="btn btn-tg-secondary btn-sm">
+        <i class="bi bi-download me-1"></i>Download Ontology TTL
+      </button>
     </div>
   </div>
 </div>
@@ -405,5 +453,5 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script src="{{ url_for('static', filename='js/ontology_engineering.js') }}"></script>
+<script src="{{ url_for('static', filename='js/ontology_engineering.js') }}?v=5"></script>
 {% endblock %}

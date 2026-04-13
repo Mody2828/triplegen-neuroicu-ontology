@@ -1,0 +1,1085 @@
+### TASK: Relation Extraction
+You are a clinical ontology engineer. Your task is to find semantic RELATIONS between the classes listed below, using the source text as evidence. Extract every relation the text explicitly supports.
+
+### WHAT IS AN ONTOLOGY RELATION?
+An ontology relation (object property) defines a typed semantic link between two classes. The DOMAIN is the subject; the RANGE is the object.
+Model the SCHEMA of the domain — not individual facts. Think:
+'Every instance of [domain] can be linked via [relation] to an instance of [range].'
+
+### RELATION EXTRACTION METHOD
+Systematically examine class pairs and reason step by step:
+1. Scan the text for sentences where two or more classes co-occur.
+2. For each co-occurrence, determine: what is the semantic nature of the link?
+   (measurement, treatment, assessment, outcome, composition, causation, etc.)
+3. Decide which class is domain (subject) and which is range (object).
+4. Assign a clear, descriptive relation label.
+5. Provide an exact verbatim quote from the text as evidence.
+
+### RELATION PATTERNS
+Patient-centric:
+  - has monitoring data: Patient → Monitoring Data
+  - receives therapy: Patient → Therapy
+  - has outcome: Patient → Outcome
+  - has clinical assessment: Patient → Clinical Assessment
+  - has laboratory value: Patient → Laboratory Values
+  - has nursing intervention: Patient → Nursing Intervention
+  - has surgical procedure: Patient → Surgical Procedure
+  - has session: Patient → Session
+  - has demographic data: Patient → Demographic Data
+Clinical process:
+  - monitoring indicates condition: Monitoring Data → Condition
+  - targets condition: Therapy → Condition
+  - triggers intervention: Condition → Therapy
+  - affected by treatment: Data Quality Assessment → Therapy
+  - associated with condition: Data Quality Assessment → Condition
+Structural:
+  - has observation: Timepoint → Observation
+  - has timepoint: Session → Timepoint
+  - measures parameter: Observation → Parameter
+  - produced by sensor: Observation → Sensor
+  - has quality assessment: Observation → Data Quality Assessment
+  - includes: Category → Member
+  - derived from: DerivedParameter → SourceParameter
+You SHOULD also discover relations not in this list if the text supports them.
+
+### CLASSES IN THE ONTOLOGY
+  - 6-month Outcome
+  - Abandoned Events
+  - Active Autoregulation
+  - Active ICP Insult
+  - Acute Hypotensive Episode
+  - Acute Respiratory Distress Syndrome
+  - Admission Data
+  - Admission Time to Icu
+  - Adult Cohort
+  - Adult Traumatic Brain Injury Patient
+  - Age
+  - Analgesia
+  - Anonymized Data
+  - Antimicrobial Therapy
+  - Artefact Detection and Removal
+  - Artefact Removal
+  - Arterial Blood Pressure Waveform
+  - Arterial Hypotension
+  - Arterial Pressure Line
+  - Auc
+  - Barbiturates
+  - Baseline Risk Factor
+  - Baseline Therapy
+  - Bayesian Artificial Neural Network (BANN)
+  - Bedside Intervention
+  - Bedside Monitor
+  - Bifrontal Craniectomy
+  - Big Data
+  - Bilateral Fixed and Dilated Pupils
+  - Blood Pressure Data
+  - Blood Pressure Transducer
+  - Bootstrap Methodology
+  - Brain Injury
+  - Brainit Consortium
+  - Brainit Database
+  - CPP
+  - CPP Policy
+  - CPP Safety Limits
+  - CPP Target Policy
+  - CPP Threshold
+  - CPP Variability
+  - CT Scan Assessment
+  - Cerebral Hypoperfusion Index 60
+  - Cerebral Perfusion Pressure Control
+  - Cerebral Perfusion Pressure Variation
+  - Cerebrovascular Autoregulation
+  - Chi-square Test
+  - Clinical Alarm
+  - Clinical Assessment
+  - Clinical Client Software
+  - Clinical Effectiveness
+  - Clinical Environment
+  - Clinical Examination
+  - Clinical Monitoring
+  - Clinical Outcome
+  - Clinical Pragmatism
+  - Clinical Setting
+  - Clinical Study
+  - Clinical Study Design
+  - Collaborative Research
+  - Colour-coded Plot
+  - Combination Therapy Approach
+  - Computed Tomography (CT)
+  - Condition
+  - Confidence Interval (CI)
+  - Continued Sedation
+  - Continuous Monitoring Data
+  - Corrupted Data
+  - Cranioplasty
+  - Crash Prediction Model
+  - Crash Prognostic Score
+  - Crash Score
+  - Critical Care
+  - Cumulative Dose of ICP Insults
+  - Data Collection Problem
+  - Data Push Software
+  - Data Quality Assessment
+  - Data Quality Issue
+  - Decision Threshold
+  - Decompressive Craniectomy
+  - Decra Trial
+  - Deepening of Sedation
+  - Demographic Data
+  - Demographic Indicators
+  - Demographic Parameters
+  - Derived Parameter
+  - Descriptive Switching Linear Dynamical System Model
+  - Diffuse Brain Injury
+  - Disability
+  - Duration Threshold
+  - Early Warning System
+  - Edinburgh University Secondary Insult Grades (EUSIG)
+  - Edinburgh University Secondary Insult Grading (EUSIG)
+  - Edinburgh University Secondary Insult Grading (EUSIG) System
+  - Electronic Health Records
+  - End-tidal Carbon Dioxide (ETCO2)
+  - Episodic Data
+  - Everyday Clinical Practice
+  - Extra Ventricular Drain Placement
+  - Extracranial Injuries
+  - Extracranial Injury
+  - False Positive Correction
+  - False Positive Rate
+  - False-positive
+  - Feature Extraction
+  - First-tier Intervention
+  - Follow-up Period
+  - GCS Assessment
+  - GOSe Outcome
+  - Gender
+  - General Anesthesia
+  - Glasgow Outcome Score (GOS)
+  - Good Recovery
+  - Guideline Adherence
+  - Haemodialysis
+  - Haemodialysis Treatment
+  - Hanfelt Design
+  - Hanfelt Two-stage Design
+  - Head Elevation
+  - Head Injury
+  - Head Trauma
+  - Heart Rate
+  - Heart Rate Variability
+  - Hemicraniectomy
+  - Hospital Ethics Committee
+  - Hybrid Monte-carlo Technique
+  - Hyperosmolar Molecule Administration
+  - Hyperosmolar Molecules
+  - Hypo-net
+  - Hypo-net System
+  - Hypocapnia
+  - Hypoperfusion
+  - Hypotension
+  - Hypotension Prediction
+  - Hypotensive Events
+  - ICP
+  - ICP Duration Threshold
+  - ICP Insult
+  - ICP Intensity Threshold
+  - ICP Threshold
+  - Icp-directed Therapy
+  - Icp-lowering Treatment
+  - Impact Model
+  - Impact Prognostic Score
+  - Impact Score
+  - Injury Mechanism
+  - Input Feature
+  - Insult Duration
+  - Insult Grading (EUSIG) Classification
+  - Insult Intensity
+  - Intensity Threshold
+  - Intensive Care Management
+  - Intensive Care Unit (ICU)
+  - Intensive Care Unit (ICU) Stay
+  - Interquartile Range
+  - Intracerebral Haematoma
+  - Intracranial Hypertension
+  - Intracranial Hypertension Index 20
+  - Intracranial Hypertension Index 25
+  - Intracranial Hypoperfusion Index 60
+  - Intracranial Hypoperfusion Index Reduction
+  - Intracranial Insult
+  - Intracranial Pressure Insult
+  - Intracranial Pressure Reduction
+  - Invalid Events
+  - Ischaemia
+  - Ischaemic Mechanism
+  - Live Clinical Environment
+  - Lower Good Recovery
+  - Lower Moderate Disability
+  - Lower Severe Disability
+  - Machine Learning
+  - Machine Learning Technology
+  - Malignant Intracranial Pressure Course
+  - Mann-Whitney U Test
+  - Mean Arterial Pressure (MAP)
+  - Mean Feature
+  - Mechanical Ventilation
+  - Median Intracranial Hypertension Index 20
+  - Median Intracranial Hypertension Index 25
+  - Median Intracranial Hypoperfusion Index 60
+  - Median Mean Intracranial Pressure
+  - Median Pressure Reactivity Index 0
+  - Medical Device Alarms
+  - Minute-by-minute Data
+  - Minute-by-minute Prediction
+  - Missing Data
+  - Model Performance
+  - Moderate Disability
+  - Moderate Traumatic Brain Injury
+  - Modified Glasgow Outcome Score (GOS)
+  - Monitoring Data
+  - Monitoring Time in Red Zone
+  - Mortality
+  - Motor Impairment
+  - Moving Pearson Correlation Coefficient
+  - Multi-center Study
+  - Multidisciplinary Consensus
+  - Multimodality Monitoring
+  - National Escience Centre (NESC)
+  - Nemo Project
+  - Neural Network
+  - Neural Network Model
+  - Neuro-critical Care
+  - Neuro-icu
+  - Neuro-intensive Care Center
+  - Neuro-intensivist
+  - Neurocognitive Scores
+  - Neurointensive Care
+  - Neurological Outcome
+  - Neurosurgeon
+  - Non-evacuated Mass Lesion
+  - Non-evacuated Mass Lesion (NEML)
+  - Non-rct Group
+  - Non-rct Prospective Study
+  - Nonlinear Regression
+  - Nuisance Alarm
+  - Nursing Procedure
+  - Observational Cohort
+  - Outcome
+  - Outcome Data
+  - Outcome Predictor
+  - Over-damped Trace
+  - Over-fitting
+  - Oxygen Saturation (SaO2)
+  - Paediatric Cohort
+  - Paediatric Traumatic Brain Injury Patient
+  - Paralysis
+  - Passive Autoregulation
+  - Passive ICP Insult
+  - Patient
+  - Patient Assent
+  - Patient Cohort
+  - Patient Data Management System
+  - Patient Instability
+  - Patient Movement
+  - Patient Outcome
+  - Patient Recruitment Protocol
+  - Patient Representatives
+  - Pearson Correlation Coefficient
+  - Phase 1 Pilot Study
+  - Phase 1 Study
+  - Phase 2 Study
+  - Phase 2 Validation Study
+  - Phase I Study
+  - Phase Ii Study
+  - Physiological Data
+  - Physiological Monitoring Data
+  - Physiological Variable
+  - Post-operative Intracranial Pressure
+  - Posttraumatic Intracranial Hypertension
+  - Pragmatic Clinical Decision-making
+  - Pragmatic Clinical Setting
+  - Pre-operative Intracranial Pressure
+  - Precision
+  - Precision Recall Plot
+  - Prediction Model
+  - Prediction Time
+  - Predictive Model
+  - Pressure Area Care
+  - Pressure Line Damping
+  - Pressure Reactivity Index (PRx)
+  - Pressure Reactivity Index 0
+  - Pressure Reactivity Index Reduction
+  - Pressure-time Dose
+  - Primary Brain Damage
+  - Procedure-based Prediction
+  - Prospective Multi-centre Clinical Work
+  - Prospective Non-interventional Observational Study
+  - Prospective Observational Study Design
+  - Prospective Phase I Dataset
+  - Prospective Phase Ii Dataset
+  - Pulse Pressure
+  - Pupil Abnormality
+  - Pupil Assessment
+  - Quality of Life
+  - Randomized Controlled Trial
+  - Recall
+  - Receiver Operating Characteristic (ROC) Curve
+  - Repeatability
+  - Rescueicp Study
+  - Rescueicp Trial (rct Group)
+  - Research and Development (R&D) Committee
+  - Robertson Trial
+  - Roc Curve
+  - Routine Blood Sample
+  - Routine Patient Hygiene
+  - Second-tier Intervention
+  - Second-tier Therapies
+  - Secondary Brain Injury
+  - Secondary Insult
+  - Secondary Insult Therapy
+  - Secondary Ischemic Damage
+  - Secondary Ischemic Insults
+  - Sedation
+  - Selfotel Trial
+  - Sensitivity
+  - Sepsis
+  - Septic Shock
+  - Seven Days Post-intervention Monitoring
+  - Severe Disability
+  - Severe Traumatic Brain Injury
+  - Severely Disabled
+  - Sex
+  - Six Hours Pre-intervention Monitoring
+  - Six-month Outcome Assessment
+  - Slope Feature
+  - Software and Hardware Infrastructure
+  - Specificity
+  - Sql Database
+  - Standard Deviation Feature
+  - Standard Medical Treatment
+  - Stich Trial
+  - Supratentorial Lobar Intracerebral Haematoma
+  - Surgical Group
+  - System Robustness
+  - Systemic Secondary Insult
+  - Systolic Arterial Blood Pressure
+  - TBI Guidelines
+  - Temperature
+  - Test Set
+  - Therapy Intensity Level (TIL)
+  - Therapy Intensity Level Basic (til Basic)
+  - Therapy Intensity Level Scale (TIL)
+  - Third-tier Intervention
+  - Third-tier Therapies
+  - Time Between Arrival and Decompressive Craniectomy
+  - Time Series Database
+  - Time Window
+  - Training Set
+  - Transition Curve
+  - Traumatic Brain Injury
+  - Traumatic Intracranial Hypertension
+  - Trip Trial
+  - Uhl Cohort
+  - Unacceptably High Intracranial Pressure
+  - Unfavourable Neurological Outcome
+  - Unmet Clinical Need
+  - Upper Good Recovery
+  - Upper Moderate Disability
+  - Upper Severe Disability
+  - User Interface
+  - Vasopressors
+  - Vegetative State
+  - Vegetative State Outcome
+  - Vital Physiological System
+  - Vital Signs Monitoring
+  - Ward Web App (WWA)
+  - Warning Time
+  - Wilcoxon Matched-pairs Signed-rank Test
+
+### CLASSES WITH NO RELATIONS (high priority — find connections!)
+  - Abandoned Events
+  - Active Autoregulation
+  - Admission Data
+  - Admission Time to Icu
+  - Age
+  - Analgesia
+  - Anonymized Data
+  - Artefact Detection and Removal
+  - Artefact Removal
+  - Arterial Pressure Line
+  - Baseline Risk Factor
+  - Baseline Therapy
+  - Bedside Monitor
+  - Big Data
+  - Bilateral Fixed and Dilated Pupils
+  - Blood Pressure Data
+  - Blood Pressure Transducer
+  - Bootstrap Methodology
+  - Brain Injury
+  - Brainit Consortium
+  - Cerebral Perfusion Pressure Control
+  - Cerebral Perfusion Pressure Variation
+  - Chi-square Test
+  - Clinical Alarm
+  - Clinical Assessment
+  - Clinical Client Software
+  - Clinical Effectiveness
+  - Clinical Environment
+  - Clinical Examination
+  - Clinical Monitoring
+  - Clinical Outcome
+  - Clinical Pragmatism
+  - Clinical Study
+  - Clinical Study Design
+  - Collaborative Research
+  - Colour-coded Plot
+  - Combination Therapy Approach
+  - Computed Tomography (CT)
+  - Condition
+  - Confidence Interval (CI)
+  - Continued Sedation
+  - Corrupted Data
+  - Cranioplasty
+  - Crash Prediction Model
+  - Crash Prognostic Score
+  - Critical Care
+  - Data Collection Problem
+  - Data Push Software
+  - Data Quality Assessment
+  - Data Quality Issue
+  - Decra Trial
+  - Deepening of Sedation
+  - Demographic Data
+  - Demographic Indicators
+  - Demographic Parameters
+  - Descriptive Switching Linear Dynamical System Model
+  - Diffuse Brain Injury
+  - Disability
+  - Early Warning System
+  - Edinburgh University Secondary Insult Grading (EUSIG) System
+  - Electronic Health Records
+  - End-tidal Carbon Dioxide (ETCO2)
+  - Episodic Data
+  - Everyday Clinical Practice
+  - Extra Ventricular Drain Placement
+  - Extracranial Injuries
+  - Extracranial Injury
+  - False-positive
+  - Feature Extraction
+  - First-tier Intervention
+  - Follow-up Period
+  - Gender
+  - Good Recovery
+  - Guideline Adherence
+  - Hanfelt Design
+  - Hanfelt Two-stage Design
+  - Head Injury
+  - Hospital Ethics Committee
+  - Hybrid Monte-carlo Technique
+  - Hyperosmolar Molecule Administration
+  - Hyperosmolar Molecules
+  - Hypo-net
+  - Hypo-net System
+  - Hypocapnia
+  - Hypoperfusion
+  - ICP Threshold
+  - Icp-directed Therapy
+  - Impact Model
+  - Impact Prognostic Score
+  - Injury Mechanism
+  - Insult Duration
+  - Insult Grading (EUSIG) Classification
+  - Insult Intensity
+  - Intracranial Hypoperfusion Index Reduction
+  - Intracranial Insult
+  - Intracranial Pressure Reduction
+  - Invalid Events
+  - Ischaemic Mechanism
+  - Live Clinical Environment
+  - Lower Good Recovery
+  - Lower Moderate Disability
+  - Lower Severe Disability
+  - Machine Learning Technology
+  - Mann-Whitney U Test
+  - Median Intracranial Hypertension Index 20
+  - Median Intracranial Hypertension Index 25
+  - Median Intracranial Hypoperfusion Index 60
+  - Median Mean Intracranial Pressure
+  - Median Pressure Reactivity Index 0
+  - Medical Device Alarms
+  - Minute-by-minute Data
+  - Minute-by-minute Prediction
+  - Missing Data
+  - Model Performance
+  - Moderate Disability
+  - Moderate Traumatic Brain Injury
+  - Motor Impairment
+  - Moving Pearson Correlation Coefficient
+  - Multi-center Study
+  - National Escience Centre (NESC)
+  - Nemo Project
+  - Neuro-icu
+  - Neuro-intensive Care Center
+  - Neurocognitive Scores
+  - Neurointensive Care
+  - Neurological Outcome
+  - Non-evacuated Mass Lesion
+  - Non-evacuated Mass Lesion (NEML)
+  - Non-rct Group
+  - Nonlinear Regression
+  - Nuisance Alarm
+  - Nursing Procedure
+  - Observational Cohort
+  - Outcome Data
+  - Over-damped Trace
+  - Over-fitting
+  - Oxygen Saturation (SaO2)
+  - Paralysis
+  - Passive Autoregulation
+  - Patient Assent
+  - Patient Data Management System
+  - Patient Instability
+  - Patient Movement
+  - Patient Recruitment Protocol
+  - Pearson Correlation Coefficient
+  - Phase 1 Pilot Study
+  - Phase 1 Study
+  - Phase 2 Study
+  - Phase 2 Validation Study
+  - Phase I Study
+  - Phase Ii Study
+  - Physiological Data
+  - Physiological Monitoring Data
+  - Post-operative Intracranial Pressure
+  - Posttraumatic Intracranial Hypertension
+  - Pragmatic Clinical Decision-making
+  - Pre-operative Intracranial Pressure
+  - Precision
+  - Precision Recall Plot
+  - Prediction Time
+  - Predictive Model
+  - Pressure Area Care
+  - Pressure Line Damping
+  - Pressure Reactivity Index Reduction
+  - Primary Brain Damage
+  - Procedure-based Prediction
+  - Prospective Non-interventional Observational Study
+  - Prospective Observational Study Design
+  - Prospective Phase I Dataset
+  - Prospective Phase Ii Dataset
+  - Pulse Pressure
+  - Quality of Life
+  - Randomized Controlled Trial
+  - Recall
+  - Repeatability
+  - Rescueicp Study
+  - Rescueicp Trial (rct Group)
+  - Research and Development (R&D) Committee
+  - Routine Blood Sample
+  - Routine Patient Hygiene
+  - Second-tier Intervention
+  - Secondary Insult Therapy
+  - Secondary Ischemic Damage
+  - Secondary Ischemic Insults
+  - Sedation
+  - Seven Days Post-intervention Monitoring
+  - Severe Disability
+  - Severely Disabled
+  - Sex
+  - Six Hours Pre-intervention Monitoring
+  - Six-month Outcome Assessment
+  - Software and Hardware Infrastructure
+  - Sql Database
+  - Stich Trial
+  - Surgical Group
+  - System Robustness
+  - Systemic Secondary Insult
+  - Temperature
+  - Test Set
+  - Therapy Intensity Level Basic (til Basic)
+  - Therapy Intensity Level Scale (TIL)
+  - Time Between Arrival and Decompressive Craniectomy
+  - Training Set
+  - Trip Trial
+  - Uhl Cohort
+  - Unacceptably High Intracranial Pressure
+  - Unmet Clinical Need
+  - Upper Good Recovery
+  - Upper Moderate Disability
+  - Upper Severe Disability
+  - User Interface
+  - Vegetative State
+  - Vegetative State Outcome
+  - Vital Physiological System
+  - Vital Signs Monitoring
+  - Ward Web App (WWA)
+  - Wilcoxon Matched-pairs Signed-rank Test
+
+### EXISTING RELATIONS (do NOT duplicate these)
+  - has condition(Patient Cohort → Traumatic Brain Injury)
+  - receives therapy(Patient Cohort → Decompressive Craniectomy)
+  - has outcome(Patient Cohort → GOSe Outcome)
+  - receives therapy(Patient → Decompressive Craniectomy)
+  - receives therapy(Patient → Barbiturates)
+  - has monitoring data(Patient → Monitoring Data)
+  - has outcome(Patient → Outcome)
+  - has outcome(Patient → GOSe Outcome)
+  - has outcome(Patient → Mortality)
+  - targets condition(Decompressive Craniectomy → Intracranial Hypertension)
+  - targets condition(Barbiturates → Intracranial Hypertension)
+  - measures parameter(Monitoring Data → ICP)
+  - measures parameter(Monitoring Data → CPP)
+  - derived from(Intracranial Hypertension Index 20 → ICP)
+  - derived from(Intracranial Hypertension Index 25 → ICP)
+  - derived from(Cerebral Hypoperfusion Index 60 → CPP)
+  - derived from(Pressure Reactivity Index 0 → Pressure Reactivity Index (PRx))
+  - has assessment(Patient → GOSe Outcome)
+  - has assessment(Patient → GCS Assessment)
+  - predicts outcome(Impact Score → Outcome)
+  - predicts outcome(Crash Score → Outcome)
+  - targets condition(Decompressive Craniectomy → Traumatic Intracranial Hypertension)
+  - has outcome(Traumatic Brain Injury → Patient Outcome)
+  - assessed by(Patient Outcome → GOSe Outcome)
+  - guided by(Decompressive Craniectomy → TBI Guidelines)
+  - reduces(Decompressive Craniectomy → ICP)
+  - requires consensus from(Decompressive Craniectomy → Multidisciplinary Consensus)
+  - includes specialist(Multidisciplinary Consensus → Neurosurgeon)
+  - includes specialist(Multidisciplinary Consensus → Neuro-intensivist)
+  - includes input from(Multidisciplinary Consensus → Patient Representatives)
+  - part of treatment regimen(Decompressive Craniectomy → Therapy Intensity Level (TIL))
+  - combined with(Decompressive Craniectomy → Second-tier Therapies)
+  - combined with(Decompressive Craniectomy → Third-tier Therapies)
+  - alternative to(Decompressive Craniectomy → Standard Medical Treatment)
+  - evaluated in(Patient Outcome → Non-rct Prospective Study)
+  - occurs in(Patient Outcome → Pragmatic Clinical Setting)
+  - complication of(Intracerebral Haematoma → Traumatic Brain Injury)
+  - type of(Supratentorial Lobar Intracerebral Haematoma → Intracerebral Haematoma)
+  - has monitoring data(Adult Traumatic Brain Injury Patient → Monitoring Data)
+  - has monitoring data(Paediatric Traumatic Brain Injury Patient → Monitoring Data)
+  - monitoring indicates condition(Monitoring Data → Intracranial Hypertension)
+  - has outcome(Adult Traumatic Brain Injury Patient → Outcome)
+  - has outcome(Paediatric Traumatic Brain Injury Patient → Outcome)
+  - associated with outcome(Intracranial Pressure Insult → Outcome)
+  - associated with mortality(Pressure-time Dose → Mortality)
+  - affects tolerance(Cerebrovascular Autoregulation → Intracranial Pressure Insult)
+  - affects outcome(CPP → Outcome)
+  - defines(Intensity Threshold → Intracranial Pressure Insult)
+  - has monitoring data(Intensive Care Unit (ICU) Stay → Monitoring Data)
+  - has outcome(Adult Cohort → Glasgow Outcome Score (GOS))
+  - has outcome(Paediatric Cohort → Modified Glasgow Outcome Score (GOS))
+  - derived from(Derived Parameter → ICP)
+  - derived from(Derived Parameter → Mean Arterial Pressure (MAP))
+  - characterizes(ICP Intensity Threshold → ICP Insult)
+  - characterizes(ICP Duration Threshold → ICP Insult)
+  - associated with worse outcome(ICP Insult → Unfavourable Neurological Outcome)
+  - associated with better outcome(ICP Insult → Glasgow Outcome Score (GOS))
+  - measured by(Cerebrovascular Autoregulation → Derived Parameter)
+  - influences(Derived Parameter → Active ICP Insult)
+  - influences(Derived Parameter → Passive ICP Insult)
+  - predicts(Cumulative Dose of ICP Insults → Unfavourable Neurological Outcome)
+  - visualized at(ICP Insult → CPP)
+  - associated with outcome(ICP Insult → Unfavourable Neurological Outcome)
+  - predicts outcome(Monitoring Time in Red Zone → Unfavourable Neurological Outcome)
+  - predicts outcome(Monitoring Time in Red Zone → Mortality)
+  - modulates relationship(CPP → ICP Insult)
+  - characterizes insult(Intensity Threshold → ICP Insult)
+  - characterizes insult(Duration Threshold → ICP Insult)
+  - defines boundary(Transition Curve → Unfavourable Neurological Outcome)
+  - influenced by autoregulation status(ICP Insult → Cerebrovascular Autoregulation)
+  - quantifies burden(Pressure-time Dose → ICP Insult)
+  - measured in cohort(Adult Cohort → ICP Insult)
+  - measured in cohort(Paediatric Cohort → ICP Insult)
+  - associated with outcome(ICP Insult → Mortality)
+  - associated with outcome(ICP Insult → 6-month Outcome)
+  - has monitoring data(Traumatic Brain Injury → Monitoring Data)
+  - affects outcome(Pressure-time Dose → Glasgow Outcome Score (GOS))
+  - modulates transition curve(Cerebrovascular Autoregulation → Transition Curve)
+  - influences ICP threshold(CPP → ICP)
+  - differs by age(Transition Curve → Paediatric Cohort)
+  - differs by age(Transition Curve → Adult Cohort)
+  - causes secondary injury(ICP → Secondary Brain Injury)
+  - requires assessment(Intracranial Hypertension → Multimodality Monitoring)
+  - guides treatment(Outcome Predictor → Icp-lowering Treatment)
+  - affects measurement(Decompressive Craniectomy → ICP)
+  - composed of(Monitoring Data → ICP)
+  - composed of(Monitoring Data → Mean Arterial Pressure (MAP))
+  - derived from(CPP → Mean Arterial Pressure (MAP))
+  - independent of(CPP Variability → ICP)
+  - applies to(TBI Guidelines → Severe Traumatic Brain Injury)
+  - targets(CPP Threshold → CPP)
+  - affects(Vasopressors → CPP)
+  - monitoring indicates condition(Monitoring Data → Severe Traumatic Brain Injury)
+  - targets condition(CPP Threshold → Severe Traumatic Brain Injury)
+  - targets condition(Vasopressors → Severe Traumatic Brain Injury)
+  - derived from(CPP → ICP)
+  - guides management of(TBI Guidelines → CPP Threshold)
+  - affects(CPP Policy → CPP Variability)
+  - contains data from(Brain-it Database → Patient)
+  - measures(Interquartile Range → CPP Variability)
+  - influences(Head Elevation → CPP)
+  - informs(Robertson Trial → TBI Guidelines)
+  - confirms(Selfotel Trial → TBI Guidelines)
+  - influences(ICP → CPP Variability)
+  - influences(Mean Arterial Pressure (MAP) → CPP Variability)
+  - targets condition(CPP Target Policy → CPP)
+  - recommends(TBI Guidelines → CPP Safety Limits)
+  - prevents(CPP Safety Limits → Ischaemia)
+  - causes(Vasopressors → Acute Respiratory Distress Syndrome)
+  - influences(Cerebrovascular Autoregulation → CPP Target Policy)
+  - affects(CPP Target Policy → CPP)
+  - at risk from(Traumatic Brain Injury → Secondary Insult)
+  - is type of(Arterial Hypotension → Secondary Insult)
+  - related to poor outcome(Arterial Hypotension → Traumatic Brain Injury)
+  - provides early warning of(Machine Learning → Arterial Hypotension)
+  - implements(Bayesian Artificial Neural Network (BANN) → Machine Learning)
+  - predicts(Bayesian Artificial Neural Network (BANN) → Arterial Hypotension)
+  - records and defines using(Arterial Hypotension → Edinburgh University Secondary Insult Grades (EUSIG))
+  - developed from(Bayesian Artificial Neural Network (BANN) → Brainit Database)
+  - has continuous monitoring data(Patient → Continuous Monitoring Data)
+  - has input feature(Bayesian Artificial Neural Network (BANN) → Input Feature)
+  - includes(Input Feature → Mean Feature)
+  - includes(Input Feature → Slope Feature)
+  - includes(Input Feature → Standard Deviation Feature)
+  - calculated over(Mean Feature → Time Window)
+  - calculated over(Slope Feature → Time Window)
+  - calculated over(Standard Deviation Feature → Time Window)
+  - derived from(Mean Feature → Physiological Variable)
+  - derived from(Slope Feature → Physiological Variable)
+  - derived from(Standard Deviation Feature → Physiological Variable)
+  - measures(Mean Feature → Mean Arterial Pressure (MAP))
+  - measures(Slope Feature → Mean Arterial Pressure (MAP))
+  - measures(Mean Feature → Systolic Arterial Blood Pressure)
+  - measures(Slope Feature → Systolic Arterial Blood Pressure)
+  - measures(Mean Feature → Heart Rate)
+  - measures(Slope Feature → Heart Rate)
+  - measures(Standard Deviation Feature → Heart Rate)
+  - evaluated by(Bayesian Artificial Neural Network (BANN) → Roc Curve)
+  - quantifies(Roc Curve → Sensitivity)
+  - quantifies(Roc Curve → False Positive Rate)
+  - summarizes(Auc → Roc Curve)
+  - achieves(Bayesian Artificial Neural Network (BANN) → Sensitivity)
+  - achieves(Bayesian Artificial Neural Network (BANN) → Specificity)
+  - operates at(Bayesian Artificial Neural Network (BANN) → Decision Threshold)
+  - improves(False Positive Correction → Sensitivity)
+  - requires monitoring(Hypotension → Mean Arterial Pressure (MAP))
+  - predicts(Heart Rate Variability → Hypotension)
+  - predicts(Heart Rate → Hypotension)
+  - uses definition(Neuro-critical Care → Edinburgh University Secondary Insult Grading (EUSIG))
+  - affects outcome(Hypotension → Traumatic Brain Injury)
+  - requires therapy(Sepsis → Antimicrobial Therapy)
+  - generates prediction(Neural Network Model → Hypotension Prediction)
+  - provides warning(Hypotension Prediction → Warning Time)
+  - reduces false positives(False Positive Correction → Hypotension Prediction)
+  - evaluates performance(Receiver Operating Characteristic (ROC) Curve → Hypotension Prediction)
+  - uses threshold(Hypotension Prediction → Decision Threshold)
+  - predicts condition(Neural Network Model → Arterial Hypotension)
+  - occurs during procedure(Arterial Hypotension → Haemodialysis Treatment)
+  - increases with delay(Mortality → Sepsis)
+  - reduces cost of(Bedside Intervention → Intensive Care Management)
+  - measures prediction accuracy(Roc Curve → Bayesian Artificial Neural Network (BANN))
+  - controls performance of(Decision Threshold → Sensitivity)
+  - predicts condition(Machine Learning → Hypotensive Events)
+  - deployed in setting(Machine Learning → Clinical Setting)
+  - requires validation through(Machine Learning → Prospective Multi-centre Clinical Work)
+  - monitoring indicates condition(Arterial Blood Pressure Waveform → Acute Hypotensive Episode)
+  - predicts outcome(ICP → Outcome)
+  - predicts outcome(Hypotension → Outcome)
+  - triggers intervention(Acute Hypotensive Episode → Prediction Model)
+  - uses algorithm(Prediction Model → Neural Network)
+  - uses algorithm(Prediction Model → Machine Learning)
+  - stores data(Time Series Database → Arterial Blood Pressure Waveform)
+  - occurs in setting(Acute Hypotensive Episode → Intensive Care Unit (ICU))
+  - associated with condition(Mechanical Ventilation → Intensive Care Unit (ICU))
+  - causes complication(General Anesthesia → Hypotension)
+  - causes complication(Haemodialysis → Hypotension)
+  - predicts outcome(Septic Shock → Outcome)
+  - associated with condition(Secondary Insult → Head Trauma)
+  - includes intervention(Third-tier Intervention → Barbiturates)
+  - includes intervention(Third-tier Intervention → Decompressive Craniectomy)
+  - triggers escalation to(Intracranial Hypertension → Decompressive Craniectomy)
+  - triggers escalation to(Malignant Intracranial Pressure Course → Decompressive Craniectomy)
+  - can be combined with(Decompressive Craniectomy → Barbiturates)
+  - includes surgical type(Decompressive Craniectomy → Hemicraniectomy)
+  - includes surgical type(Decompressive Craniectomy → Bifrontal Craniectomy)
+  - reduces(Decompressive Craniectomy → Intracranial Hypertension Index 20)
+  - reduces(Decompressive Craniectomy → Intracranial Hypertension Index 25)
+  - may reduce(Decompressive Craniectomy → Intracranial Hypoperfusion Index 60)
+  - has assessment(Patient → Pupil Assessment)
+  - has assessment(Patient → CT Scan Assessment)
+  - has assessment(Patient → Pupil Abnormality)
+
+### EVIDENCE RULES (CRITICAL)
+- The 'evidence' field MUST be an exact verbatim quote from the SOURCE TEXT.
+- Evidence should mention or imply at least one endpoint class.
+- Do NOT reuse the same evidence for multiple relations.
+- Do NOT invent or paraphrase — if no supporting text exists, skip.
+- Use the abstract superclass as the range (e.g., 'Monitoring Data' not 'ICP').
+
+### DEFINITION REQUIREMENT
+Every relation MUST include a `definition` field: a concise one-sentence description of what the relation means between domain and range.
+
+### OUTPUT FORMAT (JSON only, no commentary)
+{
+  "relations": [{"label": "rel_name", "domain": "DomainClass", "range": "RangeClass", "definition": "one-sentence description", "evidence": "exact quote from text"}]
+}
+
+Extract as many valid relations as the text supports. Be thorough — especially for the classes that currently have NO relations.
+
+### SOURCE TEXT
+Injury 54 (2023) 110911
+
+Decompressive craniectomy as a second/third-tier intervention in
+traumatic brain injury: A multicenter observational study
+Brecht Decraene a, *, Samuel P Klein a, Ian Piper b, Barbara Gregson c, Per Enblad d,
+Arminas Ragauskas e, Giuseppe Citerio f, Iain Chambers g, Jan-Oliver Neumann h,
+Juan Sahuquillo i, Karl Kiening h, Laura Moss b, Pelle Nilsson d, Rob Donald j, Tim Howells d,
+Milly Lo k, Bart Depreitere a
+a
+University Hospitals Leuven, Leuven, Belgium
+b
+Southern General Hospital, Glasgow, United Kingdom
+c
+Newcastle University, Newcastle, United Kingdom
+d
+Uppsala University, Uppsala, Sweden
+e
+Kaunas University of Technology, Kaunas, Lithuania
+f
+University of Milano-Bicocca, Milano, Italy
+g
+James Cook University Hospital, Middlesbrough, United Kingdom
+h
+Universitätsklinikum Heidelberg, Heidelberg, Germany
+i
+University Hospital Vall d ́ Hebron, Barcelona, Spain
+j
+Stats Research, Scotland, United Kingdom
+k
+University of Edinburgh, Edinburgh, United Kingdom
+
+A R T I C L E I N F O A B S T R A C T
+
+Keywords: Objectives: RESCUEicp studied decompressive craniectomy (DC) applied as third-tier option in severe traumatic
+Traumatic brain injury brain injury (TBI) patients in a randomized controlled setting and demonstrated a decrease in mortality with
+Decompressive craniectomy similar rates of favorable outcome in the Decompressive craniectomy (DC) group compared to the medical management group. In many
+Neurointensive care
+centers, Decompressive craniectomy (DC) is being used in combination with other second/third-tier therapies. The aim of the present study is to
+Intracranial pressure
+investigate outcomes from Decompressive craniectomy (DC) in a prospective non-RCT context.
+Cerebral autoregulation
+Introduction TBI management
+
+Traumatic brain injury (TBI) Methods: This is a prospective observational study of 2 patient cohorts: one from the University Hospitals Leuven
+(2008-2016) and one from the Brain-IT study, a European multicenter database (2003-2005). In thirty-seven
+patients with refractory elevated intracranial pressure who underwent Decompressive craniectomy (DC) as a second/third-tier intervention,
+patient, injury and management variables including physiological monitoring data and administration of thio­
+pental were analysed, as well as Extended Glasgow Outcome score (GOSE) at 6 months.
+Results: In the current cohorts, patients were older than in the surgical RESCUEicp cohort (mean 39.6 vs. 32.3; p
+< 0.001), had higher Glasgow Motor Score on admission (GMS < 3 in 24.3% vs. 53.0%; p = 0.003) and 37.8%
+received thiopental (vs. 9.4%; p < 0.001). Other variables were not significantly different. Glasgow Outcome Scale (GOSE) distribution
+was: death 24.3%; vegetative 2.7%; lower severe disability 10.8%; upper severe disability 13.5%; lower mod­
+erate disability 5.4%; upper moderate disability 2.7%, lower good recovery 35.1%; and upper good recovery
+5.4%. The outcome was unfavorable in 51.4% and favorable in 48.6%, as opposed to 72.6% and 27.4%
+respectively in RESCUEicp (p = 0.02).
+Conclusion: Outcomes in Decompressive craniectomy (DC) patients from two prospective cohorts reflecting everyday practice were better than
+in RESCUEicp surgical patients. Mortality was similar, but fewer patients remained vegetative or severely
+disabled and more patients had a good recovery. Although patients were older and injury severity was lower, a
+potential partial explanation may be in the pragmatic use of Decompressive craniectomy (DC) in combination with other second/third-tier
+therapies in real-life cohorts. The findings underscore that Decompressive craniectomy (DC) maintains an important role in managing se­
+vere Introduction TBI management
+
+Traumatic brain injury (TBI).
+
+B. Decraene et al. Injury 54 (2023) 110911
+
+Introduction Introduction TBI management
+
+Traumatic brain injury (TBI) management
+
+Traumatic brain injury (TBI) constitutes a major health and socio­ First-tier (30◦ head elevation, neuromuscular paralysis, analgesia,
+economic problem that requires prompt management and is associated continued/deepened sedation, normocapnia and normothermia) and
+with high mortality and morbidity rates. In Europe, the incidence of second-tier treatments (deepening of sedation, cerebrospinal fluid
+Introduction TBI management
+
+Traumatic brain injury (TBI)-related hospitalization is estimated at 2.1 million/year, of which drainage, moderate hypocapnia, administration of hyperosmolar mole­
+approximately 82,000 patients will die. Uncontrollable intracranial cules) were used at the discretion of the managing teams. When despite
+hypertension is a major cause of death in patients with severe traumatic first and second-tier interventions Mean intracranial pressure (ICP) remained unacceptably high or
+brain injury. Therefore, one of the cornerstones of brain-protective followed a malignant course, Decompressive craniectomy (DC) was chosen as a next step, with or
+strategies is to reduce and control intracranial pressure (ICP), thereby without first having applied third-tier medical therapy with barbiturates
+avoiding secondary ischemic damage from associated hypoperfusion (thiopental). In some patients that underwent Decompressive craniectomy (DC), third-tier therapies. were used in combination. As for Decompressive craniectomy (DC), both hemicraniectomy (unilateral
+Decompressive craniectomy (DC) is a surgical technique originally frontotemporoparietal craniectomy) and bifrontal craniectomy were
+described by Kocher in 1901. However, this technique was aban­ performed.
+doned in the following decades because of high complication rates. Since
+the 1980s, Decompressive craniectomy (DC) in severe Introduction TBI management
+
+Traumatic brain injury (TBI) has been the subject of a revival due to Data collection
+advancing technical and medical standards. From a purely theoret­
+ical perspective, Decompressive craniectomy (DC) could be considered both as a first-tier option in For each patient, the following data were captured: age, sex, earliest
+situations of raised Mean intracranial pressure (ICP) or as a treatment of last resort in a tiered post-resuscitation Glasgow Coma Scale (GCS), earliest post-resuscitation
+approach, i.e., when less invasive treatments fail. However, Decompressive craniectomy (DC) as a pupil reactivity, Marshall score of the last scan before surgery, extra­
+first-tier option was demonstrated to result in worse outcomes in the cranial injuries, the occurrence of arterial hypotension (systolic pressure
+2011 DECRA randomized controlled trial, where it was instituted at the less than 90 mmHg) and hypoxia (SaO2 below 90%) at baseline, type of
+second episode of Mean intracranial pressure (ICP) rise above 20 mmHg. As opposed to DECRA, Decompressive craniectomy (DC), and barbiturate administration. The outcome was captured at six
+the 'Randomized Evaluation of Surgery with Craniectomy for Uncon­ months using the extended Glasgow Outcome Scale (GOSE). In
+trollable Elevation of Intracranial Pressure' (RESCUEicp) study, aimed this study a Glasgow Outcome Scale (GOSE) of 4 or less was considered unfavorable, in accordance
+at assessing the effectiveness of Decompressive craniectomy (DC) as a last-tier intervention in patients with the RESCUEicp analysis.
+with severe Introduction TBI management
+
+Traumatic brain injury (TBI) and refractory intracranial hypertension. The results The Therapy Intensity Level scale (TIL basic version) was used to
+of RESCUEicp showed that Decompressive craniectomy (DC) resulted in lower mortality rates, but assess the intensity of Mean intracranial pressure (ICP)-lowering strategies until immediately before
+higher rates of vegetative state and severe disability at six months Decompressive craniectomy (DC). The 'International Mission for Prognosis and Analysis of Clin­
+compared to medical care. The proportions of patients in the best ical Trials in Introduction TBI management
+
+Traumatic brain injury (TBI)' (IMPACT) extended prognostic scores, and the
+outcome categories were not different. Inherently, RCT protocols are 'Corticosteroid Randomization after Significant Head Injury' (CRASH)
+strictly designed and may often differ from real-life decision-making, prognostic scores were calculated for all patients based on admission
+that is tailored and in which combinations of therapies are often applied. variables. Impact scores produce a probability for six month mortality
+The aim of the present study is to verify these findings and evaluate the and six month unfavorable outcome (Glasgow Ouctome scale - Glasgow Outcome Scale (GOS) 1-3)
+outcomes of Decompressive craniectomy (DC) in 2 historical cohorts of patients with severe Introduction TBI management
+
+Traumatic brain injury (TBI) with. CRASH scores predict the risk of 14 days mortality and six-month
+prospective data collection and outcome registration. Notably, both unfavorable outcome (GOS 1-3).
+cohorts reflect everyday practice and associated pragmatic The administration of a pentothal as well as whether it was given
+decision-making. before and/or, after or during Decompressive craniectomy (DC) was also registered. In addition, we
+included data on the time between arrival at the emergency department
+Materials and methods and the timing of the Decompressive craniectomy (DC). We could retrieve whether or not patients
+underwent a cranioplasty before 6-month outcome scoring for UHL
+Study population patients.
+Mean intracranial pressure (ICP), mean cerebral perfusion pressure
+Prospectively collected data from all Introduction TBI management
+
+Traumatic brain injury (TBI) patients who underwent Decompressive craniectomy (DC) (CPP) and mean pressure reactivity index (PRx) were calculated six
+enrolled in the Brain-IT database were reviewed. The Brain-IT database hours before and seven days after Decompressive craniectomy (DC) for each patient. Also, the median
+is a multicenter prospective observational validated database that ran in percentage of monitoring time with Mean intracranial pressure (ICP)> 20 mmHg, Mean intracranial pressure (ICP)>25 mmHg,
+22 Intensive Care Unit (ICU)'s in 11 countries between July 2003 and October 2006. The Cerebral Perfusion Pressure (CPP)<60 mmHg and Pressure Reactivity Index (PRx)>0 in six hours pre- and seven days post-Decompressive craniectomy (DC) was
+granted the use of these data for scientific purposes on February 14, pertension index 20′, ''median intracranial hypertension index 25′,
+2002. A second cohort of patients was taken from the University Hos­ 'median intracranial hypoperfusion index 60′ and 'median Pressure Reactivity Index (PRx) index 0′,
+pitals Leuven (UHL) database between September 2010 and October respectively (see footnote of table 3 for further explanation). Pressure Reactivity Index (PRx) is the
+2016. UHL has a policy of digital storage of all physiological monitoring moving correlation between mean arterial blood pressure (MAP) and
+data collected through its Patient Data Management System and pro­ Mean intracranial pressure (ICP). It is calculated as a moving Pearson correlation coefficient between
+spectively collecting six month extended Glasgow Outcome Scores in all changes in 30 consecutive ten second-averages of the ratio between Mean Arterial Pressure (MAP)
+Introduction TBI management
+
+Traumatic brain injury (TBI) patients. Local Ethical Committee approval to use the anonymized and Mean intracranial pressure (ICP). It has values between - 1 and 1, with higher values
+data for this analysis was obtained. For this study, only patients who reflecting an indirect measure of more impaired cerebral autoregulation.
+underwent a Decompressive craniectomy (DC) as a second- or third-tier (last-tier) intervention were The six hours interval pre-Decompressive craniectomy (DC) was chosen as it enables comparison with
+included. Patients with intracranial hypertension treated conservatively the RESCUEicp data.
+were excluded, as well as patients who underwent a Decompressive craniectomy (DC) as a first-tier
+intervention, and patients with bilateral fixed and dilated pupils. The Statistical analysis
+Brain-IT database contained 16 eligible Decompressive craniectomy (DC) patients and the UHL cohort
+21. In the following sections both cohorts together are referred to as the Categorical variables were compared using the chi-square tests with
+RESCUEicp trial (RCT group). one-tailed exact p-value) while continuous variables were analyzed
+using Mann-Whitney U tests. Continuous variables pre-and post-Decompressive craniectomy (DC) (of
+the non-RCT group) were compared using the Wilcoxon matched-pairs
+
+B. Decraene et al. Injury 54 (2023) 110911
+
+signed-rank test. Data were compared between the non-RCT group and Table 2
+the surgical patients of the RESCUEicp (RCT) group. When possible, Treatment characteristics of non-RCT patients and RESCUEicp patients a.
+collected data are shown in both absolute numbers (with 'number of UHL Brain- UHL & RESCUEicp
+patients' as unit), as well as relative (fraction of patients for which it a IT Brain-IT Surgical
+certain value applies, expressed in percentages); as well as mean or group
+median values (mostly expressed as a percentage). A p-value less than Decompressive
+0.05 was considered significant. No correction for multiple testing was craniectomy 19/21 N/A N/A 109/173
+Bifrontal - no. (%) 2/21 64/173
+Statistics version 28. (9.5) (47.0)
+Barbiturates 11/21 3/16 14/37 19/201
+Results (52.4) (18.8) (37.8) (9.4)
+Barbiturate
+administration: 1/21 1/16 2/37 N/A
+Patient, injury and management characteristics
+Pre-Decompressive craniectomy (DC) - no. (%) (4.8) (6.3) (5.4)
+Post-Decompressive craniectomy (DC) - no. (%) 8/21 2/16 10/37 N/A
+Thirty-seven patients who underwent a Decompressive craniectomy (DC) in the Brain-IT database (38.1) (12.5) (27.0)
+and in the UHL cohort were eligible for inclusion (further referred to as Pre-& post-Decompressive craniectomy (DC) - 2/21 0/16 (0) 2/37 N/A
+the non-RCT group). Patient, injury and management characteristics are no. (%) (9.5) (5.4)
+Time between arrival at 67.7 18.7 51.0 N/A
+summarized in Tables 1 and 2. Four patients were aged less than 18 emergency department (110.0) (80.9) (84.6)
+years. The non-RCT group had a mean age of 39.6 years and was pre­ and Decompressive craniectomy (DC) b - h (IQR)
+dominantly male. Cranioplasty at six months 15/21 N/A N/A N/A
+The median initial Glasgow Motor Score (GMS) was 4, while 24.3% - no. (%) (71.4)
+Introduction TBI management
+
+Traumatic brain injury (TBI) treatment & prognostic
+of all patients had a The median initial Glasgow Motor Score (GMS) below 3. Pupil abnormalities were seen in
+scores c
+34.4% of our patients. Hypoxia and arterial hypotension were found in IMPACT - median -%
+10.0% and 6.1%, respectively. Non-evacuated mass lesions according to (IQR)
+the Marshall classification were observed in 26.5% of the non-RCT Core mort. 22 27 24 N/A
+group and 45.9% presented with an additional extracranial injury. (14-30) (19-54) (15-31)
+Core unfav. 40 40 40 N/A
+37.8% of patients (14 in absolute numbers) were treated with bar­
+(22-45) (35-69) (32-50)
+biturates in combination with Decompressive craniectomy (DC); ten of these received it only after Decompressive craniectomy (DC), Extended Core 20 24 21 N/A
+two only before and two received it before and after Decompressive craniectomy (DC). The patients mort. (14-26) (15-52) (14-35)
+who received pre-Decompressive craniectomy (DC) barbiturates did not significantly differ from the Extended core 32 42 37 N/A
+unfav. (30-50) (28-69) (29-53)
+group who did not receive it in terms of median mean pre-operative Mean intracranial pressure (ICP)
+Lab mort. 17 26 18 N/A
+(p = 0.571), median The median initial Glasgow Motor Score (GMS) or median total Glasgow Coma Scale (GCS) (p = 0.654 and p = (11-23) (15-39) (11-31)
+Lab unfav. 33 40 35 N/A
+(20-48) (27-66) (22-58)
+Table 1 CRASH -median -%
+Patient and injury characteristics of non-RCT patients and RESCUEicp patients. (IQR)
+Mort. 11 14 12 N/A
+UHL Brain- UHL & RESCUEicp
+(6-18) (7-41) (6-34)
+IT Brain-IT Surgical
+Unfav. 44 52 46 N/A
+group
+(22-57) (29-71) (28-67)
+Number of 21 16 37 202 Therapy Intensity Level (TIL) basic - no. (%)
+patients Score 0 2/21 0/15 (0) 2/36 N/A
+Age - mean - 38.9 40.6 (17 39.6 (16 32.3 (10 - P< (9.5) (5.6)
+years (range) (16 - - 72) - 72) 65) 0.001a Score 1 1/21 4/15 5/36 N/A
+70) (4.8) (26.7) (13.9)
+Glasgow Motor P= Score 2 7/21 3/15 10/36 N/A
+Score b 3/21 6/16 9/37 96/181 0.003 (33.3) (20) (27.8)
+1 - 2 - no. (14.3) (37.5) (24.3) (53.0) Score 3 10/21 7/15 17/36 N/A
+(%) 18/21 10/16 28/37 85/181 (47.6) (46.7) (47.2)
+3 - 6 - no. (85.7) (62.5) (75.6) (47.0) Score 4 1/21 1/15 2/36 N/A
+(%) (4.8) (6.7) (5.6)
+Abnormal pupils 4/21 7/11 11/32 59/202 p= a
+c
+- no. (%) (19.0) (63.6) (34.4) (29.2) 0.70 standard deviation=SD. For the (IQR) = Interquartile range. Mort. = mortality. Unfav
+Barbiturate - no. 11/21 3/16 14/37 19/202 P< = unfavorable.
+b
+(%) (52.4) (18.8) (37.8) (9.4) 0.001 Time between arrival at the emergency department and Decompressive craniectomy (DC) could be
+Extracranial 8/21 9/16 17/37 75/202 p= calculated for 20 out of 21 UHL patients and 15 out of 16 Brain-IT patients.
+injury - no. (%) (38.1) (56.0) (45.9) (37.1) 0.41 c
+All three scoring models and submodalities could be calculated for all 21
+Hypoxia - no. (%) 3/19 0/11 (0) 3/30 49/202 p= UHL patients. For Brain-IT patients TILbasic and CRASH could be calculated for
+(15.8) (10.0) (24.3) 0.13 15 out of 16 patients, IMPACT Core for all 16 patients, IMPACT Extended for 13/
+Hypotension - no. 1/21 1/12 2/33 40/202 p=
+16 patients and IMPACT lab for 9/16 patients.
+(%) (4.8) (8.3) (6.1) (19.8) 0.10
+Marshall score p=
+Diffuse - 17/21 8/13 25/34 161/198 0.41 0.114), average age (p = 0.654) or Marshall score (p = 0.661). Also, no
+no. (%) (81.0) (61.5) (73.5) (81.3) significant differences in recorded patient and injury characteristics
+NEML - no. 4/21 5/13 9/34 37/198
+(%) (19.0) (38.5) (26.5) (18.7)
+were found between patients who received barbiturates before Decompressive craniectomy (DC) and
+those who received it after Decompressive craniectomy (DC) (data not shown).
+a
+P-values of the differences between the 'UHL&Brain-IT group' and the The median time between arrival and Decompressive craniectomy (DC) was 51.0 h. About half of
+'RESCUEicp Surgical group'.
+b
+our patients received a Decompressive craniectomy (DC) after almost all other nonsurgical measures
+The Glasgow Motors Score was used for assessing motor impairment. The
+had been exhausted (TIL 3). The Therapy Intensity Level (TIL) scores before Decompressive craniectomy (DC) were 0 in 6%, 1 in
+score ranges from 1 to 6 with lower scores indicating greater impairment.
+c 14%, 2 in 28%, 3 in 47% and 4 in 6%.
+Pupil abnormality was defined as the presence of two unreactive pupils or
+anisocoria. Of the 21 UHL patients, 19 underwent a hemicraniectomy and 2 a
+
+B. Decraene et al. Injury 54 (2023) 110911
+
+bifrontal Decompressive craniectomy (DC), and 15 patients received a cranioplasty before 6 months. Table 3
+Outcome, intracranial pressure and cerebral autoregulation characteristics a,b,c.
+Physiological data UHL Brain-IT UHL & RESCUEicp
+Brain-IT Surgical
+Decompressive craniectomy (DC) resulted in an absolute reduction in median mean Mean intracranial pressure (ICP) from 19.5 group
+to 13.9 mmHg (p = 0.001) and a reduction in the median percentage Intracranialtime Mean intracranial pressure (ICP) was above 20 (from 32.8 to 5.2; p = 0.066) and above 25 (from pressure
+3.7 to 0.4; p = 0.114), as shown in Table 3 and supplementary table 2. A control
+Median mean 18.9 20.0 19.5 14.5
+varying effect on Cerebral Perfusion Pressure (CPP) was seen, as well as a trend of reduction in median Mean intracranial pressure (ICP) pre-Decompressive craniectomy (DC) (15.7-22.9) (19.5-21.5) (17.7-22.9) (1.7-18.0)
+intracranial hypoperfusion index 60 (21.0 to 8.5; p = 0.114). The (IQR) -
+reduction in median Pressure Reactivity Index (PRx) index above 0 was non-significan

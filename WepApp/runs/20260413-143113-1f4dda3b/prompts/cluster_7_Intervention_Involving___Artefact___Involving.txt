@@ -1,0 +1,90 @@
+You are an expert ontology engineer and neurointensive care domain specialist.
+
+You are given a semantic cluster of ontology classes extracted from neurointensive care research papers. Your task is to enrich this cluster with meaningful domain relations — NOT to invent new classes or restructure the hierarchy.
+
+## Cluster: "Intervention Involving / Artefact / Involving"
+
+### Classes in this cluster (15 total):
+1. **Bedside Intervention**
+   Definition: A medical procedure involving the collection of blood, which can introduce artefact into physiological monitoring data.
+   Evidence: patient movement such as that produced by nursing and medical procedures (e.g.: blood sampling, routine patient hygiene or pressure area care) that either interrupt recording or cause movement of the recording system.
+2. **Endotracheal Suctioning**
+   Definition: A respiratory care procedure to clear secretions from the airway, identified as a source of artefact in physiological data.
+   Evidence: endotracheal suctioning
+3. **Endotracheal Tube Suction**
+   Definition: A routine nursing intervention involving suctioning of secretions from the endotracheal tube.
+   Evidence: ET tube suction
+4. **Eye Care**
+   Definition: A routine nursing intervention involving care of the eyes in sedated or unconscious patients.
+   Evidence: eye=mouth care
+5. **Medical Procedures**
+   Definition: Actions performed by medical professionals to diagnose, treat, or monitor patients, such as surgery, medication administration, and diagnostic tests.
+   Evidence: patient movement such as that produced by nursing and medical procedures (e.g.: blood sampling, routine patient hygiene or pressure area care) that either interrupt recording or cause movement of the recording system.
+6. **Mouth Care**
+   Definition: A routine nursing intervention involving oral hygiene and care of the mouth in intensive care patients.
+   Evidence: eye=mouth care
+7. **Nursing Procedures**
+   Definition: Actions performed by nurses to provide care and support to patients, such as medication administration, wound care, and monitoring vital signs.
+   Evidence: patient movement such as that produced by nursing and medical procedures (e.g.: blood sampling, routine patient hygiene or pressure area care) that either interrupt recording or cause movement of the recording system.
+8. **Patient Handling**
+   Definition: A category of clinical interventions including endotracheal suction and turning that cause artefact.
+   Evidence: patient handling events such as endotracheal suction or turning
+9. **Patient Handling Event**
+   Definition: Clinical activities involving physical manipulation of the patient, such as repositioning, that can cause artefact in monitoring signals.
+   Evidence: patient handling events
+10. **Patient Hygiene**
+   Definition: A clinical intervention involving hygiene procedures, which can cause artefact.
+   Evidence: patient hygiene (8 %)
+11. **Patient Transport**
+   Definition: The movement of a patient within the hospital for procedures or investigations.
+   Evidence: patient transport (to and from Theatre=Computed Tomography (CT)-Scan.)
+12. **Routine Nursing Care**
+   Definition: A clinical intervention to clear secretions from the endotracheal tube, which can cause artefact.
+   Evidence: annotations of nursing and medical interventions such as "endotracheal suction"
+13. **Suctioning**
+   Definition: Nursing intervention to clear airway secretions.
+   Evidence: The patient was suctioned every hour at 5 minutes past the hour.
+14. **Theatre**
+   Definition: An operating room where surgical procedures are performed.
+   Evidence: patient transport (to and from Theatre=Computed Tomography (CT)-Scan.)
+15. **Transfer to Computed Tomography**
+   Definition: A clinical intervention involving moving the patient for CT imaging, which can cause artefact.
+   Evidence: transfer to Computed Tomography (CT) (11 %)
+
+### Other clusters in this ontology (for cross-cluster linking):
+Guideline / Approaches / Method Of, Pupil / Body / Intervention Involving, Carbon / Dioxide / Carbon Dioxide, Hypotensive Event / Hypotensive / Event, Changes In / Changes / Elevated, Sensor / Catheter / Of Physiological, Lesion / Traumatic / Traumatic Injury, Bedside / Rate / Heart Rate, Head / Injuries / Secondary, Outcome / Variables / Statistical, Distance / Models / Adherence, Guideline / Injured / The Of, Of Intracranial / Icp / Intensity, Glasgow Outcome / The Glasgow / Functional, None / Parameter / And, Hypotensive / Systolic / Hypotensive Event, Conditions / Approaches / Neuro, Non Adherence / Adherence / Time Window, None / Autoregulation / Impairment, Surgical / Skull / The Skull, Catheter / Arterial / Line, Time Window / Rate / Window, Tissue Oxygen / Tissue / Oxygen
+
+## Your task — produce ONLY relations:
+
+1. **Relations (object properties)**: Define meaningful domain-specific relations between classes in this cluster. You MUST use ONLY labels from the closed vocabulary below — do NOT invent new relation types.
+
+   **Allowed relation labels (closed vocabulary)**: "occurs in", "derives from", "measured via", "measured from", "targets condition", "secondary to", "has monitoring data", "calculated from", "uses", "receives therapy", "collects", "generates", "assesses", "requires", "may indicate", "informs", "has clinical assessment", "has timepoint", "observes parameter", "produced by sensor", "implements sensing process", "has measurement capability", "is a type of", "manages", "includes", "governs", "supports", "classifies", "treats", "documents", "has non-adherence reason", "affects management of", "mandates against", "calculated using", "has non-linear effect on", "monitored in", "associated with condition", "monitoring indicates condition", "interacts with", "measured in", "adjusted for", "guarantees", "delivers", "accounts for", "has relationship with", "influenced by", "achieves", "is source of", "impairs", "is monitored as", "is computed from", "is classified as", "is associated with", "is visualized for", "includes variable", "characterized by", "depends on", "has outcome", "could lead to", "is secondary insult after", "defines", "triggers intervention", "contributes to", "impacts", "uses definition", "calculates using", "used to guard against", "has definition", "identified using", "triggered by", "classified by", "has role in calculating", "includes data from", "identifies", "expressed as", "used in combination with", "lowers", "treated with", "precedes", "reduces", "management of", "lowering therapies for", "predictor of", "visualizing correlation between", "targets", "has demographic parameter", "increases", "occurs during", "impacts outcome", "determines", "occurs after", "has surgical procedure", "has demographic data", "is a", "associated with"
+
+   If none of the allowed labels fit a pair of classes, do not emit a relation for that pair. It is better to emit fewer relations than to invent a new label.
+
+2. **No new classes**: You MUST NOT invent, add, or propose any new classes. Use ONLY the classes listed above as domain/range. Any class you output that is not in the list above will be discarded.
+
+3. **No hierarchy**: Do NOT produce subClassOf / hierarchy edges. The hierarchy is already defined in the source ontology and will be preserved independently. Any hierarchy edges you emit will be discarded.
+
+4. **Cross-cluster relations**: Identify up to 5 important relations that connect classes in THIS cluster to classes that likely belong in OTHER clusters listed above. Cross-cluster relations must also use the closed vocabulary above.
+
+## Output format — strict JSON only:
+```json
+{
+  "classes": [
+    {"label": "...", "definition": "...", "evidence": "from source text", "synonyms": []}
+  ],
+  "relations": [
+    {"label": "...", "domain": "...", "range": "...", "definition": "one-sentence description"}
+  ],
+  "hierarchy": []
+}
+```
+
+## Rules:
+- Include each existing class in your output EXACTLY as given — do not rename or remove.
+- DO NOT add any new classes under any circumstances. Zero. None.
+- DO NOT emit any hierarchy edges. Leave "hierarchy" as an empty list.
+- Every relation must use a label from the closed vocabulary above.
+- Every relation must have both domain and range that reference real classes from this cluster (or another cluster listed above).
+- Output ONLY the JSON object — no markdown fences, no commentary before or after.

@@ -1,0 +1,401 @@
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+Suggested concepts (pre-identified by biomedical NER in this text): oxygen, Competing interests, MK, hypothermia, traumatic brain injury, intracranial hypertension, aneurysmal, subarachnoid hemorrhage, Stroke, https://doi.org/10.1136/bmjopen-2021-060188, PD, Carney, N., Totten, A.M., Brain Injury, TBI, Le Roux.
+These are entity mentions detected in this chunk. Use them as additional evidence that a concept is present, but only extract labels from the allowed class list above.
+
+Candidate domain terms (contextual hints from this chunk — use only if supported by the text): pressure; cerebral perfusion pressure; hypertension; icp; intracranial; intracranial hypertension; mean arterial pressure; monitoring; Intracranial Pressure; CCM.0000000000002619.; STROKEAHA.122.040339.; brain
+
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing an EXACT VERBATIM sentence or clause COPIED from the text — do NOT paraphrase, summarize, truncate, or rephrase. Copy the text exactly as it appears, preserving original wording, word order, and punctuation. If you cannot find an exact quote, OMIT the item.
+
+3. **Extraction Scope:** Extract clinical and biomedical content: conditions, physiological parameters, monitoring variables, treatments/therapies/interventions, outcomes, assessments, laboratory values, nursing interventions, surgical procedures, and clinical dataset categories when explicitly named.
+   Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+   If a sentence or paragraph is mainly about these excluded topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+6. **Label Mapping Rule:** If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+   Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+   For other abbreviations, expand to their full clinical name as used in the text.
+
+7. **Structural Completeness Rule:** When the text mentions specific clinical items, also extract their general category if the text supports it.
+   For example, if the text discusses 'ventilation, sedation, fluids' as therapies, also extract the general class 'Therapy' or 'Baseline Therapy' if the text uses that grouping.
+   Use the text's own categories and groupings — do not impose an external hierarchy.
+
+**Default priority: classes first, then relations.** Extract relations when the text clearly states a connection between two concepts — both domain and range must be extracted classes. If a phase instruction below overrides this priority, follow the phase instruction.
+
+**Completeness:** Extract every distinct clinical concept the text names — err on the side of inclusion when evidence exists.
+
+### CURRENT TASK: Phase 2 — RELATION & HIERARCHY EXTRACTION (+ supplementary classes)
+Primary task: extract semantic RELATIONS between the known classes below. Extract every relation the text explicitly supports with evidence.
+Secondary task: if you notice clinical concepts in the text that Phase 1 missed (e.g. a concept needed as domain/range), add them to the classes array with evidence.
+Also extract hierarchy (subClassOf) edges wherever the text shows parent-child relationships — look for cues like 'such as', 'includes', 'type of', 'consists of', 'categorized as', enumeration lists, or even implied groupings.
+
+### WHAT IS AN ONTOLOGY RELATION?
+An ontology relation (object property) defines a typed semantic link between two class types. The DOMAIN is the subject class; the RANGE is the object class. Think: 'Every instance of [domain] can be linked via [relation] to an instance of [range].' Relations model the SCHEMA of the domain, not individual facts.
+Example: 'has monitoring data(Patient → Monitoring Data)' means every Patient can have Monitoring Data associated with them.
+
+### RELATION EXTRACTION METHOD (Chain-of-Thought)
+For each pair of known classes, reason step by step:
+1. Do these two classes co-occur or interact in the text?
+2. What is the SEMANTIC NATURE of their link? (measurement, treatment, assessment, outcome, composition, causation, etc.)
+3. Which class is the subject (domain) and which is the object (range)?
+4. Assign a descriptive relation label from the patterns below, or create a meaningful label if none fits.
+5. Find an exact text quote that supports this relationship.
+
+### ONTOLOGY DESIGN PATTERNS (use when the text supports them)
+These are reusable structural patterns showing how clinical concepts relate.
+Match them against the text — extract every supported edge.
+
+**Pattern 1 — Clinical Monitoring:**
+  Patient --[has monitoring data]--> Monitoring Data
+  Monitoring Data --[includes]--> Parameter
+  Observation --[measures parameter]--> Parameter
+  Observation --[produced by sensor]--> Sensor
+  Observation --[has quality assessment]--> Data Quality Assessment
+  Session --[has timepoint]--> Timepoint
+  Timepoint --[has observation]--> Observation
+
+**Pattern 2 — Clinical Intervention:**
+  Patient --[receives therapy]--> Therapy
+  Therapy --[targets condition]--> Condition
+  Condition --[triggers intervention]--> Therapy
+  Patient --[has surgical procedure]--> Surgical Procedure
+  Patient --[has nursing intervention]--> Nursing Intervention
+
+**Pattern 3 — Clinical Assessment and Outcome:**
+  Patient --[has clinical assessment]--> Clinical Assessment
+  Patient --[has outcome]--> Outcome
+  Patient --[has laboratory value]--> Laboratory Values
+  Monitoring Data --[monitoring indicates condition]--> Condition
+
+**Pattern 4 — Patient Context:**
+  Patient --[has session]--> Session
+  Patient --[has demographic data]--> Demographic Data
+  Patient --[has injury mechanism]--> Injury Mechanism
+
+**Pattern 5 — Data Quality:**
+  Data Quality Assessment --[affected by treatment]--> Therapy
+  Data Quality Assessment --[associated with condition]--> Condition
+
+**Pattern 6 — Composition (model as HIERARCHY, not relation):**
+  If X includes/comprises Y → extract as hierarchy: Y subClassOf X
+  Derived Parameter --[derived from]--> Source Parameter
+
+You SHOULD also extract other relations the text supports beyond these patterns.
+Do not invent relations not stated or clearly implied in the text.
+
+### CRITICAL: DO NOT USE 'includes' AS A RELATION LABEL
+If X includes Y, or Y is a type/kind/member of X, model it as HIERARCHY (Y subClassOf X), NOT as a relation. For example:
+  - 'Monitoring Data includes Heart Rate' → Heart Rate subClassOf Monitoring Data (hierarchy)
+  - 'Third-tier Treatment includes Barbiturates' → Barbiturates subClassOf Third-tier Treatment (hierarchy)
+The labels 'includes', 'consists of', 'comprises', 'is a type of' are NOT valid relation labels.
+
+### DEFINITION REQUIREMENT
+Every relation MUST include a `definition` field: a precise one-sentence description of what this relation means IN THE CONTEXT OF THIS TEXT.
+Read how the text describes the connection between these two concepts and capture:
+  (1) The NATURE of the link (measurement, treatment, assessment, composition, causation).
+  (2) HOW or WHY these concepts are connected according to the text.
+BAD: "Connects two clinical concepts."
+GOOD: "Links a patient to continuously recorded physiological measurements such as ICP, MAP, and heart rate captured during their ICU stay."
+Example: {"label": "has monitoring data", "domain": "Patient", "range": "Monitoring Data", "definition": "Links a patient to the set of continuously recorded physiological measurements (ICP, MAP, heart rate, etc.) captured minute-by-minute during their ICU stay.", "evidence": "..."}
+
+### RELATION EVIDENCE RULES
+- Each relation MUST have an 'evidence' field with an exact verbatim quote from the source text.
+- The evidence should mention or clearly imply at least one of the two endpoint classes (domain or range).
+- Use the ABSTRACT superclass as the range, not specific instances (e.g., 'Monitoring Data' not 'ICP').
+- Do NOT reuse the same evidence quote for multiple relations.
+
+### SELF-CHECK (before finalising output)
+- Do all domain and range labels match known classes from Phase 1?
+- Are there any duplicate relations (same domain-label-range)? Remove duplicates.
+- Does every evidence field contain a verbatim quote from the text?
+
+Output JSON with keys classes, relations, hierarchy.
+
+Known classes (use only these labels): Intracranial Pressure (ICP); PbrO2; Regression model of partial pressure of brain tissue oxygen (PbtO2); Oxygen; Hypothermia Therapy; Traumatic Brain Injury
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "definition": "one-sentence scope note describing what this class represents in the domain", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "definition": "one-sentence description of what this relation means between domain and range", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Definition rule:** Every class and relation MUST include a `definition` field: a concise one-sentence scope note clarifying what the class represents or what the relation means in the clinical domain. Ground definitions in the text where possible, but you may use standard medical knowledge to write a clear scope note.
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+**REASONING STEP:** Before producing JSON, mentally scan the text for: (1) every named clinical concept, (2) explicit relations between them, (3) hierarchy cues (such as, is a, type of, include:). Then output only items with verbatim evidence.
+
+---
+--- Retrieved examples (3) ---
+
+Text: The minimum minute by minute monitoring data required for inclusion in the BrainIT Database include: Heart Rate, Respiration Rate, Mean Arterial Pressure, ICP, SaO2 and Temperature. Data is collected from patients every minute.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Patient",
+      "evidence": "patients",
+      "definition": "An individual receiving neurointensive care for traumatic brain injury."
+    },
+    {
+      "label": "Monitoring Data",
+      "evidence": "monitoring data",
+      "definition": "Continuously recorded physiological measurements collected from bedside monitors."
+    },
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate",
+      "definition": "The number of cardiac contractions per minute, a core physiological monitoring parameter in neuro-ICU."
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate",
+      "definition": "The number of breaths per minute, measured via impedance plethysmography or ventilator."
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature",
+      "definition": "Core body temperature measured at rectal, oesophageal, bladder, or skin sites."
+    }
+  ],
+  "relations": [
+    {
+      "label": "has monitoring data",
+      "domain": "Patient",
+      "range": "Monitoring Data",
+      "evidence": "Data is collected from patients every minute",
+      "definition": "Links a patient to the set of continuously recorded physiological measurements captured during their ICU stay."
+    },
+    {
+      "label": "includes",
+      "domain": "Monitoring Data",
+      "range": "Heart Rate",
+      "evidence": "monitoring data include: Heart Rate",
+      "definition": "Indicates that a data category contains or encompasses a specific parameter or subcategory."
+    },
+    {
+      "label": "includes",
+      "domain": "Monitoring Data",
+      "range": "Temperature",
+      "evidence": "monitoring data include: Heart Rate, Respiration Rate, Mean Arterial Pressure, ICP, SaO2 and Temperature",
+      "definition": "Indicates that a data category contains or encompasses a specific parameter or subcategory."
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+
+Text: To help quantify the current pathophysiology and provide information on changing injury status, a variety of vital signs monitoring modalities are used concurrently in neuro-intensive care units. Monitoring of ICP is indicated in the current neurotrauma guidelines for patients with TBI. Metabolic activity, disease severity and mortality is related to the partial pressure of brain tissue oxygen (PbtO2).
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Monitoring Data",
+      "evidence": "vital signs monitoring modalities",
+      "definition": "Continuously recorded physiological measurements collected from bedside monitors."
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "Monitoring of ICP",
+      "definition": "The pressure inside the cranium, continuously monitored to detect intracranial hypertension in TBI patients."
+    },
+    {
+      "label": "PbrO2",
+      "evidence": "partial pressure of brain tissue oxygen (PbtO2)",
+      "definition": "Partial pressure of brain tissue oxygen, measuring local cerebral oxygenation."
+    },
+    {
+      "label": "Outcome",
+      "evidence": "disease severity and mortality",
+      "definition": "A measure of the patient's recovery or clinical result following treatment."
+    },
+    {
+      "label": "Patient",
+      "evidence": "patients with TBI",
+      "definition": "An individual receiving neurointensive care for traumatic brain injury."
+    }
+  ],
+  "relations": [
+    {
+      "label": "has monitoring data",
+      "domain": "Patient",
+      "range": "Monitoring Data",
+      "evidence": "vital signs monitoring modalities are used concurrently in neuro-intensive care units",
+      "definition": "Links a patient to the set of continuously recorded physiological measurements captured during their ICU stay."
+    },
+    {
+      "label": "monitoring indicates condition",
+      "domain": "Monitoring Data",
+      "range": "Condition",
+      "evidence": "quantify the current pathophysiology and provide information on changing injury status",
+      "definition": "Indicates that monitoring data can reveal or detect a particular clinical condition."
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+
+Text: CPP variability was independent of intracranial pressure, and hence was also reflected in mean arterial pressure (MAP) variability. CPP strongly correlated with MAP. The emerging concept of dynamic individual CPP targets is influenced by autoregulation capacity, suggesting a more personalised approach to CPP management for each patient.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Cerebral Perfusion Pressure (CPP)",
+      "evidence": "CPP variability",
+      "definition": "The net pressure gradient driving blood flow to the brain, calculated as MAP minus ICP."
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "intracranial pressure",
+      "definition": "The pressure inside the cranium, continuously monitored to detect intracranial hypertension in TBI patients."
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "mean arterial pressure (MAP)",
+      "definition": "The average arterial blood pressure during a cardiac cycle, a key haemodynamic parameter."
+    },
+    {
+      "label": "Derived Parameter",
+      "evidence": "CPP strongly correlated with MAP",
+      "definition": "A calculated variable derived from primary monitoring parameters."
+    },
+    {
+      "label": "Patient",
+      "evidence": "each patient",
+      "definition": "An individual receiving neurointensive care for traumatic brain injury."
+    }
+  ],
+  "relations": [
+    {
+      "label": "has monitoring data",
+      "domain": "Patient",
+      "range": "Monitoring Data",
+      "evidence": "dynamic individual CPP targets...personalised approach to CPP management for each patient",
+      "definition": "Links a patient to the set of continuously recorded physiological measurements captured during their ICU stay."
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+TEXT TO ANALYZE:
+With every included in the main analysis cohort. Even though over 82060 minute by
+combination of Intracranial Pressure (ICP) and measurement time shown on the plot as a colour minute measurements were included in the final analysis, enabling a
+representing the estimated value of Regression model of partial pressure of brain tissue oxygen (PbtO2). In an attempt to simplify the comprehensive analysis of the non-linear aspects of this cohort
+
+A second limitation with the cohort is the heterogeneity of aetiology;
+this is likely a driving factor in the similarities of the initial Intracranial Pressure (ICP) mea­ Not applicable.
+surements but the significant difference in initial Regression model of partial pressure of brain tissue oxygen (PbtO2), which are seen
+overall results, however, due to the current limited sample size this
+would need to be addressed in future work. Not applicable.
+Thirdly, neither the target region nor any confirmation of catheter
+tip placement was available to be reported from the dataset which would Availability of materials
+have aided interpretation of these results.
+The final limitation is that the cerebral autoregulation status of each The datasets used and/or analysed during the current study are
+the impact of autoregulation on Regression model of partial pressure of brain tissue oxygen (PbtO2) cannot be directly assessed. The
+non-linear effect of measurement time on Regression model of partial pressure of brain tissue oxygen (PbtO2) will account for some of Competing interests
+this information but it will combine this with all other unadjusted latent
+covariates limiting its usefulness for inference about autoregulation The authors declare that they have no competing interests.
+specifically.
+5. Conclusion
+Not applicable.
+This study has shown that there is a significant non-linear relation­
+ship between Intracranial Pressure (ICP) and Regression model of partial pressure of brain tissue oxygen (PbtO2) over the length of stay in the neuro-
+intensive care unit. It highlights that adequate delivery of oxygen can
+be achieved over the short term with an Intracranial Pressure (ICP) focused management
+MS and IP: conceptualisation of the study.
+strategy, however, a more comprehensive joint Regression model of partial pressure of brain tissue oxygen (PbtO2) and Intracranial Pressure (ICP) strategy
+MS conducted the analysis (formal analysis)
+may be required as the length of stay increases.
+MS, IP, CH, LM and MK contributed to the interpretation of the
+findings (validation).
+All authors critically revised the paper for intellectual content and
+approved the final version of the manuscript.
+
+M. Shaw et al. Brain and Spine 4 (2024) 102848
+
+Declaration of competing interest Flynn, L.M.C., Rhodes, J., Andrews, P.J.D., 2015. Therapeutic hypothermia reduces
+intracranial pressure and partial brain oxygen tension in patients with severe
+traumatic brain injury: Preliminary data from the Eurotherm3235 trial. Ther.
+The authors declare that they have no known competing financial Hypothermia Temp. Manag. 5, 143-151. https://doi.org/10.1089/ther.2015.0002.
+interests or personal relationships that could have appeared to influence Güiza, F., Depreitere, B., Piper, I., Citerio, G., Chambers, I., Jones, P.A., et al., 2015.
+the work reported in this paper. Visualizing the pressure and time burden of intracranial hypertension in adult and
+paediatric traumatic brain injury. Intensive Care Med. 41, 1067-1076. https://doi.
+org/10.1007/s00134-015-3806-1.
+Megjhani, M., Weiss, M., Ford, J., Terilli, K., Kastenholz, N., Nametz, D., et al., 2023.
+Optimal cerebral perfusion pressure and brain tissue oxygen in aneurysmal
+Not applicable. subarachnoid hemorrhage. Stroke 54, 189-197. https://doi.org/10.1161/
+STROKEAHA.122.040339.
+References Ngwenya, L.B., Burke, J.F., Manley, G.T., 2016. Brain tissue oxygen monitoring and the
+intersection of brain and lung: a comprehensive review. Respir. Care 61, 1232-1244.
+Bernard, F., Barsan, W., Diaz-Arrastia, R., Merck, L.H., Yeatts, S., Shutter, L.A., 2022.
+Okonkwo, D.O., Shutter, L.A., Moore, C., Temkin, N.R., Puccio, A.M., Madden, C.J.,
+Brain oxygen optimization in severe traumatic brain injury (BOOST-3): a
+et al., 2017. Brain oxygen optimization in severe traumatic brain injury phase-II: a
+phase II randomized trial. Crit. Care Med. 45, 1907-1914. https://doi.org/10.1097/
+tissue oxygen and intracranial pressure monitoring versus intracranial pressure
+CCM.0000000000002619.
+alone. BMJ Open 12, e060188. https://doi.org/10.1136/bmjopen-2021-060188.
+R Core Team, 2024. R: A Language and Environment for Statistical Computing. R
+BONANZA-GT, 2020. Brain oxygen neuromonitoring in Australia and New Zealand
+Foundation for Statistical Computing, Vienna, Austria.
+assessment - global trial (BONANZA-GT). https://anzctr.org.au/Trial/Registrati
+Rohlwink, U.K., Zwane, E., Fieggen, A.G., Argent, A.C., Roux, PD le, Figaji, A.A., 2012.
+on/TrialReview.aspx?id=378178. (Accessed 9 June 2023).
+The relationship between intracranial pressure and brain oxygenation in children
+Brazinova, A., Rehorcikova, V., Taylor, M.S., Buckova, V., Majdan, M., Psota, M., et al.,
+with severe traumatic brain injury. Neurosurgery 70, 1220-1230. https://doi.org/
+2021. Epidemiology of traumatic brain injury in europe: a living systematic review.
+10.1227/NEU.0b013e318243fc59 discussion 1231.
+J. Neurotrauma 38, 1411-1440. https://doi.org/10.1089/neu.2015.4126.
+Shaw, M., Piper, I., Chambers, I., Citerio, G., Enblad, P., Gregson, B., et al., 2008. The
+Brooks, M., Bolker, B., Kristensen, K., Maechler, M., Magnusson, A., Skaug, H., et al.,
+brain monitoring with information technology (brainIT) collaborative network: data
+2024. glmmTMB: Generalized Linear Mixed Models Using Template Model Builder.
+validation results. Acta Neurochir. Suppl. 102, 217-221.
+Carney, N., Totten, A.M., OʼReilly, C., Ullman, J.S., Hawryluk, G.W.J., Bell, M.J., et al.,
+Traumatic brain injury: Progress and challenges in prevention, clinical care, and
+2016. Guidelines for the Management of Severe Traumatic Brain Injury, fourth ed.
+research. Lancet Neurol. 21, 2022, 1004-1060. https://doi.org/10.1016/S1474-
+Neurosurgery. https://doi.org/10.1227/NEU.0000000000001432.
+4422(22)00309-X.
+Chesnut, R.M., Temkin, N., Videtta, W., Lujan, S., Petroni, G., Pridgeon, J., et al., 2023.
+van Buuren, S., Groothuis-Oudshoorn, K., 2023. Mice: Multivariate Imputation by
+Testing the impact of protocolized care of patients with severe traumatic brain injury
+Chained Equations.
+without intracranial pressure monitoring: the imaging and clinical examination
+Zeiler, F.A., Cabeleira, M., Hutchinson, P.J., Stocchetti, N., Czosnyka, M., Smielewski, P.,
+protocol. Neurosurgery 92, 472-480. https://doi.org/10.1227/
+et al., 2021. Evaluation of the relationship between slow-waves of intracranial
+neu.0000000000002251.
+pressure, mean arterial pressure and brain tissue oxygen in Traumatic brain injury (TBI): a CENTER-Traumatic brain injury (TBI)
+Figaji, A.A., Zwane, E., Fieggen, A.G., Argent, A.C., Le Roux, P.D., Siesjo, P., et al., 2009.
+exploratory analysis. J. Clin. Monit. Comput. 35, 711-722. https://doi.org/10.1007/
+Pressure autoregulation, intracranial pressure, and brain tissue oxygenation in
+s10877-020-00527-6.
+children with severe traumatic brain injury. J. Neurosurg. Pediatr. 4, 420-428.
+---

@@ -1,0 +1,535 @@
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+Suggested concepts (pre-identified by biomedical NER in this text): CMA, traumatic, traumatic brain injury, TBI, jugular venous desaturations, respiratory
+distress syndrome, intracranial hypertension, hypotension, CRF.
+These are entity mentions detected in this chunk. Use them as additional evidence that a concept is present, but only extract labels from the allowed class list above.
+
+Candidate domain terms (contextual hints from this chunk — use only if supported by the text): blood pressure; hypertension; hypotension; icp; intracranial hypertension; intracranial pressure; microdialysis; outcome; secondary insult; therapy; Brain Monitoring; CPP
+
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing an EXACT VERBATIM sentence or clause COPIED from the text — do NOT paraphrase, summarize, truncate, or rephrase. Copy the text exactly as it appears, preserving original wording, word order, and punctuation. If you cannot find an exact quote, OMIT the item.
+
+3. **Extraction Scope:** Extract clinical and biomedical content: conditions, physiological parameters, monitoring variables, treatments/therapies/interventions, outcomes, assessments, laboratory values, nursing interventions, surgical procedures, and clinical dataset categories when explicitly named.
+   Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+   If a sentence or paragraph is mainly about these excluded topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+6. **Label Mapping Rule:** If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+   Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+   For other abbreviations, expand to their full clinical name as used in the text.
+
+7. **Structural Completeness Rule:** When the text mentions specific clinical items, also extract their general category if the text supports it.
+   For example, if the text discusses 'ventilation, sedation, fluids' as therapies, also extract the general class 'Therapy' or 'Baseline Therapy' if the text uses that grouping.
+   Use the text's own categories and groupings — do not impose an external hierarchy.
+
+**Default priority: classes first, then relations.** Extract relations when the text clearly states a connection between two concepts — both domain and range must be extracted classes. If a phase instruction below overrides this priority, follow the phase instruction.
+
+**Completeness:** Extract every distinct clinical concept the text names — err on the side of inclusion when evidence exists.
+
+### CURRENT TASK: Phase 3 — HIERARCHY EXTRACTION
+Extract subclass/superclass (is-a) edges supported by the text. A hierarchy edge means one class is a TYPE, SUBTYPE, CATEGORY MEMBER, or SPECIFIC INSTANCE of another. Extract every edge the text explicitly supports with evidence.
+
+### HIERARCHY DETECTION METHOD
+Look for ALL of these patterns in the text:
+  1. Explicit cues: 'such as', 'is a', 'type of', 'kind of', 'form of'
+  2. Enumeration: 'include:', 'includes:', 'consists of', 'comprises'
+  3. Category grouping: 'categorized as', 'classified as', 'grouped into'
+  4. List patterns: items listed under a heading or category name
+  5. Implicit grouping: when several specific items are mentioned alongside a general category (e.g., 'therapy: ventilation, sedation' implies both are subclasses of Therapy; 'core parameters: HR, ICP, MAP' implies all three are subclasses of Core Monitoring Parameter)
+  6. Definitional: 'X is a Y', 'X, a type of Y', 'X (a form of Y)'
+  7. Context-based: if the text organises items into sections or tables, each section heading implies a parent class for the items listed under it
+  8. Medical knowledge: TBI is a type of Brain Injury, Hypotension is a type of Secondary Insult — extract these when the text discusses them together
+
+For enumeration patterns (e.g. 'include: X, Y, Z'), extract EACH listed item as a subclass of the parent category.
+IMPORTANT: If X 'includes' Y, model it as: Y subClassOf X (a hierarchy edge). Do NOT output 'includes' as a relation label — it belongs in the hierarchy.
+
+### CHAIN-OF-THOUGHT
+For each pair of known classes, reason:
+1. Does the text describe one class as a specialization of another?
+2. Does the text list one class under another as a member/subtype?
+3. Even if not explicitly stated, does medical context clearly imply a parent-child relationship?
+4. What text evidence supports this parent-child link?
+
+Be thorough: extract every parent-child relationship the text supports. Aim for at least one hierarchy edge per class if possible.
+If the text lists items under a category heading, EACH item is a subClassOf that category. For example, if 'core monitoring' is followed by 'heart rate, ICP, MAP', then each is a subClassOf Core Monitoring Parameter.
+Use ONLY the known classes below for subClass and superClass labels.
+
+### SELF-CHECK (before finalising output)
+- Are there any circular edges (A subClassOf B AND B subClassOf A)? Remove them.
+- Are subClass and superClass labels from the known-classes list?
+- Does every evidence field contain a verbatim quote from the text?
+
+Output JSON with keys classes, relations, hierarchy. Set classes and relations to empty arrays.
+
+Known classes (use only these for subclass/superclass): Brain Monitoring with Information Technology (BrainIT) Group; Traumatic Brain Injury (TBI); Core Dataset; Monitoring Data; Bedside Monitoring; Intracranial Pressure (ICP); Cerebral Perfusion Pressure (CPP); Blood Pressure (BP); Secondary Insult; Intracranial Hypertension; Arterial Hypotension; Jugular Venous Desaturation; Acute Respiratory Distress Syndrome; Therapy; Therapy Target; ICP Monitoring Site; Catheter-Tip Transducer; Fluid-Filled Catheter-Transducer System; System Damping; Zero Pressure Reference Site; Head Up Tilt; Data Acquisition Software; Data Sampling Rate; Missing Data; Data Error Rate; Multi-Centre Data Collection; Feasibility Exercise; Prospective Trial; Patient Confidentiality; Open Access Database; Data Validation Study; Pharmacological Therapy Trial; Patient Outcome; Neurological Outcome; American Guidelines; Case Report Form (CRF); Nursing Chart; Medical Device Company; Bedside Interface; Minute-by-Minute Data; Inter-Centre Variation; Standardisation; Proof of Concept Phase; High-Resolution Monitoring; Intensive Care Management
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "definition": "one-sentence scope note describing what this class represents in the domain", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "definition": "one-sentence description of what this relation means between domain and range", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Definition rule:** Every class and relation MUST include a `definition` field: a concise one-sentence scope note clarifying what the class represents or what the relation means in the clinical domain. Ground definitions in the text where possible, but you may use standard medical knowledge to write a clear scope note.
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+**REASONING STEP:** Before producing JSON, mentally scan the text for: (1) every named clinical concept, (2) explicit relations between them, (3) hierarchy cues (such as, is a, type of, include:). Then output only items with verbatim evidence.
+
+---
+--- Retrieved examples (3) ---
+
+Text: This is the minimum minute by minute monitoring data required for inclusion in the BrainIT Database and include: Heart Rate, Respiration Rate, Mean Arterial Pressure, mean ICP, SaO2 and Temperature.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Monitoring Data",
+      "evidence": "minute by minute monitoring data",
+      "definition": "Continuously recorded physiological measurements collected from bedside monitors."
+    },
+    {
+      "label": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required",
+      "definition": "A mandatory physiological variable collected at minimum once per minute."
+    },
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate",
+      "definition": "The number of cardiac contractions per minute, a core physiological monitoring parameter in neuro-ICU."
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate",
+      "definition": "The number of breaths per minute, measured via impedance plethysmography or ventilator."
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "Mean Arterial Pressure",
+      "definition": "The average arterial blood pressure during a cardiac cycle, a key haemodynamic parameter."
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "mean ICP",
+      "definition": "The pressure inside the cranium, continuously monitored to detect intracranial hypertension in TBI patients."
+    },
+    {
+      "label": "SaO2",
+      "evidence": "SaO2",
+      "definition": "Arterial oxygen saturation measured by pulse oximetry, indicating blood oxygenation levels."
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature",
+      "definition": "Core body temperature measured at rectal, oesophageal, bladder, or skin sites."
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Heart Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required...include: Heart Rate"
+    },
+    {
+      "subClass": "Respiration Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Heart Rate, Respiration Rate"
+    },
+    {
+      "subClass": "Mean Arterial Pressure (MAP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Mean Arterial Pressure"
+    },
+    {
+      "subClass": "Intracranial Pressure (ICP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: mean ICP"
+    },
+    {
+      "subClass": "SaO2",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: SaO2"
+    },
+    {
+      "subClass": "Temperature",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Temperature"
+    }
+  ]
+}
+
+---
+
+Text: ICU management data includes nursing activities: routine nursing care (eye/mouth care, ET tube suction, bed care), physiotherapy sessions, bedside interventions (line insertion/renewal, transducer calibration, x-ray), and patient transport (to and from Theatre or CT-Scan).
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Nursing Intervention",
+      "evidence": "nursing activities",
+      "definition": "Care activities performed by nursing staff as part of ICU management."
+    },
+    {
+      "label": "Routine Nursing Care",
+      "evidence": "routine nursing care",
+      "definition": "Standard bedside nursing activities including eye care, mouth care, and suctioning."
+    },
+    {
+      "label": "Physiotherapy",
+      "evidence": "physiotherapy sessions",
+      "definition": "Physical therapy sessions provided to ICU patients to maintain function."
+    },
+    {
+      "label": "Bedside Intervention",
+      "evidence": "bedside interventions",
+      "definition": "Clinical procedures performed at the bedside such as line insertion and transducer calibration."
+    },
+    {
+      "label": "Patient Transport",
+      "evidence": "patient transport",
+      "definition": "Movement of the patient to and from theatre, CT scanner, or other facilities."
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Routine Nursing Care",
+      "superClass": "Nursing Intervention",
+      "evidence": "nursing activities: routine nursing care"
+    },
+    {
+      "subClass": "Physiotherapy",
+      "superClass": "Nursing Intervention",
+      "evidence": "nursing activities: physiotherapy sessions"
+    },
+    {
+      "subClass": "Bedside Intervention",
+      "superClass": "Nursing Intervention",
+      "evidence": "nursing activities: bedside interventions"
+    },
+    {
+      "subClass": "Patient Transport",
+      "superClass": "Nursing Intervention",
+      "evidence": "nursing activities: patient transport"
+    }
+  ]
+}
+
+---
+
+Text: BrainIT monitoring parameters are classified as core (required from all centres: Heart Rate, Respiration Rate, MAP, ICP, SaO2, Temperature) or optional (included when part of routine clinical management: CVP, EtCO2, SjO2, TCD, PbrO2, Brain Temperature, Microdialysis). CPP is a derived parameter computed as MAP minus ICP.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Monitoring Data",
+      "evidence": "BrainIT monitoring parameters",
+      "definition": "Continuously recorded physiological measurements collected from bedside monitors."
+    },
+    {
+      "label": "Core Monitoring Parameter",
+      "evidence": "core (required from all centres)",
+      "definition": "A mandatory physiological variable collected at minimum once per minute."
+    },
+    {
+      "label": "Optional Monitoring Parameter",
+      "evidence": "optional (included when part of routine clinical management)",
+      "definition": "An additional physiological variable collected when clinically available."
+    },
+    {
+      "label": "Derived Parameter",
+      "evidence": "derived parameter computed as MAP minus ICP",
+      "definition": "A calculated variable derived from primary monitoring parameters."
+    },
+    {
+      "label": "Cerebral Perfusion Pressure (CPP)",
+      "evidence": "CPP is a derived parameter",
+      "definition": "The net pressure gradient driving blood flow to the brain, calculated as MAP minus ICP."
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Core Monitoring Parameter",
+      "superClass": "Monitoring Data",
+      "evidence": "BrainIT monitoring parameters are classified as core"
+    },
+    {
+      "subClass": "Optional Monitoring Parameter",
+      "superClass": "Monitoring Data",
+      "evidence": "monitoring parameters are classified as core or optional"
+    },
+    {
+      "subClass": "Derived Parameter",
+      "superClass": "Monitoring Data",
+      "evidence": "CPP is a derived parameter computed as MAP minus ICP"
+    },
+    {
+      "subClass": "Cerebral Perfusion Pressure (CPP)",
+      "superClass": "Derived Parameter",
+      "evidence": "CPP is a derived parameter computed as MAP minus ICP"
+    },
+    {
+      "subClass": "CVP",
+      "superClass": "Optional Monitoring Parameter",
+      "evidence": "optional: CVP"
+    },
+    {
+      "subClass": "EtCO2",
+      "superClass": "Optional Monitoring Parameter",
+      "evidence": "optional: CVP, EtCO2"
+    },
+    {
+      "subClass": "SjO2",
+      "superClass": "Optional Monitoring Parameter",
+      "evidence": "optional: SjO2"
+    },
+    {
+      "subClass": "TCD",
+      "superClass": "Optional Monitoring Parameter",
+      "evidence": "optional: TCD"
+    },
+    {
+      "subClass": "PbrO2",
+      "superClass": "Optional Monitoring Parameter",
+      "evidence": "optional: PbrO2"
+    },
+    {
+      "subClass": "Brain Temperature",
+      "superClass": "Optional Monitoring Parameter",
+      "evidence": "optional: Brain Temperature"
+    },
+    {
+      "subClass": "Microdialysis",
+      "superClass": "Optional Monitoring Parameter",
+      "evidence": "optional: Microdialysis"
+    }
+  ]
+}
+
+---
+TEXT TO ANALYZE:
+The comments were summarised
+at a Brain Monitoring with Information
+Technology (BrainIT) group meeting. In particular, it was decided that all questions should have fields for ''not testable'' and ''unknown''. Monitoring based feasibility exercise
+
+The Brain Monitoring with Information
+Technology (BrainIT) group: concept and core dataset definition
+or the PI has recently moved to a different unit and data will be forthcoming. The remaining three centres currently have no PC connection to
+their bedside monitoring and require assistance with developing a suitable interface. The Brain Monitoring with Information
+Technology (BrainIT) group is collaborating with three medical
+device companies (Philips Medical, CMA Microdialysis and Licox) to
+develop solutions for these centres. For the purposes of this pilot, the key
+question was to determine that ''minute by minute'' data is collectable
+from all centres. The data returned is only a sample and so may not be
+representative of the full range of monitoring which will be collected in
+future. This can only be determined from a prospective data collection
+period with multiple patients data collected per centre.
+
+This paper has outlined the concept underlying the
+Brain Monitoring with Information
+Technology (BrainIT) group approach to collaboration and describes
+the groups efforts to define and test the feasibility for
+collection of a core-dataset.
+
+Brain Monitoring with Information
+Technology (BrainIT) group concept
+The Brain Monitoring with Information
+Technology (BrainIT) group approach is to foster free and open
+collaboration towards raising standards for collection
+and analysis of data from patients with traumatic brain
+injury. Data generated as a result of the work of the
+working within the field of traumatic brain injury in that
+data collected as part of individual projects is openly
+accessible by all who contribute data to the database.
+database will be openly accessible, through the Internet,
+able to be queried over the Internet and datasets of interest can be downloaded to any member who has also
+contributed data to the database.
+The underlying hope is that such openness will lead
+to a more diverse and innovative range of analysis
+approaches than would be otherwise possible by any
+fixed group of investigators with a limited range of
+prevent duplication and may stimulate inter group
+collaboration. The strength of post-hoc analyses of such
+a database is in the generation of new hypotheses which
+can be prospectively tested.
+The success of this approach will depend upon the
+correct balance between openness and control. The concept of an open access database would not have worked
+in previous years, due to the difficulty of managing and
+protecting such a resource. However today, the pervasive
+
+nature of the Internet and the power and ease of use of
+discussion forums and remotely administrable and auditable databases makes the implementation of such an
+approach feasible. However, any such open database
+can only work if it is based, to some extent, on trust.
+Criteria have been set and must be met by contributors to
+the database. Those accessing and analysing data will be
+audited and those who fail to follow group guidelines
+will be prevented from future access to the database.
+The success or failure of the Brain Monitoring with Information
+Technology (BrainIT) group approach
+will depend upon if the generation and publication of
+standards, new findings and analyses outweigh any
+abuse of the open access approach.
+
+Core dataset definition
+In contrast to most forms of clinical trial data collection methodologies, the Brain Monitoring with Information
+Technology (BrainIT) group data collection
+requirements are uniquely detailed and require as a
+minimum some form of PC based collection of patient
+monitoring data at a collection frequency of no less than
+1 sample per minute. The technical aims of the group are
+to collect both monitoring and non-monitoring core
+dataset elements from multiple centers using bedside,
+that end, in this paper, we have outlined the groups
+efforts towards defining a uniquely detailed core dataset.
+A feasibility exercise was successfully carried out
+demonstrating that the core dataset is collectable across
+centres with an acceptably low frequency of missing
+data.
+However, it is not enough to just set up procedures for
+collection of multi-centre data - the procedures must be
+shown to work and estimates of inter and intra centre
+missing data and data error rates need to be determined.
+To do so requires a prospective trial of the effectiveness
+of the Brain Monitoring with Information
+Technology (BrainIT) procedures. EEC funding has recently
+on a region-by-region basis to conduct a prospective
+between 5 and 10 patients per centre need be recruited
+approval has been obtained. The successful completion
+of this ''proof of concept'' phase will create a network of
+centres capable of multi-centre computer based standardised collection of validated, high resolution, well documented management and monitoring data from patients
+with Traumatic Brain Injury (TBI). The results of the data validation study will
+provide a baseline measure of inter-centre missing data
+and data field error rates. In addition, a mechanism for
+
+testing the efficacy of maintaining patient confidentiality
+will be implemented and tested. Such a network, once
+tested, will be a valuable resource, not only for academic
+medicine and the medical device industry, but also for
+I=II trials of new pharmacological therapy. In this
+regard, of particular relevance to trials of therapy, will
+be the advantage of using the Brain Monitoring with Information
+Technology (BrainIT) ''therapy targets''
+(See Figure 3) instead of giving fixed criteria for adverse
+events and indications for treatment. Some advantages
+of this approach are: a) There is no need to come to an
+agreement between centres on standard treatment, thus
+allowing more centres to participate in any given study,
+b) Delivers an increased possibility to study the effects
+of different treatment thresholds and a wider spectrum of
+treatments.
+The case for raising standards
+Although most trial designs incorporate data collection methods for quantifying and controlling for secondary insults that may occur during the trial period, these
+measures will at best identify only major adverse events
+discernible from the nurses hourly chart records. More
+frequent shorter duration secondary insults are often
+missed if sampling periods greater than 1 minute is used. Apart from data sampling rate there is also still
+uncertainty amongst investigators as to the optimal
+methodology for identification and definition of these
+adverse events. In particular the duration and critical
+threshold that should be used to define a specific type
+of secondary insult remains unclear. A good example is
+cerebral perfusion pressure insults. Over the last few
+years an interest in Cerebral Perfusion Pressure (CPP) targeted therapy for head
+injured patients has developed with a number of observational studies indicating that a Cerebral Perfusion Pressure (CPP) of 70 mmHg
+appears to be a critical value. Publication of the American Guidelines for the management of
+state that there is not sufficient evidence to establish
+either a standard or guideline for the management of
+Cerebral Perfusion Pressure (CPP), although they indicate management of Cerebral Perfusion Pressure (CPP) greater
+than 70 mmHg as a management option. However, as
+yet, there are no published randomised multi-centre
+trials demonstrating a benefit in patient outcome if
+Cerebral Perfusion Pressure (CPP) is maintained at or beyond this threshold. Conversely, a recently published study from a single-centre
+randomised Cerebral Perfusion Pressure (CPP) management trial has shown that
+aggressive management of Cerebral Perfusion Pressure (CPP) > 70 mmHg, although
+reducing the incidence of jugular venous desaturations
+
+I. Piper et al.
+
+< 50%, increased the incidence of acute respiratory
+distress syndrome and worsened neurological outcome.
+Whether it is possible to define if the optimal Cerebral Perfusion Pressure (CPP)
+threshold should be set at 60 mmHg, 70 mmHg or higher
+is further complicated by a number of technical issues.
+These include a lack of standardisation between centres
+on the site of Intracranial Pressure (ICP) monitoring (intraventricular vs intraparenchymal vs subdural) and the technology used
+(catheter-tip vs fluid-filled catheter-transducer systems).
+Most arterial pressure measurement is based on fluidfilled catheter-transducer systems where the degree of
+system ''damping'' is an important factor. Altering the
+damping of such a system over typical limits can cause
+up to a 7 mmHg bias in recorded arterial pressure. In
+terms of arterial pressure recording such a bias may not
+be significant, but for Cerebral Perfusion Pressure (CPP) measurement, a 7 mmHg
+error will make the difference to calculated Cerebral Perfusion Pressure (CPP) being
+above or below a treatment threshold. Another important
+source of error is the inter-centre differences in location
+of the ''zero'' pressure reference site for the Blood Pressure (BP) transducer. This issue alone can account for up 13 mmHg
+variance in calculated Cerebral Perfusion Pressure (CPP) when combined with the
+effect of hydrostatic fluid columns which depend upon
+the degree of angle of head up tilt of the patient.
+Before we can define thresholds for secondary insults, in
+a multi-centre study, better standardisation between centres of the type, damping, placement and calibration of
+physiological monitoring is needed.
+Apart from optimising the methods for measuring
+adverse events, data sampling rate is also important.
+There are now a number of microcomputer based dataacquisition software systems that can be used to acquire
+patient physiological data on a frequent basis (<1/4 1
+sample=minute). These packages provide the means
+for quantifying, with greater resolution, the degree of
+secondary injury occurring in head injured patients over
+specific periods of monitoring. As a result, secondary insults such as intracranial hypertension, and
+arterial hypotension have been found to occur, in head
+injured patients, more frequently than previously realised with more than 90 percent of patients exhibiting
+one or more insults during their management in intensive care. To accurately detect and quantify these
+are required and studies have shown that taking data
+from the nursing charts alone often miss and frequently
+underestimate the actual incidence of these events.
+This is particularly relevant as, to date, all previous
+
+The Brain Monitoring with Information
+Technology (BrainIT) group: concept and core dataset definition
+
+research forms (CRF) for recording data on adverse
+events with a sampling rate similar to the bedside nurses
+chart.
+For the above mentioned reasons, it is conceivable that
+large numbers of secondary insults could be missed in a
+trial. It is also possible that many of these missed events
+might occur non-randomly across centres as the ability to
+detect short acting secondary insults may vary between
+centres depending on the type and method of monitoring
+employed. It is also still unknown to what degree the
+intensity of patient management and any intra=inter centre management variation influences the incidence of
+short acting secondary insults. An investigator's choice
+of participating centre may be more driven by a centres
+past recruitment rate rather than providing a representative sample of these other factors. For these reasons, it is
+feasible that missed secondary insults could potentially
+adversely influence outcome by as much or greater than a
+potential neuroprotective drug, management or monitoring approach might improve outcome.
+By not using appropriate high resolution standardised
+factors in their design and analysis and thus the power
+for detecting an effect of a trial drug or a new management or monitoring approach could be significantly
+reduced.
+---

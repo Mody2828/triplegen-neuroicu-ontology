@@ -1,0 +1,1074 @@
+### TASK: Relation Extraction
+You are a clinical ontology engineer. Your task is to find semantic RELATIONS between the classes listed below, using the source text as evidence. Extract every relation the text explicitly supports.
+
+### WHAT IS AN ONTOLOGY RELATION?
+An ontology relation (object property) defines a typed semantic link between two classes. The DOMAIN is the subject; the RANGE is the object.
+Model the SCHEMA of the domain — not individual facts. Think:
+'Every instance of [domain] can be linked via [relation] to an instance of [range].'
+
+### RELATION EXTRACTION METHOD
+Systematically examine class pairs and reason step by step:
+1. Scan the text for sentences where two or more classes co-occur.
+2. For each co-occurrence, determine: what is the semantic nature of the link?
+   (measurement, treatment, assessment, outcome, composition, causation, etc.)
+3. Decide which class is domain (subject) and which is range (object).
+4. Assign a clear, descriptive relation label.
+5. Provide an exact verbatim quote from the text as evidence.
+
+### RELATION PATTERNS
+Patient-centric:
+  - has monitoring data: Patient → Monitoring Data
+  - receives therapy: Patient → Therapy
+  - has outcome: Patient → Outcome
+  - has clinical assessment: Patient → Clinical Assessment
+  - has laboratory value: Patient → Laboratory Values
+  - has nursing intervention: Patient → Nursing Intervention
+  - has surgical procedure: Patient → Surgical Procedure
+  - has session: Patient → Session
+  - has demographic data: Patient → Demographic Data
+Clinical process:
+  - monitoring indicates condition: Monitoring Data → Condition
+  - targets condition: Therapy → Condition
+  - triggers intervention: Condition → Therapy
+  - affected by treatment: Data Quality Assessment → Therapy
+  - associated with condition: Data Quality Assessment → Condition
+Structural:
+  - has observation: Timepoint → Observation
+  - has timepoint: Session → Timepoint
+  - measures parameter: Observation → Parameter
+  - produced by sensor: Observation → Sensor
+  - has quality assessment: Observation → Data Quality Assessment
+  - includes: Category → Member
+  - derived from: DerivedParameter → SourceParameter
+You SHOULD also discover relations not in this list if the text supports them.
+
+### CLASSES IN THE ONTOLOGY
+  - Acceptable Range Rule
+  - Acute Respiratory Distress Syndrome
+  - Admission Data
+  - American Guidelines
+  - Analysis Register
+  - Anonymous Data
+  - Arterial Hypotension
+  - Arterial Pressor
+  - Arterial Pressure
+  - Assessment Query
+  - Author Citation
+  - Basic Membership
+  - Bed Tilt
+  - Bedside Intervention
+  - Bedside Monitoring
+  - Blood Gas
+  - Blood Pressure Monitoring
+  - Blood Pressure Transducer
+  - Blood Pressure Transducer Zeroing
+  - Blood-Brain Barrier
+  - Bolus
+  - Brain Injury
+  - Brain Injury Mechanism
+  - Brain Monitoring with Information Technology Database
+  - Brain Monitoring with Information Technology Group
+  - Brain Temperature
+  - Brain Trauma
+  - Brainit Database
+  - Brainit Group
+  - CPP
+  - CVP
+  - Calibration
+  - Care Variability
+  - Catheter-tip Transducer
+  - Central Venous Pressure Monitoring
+  - Centre
+  - Centre Membership
+  - Centre Principal Investigator
+  - Cerebral Perfusion Pressure
+  - Cistern State
+  - Clinical Domain Ontology
+  - Clinical Efficacy
+  - Clinical Information
+  - Clinician
+  - Co-authorship
+  - Collaborative Network
+  - Collaborative Research Agreement
+  - Computed Tomography Scan
+  - Condition
+  - Configuration Ontology
+  - Conflict Resolution Procedure
+  - Confounding Factors
+  - Confounding Influence
+  - Continuous Infusion
+  - Coordinating Centre
+  - Core Dataset
+  - Data Analysis
+  - Data Analysis Standards
+  - Data Anonymization
+  - Data Checking
+  - Data Collection Standards
+  - Data Completeness
+  - Data Conversion
+  - Data Error Rate
+  - Data Ownership
+  - Data Provenance
+  - Data Quality Assessment
+  - Data Quality Control
+  - Data Reporting Standards
+  - Data Restriction Policy
+  - Data Sampling Rate
+  - Data Sharing Agreement
+  - Data Validation
+  - Data Validation Approach
+  - Data Validation Staff
+  - Data Validation Staff Resource
+  - Database
+  - Database Access Criteria
+  - Database Query
+  - Dedicated Research Data Server
+  - Demographic Data
+  - Discharge Status
+  - Electrocardiogram (ECG)
+  - Emergency Casualty Center
+  - Emergency Medical Services
+  - Endotracheal Tube Suction
+  - Engineer
+  - EtCO2
+  - Ethics Approval Letter
+  - European Brain Injury Consortium
+  - European Economic Community Funding
+  - Extradural Lesion
+  - Eye Care
+  - Feasibility Exercise
+  - Feasibility Testing
+  - Fluid-filled Catheter-transducer System
+  - Fluids
+  - Forum
+  - GCS Assessment
+  - GOSe Outcome
+  - General Medical Icu
+  - Glasgow Coma Scale Assessment
+  - Glucose
+  - Graphical Form
+  - Guidelines for Management
+  - Haematocrit
+  - Haemoglobin
+  - Head Injured Patient
+  - Head Injury
+  - Head Up Tilt
+  - Health Care Technology Assessment
+  - Heart Rate
+  - High Resolution Standardised Factors
+  - High-Resolution Monitoring Data
+  - Hydrostatic Pressure Gradient
+  - Hypertension
+  - ICP
+  - Inappropriate Monitoring Method
+  - Individual Members Section
+  - Injury Variables
+  - Institutional Affiliation
+  - Institutional Review Board Approval
+  - Intensive Care
+  - Intensive Care Management Data
+  - Intensive Care Management Information
+  - Intensive Care Monitoring and Treatment Methods
+  - Intensive Care Treatment
+  - Intensive Care Unit
+  - Inter-Species Difference
+  - Inter-centre Variability
+  - International Network
+  - International Symposium
+  - Internet-Based Database Access
+  - Interview Method
+  - Intra-centre Variability
+  - Intracranial Hypertension
+  - Intracranial Pressure Monitoring
+  - Intraparenchymal Lesion
+  - Intraparenchymal Monitoring
+  - Intraventricular Monitoring
+  - Journal Editor
+  - Jugular Venous Desaturation
+  - Jugular Venous Oxygen Saturation
+  - Line Renewal
+  - Linked Open Data
+  - Machine
+  - Machine Configuration
+  - Main Lesion
+  - Management Approach
+  - Management Data
+  - Management Standards
+  - Manuscript
+  - Manuscript Review
+  - Mean Arterial Pressure (MAP)
+  - Measurement Capability
+  - Medical Device Industry
+  - Medical Disorders Rule
+  - Medical Domain Knowledge
+  - Medical History
+  - Medical Machine/sensor Ontology
+  - Medical Observations Ontology
+  - Meeting Abstract
+  - Meeting Organising Committee
+  - Membership
+  - Microcomputer-based Data-acquisition System
+  - Microdialysis
+  - Minimum Contribution Requirement
+  - Minimum Data Validation Standards
+  - Minute-by-Minute Physiological Monitoring
+  - Missing Data
+  - Missing Data Rule
+  - Monitoring Approach
+  - Monitoring Data
+  - Monitoring Devices
+  - Morbidity
+  - Mouth Care
+  - Multi-Centre Infrastructure
+  - Multi-centre Data Collection
+  - Multi-centre Network
+  - Multi-centre Trial
+  - Neuro-Intensive Care Unit
+  - Neuro-Monitoring
+  - Neuro-intensive Care
+  - Neuro-intensive Care Centre
+  - Neurological Outcome
+  - Neuroprotective Drugs
+  - Neurosurgical Centre
+  - New Monitoring Device
+  - New Therapy
+  - Non-Profit Organization
+  - Non-monitoring Data
+  - Non-profit External Research Organisation
+  - Non-validated Data
+  - Noradrenaline
+  - Nursing Chart
+  - Observation
+  - Ontology
+  - Operational Strategy Document
+  - Outcome
+  - Outcome Data
+  - Outcome Factor Attribution
+  - Oxygen Saturation
+  - Paper Form
+  - Paper-Based Data Collection
+  - Parameter
+  - Patient
+  - Patient Confidentiality
+  - Patient Data
+  - Patient Data Ontology
+  - Patient Monitoring Data
+  - Patient Monitoring Equipment
+  - Patient Outcome
+  - Patient Transport
+  - Pbro2
+  - Pharmaceutical Industry Standards
+  - Pharmacological Therapy
+  - Physiological Data
+  - Physiological Monitoring
+  - Physiological Monitoring Channel
+  - Physiotherapy
+  - Possible Error
+  - Post-resuscitation Pre-intubation Condition
+  - Potassium
+  - Pre-Clinical Results
+  - Pre-neurosurgical Hospital Admission Data
+  - Pressure Reference Site
+  - Principal Investigator
+  - Probable Error
+  - Processed Data
+  - Project
+  - Project Register
+  - Project-Based Data Collection
+  - Prospective Data Collection
+  - Provenance
+  - Publication Standards
+  - Published Abstract
+  - Pupil Score
+  - Pupil Size and Responsiveness
+  - Quality of Life and Management of Living Resources Programme
+  - Randomised Trial
+  - Rdf
+  - Rdf Data
+  - Rdf Dataset
+  - Reading
+  - Recording Configuration
+  - Regional Coordinator
+  - Regional Organization
+  - Researcher
+  - Respiration Rate
+  - Respondent
+  - Results Folder
+  - Sampling Rate
+  - Sao2
+  - Scientist
+  - Secondary Insult
+  - Secondary Insult Management Data
+  - Secondary Insult Treatment Data
+  - Sedation
+  - Semantic Accuracy
+  - Sensing Process
+  - Sensor
+  - Sensor Accuracy
+  - Sepsis
+  - Session
+  - Severely Head Injured Patient
+  - Single Centre Study
+  - Sodium
+  - Software Tools for Data Collection
+  - Standardisation
+  - Standardized Computer-based Methods
+  - Steering Group
+  - Steering Group Review
+  - Stratification Design
+  - Structured Questionnaire
+  - Study Design
+  - Subdural Lesion
+  - Subdural Monitoring
+  - Suctioning
+  - Syntactic Accuracy
+  - System Damping
+  - Systemic Hypotension
+  - Technical Sub-group
+  - Temperature
+  - Theatre
+  - Therapy Target
+  - Time-series Data
+  - Timepoint
+  - Transcranial Doppler
+  - Traumatic Brain Injury
+  - Traumatic Brain Injury Icu
+  - Traumatic Coma Databank Classification
+  - Treatment Data
+  - Treatment Variability
+  - Treatments Rule
+  - Trial Drug
+  - Validated Data
+  - Vasopressor
+  - Ventilation
+  - Ventilation Settings
+  - Voluntary Contribution
+  - Voluntary Membership
+  - Web Page
+  - Web-Based Collaboration
+  - White Blood Cell Count
+
+### CLASSES WITH NO RELATIONS (high priority — find connections!)
+  - Acceptable Range Rule
+  - Acute Respiratory Distress Syndrome
+  - American Guidelines
+  - Analysis Register
+  - Anonymous Data
+  - Author Citation
+  - Basic Membership
+  - Bed Tilt
+  - Bedside Intervention
+  - Blood Gas
+  - Blood Pressure Monitoring
+  - Blood Pressure Transducer
+  - Blood Pressure Transducer Zeroing
+  - Blood-Brain Barrier
+  - Bolus
+  - Brain Injury Mechanism
+  - Brain Temperature
+  - Brain Trauma
+  - Brainit Database
+  - Brainit Group
+  - CVP
+  - Calibration
+  - Care Variability
+  - Central Venous Pressure Monitoring
+  - Centre
+  - Centre Membership
+  - Centre Principal Investigator
+  - Cerebral Perfusion Pressure
+  - Cistern State
+  - Clinical Efficacy
+  - Clinician
+  - Co-authorship
+  - Collaborative Network
+  - Collaborative Research Agreement
+  - Computed Tomography Scan
+  - Condition
+  - Configuration Ontology
+  - Conflict Resolution Procedure
+  - Confounding Factors
+  - Confounding Influence
+  - Continuous Infusion
+  - Data Analysis
+  - Data Analysis Standards
+  - Data Anonymization
+  - Data Checking
+  - Data Collection Standards
+  - Data Conversion
+  - Data Error Rate
+  - Data Ownership
+  - Data Reporting Standards
+  - Data Restriction Policy
+  - Data Sampling Rate
+  - Data Sharing Agreement
+  - Data Validation Approach
+  - Data Validation Staff
+  - Data Validation Staff Resource
+  - Database
+  - Database Access Criteria
+  - Database Query
+  - Dedicated Research Data Server
+  - Discharge Status
+  - Emergency Casualty Center
+  - Emergency Medical Services
+  - Endotracheal Tube Suction
+  - Engineer
+  - EtCO2
+  - Ethics Approval Letter
+  - European Brain Injury Consortium
+  - European Economic Community Funding
+  - Extradural Lesion
+  - Eye Care
+  - Feasibility Exercise
+  - Feasibility Testing
+  - Fluids
+  - Forum
+  - GCS Assessment
+  - GOSe Outcome
+  - Glasgow Coma Scale Assessment
+  - Glucose
+  - Graphical Form
+  - Guidelines for Management
+  - Haematocrit
+  - Haemoglobin
+  - Head Injury
+  - Head Up Tilt
+  - Health Care Technology Assessment
+  - High Resolution Standardised Factors
+  - High-Resolution Monitoring Data
+  - Hydrostatic Pressure Gradient
+  - Inappropriate Monitoring Method
+  - Individual Members Section
+  - Injury Variables
+  - Institutional Affiliation
+  - Institutional Review Board Approval
+  - Intensive Care
+  - Intensive Care Management Data
+  - Intensive Care Management Information
+  - Intensive Care Monitoring and Treatment Methods
+  - Intensive Care Treatment
+  - Inter-Species Difference
+  - Inter-centre Variability
+  - International Network
+  - International Symposium
+  - Internet-Based Database Access
+  - Interview Method
+  - Intra-centre Variability
+  - Intracranial Pressure Monitoring
+  - Intraparenchymal Lesion
+  - Journal Editor
+  - Jugular Venous Desaturation
+  - Jugular Venous Oxygen Saturation
+  - Line Renewal
+  - Linked Open Data
+  - Main Lesion
+  - Management Standards
+  - Manuscript
+  - Manuscript Review
+  - Medical Device Industry
+  - Medical History
+  - Medical Machine/sensor Ontology
+  - Medical Observations Ontology
+  - Meeting Abstract
+  - Meeting Organising Committee
+  - Membership
+  - Microcomputer-based Data-acquisition System
+  - Microdialysis
+  - Minimum Contribution Requirement
+  - Minimum Data Validation Standards
+  - Minute-by-Minute Physiological Monitoring
+  - Missing Data
+  - Missing Data Rule
+  - Morbidity
+  - Mouth Care
+  - Multi-Centre Infrastructure
+  - Multi-centre Data Collection
+  - Neuro-Intensive Care Unit
+  - Neuro-Monitoring
+  - Neuro-intensive Care
+  - Neurological Outcome
+  - Neurosurgical Centre
+  - New Monitoring Device
+  - New Therapy
+  - Non-Profit Organization
+  - Non-monitoring Data
+  - Non-profit External Research Organisation
+  - Non-validated Data
+  - Nursing Chart
+  - Operational Strategy Document
+  - Outcome
+  - Outcome Factor Attribution
+  - Paper Form
+  - Paper-Based Data Collection
+  - Patient
+  - Patient Confidentiality
+  - Patient Data Ontology
+  - Patient Monitoring Data
+  - Patient Outcome
+  - Patient Transport
+  - Pbro2
+  - Pharmaceutical Industry Standards
+  - Pharmacological Therapy
+  - Physiological Monitoring Channel
+  - Physiotherapy
+  - Post-resuscitation Pre-intubation Condition
+  - Potassium
+  - Pre-Clinical Results
+  - Pre-neurosurgical Hospital Admission Data
+  - Pressure Reference Site
+  - Processed Data
+  - Project
+  - Project Register
+  - Project-Based Data Collection
+  - Prospective Data Collection
+  - Publication Standards
+  - Published Abstract
+  - Pupil Score
+  - Pupil Size and Responsiveness
+  - Quality of Life and Management of Living Resources Programme
+  - Randomised Trial
+  - Rdf
+  - Rdf Dataset
+  - Regional Organization
+  - Researcher
+  - Respondent
+  - Results Folder
+  - Sampling Rate
+  - Scientist
+  - Secondary Insult Management Data
+  - Secondary Insult Treatment Data
+  - Sedation
+  - Sensor Accuracy
+  - Severely Head Injured Patient
+  - Single Centre Study
+  - Sodium
+  - Software Tools for Data Collection
+  - Standardisation
+  - Steering Group Review
+  - Stratification Design
+  - Structured Questionnaire
+  - Study Design
+  - Subdural Lesion
+  - Suctioning
+  - Technical Sub-group
+  - Theatre
+  - Transcranial Doppler
+  - Traumatic Coma Databank Classification
+  - Treatment Variability
+  - Trial Drug
+  - Vasopressor
+  - Ventilation
+  - Ventilation Settings
+  - Voluntary Contribution
+  - Voluntary Membership
+  - Web Page
+  - Web-Based Collaboration
+  - White Blood Cell Count
+
+### EXISTING RELATIONS (do NOT duplicate these)
+  - monitors(Physiological Monitoring → Traumatic Brain Injury)
+  - occurs in(Secondary Insult → Traumatic Brain Injury)
+  - derives from(CPP → Mean Arterial Pressure (MAP))
+  - derives from(CPP → ICP)
+  - includes(Core Dataset → Demographic Data)
+  - includes(Core Dataset → Clinical Information)
+  - includes(Core Dataset → Time-series Data)
+  - collects(Brain Monitoring with Information Technology Group → Monitoring Data)
+  - collects(Brain Monitoring with Information Technology Group → Management Data)
+  - validates(Data Validation → Monitoring Data)
+  - targets(Neuroprotective Drugs → Brain Injury)
+  - assesses(Multi-centre Trial → Monitoring Devices)
+  - stores data from(Brain Monitoring with Information Technology Database → Neuro-intensive Care Centre)
+  - manages(Brain Monitoring with Information Technology Group → Brain Monitoring with Information Technology Database)
+  - hosts(Coordinating Centre → Brain Monitoring with Information Technology Database)
+  - has access to(Principal Investigator → Brain Monitoring with Information Technology Database)
+  - reviews(Steering Group → Validated Data)
+  - coordinates(Regional Coordinator → Neuro-intensive Care Centre)
+  - conducts(Data Validation → Core Dataset)
+  - measured via(Heart Rate → Electrocardiogram (ECG))
+  - measured via(Heart Rate → Sao2)
+  - measured via(Respiration Rate → Impedance Plethysmography)
+  - measured via(Oxygen Saturation → Sao2)
+  - measured from(Temperature → Rectal Site)
+  - treats(Arterial Pressor → Systemic Hypotension)
+  - treats(Arterial Pressor → CPP)
+  - secondary to(CPP → ICP)
+  - monitors(Bedside Monitoring → ICP)
+  - monitors(Bedside Monitoring → Mean Arterial Pressure (MAP))
+  - calculated from(CPP → Arterial Pressure)
+  - calculated from(CPP → ICP)
+  - guides management of(Therapy Target → CPP)
+  - occurs in(Secondary Insult → Head Injured Patient)
+  - includes(Secondary Insult → Intracranial Hypertension)
+  - includes(Secondary Insult → Arterial Hypotension)
+  - uses(ICP → Intraventricular Monitoring)
+  - uses(ICP → Intraparenchymal Monitoring)
+  - uses(ICP → Subdural Monitoring)
+  - uses(Arterial Pressure → Fluid-filled Catheter-transducer System)
+  - uses(ICP → Catheter-tip Transducer)
+  - uses(ICP → Fluid-filled Catheter-transducer System)
+  - affects(System Damping → Arterial Pressure)
+  - collects(Intensive Care Unit → Admission Data)
+  - collects(Intensive Care Unit → Monitoring Data)
+  - collects(Intensive Care Unit → Treatment Data)
+  - collects(Intensive Care Unit → Outcome Data)
+  - treats(Management Approach → Brain Injury)
+  - monitors(Monitoring Approach → Brain Injury)
+  - supports(Data Validation → Data Quality Control)
+  - enables(Standardized Computer-based Methods → Monitoring Data)
+  - enables(Multi-centre Network → Data Quality Control)
+  - generates(Intensive Care Unit → Patient Data)
+  - used in(Patient Data → Medical Research)
+  - assesses(Data Quality Assessment → Patient Data)
+  - requires(Data Quality Assessment → Medical Domain Knowledge)
+  - records(Patient Monitoring Equipment → Patient Data)
+  - may indicate(Heart Rate → Sepsis)
+  - includes(Intensive Care Unit → General Medical Icu)
+  - includes(Intensive Care Unit → Traumatic Brain Injury Icu)
+  - informs(Data Provenance → Data Quality Assessment)
+  - supports(Ontology → Data Quality Assessment)
+  - evaluates(Data Quality Assessment → Data Completeness)
+  - evaluates(Data Quality Assessment → Syntactic Accuracy)
+  - evaluates(Data Quality Assessment → Semantic Accuracy)
+  - converts to(Patient Data → Rdf Data)
+  - has timepoint(Session → Timepoint)
+  - has reading(Timepoint → Reading)
+  - observes parameter(Reading → Parameter)
+  - produced by sensor(Reading → Sensor)
+  - has sensor(Machine → Sensor)
+  - implements sensing process(Sensor → Sensing Process)
+  - observes property(Sensor → Parameter)
+  - has measurement capability(Sensor → Measurement Capability)
+  - references recording configuration(Machine Configuration → Recording Configuration)
+  - describes machine(Recording Configuration → Machine)
+  - describes sensor(Recording Configuration → Sensor)
+  - records parameter(Recording Configuration → Parameter)
+  - applies to timepoint range(Recording Configuration → Timepoint)
+  - annotates observation(Provenance → Observation)
+  - documents sensor(Provenance → Sensor)
+  - evaluates data(Assessment Query → Reading)
+  - identifies error(Assessment Query → Possible Error)
+  - identifies probable error(Assessment Query → Probable Error)
+  - monitors(Patient Monitoring Equipment → Physiological Data)
+  - applied to(Medical Disorders Rule → Hypotension)
+  - applied to(Medical Disorders Rule → Hypertension)
+  - applied to(Treatments Rule → Noradrenaline)
+  - applied to(Treatments Rule → Adrenaline)
+  - used in(Clinical Domain Ontology → Traumatic Brain Injury)
+  - used in(Clinical Domain Ontology → General Medical Icu)
+
+### EVIDENCE RULES (CRITICAL)
+- The 'evidence' field MUST be an exact verbatim quote from the SOURCE TEXT.
+- Evidence should mention or imply at least one endpoint class.
+- Do NOT reuse the same evidence for multiple relations.
+- Do NOT invent or paraphrase — if no supporting text exists, skip.
+- Use the abstract superclass as the range (e.g., 'Monitoring Data' not 'ICP').
+
+### DEFINITION REQUIREMENT
+Every relation MUST include a `definition` field: a concise one-sentence description of what the relation means between domain and range.
+
+### OUTPUT FORMAT (JSON only, no commentary)
+{
+  "relations": [{"label": "rel_name", "domain": "DomainClass", "range": "RangeClass", "definition": "one-sentence description", "evidence": "exact quote from text"}]
+}
+
+Extract as many valid relations as the text supports. Be thorough — especially for the classes that currently have NO relations.
+
+### SOURCE TEXT
+Clinical Article
+The Brain Monitoring with Information
+Technology (BrainIT) group: concept and core dataset definition
+I. Piper, G. Citerio, I. Chambers, C. Contant, P. Enblad, H. Fiddes, T. Howells, K. Kiening,
+P. Nilsson, and Y. H. Yau for the Brain Monitoring with Information
+Technology (BrainIT) Group
+
+Summary
+
+Yau for the Brain Monitoring with Information
+Technology (BrainIT) Group
+
+Part A: Brain Monitoring with Information
+Technology (BrainIT) group concept
+
+Introduction. An open collaborative international network has been
+established which aims to improve inter-centre standards for collection
+of high-resolution, neurointensive care data on patients with traumatic
+brain injury. The group is also working towards the creation of an open
+meetings funded by the EEC that allowed us to define a ''Core Dataset''
+and we present the results of a feasibility exercise for collection of this
+core dataset.
+Methods. Four group meetings funded by the EEC have enabled
+definition of a ''Core Dataset'' to be collected from all centres regardless
+of specific project aim. A paper based pilot collection of data was
+conducted to determine the feasibility for collection of the core dataset.
+Specially designed forms to collect the core dataset demographic and
+clinical information as well as sample the time-series data elements were
+distributed by both email and standard mail to 22 Brain Monitoring with Information
+Technology (BrainIT) centres. A
+deadline of two months was set to receive completed forms back from
+monitoring data was also performed.
+Findings. A core-dataset was defined and can be downloaded from the
+Brain Monitoring with Information
+Technology (BrainIT) web-site (go to ''Core dataset'' link at: www.brainit.org).
+Eighteen centres (82%) returned completed forms by the set deadline.
+Overall the feasibility for collection of the core data elements was high
+with only 10 of the 64 questions (16%) showing missing data. Of those
+has been designed and is being tested. Software tools for collection of
+study.
+Interpretation. The Brain Monitoring with Information
+Technology (BrainIT) network provides a more standardised and
+higher resolution data collection mechanism for research groups, organisations and the device industry to conduct multi-centre trials of new
+health care technology in patients with traumatic brain injury.
+
+Head injury has devastating economic and social consequences both to the victim and to the society that supports the victim. The incidence of serious head injury
+is estimated at 1500 per 100,000 population per annum.
+On a European dimension this translates into over a
+million hospital admissions with a head injury per year.
+Head injury is a leading cause of death in young males
+and survivors have serious and long term morbidity. The
+loss of employment to the victim and the stress and
+increased burden of care to family members have significant social and economic effects upon Europe.
+When assessing head injured patients' outcome from
+new therapies or the application of new monitoring
+devices, a large number of patients are required.
+Recruiting patients from multiple centres will significantly
+reduce the time to assess new therapy and monitoring.
+However, despite the existence of guidelines for the management of severely head injured patients
+this group of patients is subject to considerable variability
+in care. As a first step towards improving management standards in this population, both the inter and
+intra-centre variability in the management and treatment of
+these patients needs to be assessed on a multi-national
+basis, and to do so requires a more standardised and higher
+resolution methodology for acquiring patient management
+and monitoring information.
+One consequence of the variability in management
+that probably exists both across and within centres that
+manage patients with Traumatic Brain Injury (TBI) (traumatic brain injury), is its
+confounding influence upon trials of therapy. There have
+
+Keywords: Head injury; multi-centre network; health technology
+assessment.
+
+been in the last few years several multi-centre clinical
+trials of potential neuroprotective drugs targeted at
+patients with brain trauma. However, despite promising
+pre-clinical results, all have failed to show efficacy in the
+head-injured population. A number of reasons have been
+proposed for these failures which include: poor study
+design, insufficient dose of drug penetrating the blood
+brain barrier and inter-species differences in brain injury
+mechanisms.
+Another possibility, not as yet systematically examined, is the occurrence of secondary insults which are
+missed through use of inappropriate monitoring methods. Even in large scale randomised trials, an efficient
+stratification design cannot be made without a knowledge of the incidence of relevant confounding factors.
+Improving the standards and resolution for multicentre data collection will also impact upon the assessment of new medical technology of relevance to the
+medical device industry. The majority of companies that
+develop or support devices used to monitor brain injured
+device companies lack the resources to independently
+assess their devices in multi-centre studies. This severely
+limits the provision of quality evidence demonstrating
+the clinical utility of their products.
+What is required is an open, collaborative network of
+centres interested in developing higher resolution and
+more standardised methods for collection of monitoring
+and management data from patients with traumatic brain
+injury. Such an infrastructure will provide a more efficient means for assessing new and developing health
+care technology, whether it is new drugs, management
+approaches or new monitoring devices.
+The idea for the Brain Monitoring with Information
+Technology (BrainIT) group came from discussions arising during the 10th International Symposium on Raised
+Intracranial Pressure and Neuromonitoring in Brain
+Injury held in Williamsburg, USA in May 1997. A few
+participants at this meeting, with a specific interest in
+neuro-monitoring, agreed that a more open and collaborative approach to the assessment of new monitoring
+technology would be a more efficient approach then
+continuing our current practice of conducting small
+scale, single centre studies.
+Collection of minute-by-minute physiological monitoring is now common in many neuro-intensive care
+
+I. Piper et al.
+
+units. However, there are no agreed standards for
+defining the collection, summary and analysis of monitoring data, particularly pertaining to data collected
+from head injured patients. Cerebral perfusion pressure
+(CPP 1/4 Blood Pressure (BP)-ICP) monitoring is a good example. When
+we report Cerebral Perfusion Pressure (CPP) values, how do we correct for differing
+policies between centres on the level to which the Blood Pressure (BP)
+transducer is zeroed? Tracking changes in bed tilt
+(which affects the size of hydrostatic pressure gradients
+between the head and heart) is also a significant technical issue without defined standards. As a result of these
+factors, it is often difficult to compare even the most
+common forms of monitoring when data are presented
+at meetings. Development of standards and guidelines in
+this area is an important step for the future design and
+conduct of trials of new intensive care monitoring and
+treatment methods.
+From those initial meetings in Williamsburg, a web
+site was setup (www.brainit.org) and from the interest
+generated, it became clear that many were interested in
+the concept of an open collaborative approach to developing standards in this area. Currently there are over 150
+members from 35 countries who have registered interest
+in the group via the website. It is possible to summarise
+the interests of the group into three main aims.
+The main aims of the group are:
+1. To develop and disseminate improved standards for the
+collection, analysis and reporting of intensive care
+monitoring data collected from brain injured patients.
+2. To provide an efficient multi-centre infra-structure for
+generating quality evidence on the utility of new forms
+of intensive care monitoring and methods for improving the care and outcome of brain-injured patients.
+3. To develop and use a standardised database as a tool
+and the development, testing and validation of new
+This paper describes the collaborative approach being
+taken by the group and why we believe it will lead to
+a more systematic and efficient approach to health care
+technology assessment in the management of brain
+In the second part, we describe a set of meetings funded
+by the EEC which allowed the group to define a ''Core
+Dataset'' and in this paper we present the results of a
+pilot feasibility exercise for collection of this core
+dataset.
+
+The Brain Monitoring with Information
+Technology (BrainIT) group: concept and core dataset definition
+
+The Brain Monitoring with Information
+Technology (BrainIT) group approach - what
+are the differences?
+The Ethos of the Brain Monitoring with Information
+Technology (BrainIT) group is one of fostering
+open and free collaboration. The approach used, which
+we believe is novel in this field of medicine involves the
+following key elements:
+1. Only high-resolution minute-by-minute monitoring
+and detailed management data is collected using
+contributing members free of charge. In addition to
+the free tools offered, the group is collaborating with
+industry on the development of more sophisticated
+data collection technology. A technical sub-group
+works towards developing tools and methods to assist
+with standardising data collection, analysis and database tools across centres.
+2. A project-by-project based collection of data,
+where members voluntarily donate their time and
+effort towards collection of data for specific projects
+in which they are enrolled. The Brain Monitoring with Information
+Technology (BrainIT) group Internet based facilities (Web page and Forum) allow
+members either individually or in groups to form
+project. Individual project PI's are responsible for
+results.
+brain injury in that data collected as part of individual
+will be able to be queried over the Internet and datasets of interest can be downloaded to any member
+who has also contributed data to the database.
+overall responsibility for group management, does
+not dictate project selection but can help with project
+on the joint database to ensure a high level of analysis
+is maintained. Only officially registered and planned
+analyses conducted on ''validated'' data can lead to
+publication and presentation at meetings. The steering
+
+group will ensure that database access, analysis and
+5. An important element of the Brain Monitoring with Information
+Technology (BrainIT) group approach is
+to continuously work towards the development of improved ''standards'' for multi-centre collection and analysis of data in this patient population. We have achieved
+a key first step in this process by defining minimum
+data validation standards and have developed a mechanism for checking the validity of data against original
+documentation using regionally hired ''data validation''
+staff. The Brain Monitoring with Information
+Technology (BrainIT) network provides an infrastructure
+or monitoring similar to that required by the Pharmaceutical industry in the conduct of trials of new drugs.
+A detailed Brain Monitoring with Information
+web-page (www.brainit.org ! go to Operating Strategy
+Link). A sub-set of this document is summarised
+below.
+Figure 1 Outlines the Group Concept.
+There are two forms of Brain Monitoring with Information
+Technology (BrainIT) group membership:
+is responsible for allowing local patient data to be used
+responsible for Brain Monitoring with Information
+Technology (BrainIT) database access. Individual
+members within centres who are not the centre PI who
+wish access to the database must apply to the Steering
+group. Membership (both individual and centre) is free.
+- Applicants are clinicians, scientists, engineers or
+researchers employed within institutions or organisations supporting the monitoring or management of
+brain injured patients.
+www.brainit.org
+- Must be contributing data (at least 5 patients core
+data per year) to a Brain Monitoring with Information
+Technology (BrainIT) group project.
+
+I. Piper et al.
+
+Fig. 1. Graphical Representation of Brain Monitoring with Information
+Technology (BrainIT) Group Concept. Using the Internet as a mechanism linking individual investigators, the Brain Monitoring with Information
+Technology (BrainIT) group
+Project groups are responsible for managing, funding and publishing their own work. Collected data is anonymous and donated to a common
+testing and generation. Only ''Validated'' data can lead to publication and the Brain Monitoring with Information
+Technology (BrainIT) group provides a region-by-region based mechanism for
+hiring and managing Data Validation (DV) staff to validate project group data. Validation costs will be generated from a range of resources,
+group maintaining and managing a project and analysis register. A technical group helps develop data collection, analysis and database tools
+
+I. Piper et al.
+
+Group management, structure and coordination
+
+a) Name and Email Address added to Brain Monitoring with Information
+Technology (BrainIT) Web
+Members on-line address book.
+c) Added to circulation list of information on group
+events, meetings and newsletters.
+d) Access to the Individual Members Section of the
+Brain Monitoring with Information
+Technology (BrainIT) Forum allowing members to participate in
+project specific forum discussion topics.
+
+With the exception of any fixed contract, project
+funded, technical or administrative staff, All Brain Monitoring with Information
+Technology (BrainIT)
+members work voluntarily and do not receive any form
+of fee or stipend for the support they provide.
+The full group management, organisational structure
+and coordination can be viewed from the Operational
+Strategy Document which can be downloaded from
+the Brain Monitoring with Information
+Technology (BrainIT) Group Web: (www.brainit.org ! go to
+Operating Strategy Link)
+
+a) As for Basic Membership plus the designated PI from
+each centre has automatic access to the common
+Brain Monitoring with Information
+Technology (BrainIT) Database.
+The Brain Monitoring with Information
+membership.
+
+Each region (usually one but occasionally more than
+one country sharing a common language) with more
+than one neuro-intensive care centre contributing data
+to the Brain Monitoring with Information
+
+The Brain Monitoring with Information
+Technology (BrainIT) group: concept and core dataset definition
+
+providing coordination support for centres within their
+region. They also hire, train and support ''Data Validation'' staff (funding dependant), used to travel to local
+centres to train local centre staff in the use of Brain Monitoring with Information
+Technology (BrainIT)
+data collection and analysis tools, as well as, conducting
+Document for an overview of Brain Monitoring with Information
+Technology (BrainIT) Data Validation
+Approach.
+The Brain Monitoring with Information
+held within the database will be owned by the Brain Monitoring with Information
+Technology (BrainIT)
+non-profit making organisation and is accessible only to
+- All data is stored on a dedicated research data server
+at the Brain Monitoring with Information
+Technology (BrainIT) Coordinating Centre.
+- Data is anonymous and it will not be possible to tell
+from which centre the data originated.
+- Data will be searchable by the project title which was
+responsible for the data to be collected.
+- As not all projects have funding which will allow data
+to be validated against original documentation, data
+will also be searchable upon whether it is
+''Validated'' or ''Not Validated''.
+Database access=analysis criteria
+1. Those wishing to access the database must themselves be from centres that have contributed data
+to the database.
+2. Centres must contribute at least 5 ''Core Dataset''
+patients per year to maintain database access in any
+given year.
+3. Only the PI in each centre contributing data will
+Other individuals within centres contributing data
+may be given access to the database at the discretion
+of the local PI, however, the local PI remains
+responsible for any analyses performed on the data
+accessed from their centre. Where there is conflict
+between the local PI and Individual members within
+the same centre, the Brain Monitoring with Information
+determine which other individuals may access the
+joint database.
+
+4. Only ''Validated'' data should be used in analyses
+intended for publication or submission as an
+abstract to a local or international meeting. See
+the data validation approach: (www.brainit.org !
+go to Operating Strategy Link)
+hypothesis testing, but may not be used in analyses
+intended for publication.
+6. All data sent to the database must have been
+produced from research studies where the protocols
+for those studies have been approved by the sending
+letter of approval must be lodged with the Brain Monitoring with Information
+Technology (BrainIT)
+coordinating centre.
+7. Individual patients must not be identifiable from
+Accords.
+8. Should an abstract for presentation at a meeting or a
+manuscript intended for publication be produced
+from the joint database - the paper being submitted
+will review the manuscript. This is to ensure that
+a consistent and high standard of data analysis
+and interpretation is maintained. The steering
+group must return comments to the author within
+14 days of receipt of the MS or meeting abstract.
+Failure to comply with these criteria will result in a
+letter being sent to the organising committee of the
+meeting or the journal editor from the steering
+group.
+9. It is required that a copy of any processed data
+and full results of any analyses from data within
+the database that has resulted in the production
+of a paper accepted for publication should also
+analyses will be posted to a common ''Results''
+folder and will notify members whose data that
+were used in the analysis that results have been
+posted.
+10. Data downloaded from the database by one centre
+for a given analysis must not be sent to any other
+centre.
+11. Downloaded data for a specific and declared
+analysis must not be used for another analysis.
+12. The database either whole or in part must not be
+sold to any organisation.
+
+I. Piper et al.
+
+Guidelines for Non-Profit External Research
+Organisations or Individual members
+wishing to Access the Brain Monitoring with Information
+Technology (BrainIT) Database
+
+Non profit making external research organisations or
+they may gain in-direct access through collaborating
+with a centre PI provided:
+
+1. They (the non-profit external research organisation)
+
+11. Downloaded data for a specific and declared
+analysis must not be used for another analysis. 12. The database either whole or in part must not be
+sold to any organisation. I. Piper et al.
+
+Guidelines for Non-Profit External Research
+Organisations or Individual members
+wishing to Access the Brain Monitoring with Information
+Technology (BrainIT) Database
+
+Non profit making external research organisations or
+they may gain in-direct access through collaborating
+with a centre PI provided:
+
+are themselves registered as Brain Monitoring with Information
+Technology (BrainIT) group individual
+members AND:
+2. They (the non-profit external research organisation)
+have also agreed and signed to the same Database
+access criteria (Internet Based) presented to the
+centre PI with whom they are collaborating.
+In such a collaboration, the centre PI remains responsible for access to the database and for tracking any analyses resulting from the collaboration with Non profit
+making external research organisations or individuals
+In the event of any conflict between a centre PI and
+whether the database can be accessed and whether the
+intended analyses can be performed.
+A. If any data from the joint database was 

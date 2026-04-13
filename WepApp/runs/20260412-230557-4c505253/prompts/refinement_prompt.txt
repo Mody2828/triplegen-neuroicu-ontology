@@ -1,0 +1,350 @@
+You are an ontology quality reviewer for clinical and biomedical domain ontologies.
+
+You have been given a generated ontology extracted from clinical/biomedical literature.
+Your task is to review the ontology and identify ONLY items that are clearly
+NOT clinical. Be VERY CONSERVATIVE — when in doubt, KEEP the item.
+
+### CRITICAL: BE CONSERVATIVE
+- Your primary goal is to PRESERVE the ontology. Only remove items you are
+  HIGHLY CONFIDENT do not belong.
+- If a concept COULD be clinical in ANY reasonable interpretation, KEEP it.
+- Abstract grouping categories are ESSENTIAL in ontologies — they organise
+  specific concepts into meaningful hierarchies. NEVER remove a class just
+  because it is abstract or general.
+- Removing a valid class destroys all its relations and hierarchy edges,
+  causing massive cascading damage to the ontology. Err on the side of keeping.
+
+### WHAT BELONGS (KEEP these — do NOT remove)
+- Clinical conditions, diseases, injuries, syndromes
+- Physiological parameters and measurements (e.g. heart rate, ICP, blood pressure)
+- Treatments, therapies, interventions, drugs, surgical procedures
+- Clinical assessments and scores (e.g. GCS, pupil reactivity, CT scan findings)
+- Laboratory values and tests (e.g. blood gases, biochemistry, haematology)
+- Medical devices and sensors that measure clinical parameters
+- Patient-related concepts (demographics, outcomes, patient)
+- Data categories that organise clinical observations (e.g. 'Monitoring Data',
+  'Laboratory Values', 'Admission Data', 'Treatment Data', 'Outcome Data')
+- Abstract superclasses that group clinical concepts:
+  'Condition', 'Outcome', 'Observation', 'Parameter', 'Therapy',
+  'Assessment', 'Intervention', 'Core Monitoring Parameter',
+  'Optional Monitoring Parameter', 'Baseline Therapy', 'Guidelines',
+  'Guidelines for Management', etc.
+  These are VALID ontological grouping classes — do NOT remove them.
+- Clinical guidelines and management protocols
+
+### WHAT TO REMOVE (only these categories, with high confidence)
+- Research project names and consortium names (e.g. 'BrainIT Project')
+- Governance/administrative concepts (e.g. 'Steering Group', 'Membership')
+- Data infrastructure: databases, software tools, data collection tools
+- Economic or social impact concepts (e.g. 'Economic Consequences',
+  'Social Consequences') — these are about societal impact, not clinical care
+- Institution names (universities, hospitals as organisations)
+- Industry/regulatory bodies (e.g. 'Medical Device Industry', 'Health Authorities')
+- Publishing metadata: journals, authors, DOIs
+
+### HIERARCHY REVIEW (be thorough here — hierarchy errors are important)
+Carefully check EVERY hierarchy edge for semantic correctness:
+- **Nonsensical edges** (ALWAYS remove): the subclass relationship is logically
+  impossible. Examples:
+  • 'Patient ⊑ Secondary Insult' — a patient is NOT a type of insult → REMOVE
+  • 'Monitoring Data ⊑ Patient' — data is NOT a type of patient → REMOVE
+  • 'Therapy ⊑ Laboratory Values' — therapy is NOT a lab value → REMOVE
+  Test: 'Is every X a kind of Y?' If the answer is obviously NO, remove it.
+- **Clear inversions** (CORRECT, do not remove): child and parent are swapped.
+  Examples:
+  • 'Brain Injury ⊑ Traumatic Brain Injury' → CORRECT to 'TBI ⊑ Brain Injury'
+  • 'Condition ⊑ Traumatic Brain Injury' → CORRECT to 'TBI ⊑ Condition'
+  Test: 'Is every X a kind of Y, or is it the other way around?'
+- Do NOT remove hierarchy edges just because the grouping seems unusual —
+  ontologies often have domain-specific groupings.
+
+### RELATION REVIEW
+Only flag relations where BOTH endpoints are clearly non-clinical:
+- If the domain OR range is a valid clinical concept, KEEP the relation.
+- Do NOT remove relations just because the label is imprecise.
+
+### CHAIN-OF-THOUGHT
+For each item you flag, reason step by step:
+1. What does this concept refer to in the source text?
+2. Is it clearly non-clinical (governance/infrastructure/economic/publishing)?
+3. Could it have ANY clinical interpretation? If yes → KEEP.
+4. Decision: REMOVE or CORRECT (only if highly confident)
+
+### OUTPUT FORMAT
+Return ONLY a JSON object (no markdown fences) with these keys:
+```
+{
+  "classes_to_remove": [
+    {"label": "...", "reason": "..."}
+  ],
+  "relations_to_remove": [
+    {"label": "...", "domain": "...", "range": "...", "reason": "..."}
+  ],
+  "hierarchy_to_remove": [
+    {"subClass": "...", "superClass": "...", "reason": "..."}
+  ],
+  "hierarchy_corrections": [
+    {"old_sub": "...", "old_super": "...", "new_sub": "...", "new_super": "...", "reason": "..."}
+  ]
+}
+```
+If everything is correct (or you are not confident enough to remove anything),
+return empty arrays for each key. It is perfectly fine to return all empty arrays.
+Do NOT wrap the JSON in markdown code fences.
+
+### SOURCE TEXT (first 6000 chars for context)
+Injury 54 (2023) 110911
+
+Decompressive craniectomy as a second/third-tier intervention in
+traumatic brain injury: A multicenter observational study
+Brecht Decraene a, *, Samuel P Klein a, Ian Piper b, Barbara Gregson c, Per Enblad d,
+Arminas Ragauskas e, Giuseppe Citerio f, Iain Chambers g, Jan-Oliver Neumann h,
+Juan Sahuquillo i, Karl Kiening h, Laura Moss b, Pelle Nilsson d, Rob Donald j, Tim Howells d,
+Milly Lo k, Bart Depreitere a
+a
+University Hospitals Leuven, Leuven, Belgium
+b
+Southern General Hospital, Glasgow, United Kingdom
+c
+Newcastle University, Newcastle, United Kingdom
+d
+Uppsala University, Uppsala, Sweden
+e
+Kaunas University of Technology, Kaunas, Lithuania
+f
+University of Milano-Bicocca, Milano, Italy
+g
+James Cook University Hospital, Middlesbrough, United Kingdom
+h
+Universitätsklinikum Heidelberg, Heidelberg, Germany
+i
+University Hospital Vall d ́ Hebron, Barcelona, Spain
+j
+Stats Research, Scotland, United Kingdom
+k
+University of Edinburgh, Edinburgh, United Kingdom
+
+A R T I C L E I N F O A B S T R A C T
+
+Keywords: Objectives: RESCUEicp studied decompressive craniectomy (DC) applied as third-tier option in severe traumatic
+Traumatic brain injury brain injury (TBI) patients in a randomized controlled setting and demonstrated a decrease in mortality with
+Decompressive craniectomy similar rates of favorable outcome in the Decompressive craniectomy (DC) group compared to the medical management group. In many
+Neurointensive care
+centers, Decompressive craniectomy (DC) is being used in combination with other second/third-tier therapies. The aim of the present study is to
+Intracranial pressure
+investigate outcomes from Decompressive craniectomy (DC) in a prospective non-RCT context.
+Cerebral autoregulation
+Introduction TBI management
+
+Traumatic brain injury (TBI) Methods: This is a prospective observational study of 2 patient cohorts: one from the University Hospitals Leuven
+(2008-2016) and one from the Brain-IT study, a European multicenter database (2003-2005). In thirty-seven
+patients with refractory elevated intracranial pressure who underwent Decompressive craniectomy (DC) as a second/third-tier intervention,
+patient, injury and management variables including physiological monitoring data and administration of thio­
+pental were analysed, as well as Extended Glasgow Outcome score (GOSE) at 6 months.
+Results: In the current cohorts, patients were older than in the surgical RESCUEicp cohort (mean 39.6 vs. 32.3; p
+< 0.001), had higher Glasgow Motor Score on admission (GMS < 3 in 24.3% vs. 53.0%; p = 0.003) and 37.8%
+received thiopental (vs. 9.4%; p < 0.001). Other variables were not significantly different. Glasgow Outcome Scale (GOSE) distribution
+was: death 24.3%; vegetative 2.7%; lower severe disability 10.8%; upper severe disability 13.5%; lower mod­
+erate disability 5.4%; upper moderate disability 2.7%, lower good recovery 35.1%; and upper good recovery
+5.4%. The outcome was unfavorable in 51.4% and favorable in 48.6%, as opposed to 72.6% and 27.4%
+respectively in RESCUEicp (p = 0.02).
+Conclusion: Outcomes in Decompressive craniectomy (DC) patients from two prospective cohorts reflecting everyday practice were better than
+in RESCUEicp surgical patients. Mortality was similar, but fewer patients remained vegetative or severely
+disabled and more patients had a good recovery. Although patients were older and injury severity was lower, a
+potential partial explanation may be in the pragmatic use of Decompressive craniectomy (DC) in combination with other second/third-tier
+therapies in real-life cohorts. The findings underscore that Decompressive craniectomy (DC) maintains an important role in managing se­
+vere Introduction TBI management
+
+Traumatic brain injury (TBI).
+
+B. Decraene et al. Injury 54 (2023) 110911
+
+Introduction Introduction TBI management
+
+Traumatic brain injury (TBI) management
+
+Traumatic brain injury (TBI) constitutes a major health and socio­ First-tier (30◦ head elevation, neuromuscular paralysis, analgesia,
+economic problem that requires prompt management and is associated continued/deepened sedation, normocapnia and normothermia) and
+with high mortality and morbidity rates. In Europe, the incidence of second-tier treatments (deepening of sedation, cerebrospinal fluid
+Introduction TBI management
+
+Traumatic brain injury (TBI)-related hospitalization is estimated at 2.1 million/year, of which drainage, moderate hypocapnia, administration of hyperosmolar mole­
+approximately 82,000 patients will die. Uncontrollable intracranial cules) were used at the discretion of the managing teams. When despite
+hypertension is a major cause of death in patients with severe traumatic first and second-tier interventions Mean intracranial pressure (ICP) remained unacceptably high or
+brain injury. Therefore, one of the cornerstones of brain-protective followed a malignant course, Decompressive craniectomy (DC) was chosen as a next step, with or
+strategies is to reduce and control intracranial pressure (ICP), thereby without first having applied third-tier medical therapy with barbiturates
+avoiding secondary ischemic damage from associated hypoperfusion (thiopental). In some patients that underwent Decompressive craniectomy (DC), third-tier therapies. were used in combination. As for Decompressive craniectomy (DC), both hemicraniectomy (unilateral
+Decompressive craniectomy (DC) is a surgical technique originally frontotemporoparietal craniectomy) and bifrontal craniectomy were
+described by Kocher in 1901. However, this technique was aban­ performed.
+doned in the following decades because of high complication rates. Since
+the 1980s, Decompressive craniectomy (DC) in severe Introduction TBI management
+
+Traumatic brain injury (TBI) has been the subject of a revival due to Data collection
+advancing technical and medical standards. From a purely theoret­
+ical perspective, Decompressive craniectomy (DC) could be considered both as a first-tier option in For each patient, the following d
+
+### CLASSES
+  - Decompressive craniectomy  [definition: A surgical procedure involving the removal of a portion of the skull to alleviate elevated intracranial pressure in patients with severe traumatic brain injury.]  [evidence: Decompressive craniectomy (DC) applied as third-tier option in severe traumatic Traumatic brain injury brain injury (TBI) patients]
+  - Traumatic Brain Injury  [definition: A major health condition characterized by brain damage resulting from external mechanical forces, requiring prompt management to reduce mortality and morbidity.]  [evidence: Traumatic brain injury (TBI) constitutes a major health and socio-economic problem that requires prompt management]
+  - Intracranial Pressure  [definition: A physiological parameter measuring pressure inside the cranium, which is continuously monitored to assess the risk of secondary brain injury in patients with traumatic brain injury.]  [evidence: the intracranial insults predominantly result from high intracranial pressure caused by mass lesions and ischaemic mechanisms resulting in brain swelling.]
+  - GOSe Outcome  [definition: A clinical assessment tool used to evaluate the functional outcome of patients following brain injury, measuring recovery at six months post-injury.]  [evidence: Eighteen patients (48.6%) sustained a favorable outcome at six months (GOSE 5-8).]
+  - Mean Arterial Pressure  [definition: A physiological parameter representing the average blood pressure in a person's arteries during one cardiac cycle, critical for assessing hemodynamic status.]  [evidence: both systolic and mean arterial pressure should be monitored and considered in the definition of hypotension]
+  - Cerebral Perfusion Pressure  [definition: The net pressure gradient driving blood flow to the brain, calculated as Mean Arterial Pressure minus Intracranial Pressure, with variability observed between patients and centres.]  [evidence: Cerebral Perfusion Pressure (CPP) variability exceeds the therapeutic actions intended to decrease raised Intracranial Pressure (ICP).]
+  - Pressure Reactivity Index  [definition: A physiological parameter that assesses the relationship between mean arterial blood pressure and intracranial pressure, indicating cerebral autoregulation.]  [evidence: Pressure Reactivity Index (PRx) is the moving correlation between mean arterial blood pressure (MAP) and Mean intracranial pressure (ICP)]
+  - Barbiturates  [definition: A barbiturate used as a sedative and anesthetic, administered in some patients undergoing decompressive craniectomy.]  [evidence: administration of thiopental were analysed]
+  - Mortality  [definition: The incidence of death within a specific patient population, often used as a key outcome measure in clinical studies.]  [evidence: Mortality (=Glasgow Outcome Scale (GOSE) 1) was 24.3% (9/37).]
+  - Hypoperfusion  [definition: A condition characterized by inadequate blood flow to the brain, which can lead to secondary ischemic damage in traumatic brain injury patients.]  [evidence: avoiding secondary ischemic damage from associated hypoperfusion]
+  - GCS Assessment  [definition: A clinical assessment tool used to measure a patient's level of consciousness, specifically mentioned in the context of TBI patient evaluations.]  [evidence: The Glasgow Coma Scale (GCS) scores, where data over a time window or a series of windows prior to the prediction.]
+  - Cerebrovascular Autoregulation  [definition: The brain's ability to maintain stable blood flow despite changes in perfusion pressure, which is assessed to understand tolerance to elevated ICP.]  [evidence: reflecting an indirect measure of more impaired cerebral autoregulation.]
+  - Intracranial Hypertension  [definition: A clinical condition characterized by elevated intracranial pressure, which is associated with worse clinical outcomes in traumatic brain injury patients.]  [evidence: episodes of increased intracranial pressure (ICP) and worse clinical outcomes.]
+  - Bifrontal Craniectomy  [definition: A type of decompressive craniectomy involving the removal of both frontal lobes of the skull.]  [evidence: performed as a bifrontal craniectomy.]
+  - Secondary Insult  [definition: An adverse physiological event that occurs after the primary brain injury, which can worsen patient outcomes, particularly in TBI.]  [evidence: Hypoxia and arterial hypotension were found in 10.0% and 6.1%, respectively.]
+  - Hypotension  [definition: A clinical condition characterized by abnormally low blood pressure, defined in this context as systolic arterial pressure ≤ 90 mmHg or mean arterial pressure ≤ 70 mmHg.]  [evidence: There is no universally accepted definition of arterial hypotension used during the clinical management of Abstract Traumatically brain injured (TBI) patients.]
+  - Extracranial Injury  [definition: Injuries occurring outside the skull that may accompany traumatic brain injuries.]  [evidence: 45.9% presented with an additional extracranial injury.]
+  - Pupil Abnormalities  [definition: Changes in pupil size or reactivity that can indicate neurological impairment in TBI patients.]  [evidence: Pupil abnormalities were seen in 34.4% of our patients.]
+  - Therapy Intensity Level (TIL)  [definition: A measure quantifying the intensity of treatment interventions directed at managing intracranial pressure.]  [evidence: Therapy Intensity Level (TIL basic) was recorded for each patient.]
+  - Condition  [definition: A condition characterized by inadequate blood flow to the brain, potentially leading to neurological deficits.]  [evidence: cerebral hypoperfusion index]
+  - Traumatic Intracranial Hypertension  [definition: A clinical condition characterized by elevated intracranial pressure due to traumatic brain injury, impacting patient outcomes.]  [evidence: surgical patients with traumatic intracranial hypertension]
+  - Extended Glasgow Outcome Score  [definition: A clinical assessment tool used to evaluate functional recovery and outcomes in patients after brain injury.]  [evidence: robust extended Glasgow Outcome Scores]
+  - Monitoring  [definition: The continuous observation and assessment of physiological parameters in patients to ensure optimal management and detect complications.]  [evidence: considering the monitoring]
+  - Patient Outcome  [definition: The clinical result or recovery status of a patient following treatment interventions.]  [evidence: the entire set of interventions...was able to produce favorable outcomes in half of the patients]
+  - Standard Medical Treatment  [definition: Conventional therapeutic approaches used to manage patients with traumatic brain injury, as opposed to surgical interventions.]  [evidence: patients in the standard medical treatment group]
+  - Second and Third-tier Therapies  [definition: Additional therapeutic interventions used in conjunction with primary treatments to manage severe traumatic brain injury.]  [evidence: with other second and third-tier therapies]
+  - Non-rct Study  [definition: A type of clinical study that does not utilize a randomized controlled trial design, often used to assess treatment outcomes in real-world settings.]  [evidence: the decision to perform a Decompressive craniectomy (DC) in then non-RCT group]
+  - Outcome  [definition: A measure of the patient's recovery or clinical result following treatment, indicated by the context of GOS scores.]  [evidence: indicated types of The BESTIntracranial pressure (ICP) insults that occur more frequently in patients with lower Outcome Score (GOS)]
+  - Intracranial Pressure-time Burden  [definition: A calculated measure representing the cumulative effect of elevated intracranial pressure over time, associated with worse clinical outcomes.]  [evidence: intracranial pressure-time burden associated with worse outcome]
+  - Pupil Assessment  [definition: A clinical evaluation of pupil reactivity, mentioned as 'admission pupil reactivity' in the text.]  [evidence: admission pupil reactivity]
+  - Glasgow Outcome Score (GOS)  [definition: A scale used to assess the functional outcome of patients after brain injury, mentioned as 'Glasgow Outcome Score (GOS) at 6 months' in the text.]  [evidence: Glasgow Outcome Score (GOS) at 6 months]
+  - Derived Parameter  [definition: A calculated index reflecting the correlation of previous values of ICP and MAP, used to assess autoregulation status.]  [evidence: The low-frequency autoregulation index (LAx) is computed]
+  - Insult  [definition: An episode characterized by a specific intensity and duration of ICP, impacting patient outcomes.]  [evidence: Such an episode is called an The BESTIntracranial pressure (ICP) insult.]
+  - Patient  [definition: An individual receiving neurointensive care for traumatic brain injury, referenced in the context of monitoring and outcomes.]  [evidence: each patient]
+  - Unfavourable Neurological Outcome  [definition: A clinical outcome defined as death or severe disability, assessed using the Glasgow Outcome Scale (GOS) categories.]  [evidence: unfavourable neurological outcome [defined as death, worse outcome is 223, 37, 12 and 8 min, respectively.]
+  - Monitoring Time  [definition: The duration during which physiological parameters are recorded, particularly in relation to thresholds indicating risk for adverse outcomes.]  [evidence: percentage of monitoring time in the red zone]
+  - Intensity Threshold  [definition: A defined level of physiological measurement, such as intracranial pressure, above which there is an increased risk of adverse outcomes.]  [evidence: intensity thresholds of 15 and 20 mmHg]
+  - Outcome Score (GOS)  [definition: A clinical outcome measure used to assess the functional recovery of patients following traumatic brain injury.]  [evidence: the association with worse Outcome Score (GOS) occurs within 12 min.]
+  - Secondary Brain Injury  [definition: A clinical condition that occurs as a consequence of initial brain injury, often exacerbated by factors such as elevated intracranial pressure.]  [evidence: the risk for secondary brain injury and the need for aggressive The BESTIntracranial pressure (ICP)-lowering treatments.]
+  - Monitoring Data  [definition: Data collected through continuous observation of physiological parameters to assess patient status in critical care settings.]  [evidence: the use of minute-by-minute monitoring data allows for a more precise definition of the concept 'dose'.]
+  - Severe Traumatic Brain Injury (TBI)  [definition: A clinical condition characterized by significant brain injury resulting from trauma, often requiring intensive monitoring and management.]  [evidence: severe traumatic brain injury (TBI) patients]
+  - Guideline Change  [definition: A modification in clinical recommendations regarding the management of cerebral perfusion pressure in traumatic brain injury patients, reflecting new evidence.]  [evidence: The recommendation for targeting cerebral perfusion pressure (CPP) in the Brain Trauma Foundation (BTF) guidelines on the management of severe traumatic brain injury (TBI) has changed.]
+  - Inter-individual Variability  [definition: The differences in clinical measurements observed among individual patients, particularly in relation to cerebral perfusion pressure.]  [evidence: Cerebral Perfusion Pressure (CPP) data are characterised by a high inter-individual variability.]
+  - Acute Respiratory Distress Syndrome  [definition: A severe lung condition that can occur in patients with high cerebral perfusion pressure, particularly associated with vasopressor use.]  [evidence: higher incidence of acute respiratory distress syndrome (ARDS) reportedly associated with vasopressors in the Cerebral Perfusion Pressure (CPP) > 70 mmHg group.]
+  - Vasopressors  [definition: Medications used to elevate blood pressure, which can influence cerebral perfusion pressure and are associated with acute respiratory distress syndrome.]  [evidence: associated with vasopressors in the Cerebral Perfusion Pressure (CPP) > 70 mmHg group.]
+  - Guideline  [definition: Clinical recommendations for managing cerebral perfusion pressure in traumatic brain injury patients, as issued by the Brain Trauma Foundation.]  [evidence: the change in Cerebral Perfusion Pressure (CPP) thresholds in the Brain Trauma Foundation (BTF) guidelines in 2007 did affect.]
+  - Cerebral Perfusion Pressure (CPP) Target  [definition: The recommended pressure range for maintaining adequate cerebral blood flow, which has been adjusted in clinical guidelines.]  [evidence: Cerebral Perfusion Pressure (CPP) range being narrowed down to 60-70 mmHg.]
+  - Mass Lesions  [definition: Abnormal growths or accumulations in the brain that can contribute to increased intracranial pressure.]  [evidence: high intracranial pressure caused by mass lesions.]
+  - Swelling  [definition: An increase in size or volume in brain tissue, often resulting from injury and contributing to intracranial pressure.]  [evidence: ischaemic mechanisms resulting in brain swelling.]
+  - Nursing Procedure  [definition: Clinical activities performed by nursing staff as part of patient care in critical settings.]  [evidence: nursing procedures]
+  - Demographic Data  [definition: Information related to the characteristics of patients, such as age and gender, used in the analysis of TBI outcomes.]  [evidence: demographic data (e.g. age, gender, time of injury, initial admission data)]
+  - Episodic Data  [definition: Data collected regarding specific treatments and interventions given to patients during their care.]  [evidence: episodic data (e.g. treatments given, lab results from routine blood samples and nursing procedures)]
+  - Physiological Data  [definition: Minute-by-minute measurements of vital signs and other physiological parameters collected from bedside monitors.]  [evidence: minute-by-minute physiological data from bedside monitors.]
+  - Heart Rate  [definition: The number of heartbeats per minute, which can be indicative of cardiovascular status and is monitored in critical care.]  [evidence: the trend values of heart rate incorporated in our model is a crude measure of heart-rate variability.]
+  - Clinical Data  [definition: High-resolution physiological and clinical information collected from patients for research and analysis in the context of TBI.]  [evidence: collect high resolution physiological and clinical data from Traumatically brain injured (TBI) patients]
+  - Clinical Monitoring Data  [definition: Data collected continuously from patient monitors to assess physiological parameters and inform clinical decisions.]  [evidence: data acquisition and prediction software could be installed in the clinical environment and produce predictions on live clinical data being collected from the patient monitors]
+  - Head Injury  [definition: A clinical condition resulting from trauma to the head, which can lead to various complications including hypotension.]  [evidence: cumulative duration of arterial hypotensive events is a prognostic factor for their clinical outcome following a head injury]
+  - Sepsis  [definition: A clinical condition characterized by a systemic inflammatory response to infection, impacting patient management and outcomes.]  [evidence: for with the medical management of sepsis, it has been shown that duration of hypotension before initiation]
+  - Arterial Hypotension  [definition: A clinical event characterized by a significant drop in blood pressure, often requiring monitoring and intervention.]  [evidence: A study of the results of a competition sponsored by the PhysioNet group that tested the ability of various models to predict hypotension in intensive care patients.]
+  - Heart-rate Variability  [definition: The physiological phenomenon of variation in the time interval between heartbeats, which can be used as a predictor of hypotension.]  [evidence: Several studies have found that heart-rate variability can be used as a predictor of hypotension.]
+  - Intensive Care Unit  [definition: A specialized department in a hospital providing intensive treatment and monitoring for critically ill patients.]  [evidence: Intensive Care Unit (ICU)]
+  - Clinical Outcome  [definition: The measurable result of healthcare interventions, such as the reduction in the duration of patient stay in the ICU.]  [evidence: Another potential clinical outcome of this work]
+  - Artefact Detection  [definition: The process of identifying and removing erroneous data caused by external factors in clinical measurements.]  [evidence: research towards implementing artefact detection and removal]
+  - Clinical Setting  [definition: The environment in which healthcare is delivered, particularly in a live patient care context.]  [evidence: used effectively in a live clinical setting]
+  - Clinical Model  [definition: A predictive framework designed to anticipate clinical events based on data.]  [evidence: demonstrate the robustness of running such a model]
+  - Head Trauma  [definition: A clinical condition resulting from injury to the head, often leading to complications such as hypotension and ICP instability.]  [evidence: Impact of Intracranial Pressure (ICP) instability and hypotension on outcome in patients with severe head trauma.]
+  - Septic Shock  [definition: A severe condition resulting from infection leading to dangerously low blood pressure and organ dysfunction.]  [evidence: Duration of hypotension before initiation of effective antimicrobial therapy is the critical determinant of survival in human septic shock.]
+  - Core Monitoring Parameter  [evidence: [inferred] Intermediate category introduced by Chain-of-Layer taxonomy construction.]
+  - Therapy  [evidence: [inferred] Intermediate category introduced by Chain-of-Layer taxonomy construction.]
+  - Mean intracranial pressure  [evidence: [inferred] Added via orphan rescue: endpoint for relation 'has monitoring data'.]
+
+### RELATIONS
+  - has outcome(Traumatic Brain Injury → Outcome)  [definition: Links traumatic brain injury patients to their functional recovery outcomes measured by the Glasgow Outcome Scale.]  [evidence: outcome was assessed using the Extended Glasgow Outcome score (GOSE) at 6 months.]
+  - has surgical procedure(Traumatic Brain Injury → Decompressive craniectomy)  [definition: Indicates that patients with traumatic brain injury may undergo decompressive craniectomy as a treatment option.]  [evidence: patients with refractory elevated intracranial pressure who underwent Decompressive craniectomy (DC) as a second/third-tier intervention.]
+  - has mortality(Traumatic Brain Injury → Mortality)  [definition: Links traumatic brain injury to the measure of patient death as an outcome.]  [evidence: Mortality was similar, but fewer patients remained vegetative or severely disabled.]
+  - receives therapy(Traumatic Brain Injury → Therapy)  [definition: Indicates that patients with traumatic brain injury may receive barbiturates for management of their condition.]  [evidence: third-tier medical therapy with barbiturates (thiopental).]
+  - has intracranial pressure(Traumatic Brain Injury → Intracranial Pressure)  [definition: Links traumatic brain injury to the measurement of intracranial pressure, which is critical for management.]  [evidence: Uncontrollable intracranial hypertension is a major cause of death in patients with severe traumatic brain injury.]
+  - is treated with(Intracranial Hypertension → Barbiturates)  [definition: Indicates that barbiturates may be used in the management of intracranial hypertension.]  [evidence: 37.8% of patients (14 in absolute numbers) were treated with barbiturates.]
+  - has monitoring data(Intracranial Pressure → Traumatic Brain Injury)  [definition: Links ICP monitoring to the management and assessment of TBI patients.]  [evidence: Mean intracranial pressure (ICP).]
+  - is associated with(Pupil Abnormalities → Traumatic Brain Injury)  [definition: Indicates that pupil abnormalities can occur in patients with TBI.]  [evidence: Pupil abnormalities were seen in 34.4% of our patients.]
+  - has measurement(Decompressive craniectomy → Intracranial Pressure)  [definition: Links the surgical procedure of decompressive craniectomy to the measurement of intracranial pressure before and after the intervention.]  [evidence: Mean intracranial pressure (ICP) criteria before proceeding with decompression]
+  - has measurement(Decompressive craniectomy → Cerebral Perfusion Pressure)  [definition: Links the surgical procedure of decompressive craniectomy to the measurement of cerebral perfusion pressure before and after the intervention.]  [evidence: Cerebral Perfusion Pressure (CPP) measurement duration]
+  - has outcome(Decompressive craniectomy → Outcome)  [definition: Links the surgical procedure of decompressive craniectomy to the assessment of mortality rates in patients.]  [evidence: Decompressive craniectomy (DC) resulted in lower mortality rates]
+  - has measurement(Traumatic Brain Injury → Pressure Reactivity Index)  [definition: Links traumatic brain injury patients to the measurement of pressure reactivity index as part of their clinical assessment.]  [evidence: The two Pressure Reactivity Index (PRx) indexes were only available for the UHL patients]
+  - has outcome(Patient Outcome → Extended Glasgow Outcome Score)  [definition: Links the assessment of a patient's recovery to a standardized outcome measure.]  [evidence: outcome was only evaluated in terms of robust extended Glasgow Outcome Scores]
+  - is associated with(Intracranial Pressure → Intracranial Hypertension)  [definition: Indicates that episodes of elevated intracranial pressure are linked to the occurrence of intracranial hypertension.]  [evidence: episodes of increased intracranial pressure (ICP) and worse clinical outcomes.]
+  - receives therapy(Intracranial Pressure → Cerebral Perfusion Pressure)  [definition: Indicates that changes in intracranial pressure can influence cerebral perfusion pressure.]  [evidence: the impact of cerebrovascular autoregulation and Cerebral Perfusion Pressure (CPP) on the capacity to tolerate these insults.]
+  - is a risk factor for(Intracranial Pressure → Intracranial Hypertension)  [definition: Indicates that elevated levels of intracranial pressure are a risk factor for developing intracranial hypertension.]  [evidence: An increased The BESTIntracranial pressure (ICP) is an independent risk factor for mortality.]
+  - is associated with(Intracranial Pressure-time Burden → GOSe Outcome)  [definition: Indicates that the cumulative burden of elevated intracranial pressure over time is linked to outcomes measured by the Glasgow Outcome Scale.]  [evidence: the intracranial pressure-time burden associated with worse outcome is visualised in a colour-coded plot.]
+  - has outcome(Patient → Outcome)  [definition: Links a patient to their assessed functional outcome following brain injury.]  [evidence: The association between The BESTIntracranial pressure (ICP) insults and outcome was visualized for three different thresholds of Cerebral Perfusion Pressure (CPP)]
+  - has monitoring data(Patient → Intracranial Pressure)  [definition: Links a patient to the set of continuously recorded intracranial pressure measurements during their ICU stay.]  [evidence: minute-by-minute The BESTIntracranial pressure (ICP) and mean arterial blood pressure (MAP) monitoring data]
+  - has monitoring data(Patient → Monitoring Data)  [definition: Links a patient to the set of continuously recorded mean arterial pressure measurements during their ICU stay.]  [evidence: minute-by-minute The BESTIntracranial pressure (ICP) and mean arterial blood pressure (MAP) monitoring data]
+  - triggers intervention(Intracranial Pressure → Insult)  [definition: Indicates that episodes of elevated intracranial pressure can lead to neurological insults.]  [evidence: an insult was classified as 'active' if its average LAx was negative or zero]
+  - triggers intervention(Mean Arterial Pressure → Insult)  [definition: Indicates that episodes of mean arterial pressure can lead to neurological insults.]  [evidence: an insult was classified as 'active' if its average LAx was negative or zero]
+  - has monitoring data(Patient → Monitoring Time)  [definition: Links a patient to the duration of time their physiological parameters are monitored, particularly in critical conditions.]  [evidence: percentage of monitoring time in the red zone]
+  - predicts outcome(Monitoring Time → Outcome)  [definition: Indicates that the duration of monitoring time in critical ranges can forecast the patient's clinical outcome.]  [evidence: the percentage of monitoring time in the red zone was also a significant predictor of un-favourable outcome]
+  - targets condition(Cerebral Perfusion Pressure → Intracranial Pressure)  [definition: Indicates that maintaining adequate CPP is crucial for preventing ICP insults that lead to adverse outcomes.]  [evidence: when Cerebral Perfusion Pressure (CPP) was below 50 mmHg, almost all The BESTIntracranial pressure (ICP) insults were associated with worse outcome]
+  - is associated with(Intracranial Pressure → Unfavourable Neurological Outcome)  [definition: Indicates that elevated ICP levels are linked to poorer neurological outcomes in patients.]  [evidence: Episodes above 20 mmHg when cerebrovascular autoregulation is active had a duration of 233 min before they were associated with worse outcome]
+  - has monitoring data(Traumatic Brain Injury → Monitoring Data)  [definition: Links TBI patients to the set of continuously recorded physiological measurements captured during their ICU stay.]  [evidence: the minute by minute monitoring data allows for a more precise definition of the concept 'dose'.]
+  - targets condition(Intracranial Pressure → Condition)  [definition: Indicates that elevated ICP levels can lead to secondary brain injury.]  [evidence: the intensity of secondary brain injury insults versus the possible benefit or harm of the medical interventions employed to manage them.]
+  - has monitoring data(Severe Traumatic Brain Injury (TBI) → Cerebral Perfusion Pressure)  [definition: Links TBI patients to the set of monitored cerebral perfusion pressure values collected during their treatment.]  [evidence: Cerebral Perfusion Pressure (CPP) differs between severe traumatic brain injury (TBI) patients]
+  - reflects guideline change(Cerebral Perfusion Pressure → Guideline Change)  [definition: Indicates that changes in CPP measurements may be influenced by updates in clinical guidelines.]  [evidence: The change to recommending lower Cerebral Perfusion Pressure (CPP) was mainly inspired by the non-beneficial effect]
+  - targets condition(Vasopressors → Cerebral Perfusion Pressure)  [definition: Indicates that vasopressors are administered to manage or maintain cerebral perfusion pressure.]  [evidence: vasopressors in the Cerebral Perfusion Pressure (CPP) > 70 mmHg group]
+  - monitoring indicates condition(Cerebral Perfusion Pressure → Intracranial Pressure)  [definition: Indicates that monitoring of cerebral perfusion pressure can reveal or detect variations in intracranial pressure.]  [evidence: Cerebral Perfusion Pressure (CPP) variability exceeds the therapeutic actions intended to decrease raised Intracranial Pressure (ICP)]
+  - monitoring indicates condition(Cerebral Perfusion Pressure → Mean Arterial Pressure)  [definition: Indicates that monitoring of cerebral perfusion pressure can reveal or detect variations in mean arterial pressure.]  [evidence: influenced by Intracranial Pressure (ICP) variability, Mean Arterial Pressure (MAP) variability]
+  - guideline adherence affects outcome(Guideline → Cerebral Perfusion Pressure)  [definition: Indicates that adherence to guidelines influences the management and outcomes related to cerebral perfusion pressure.]  [evidence: the change in Cerebral Perfusion Pressure (CPP) thresholds in the Brain Trauma Foundation (BTF) guidelines]
+  - triggers intervention(Condition → Nursing Procedure)  [definition: Indicates that the occurrence of hypotension necessitates specific nursing interventions to manage the patient's condition.]  [evidence: Detection of a hypotensive event triggers specific therapeutic interventions including fluid resuscitation.]
+  - is related to(Hypotension → Outcome)  [definition: Links the condition of hypotension to the resulting clinical outcomes in patients.]  [evidence: Arterial hypotension... is related to poor outcome in patients.]
+  - has demographic data(Patient → Demographic Data)  [definition: Links a patient to their demographic characteristics that may influence treatment and outcomes.]  [evidence: demographic data (e.g. age, gender, time of injury, initial admission data)]
+  - has episodic data(Patient → Episodic Data)  [definition: Links a patient to specific events or treatments recorded over time that can affect their clinical status.]  [evidence: episodic data (e.g. treatments given, lab results from routine blood samples and nursing procedures)]
+  - has physiological data(Patient → Physiological Data)  [definition: Links a patient to minute-by-minute physiological measurements that are critical for monitoring their condition.]  [evidence: minute-by-minute physiological data from bedside monitors.]
+  - has demographic data(Traumatic Brain Injury → Demographic Data)  [definition: Links TBI patients to their demographic characteristics, such as age and gender.]  [evidence: In terms of patient demographics, the median age was 40 years]
+  - has clinical data(Traumatic Brain Injury → Clinical Data)  [definition: Associates TBI patients with the physiological and clinical data collected during their treatment.]  [evidence: high resolution physiological and clinical data from Traumatically brain injured (TBI) patients]
+  - has outcome(Traumatic Brain Injury → Hypotension)  [definition: Links the condition of hypotension to the outcomes observed in TBI patients.]  [evidence: hypotension events cumulatively can influence patient outcome]
+  - is assessed by(Traumatic Brain Injury → GCS Assessment)  [definition: Indicates that the level of consciousness in TBI patients is evaluated using the GCS.]  [evidence: Glasgow Coma Scale (GCS) scores, where data over a time window]
+  - is defined by(Hypotension → Mean Arterial Pressure)  [definition: Specifies that hypotension is also characterized by low mean arterial pressure measurements.]  [evidence: mean arterial pressure (BPm) ≤ 70 mmHg sustained for at least 5 min]
+  - has outcome(Hypotension → Head Injury)  [definition: Links hypotension to its impact on clinical outcomes following head injury.]  [evidence: cumulative duration of arterial hypotensive events is a prognostic factor for their clinical outcome following a head injury]
+  - has medical management(Hypotension → Sepsis)  [definition: Indicates that the management of hypotension is relevant in the context of treating sepsis.]  [evidence: the importance of reducing the burden of hypotension is not restricted to the medical management of sepsis]
+  - has significant predictor(Arterial Hypotension → Mean Arterial Pressure)  [definition: Links hypotensive events to mean arterial pressure as a significant predictor of clinical outcomes.]  [evidence: mean arterial pressure...were significant predictors of outcome]
+  - is managed by(Sepsis → Hypotension)  [definition: Indicates that the management of sepsis involves addressing hypotension.]  [evidence: the medical management of sepsis, it has been shown that duration of hypotension]
+  - is assessed by(Hypotension → Mean Arterial Pressure)  [definition: Links hypotension assessment to systolic blood pressure as a critical measurement.]  [evidence: mean arterial pressure should be monitored]
+  - affects outcome(Hypotension → Clinical Outcome)  [definition: Indicates that the presence of hypotension has an impact on the clinical outcomes of patients.]  [evidence: increase in in-hospital mortality of 7.6%]
+  - is managed by(Sepsis → Therapy)  [definition: Indicates that sepsis is treated through specific medical interventions.]  [evidence: medical management of sepsis]
+  - measures(Mean Arterial Pressure → Hypotension)  [definition: Indicates that blood pressure measurements are used to assess the presence of hypotension.]  [evidence: Blood Pressure (BP) systolic, diastolic and mean data parameters]
+  - affects outcome(Intracranial Pressure → Outcome)  [definition: Indicates that instability in ICP has a significant impact on the clinical outcome of patients.]  [evidence: Impact of Intracranial Pressure (ICP) instability and hypotension on outcome in patients with severe head trauma.]
+  - affects outcome(Hypotension → Outcome)  [definition: Indicates that hypotension significantly impacts the clinical outcome of patients.]  [evidence: Impact of Intracranial Pressure (ICP) instability and hypotension on outcome in patients with severe head trauma.]
+  - associated with condition(Septic Shock → Condition)  [definition: Indicates that hypotension is a critical condition associated with septic shock.]  [evidence: Duration of hypotension before initiation of effective antimicrobial therapy is the critical determinant of survival in human septic shock.]
+  - has surgical procedure(Traumatic Brain Injury → Bifrontal Craniectomy)  [definition: Indicates that a patient with traumatic brain injury underwent a specific surgical procedure.]  [evidence: bifrontal craniectomy were performed.]
+  - has outcome(Decompressive craniectomy → Outcome Score (GOS))  [definition: Indicates that the outcome of a patient who underwent decompressive craniectomy is assessed using a specific scoring system.]  [evidence: the outcome was captured at six months using the extended Glasgow Outcome Scale (GOSE).]
+  - has therapy intensity level(Decompressive craniectomy → Therapy Intensity Level (TIL))  [definition: Indicates that the intensity of therapy applied during or after decompressive craniectomy is assessed using a specific scale.]  [evidence: The Therapy Intensity Level scale (TIL basic version) was used to assess the intensity of Mean intracranial pressure (ICP)-lowering strategies.]
+  - has outcome(Decompressive craniectomy → Clinical Outcome)  [definition: Decompressive craniectomy is associated with specific clinical outcomes in patients.]  [evidence: The outcome was unfavorable in 51.4% and favorable in 48.6%]
+  - is associated with(Intracranial Pressure → Condition)  [definition: Intracranial pressure is a critical condition that can affect patient outcomes.]  [evidence: uncontrollable intracranial hypertension is a major cause of death in patients with severe traumatic brain injury]
+  - has measurement(Decompressive craniectomy → Mean Arterial Pressure)  [definition: Decompressive craniectomy is associated with measurements of mean arterial pressure.]  [evidence: Pressure Reactivity Index (PRx) is the moving correlation between mean arterial blood pressure (MAP) and Mean intracranial pressure (ICP)]
+  - is influenced by(Hypoperfusion → Condition)  [definition: Hypoperfusion is a condition that can influence patient outcomes.]  [evidence: avoiding secondary ischemic damage from associated hypoperfusion]
+  - is assessed by(Decompressive craniectomy → GCS Assessment)  [definition: The effectiveness of decompressive craniectomy is assessed using the Glasgow Coma Scale.]  [evidence: earliest post-resuscitation Glasgow Coma Scale (GCS)]
+  - has outcome(Decompressive Craniectomy → Extended Glasgow Outcome Score)  [definition: Decompressive craniectomy is associated with the Extended Glasgow Outcome Score as a measure of patient outcomes.]  [evidence: Extended Glasgow Outcome score (GOSE) at 6 months.]
+  - is a type of(Decompressive Craniectomy → Therapy)  [definition: Decompressive craniectomy is a type of therapy used in the management of traumatic brain injury.]  [evidence: Decompressive craniectomy (DC) is being used in combination with other second/third-tier therapies.]
+  - has monitoring data(Decompressive Craniectomy → Mean intracranial pressure)  [definition: Decompressive craniectomy is associated with monitoring data related to mean intracranial pressure.]  [evidence: Mean intracranial pressure (ICP) was calculated six hours before and seven days after Decompressive craniectomy (DC) for each patient.]
+  - is associated with(Decompressive Craniectomy → Intracranial Hypertension)  [definition: Decompressive craniectomy is associated with the condition of intracranial hypertension.]  [evidence: uncontrollable intracranial hypertension is a major cause of death in patients with severe traumatic brain injury.]
+  - is associated with(Decompressive Craniectomy → Barbiturates)  [definition: Decompressive craniectomy is associated with the administration of barbiturates as part of treatment.]  [evidence: 37.8% of patients (14 in absolute numbers) were treated with barbiturates in combination with Decompressive craniectomy (DC).]
+  - has outcome(Traumatic brain injury → Mortality)  [definition: Traumatic brain injury is associated with mortality outcomes.]  [evidence: the incidence of traumatic brain injury (TBI) related hospitalization is estimated at 2.1 million/year, of which approximately 82,000 patients will die.]
+  - is a type of(Intensive Care Unit → Clinical Setting)  [definition: The Intensive Care Unit is a specific type of clinical setting for managing critically ill patients.]  [evidence: The Brain-IT database ran in 22 Intensive Care Unit (ICU)'s in 11 countries.]
+  - is associated with(Head Trauma → Traumatic brain injury)  [definition: Head trauma is associated with traumatic brain injury.]  [evidence: Traumatic brain injury (TBI) constitutes a major health and socio-economic problem.]
+  - is a type of(Acute Respiratory Distress Syndrome → Condition)  [definition: Acute Respiratory Distress Syndrome is a type of medical condition.]  [evidence: Acute Respiratory Distress Syndrome is a major health issue.]
+
+### HIERARCHY (subclass ⊑ superclass)
+  - Derived Parameter ⊑ Monitoring Data  [evidence: [inferred] Derived Parameter is a subclass of Monitoring Data (deterministic hierarchy checklist).]
+  - Pressure Reactivity Index (PRx) ⊑ Derived Parameter  [evidence: [inferred] Pressure Reactivity Index (PRx) is a subclass of Derived Parameter (deterministic hierarchy checklist).]
+  - Secondary Insult ⊑ Condition  [evidence: [inferred] Secondary Insult is a subclass of Condition (deterministic hierarchy checklist).]
+  - Bifrontal Craniectomy ⊑ Decompressive Craniectomy  [evidence: [inferred] Bifrontal Craniectomy is a subclass of Decompressive Craniectomy (deterministic hierarchy checklist).]
+  - Cerebrovascular Autoregulation ⊑ Condition  [evidence: [inferred] Cerebrovascular Autoregulation is a subclass of Condition (deterministic hierarchy checklist).]
+  - Core Monitoring Parameter ⊑ Monitoring Data  [evidence: [inferred] Chain-of-Layer: Core Monitoring Parameter is organized under Monitoring Data]
+  - Heart Rate ⊑ Core Monitoring Parameter  [evidence: [inferred] Chain-of-Layer: Heart Rate is organized under Core Monitoring Parameter]
+  - Mean Arterial Pressure (MAP) ⊑ Core Monitoring Parameter  [evidence: [inferred] Chain-of-Layer: Mean Arterial Pressure (MAP) is organized under Core Monitoring Parameter]
+  - Cerebral Perfusion Pressure (CPP) Target ⊑ Core Monitoring Parameter  [evidence: [inferred] Chain-of-Layer: Cerebral Perfusion Pressure (CPP) Target is organized under Core Monitoring Parameter]
+  - Pressure Reactivity Index (PRx) ⊑ Core Monitoring Parameter  [evidence: [inferred] Chain-of-Layer: Pressure Reactivity Index (PRx) is organized under Core Monitoring Parameter]
+  - Intracranial Pressure-time Burden ⊑ Derived Parameter  [evidence: [inferred] Chain-of-Layer: Intracranial Pressure-time Burden is organized under Derived Parameter]
+  - Clinical Monitoring Data ⊑ Monitoring Data  [evidence: [inferred] Chain-of-Layer: Clinical Monitoring Data is organized under Monitoring Data]
+  - Second and Third-tier Therapies ⊑ Therapy  [evidence: [inferred] Chain-of-Layer: Second and Third-tier Therapies is organized under Therapy]
+  - Decompressive Craniectomy ⊑ Second and Third-tier Therapies  [evidence: [inferred] Chain-of-Layer: Decompressive Craniectomy is organized under Second and Third-tier Therapies]
+  - Barbiturates ⊑ Second and Third-tier Therapies  [evidence: [inferred] Chain-of-Layer: Barbiturates is organized under Second and Third-tier Therapies]
+  - Non-rct Study ⊑ Standard Medical Treatment  [evidence: non-RCT studies reported more favorable clinical outcomes after Decompressive craniectomy (DC)]
+  - Head Injury ⊑ Traumatic Brain Injury  [evidence: the burden of hypotension is not restricted to the Traumatically brain injured (TBI) population]
+  - Hypoperfusion ⊑ Swelling  [evidence: avoiding secondary ischemic damage from associated hypoperfusion.]

@@ -1,0 +1,395 @@
+Suggested concepts (pre-identified by biomedical NER in this text): hypotension, head injury, TBI, sepsis.
+These are entity mentions detected in this chunk. Use them as additional evidence that a concept is present, but only extract labels from the allowed class list above.
+
+Candidate domain terms (contextual hints only — use only if explicitly supported by the text):
+blood pressure; heart rate; hypotension; monitoring; outcome; Clinical Monitoring; 0.2 0.5 DT; 0.5 0.2 DT; AUC; AUC 0.3; NoFPC; ROC
+
+SYSTEM ROLE
+
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+CORE CONSTRAINTS
+
+Source fidelity
+Extract information stated or clearly implied in the current text.
+You may use standard medical knowledge to recognise parent-child relationships
+(e.g. TBI is a type of Brain Injury) when the text discusses both concepts.
+Do not invent concepts that are not mentioned in the text.
+
+Evidence anchor
+Every extracted class, relation, and hierarchy edge must include an evidence field.
+Evidence must be an EXACT VERBATIM phrase or sentence fragment COPIED from the text — do NOT paraphrase, summarize, truncate, or rephrase.
+Copy the sentence or clause exactly as it appears, preserving original wording, word order, and punctuation.
+If you cannot find an exact quote in the text, OMIT the item entirely.
+
+Extraction scope
+Extract ALL clinical and biomedical content: conditions, diseases, injuries, syndromes, secondary insults, physiological parameters, monitoring variables, treatments/therapies/interventions/drugs, outcomes, assessments, scores, laboratory values, nursing interventions, surgical procedures, medical devices, sensors, clinical guidelines, management protocols, and data categories (Monitoring Data, Demographic Data, Admission Data, Treatment Data, Outcome Data, Core Monitoring Parameter, Optional Monitoring Parameter, Baseline Therapy, etc.).
+Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+If a sentence or paragraph is mainly about these excluded topics, ignore it unless it contains a clearly named clinical concept.
+
+Relation label rule
+CRITICAL: Do NOT use 'includes', 'consists of', 'comprises', 'contains', 'encompasses', 'is a type of', 'is a kind of', 'categorized as', 'classified as', 'belongs to', or 'part of' as relation labels. If X includes/contains Y, model it as HIERARCHY: Y subClassOf X. If A is a type of B, model it as HIERARCHY: A subClassOf B.
+
+Priority rule
+Classes are the priority.
+Extract relations when the text clearly supports the connection and both endpoints are extracted classes.
+Extract hierarchy only when there is an explicit lexical cue.
+
+Confidence rule
+If a clinical concept is clearly named in the text, include it even if mentioned briefly.
+Omit only genuinely non-clinical items.
+
+Hierarchy rule
+Extract hierarchy edges generously. Look for:
+- Explicit cues: is a, type of, kind of, such as, include:, includes:, consists of, comprises
+- Implicit grouping: items listed under a heading or category (e.g. 'core parameters: HR, ICP, MAP')
+- Medical knowledge: when the text discusses both concepts and one is clearly a subtype
+  (e.g. TBI is a type of Brain Injury, Hypotension is a Secondary Insult)
+
+Label mapping rule
+If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+For other abbreviations, expand to their full clinical name as used in the text.
+
+Structural completeness rule
+When the text mentions specific clinical items, also extract their general category if the text supports it.
+For example, if the text discusses ventilation, sedation, fluids as therapies, also extract the general class Therapy or Baseline Therapy if the text uses that grouping.
+Use the text’s own categories and groupings — do not impose an external hierarchy.
+
+Anti-anchoring rule
+Use the retrieved example below as format and behaviour guidance only.
+Do not copy labels, relations, or hierarchy from the example unless the current text explicitly supports them.
+Your text may contain concept types NOT represented in the example — extract them all.
+
+REASONING STEP
+Before producing JSON, mentally scan the text for:
+(1) every named clinical concept,
+(2) explicit relations between them,
+(3) hierarchy cues (such as, is a, type of, include:).
+Then output only items with verbatim evidence.
+
+OUTPUT FORMAT (JSON ONLY)
+
+Return only valid JSON.
+Do not include markdown code fences, explanations, notes, or commentary.
+
+Structure:
+{
+  "classes": [
+    {"label": "string", "definition": "one-sentence scope note describing what this class represents in the domain", "evidence": "string"}
+  ],
+  "relations": [
+    {"label": "string", "domain": "string", "range": "string", "definition": "one-sentence description of what this relation means between domain and range", "evidence": "string"}
+  ],
+  "hierarchy": [
+    {"subClass": "string", "superClass": "string", "evidence": "string"}
+  ]
+}
+
+Definition rule
+Every class and relation MUST include a `definition` field: a concise one-sentence scope note.
+The definition should clarify what the class represents or what the relation means in the clinical domain.
+Ground definitions in the text where possible, but you may use standard medical knowledge to write a clear scope note.
+Example class definition: "A physiological parameter measuring the pressure inside the cranium, used to monitor patients with traumatic brain injury."
+Example relation definition: "Links a patient to the set of continuously recorded physiological measurements captured during their ICU stay."
+
+OUTPUT RULES
+
+Use short, clean noun-phrase labels for classes.
+Do not output duplicate items.
+Every relation must have a valid domain, range, and exact evidence.
+Domain and range must be class labels supported by the text.
+If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+Do not create hierarchy from thresholds, values, long clause fragments, or procedural text.
+If no valid relations or hierarchy are supported, return empty arrays for them.
+Extract EVERY distinct clinical concept the text names — err on the side of INCLUSION.
+Do not invent concepts, relations, or hierarchy edges not supported by the text.
+
+NON-GOAL EXAMPLE
+The following sentence should produce NO extraction:
+Text: "The study was funded by the BrainIT Group and data were collected from 22 centres across 11 countries."
+Expected output: {"classes": [], "relations": [], "hierarchy": []}
+Reason: Funding, governance, study logistics, and multi-centre coordination are out of scope — only extract clinical concepts.
+
+SELF-CHECK (before finalising output)
+- Is every label a clinical TYPE (not an instance or a person’s name)?
+- Are there any duplicate or synonym labels? Merge them.
+- Do all relation domain/range labels match extracted class labels?
+- Are there any circular hierarchy edges? Remove them.
+- Does every evidence field contain a verbatim quote from the text?
+
+--- Retrieved example ---
+Text: The Edinburgh University Secondary Insult Grades (EUSIG) system classifies hypotensive events as systolic blood pressure (BPs) less than 90 mmHg or mean arterial pressure (BPm) less than 70 mmHg with a holddown period of 5 minutes. Many hypotensive events were preceded by clinical interventions such as nursing care, patient turning, or changes in sedation. Detection of a hypotensive event triggers specific therapeutic interventions including fluid resuscitation and vasopressor administration to restore adequate cerebral perfusion pressure. Several authors have shown that significant periods of arterial hypotension consistently relate to clinical outcome.
+Output (JSON):
+{{
+  "classes": [
+    {{
+      "label": "EUSIG Grade",
+      "evidence": "Edinburgh University Secondary Insult Grades (EUSIG) system",
+      "definition": "Edinburgh University Secondary Insult Grades classification system for adverse events."
+    }},
+    {{
+      "label": "Hypotensive Event",
+      "evidence": "classifies hypotensive events",
+      "definition": "An episode of blood pressure falling below a defined threshold for a sustained period."
+    }},
+    {{
+      "label": "Systolic Blood Pressure (SBP)",
+      "evidence": "systolic blood pressure (BPs) less than 90 mmHg",
+      "definition": "Peak arterial pressure during cardiac systole."
+    }},
+    {{
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "mean arterial pressure (BPm) less than 70 mmHg",
+      "definition": "The average arterial blood pressure during a cardiac cycle, a key haemodynamic parameter."
+    }},
+    {{
+      "label": "Secondary Insult",
+      "evidence": "Secondary Insult Grades",
+      "definition": "An adverse physiological event occurring after the primary brain injury that worsens outcome."
+    }},
+    {{
+      "label": "Nursing Intervention",
+      "evidence": "clinical interventions such as nursing care",
+      "definition": "Care activities performed by nursing staff as part of ICU management."
+    }},
+    {{
+      "label": "Therapy",
+      "evidence": "therapeutic interventions",
+      "definition": "A clinical intervention or treatment administered to manage the patient's condition."
+    }},
+    {{
+      "label": "Fluids",
+      "evidence": "fluid resuscitation",
+      "definition": "Intravenous fluid input and output management during ICU care."
+    }},
+    {{
+      "label": "Vasopressors",
+      "evidence": "vasopressor administration",
+      "definition": "Vasoactive drugs administered to maintain adequate blood pressure and cerebral perfusion."
+    }},
+    {{
+      "label": "Cerebral Perfusion Pressure (CPP)",
+      "evidence": "cerebral perfusion pressure",
+      "definition": "The net pressure gradient driving blood flow to the brain, calculated as MAP minus ICP."
+    }},
+    {{
+      "label": "Arterial Hypotension",
+      "evidence": "arterial hypotension",
+      "definition": "Low arterial blood pressure, defined as systolic BP below 90 mmHg or MAP below 70 mmHg."
+    }},
+    {{
+      "label": "Outcome",
+      "evidence": "clinical outcome",
+      "definition": "A measure of the patient's recovery or clinical result following treatment."
+    }}
+  ],
+  "relations": [
+    {{
+      "label": "monitoring indicates condition",
+      "domain": "Monitoring Data",
+      "range": "Condition",
+      "evidence": "systolic blood pressure (BPs) less than 90 mmHg or mean arterial pressure (BPm) less than 70 mmHg",
+      "definition": "Indicates that monitoring data can reveal or detect a particular clinical condition."
+    }},
+    {{
+      "label": "has EUSIG grade",
+      "domain": "Secondary Insult",
+      "range": "EUSIG Grade",
+      "evidence": "EUSIG system classifies hypotensive events"
+    }},
+    {{
+      "label": "triggers intervention",
+      "domain": "Condition",
+      "range": "Therapy",
+      "evidence": "Detection of a hypotensive event triggers specific therapeutic interventions",
+      "definition": "Indicates that a condition necessitates a specific therapeutic response."
+    }}
+  ],
+  "hierarchy": [
+    {{
+      "subClass": "Hypotensive Event",
+      "superClass": "Secondary Insult",
+      "evidence": "Secondary Insult Grades...classifies hypotensive events"
+    }},
+    {{
+      "subClass": "Systolic Blood Pressure (SBP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "systolic blood pressure (BPs)"
+    }},
+    {{
+      "subClass": "EUSIG Grade",
+      "superClass": "Clinical Assessment",
+      "evidence": "Edinburgh University Secondary Insult Grades system classifies"
+    }}
+  ]
+}}
+
+--- TEXT TO ANALYZE ---
+Journal of Clinical Monitoring and Computing (2019) 33:39-51 43
+
+3.3 Predictive accuracy: clinical studies
+test set, the project moved to the clinical environment with
+Age Demographic a prospective study collecting data using HYPO-NET on 30
+Sex Demographic patients (Phase 1). The ROC curve for this study is shown
+Mean arterial blood pressure Mean on the left hand side of Fig. 4. The results for the clinically
+Mean arterial blood pressure Slope interesting region of false positive rate 0.3-0.4 are, unuSystolic arterial blood pressure Mean sually, slightly better than predicted on the test set despite
+Systolic arterial blood pressure Slope being conducted in a live clinical setting. Improving upon a
+Heart rate Mean training model performance in a clinical setting is unusual
+Heart rate Slope and so we felt it was important to assess the repeatability
+Heart rate Standard deviation of this result. Thus, the next task was to see if we could
+Input features for the model selected for the clinical studies. The repeat these results on another group of patients (Phase 2).
+mean, slope and standard deviation features were calculated over two Using a study design given in Hanfelt, 49 patients were
+sequential time windows for the seven physiological variables: from recruited. Data from ten patients was excluded due to prob30 to 15 min before the prediction time, and from 15 min before up lems with data collection. The results of the repeat study
+to the prediction time. This produced two demographic and 14 physiological variables as inputs to the neural network (Phase 2) are shown on the right hand side of Fig. 4. Again,
+the results are slightly better than the model test set and
+similar to the Phase 1 study.
+We note that the AUC scores for the two clinical studies
+could achieve a target for sensitivity of 30% with specific- are less than the training set. This is a criticism of using
+ity at around 90%. Using the ROCR (R) package, an area the AUC metric and is noted in the literature that
+under curve value of 0.74 was generated. there are problems in comparing classifier performance
+
+44 Journal of Clinical Monitoring and Computing (2019) 33:39-51
+
+old range of 0.2-0.5 with point estimates and confidence
+1.0 intervals as error bars on the results trace. It can be seen
+from Fig. 6 that using a decision threshold of 0.4, with false
+positive techniques applied, the target sensitivity (> 30%)
+0.8 and specificity (> 90%) was achieved.
+
+3.4 Precision recall plot: clinical data
+0.6
+Sensitivity
+
+An alternative presentation of the predictive performance
+of the model is shown in Fig. 7. This plot shows precision
+aka: positive predictive value (PPV), defined as true posi-
+0.4
+tives/(true positives + false positives) on the y axis versus
+recall aka: sensitivity, defined as true positives/(true posi-
+tives + false negatives) on the x-axis. Although Fig. 7 indi-
+0.2
+cates low values of precision in the likely operating range of
+AUC: 0.74 0.3-0.4 for recall (sensitivity), the plot, similar to the ROC
+presentation also suggests that > 30% of the warnings would
+0.0 be clinically relevant.
+0.0 0.2 0.4 0.6 0.8 1.0
+3.5 Episode warning time: clinical data
+False Positive Rate (1-Specificity)
+
+Finally, Fig. 8 below presents the warning time for patients
+Fig. 3 Predictive accuracy from Bayesian artificial neural networks (BANN) test set. The decision threshold settings are marked with the crossed circles. The decision thresh- where the system was able to provide early warning of the
+olds shown start at 0.1 at the upper most mark and increase to 0.4 in onset of hypotension.
+the lower left part of the trace. Using the ROCR (R) package, an area
+under curve value of 0.74 was generated
+4 Discussion
+particularly when the ROC curves cross. For our purposes
+we are interested in false positive rates of between 0.3 It is known that the cumulative duration of arterial hypotenand 0.4. sive events is a prognostic factor for their clinical outcome
+Combining the prediction data from the prospective following a head injury. The importance of reducing
+pilot (Phase 1) and repeat pilot (Phase 2) studies produces the burden of hypotension is not restricted to the Abstract
+Traumatically brain injured (TBI) poputhe ROC curve plotted in Fig. 5. lation; for with the medical management of sepsis, it has
+been shown that duration of hypotension before initiation
+
+Fig. 4 ROC plots from clinical Phase 1, n=30 Phase 2, n=39
+studies. The solid line with
+filled circles show the results 1.0 1.0
+obtained with no false positive
+correction (FPC) applied. The
+dashed line with filled triangles 0.8 0.8
+show the results when The false positive correction (FPC)
+techniques are used. This results NoFPC NoFPC
+Sensitivity
+
+sive events is a prognostic factor for their clinical outcome
+Combining the prediction data from the prospective following a head injury. The importance of reducing
+pilot (Phase 1) and repeat pilot (Phase 2) studies produces the burden of hypotension is not restricted to the Abstract
+Traumatically brain injured (TBI) poputhe ROC curve plotted in Fig. 5. lation; for with the medical management of sepsis, it has
+been shown that duration of hypotension before initiation
+
+Sensitivity
+
+in a better sensitivity for a given 0.6 0.6
+WithFPC WithFPC
+test set results are shown with 0.4 0.4
+the dashed dot line and crossed
+circles for comparison AUC AUC
+0.2 TestSet: 0.74 0.2 TestSet: 0.74
+NoFPC: 0.67 NoFPC: 0.64
+0.0 WithFPC: 0.68 0.0 WithFPC: 0.67
+
+0.0 0.2 0.4 0.6 0.8 1.0 0.0 0.2 0.4 0.6 0.8 1.0
+False Positive Rate (1-Specificity) False Positive Rate (1-Specificity)
+
+Journal of Clinical Monitoring and Computing (2019) 33:39-51 45
+
+ROC Plot, Combined Phase 1 and 2 Data ROC Plot, Combined Phase 1 and 2 Data
+
+1.0 0.7 The false positive correction (FPC)
+NoFPC
+0.8 0.6 WithFPC
+
+0.6
+0.5 0.2 DT
+Sensitivity
+
+Sensitivity
+The false positive correction (FPC)
+NoFPC 0.4
+0.4
+WithFPC
+
+AUC 0.3
+
+lation; for with the medical management of sepsis, it has
+been shown that duration of hypotension before initiation
+
+Sensitivity
+
+in a better sensitivity for a given 0.6 0.6
+WithFPC WithFPC
+test set results are shown with 0.4 0.4
+the dashed dot line and crossed
+circles for comparison AUC AUC
+0.2 TestSet: 0.74 0.2 TestSet: 0.74
+NoFPC: 0.67 NoFPC: 0.64
+0.0 WithFPC: 0.68 0.0 WithFPC: 0.67
+
+0.0 0.2 0.4 0.6 0.8 1.0 0.0 0.2 0.4 0.6 0.8 1.0
+False Positive Rate (1-Specificity) False Positive Rate (1-Specificity)
+
+Journal of Clinical Monitoring and Computing (2019) 33:39-51 45
+
+ROC Plot, Combined Phase 1 and 2 Data ROC Plot, Combined Phase 1 and 2 Data
+
+1.0 0.7 The false positive correction (FPC)
+NoFPC
+0.8 0.6 WithFPC
+
+0.6
+0.5 0.2 DT
+Sensitivity
+
+Sensitivity
+The false positive correction (FPC)
+NoFPC 0.4
+0.4
+WithFPC
+
+0.2 TestSet: 0.74
+NoFPC: 0.65
+0.2 0.5 DT
+WithFPC: 0.68
+0.0
+
+0.0 0.2 0.4 0.6 0.8 1.0
+0.0 0.1 0.2 0.3 0.4
+False Positive Rate (1-Specificity)
+False Positive Rate (1-Specificity)
+
+Fig. 5 ROC plot from clinical data. The decision threshold markers indicate settings from 0 in the top right to 1 at the bottom left. Fig. 6 ROC plot with error bars. Using combined phase 1 and 2 cliniThe step size is 0.1. Decision threshold markers: crossed circles for cal data, this plot is a zoomed in version of Fig. 4 showing error bars
+Bayesian artificial neural networks (BANN) test set data; solid circle for clinical data with no false positive for the decision threshold (DT) settings of 0.2-0.5
+correction (FPC); solid triangle for clinical data with false positive
+correction
+AvertIT Precision Recall Plot
+---

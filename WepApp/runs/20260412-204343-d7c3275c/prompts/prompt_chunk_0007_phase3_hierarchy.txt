@@ -1,0 +1,349 @@
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+Suggested concepts (pre-identified by biomedical NER in this text): G12 8QQ, traumatic brain injury, sepsis, URIs.
+These are entity mentions detected in this chunk. Use them as additional evidence that a concept is present, but only extract labels from the allowed class list above.
+
+Candidate domain terms (contextual hints from this chunk — use only if supported by the text): heart rate; monitoring; Glasgow; Glasgow G12; Glasgow Glasgow; Glasgow Glasgow G12; RDF; domain; patient; provenance; quality; use
+
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing an EXACT VERBATIM sentence or clause COPIED from the text — do NOT paraphrase, summarize, truncate, or rephrase. Copy the text exactly as it appears, preserving original wording, word order, and punctuation. If you cannot find an exact quote, OMIT the item.
+
+3. **Extraction Scope:** Extract clinical and biomedical content: conditions, physiological parameters, monitoring variables, treatments/therapies/interventions, outcomes, assessments, laboratory values, nursing interventions, surgical procedures, and clinical dataset categories when explicitly named.
+   Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+   If a sentence or paragraph is mainly about these excluded topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+6. **Label Mapping Rule:** If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+   Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+   For other abbreviations, expand to their full clinical name as used in the text.
+
+7. **Structural Completeness Rule:** When the text mentions specific clinical items, also extract their general category if the text supports it.
+   For example, if the text discusses 'ventilation, sedation, fluids' as therapies, also extract the general class 'Therapy' or 'Baseline Therapy' if the text uses that grouping.
+   Use the text's own categories and groupings — do not impose an external hierarchy.
+
+**Default priority: classes first, then relations.** Extract relations when the text clearly states a connection between two concepts — both domain and range must be extracted classes. If a phase instruction below overrides this priority, follow the phase instruction.
+
+**Completeness:** Extract every distinct clinical concept the text names — err on the side of inclusion when evidence exists.
+
+### CURRENT TASK: Phase 3 — HIERARCHY EXTRACTION
+Extract subclass/superclass (is-a) edges supported by the text. A hierarchy edge means one class is a TYPE, SUBTYPE, CATEGORY MEMBER, or SPECIFIC INSTANCE of another. Extract every edge the text explicitly supports with evidence.
+
+### HIERARCHY DETECTION METHOD
+Look for ALL of these patterns in the text:
+  1. Explicit cues: 'such as', 'is a', 'type of', 'kind of', 'form of'
+  2. Enumeration: 'include:', 'includes:', 'consists of', 'comprises'
+  3. Category grouping: 'categorized as', 'classified as', 'grouped into'
+  4. List patterns: items listed under a heading or category name
+  5. Implicit grouping: when several specific items are mentioned alongside a general category (e.g., 'therapy: ventilation, sedation' implies both are subclasses of Therapy; 'core parameters: HR, ICP, MAP' implies all three are subclasses of Core Monitoring Parameter)
+  6. Definitional: 'X is a Y', 'X, a type of Y', 'X (a form of Y)'
+  7. Context-based: if the text organises items into sections or tables, each section heading implies a parent class for the items listed under it
+  8. Medical knowledge: TBI is a type of Brain Injury, Hypotension is a type of Secondary Insult — extract these when the text discusses them together
+
+For enumeration patterns (e.g. 'include: X, Y, Z'), extract EACH listed item as a subclass of the parent category.
+IMPORTANT: If X 'includes' Y, model it as: Y subClassOf X (a hierarchy edge). Do NOT output 'includes' as a relation label — it belongs in the hierarchy.
+
+### CHAIN-OF-THOUGHT
+For each pair of known classes, reason:
+1. Does the text describe one class as a specialization of another?
+2. Does the text list one class under another as a member/subtype?
+3. Even if not explicitly stated, does medical context clearly imply a parent-child relationship?
+4. What text evidence supports this parent-child link?
+
+Be thorough: extract every parent-child relationship the text supports. Aim for at least one hierarchy edge per class if possible.
+If the text lists items under a category heading, EACH item is a subClassOf that category. For example, if 'core monitoring' is followed by 'heart rate, ICP, MAP', then each is a subClassOf Core Monitoring Parameter.
+Use ONLY the known classes below for subClass and superClass labels.
+
+### SELF-CHECK (before finalising output)
+- Are there any circular edges (A subClassOf B AND B subClassOf A)? Remove them.
+- Are subClass and superClass labels from the known-classes list?
+- Does every evidence field contain a verbatim quote from the text?
+
+Output JSON with keys classes, relations, hierarchy. Set classes and relations to empty arrays.
+
+Known classes (use only these for subclass/superclass): Traumatic Brain Injury; Sepsis; Heart Rate; Data Quality; Patient Data; Provenance
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "definition": "one-sentence scope note describing what this class represents in the domain", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "definition": "one-sentence description of what this relation means between domain and range", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Definition rule:** Every class and relation MUST include a `definition` field: a concise one-sentence scope note clarifying what the class represents or what the relation means in the clinical domain. Ground definitions in the text where possible, but you may use standard medical knowledge to write a clear scope note.
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+**REASONING STEP:** Before producing JSON, mentally scan the text for: (1) every named clinical concept, (2) explicit relations between them, (3) hierarchy cues (such as, is a, type of, include:). Then output only items with verbatim evidence.
+
+---
+--- Retrieved examples (3) ---
+
+Text: This is the minimum minute by minute monitoring data required for inclusion in the BrainIT Database and include: Heart Rate, Respiration Rate, Mean Arterial Pressure, mean ICP, SaO2 and Temperature.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Monitoring Data",
+      "evidence": "minute by minute monitoring data",
+      "definition": "Continuously recorded physiological measurements collected from bedside monitors."
+    },
+    {
+      "label": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required",
+      "definition": "A mandatory physiological variable collected at minimum once per minute."
+    },
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate",
+      "definition": "The number of cardiac contractions per minute, a core physiological monitoring parameter in neuro-ICU."
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate",
+      "definition": "The number of breaths per minute, measured via impedance plethysmography or ventilator."
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "Mean Arterial Pressure",
+      "definition": "The average arterial blood pressure during a cardiac cycle, a key haemodynamic parameter."
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "mean ICP",
+      "definition": "The pressure inside the cranium, continuously monitored to detect intracranial hypertension in TBI patients."
+    },
+    {
+      "label": "SaO2",
+      "evidence": "SaO2",
+      "definition": "Arterial oxygen saturation measured by pulse oximetry, indicating blood oxygenation levels."
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature",
+      "definition": "Core body temperature measured at rectal, oesophageal, bladder, or skin sites."
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Heart Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required...include: Heart Rate"
+    },
+    {
+      "subClass": "Respiration Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Heart Rate, Respiration Rate"
+    },
+    {
+      "subClass": "Mean Arterial Pressure (MAP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Mean Arterial Pressure"
+    },
+    {
+      "subClass": "Intracranial Pressure (ICP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: mean ICP"
+    },
+    {
+      "subClass": "SaO2",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: SaO2"
+    },
+    {
+      "subClass": "Temperature",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Temperature"
+    }
+  ]
+}
+
+---
+
+Text: Intensive care management information. Types of data include: GCS scores, pupil scores, ventilation settings, sedation levels, fluid input and output, nutrition, use of vasopressors, antibiotics. These constitute baseline therapy — routine ICU management delivered to all patients.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Intensive Care Management",
+      "evidence": "Intensive care management information",
+      "definition": "The category of data covering routine ICU care activities delivered to patients."
+    },
+    {
+      "label": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management",
+      "definition": "Routine ICU management therapies delivered to all TBI patients as standard care."
+    },
+    {
+      "label": "Ventilation",
+      "evidence": "ventilation settings",
+      "definition": "Mechanical ventilation settings and parameters delivered as part of ICU care."
+    },
+    {
+      "label": "Sedation",
+      "evidence": "sedation levels",
+      "definition": "Administration of sedative agents to manage patient comfort and intracranial pressure."
+    },
+    {
+      "label": "Fluids",
+      "evidence": "fluid input and output",
+      "definition": "Intravenous fluid input and output management during ICU care."
+    },
+    {
+      "label": "Nutrition",
+      "evidence": "nutrition",
+      "definition": "Nutritional support provided to ICU patients, including enteral and parenteral routes."
+    },
+    {
+      "label": "Vasopressors",
+      "evidence": "use of vasopressors",
+      "definition": "Vasoactive drugs administered to maintain adequate blood pressure and cerebral perfusion."
+    },
+    {
+      "label": "Antibiotics",
+      "evidence": "antibiotics",
+      "definition": "Antimicrobial agents administered to prevent or treat infections in ICU patients."
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Ventilation",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: ventilation settings"
+    },
+    {
+      "subClass": "Sedation",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: sedation levels"
+    },
+    {
+      "subClass": "Fluids",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: fluid input and output"
+    },
+    {
+      "subClass": "Nutrition",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: nutrition"
+    },
+    {
+      "subClass": "Vasopressors",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: use of vasopressors"
+    },
+    {
+      "subClass": "Antibiotics",
+      "superClass": "Baseline Therapy",
+      "evidence": "baseline therapy \u2014 routine ICU management: antibiotics"
+    }
+  ]
+}
+
+---
+
+Text: Patient outcome is assessed using the Extended Glasgow Outcome Scale (GOSe) at 6 months post-discharge from the neurosurgical centre.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Outcome",
+      "evidence": "Patient outcome is assessed",
+      "definition": "A measure of the patient's recovery or clinical result following treatment."
+    },
+    {
+      "label": "GOSe Outcome",
+      "evidence": "Extended Glasgow Outcome Scale (GOSe)",
+      "definition": "Extended Glasgow Outcome Scale score at 6 months post-injury, measuring functional recovery."
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "GOSe Outcome",
+      "superClass": "Outcome",
+      "evidence": "Patient outcome is assessed using the Extended Glasgow Outcome Scale (GOSe)"
+    }
+  ]
+}
+
+---
+TEXT TO ANALYZE:
+Laura Moss1,2,3 , David Corsar1, Ian Piper3 , and John Kinsella2
+Department of Computing Science, University of Aberdeen, Aberdeen, AB24 3FX
+School of Medicine, University of Glasgow, Glasgow, G12 8QQ
+Department of Clinical Physics, University of Glasgow, Glasgow, G12 8QQ
+
+Abstract. The Intensive Care Unit (ICU) domain generates large vol-
+umes of patient data which can be used in medical research. However,
+inaccuracies often exist in this data and due to the data's size and do-
+main complexity, automated approaches are required to associate a level
+of quality and trust with the data. We describe a computational frame-
+along with details of the data's provenance and medical domain knowl-
+edge from appropriate ontologies. We have successfully applied the frame-
+work to two types of ICUs: general medical and traumatic brain injury.
+
+Keywords: Data Quality, Semantic Web, Ontologies, Critical Care.
+
+1 Introduction
+Increasing use of patient monitoring equipment in medicine is generating large
+repositories of patient data, which are recorded manually and/or automatically.
+Trusting this data is important: along with being used for medical decision making, the data is often stored for offline analysis. However, error rates of between
+2.3% and 26.9% are common. Various methods have been proposed to improve the quality of medical data (e.g.), which may help avoid certain errors
+(e.g. physiologically impossible values). However, detailed domain knowledge and
+human judgement is often required to identify other, more subtle errors, e.g. a
+recorded heart rate of 120 may be identified as an error by a simple threshold
+based rule, but if the patient was suffering from sepsis at the same time, then
+the value may actually be a symptom of that disorder.
+to a set of principles, and linked through the use of technologies such as URIs,
+HTTP, and RDF. This enables provision of contextual information about any
+piece of data, along with enabling machines to access, browse, and reason with
+the application of simple rules or policies; e.g. the WIQA framework, which
+http://www.w3.org/DesignIssues/LinkedData.html
+
+N. Peek, R. Marı́n Morales, and M. Peleg (Eds.): AIME 2013, LNAI 7885, pp. 68-72, 2013.
+
+Trusting Intensive Care Unit (ICU) Medical Data 69
+
+adopts the "fitness for use" perspective to data quality, applies a set of policies
+to filter RDF data that does not meet requirements. In contrast, the SWIQA
+framework adopts the "free of defects" perspective, using a series of rules to
+perform common data quality checks on RDF datasets including: completeness
+(e.g. provision of mandatory values), syntactic and semantic accuracy, timeliness,
+and uniqueness. However, we argue these assessments do not consider the
+complexities of real world datasets and need to be extended to include context
+dependent assessments.
+In this paper, Section 2 describes our novel approach and framework that
+considering the data, its provenance, and relevant clinical knowledge; Section
+3 describes the application of our framework to two different medical domains;
+and Section 4 concludes by discussing our findings and future work plans.
+
+2 Approach
+
+Our approach consists of three stages: converting the medical data into RDF;
+optionally annotating the data with provenance information; and finally, assessing the data (Figure 1). Ideally, all of the datasets we describe below would be
+of the required information is not available; in these cases we have created our
+own datasets, which we intend to contribute to the Linked Open Data cloud.
+
+Fig. 1. Overview of the approach to medical data assessment
+---

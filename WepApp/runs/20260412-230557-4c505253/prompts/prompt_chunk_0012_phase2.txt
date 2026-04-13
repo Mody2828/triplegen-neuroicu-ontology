@@ -1,0 +1,547 @@
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+Suggested concepts (pre-identified by biomedical NER in this text): hypotension, head injury, TBI, sepsis.
+These are entity mentions detected in this chunk. Use them as additional evidence that a concept is present, but only extract labels from the allowed class list above.
+
+Candidate domain terms (contextual hints from this chunk — use only if supported by the text): blood pressure; heart rate; hypotension; monitoring; outcome; Clinical Monitoring; 0.2 0.5 DT; 0.5 0.2 DT; AUC; AUC 0.3; NoFPC; ROC
+
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing an EXACT VERBATIM sentence or clause COPIED from the text — do NOT paraphrase, summarize, truncate, or rephrase. Copy the text exactly as it appears, preserving original wording, word order, and punctuation. If you cannot find an exact quote, OMIT the item.
+
+3. **Extraction Scope:** Extract clinical and biomedical content: conditions, physiological parameters, monitoring variables, treatments/therapies/interventions, outcomes, assessments, laboratory values, nursing interventions, surgical procedures, and clinical dataset categories when explicitly named.
+   Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+   If a sentence or paragraph is mainly about these excluded topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+6. **Label Mapping Rule:** If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+   Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+   For other abbreviations, expand to their full clinical name as used in the text.
+
+7. **Structural Completeness Rule:** When the text mentions specific clinical items, also extract their general category if the text supports it.
+   For example, if the text discusses 'ventilation, sedation, fluids' as therapies, also extract the general class 'Therapy' or 'Baseline Therapy' if the text uses that grouping.
+   Use the text's own categories and groupings — do not impose an external hierarchy.
+
+**Default priority: classes first, then relations.** Extract relations when the text clearly states a connection between two concepts — both domain and range must be extracted classes. If a phase instruction below overrides this priority, follow the phase instruction.
+
+**Completeness:** Extract every distinct clinical concept the text names — err on the side of inclusion when evidence exists.
+
+### CURRENT TASK: Phase 2 — RELATION & HIERARCHY EXTRACTION (+ supplementary classes)
+Primary task: extract semantic RELATIONS between the known classes below. Extract every relation the text explicitly supports with evidence.
+Secondary task: if you notice clinical concepts in the text that Phase 1 missed (e.g. a concept needed as domain/range), add them to the classes array with evidence.
+Also extract hierarchy (subClassOf) edges wherever the text shows parent-child relationships — look for cues like 'such as', 'includes', 'type of', 'consists of', 'categorized as', enumeration lists, or even implied groupings.
+
+### WHAT IS AN ONTOLOGY RELATION?
+An ontology relation (object property) defines a typed semantic link between two class types. The DOMAIN is the subject class; the RANGE is the object class. Think: 'Every instance of [domain] can be linked via [relation] to an instance of [range].' Relations model the SCHEMA of the domain, not individual facts.
+Example: 'has monitoring data(Patient → Monitoring Data)' means every Patient can have Monitoring Data associated with them.
+
+### RELATION EXTRACTION METHOD (Chain-of-Thought)
+For each pair of known classes, reason step by step:
+1. Do these two classes co-occur or interact in the text?
+2. What is the SEMANTIC NATURE of their link? (measurement, treatment, assessment, outcome, composition, causation, etc.)
+3. Which class is the subject (domain) and which is the object (range)?
+4. Assign a descriptive relation label from the patterns below, or create a meaningful label if none fits.
+5. Find an exact text quote that supports this relationship.
+
+### ONTOLOGY DESIGN PATTERNS (use when the text supports them)
+These are reusable structural patterns showing how clinical concepts relate.
+Match them against the text — extract every supported edge.
+
+**Pattern 1 — Clinical Monitoring:**
+  Patient --[has monitoring data]--> Monitoring Data
+  Monitoring Data --[includes]--> Parameter
+  Observation --[measures parameter]--> Parameter
+  Observation --[produced by sensor]--> Sensor
+  Observation --[has quality assessment]--> Data Quality Assessment
+  Session --[has timepoint]--> Timepoint
+  Timepoint --[has observation]--> Observation
+
+**Pattern 2 — Clinical Intervention:**
+  Patient --[receives therapy]--> Therapy
+  Therapy --[targets condition]--> Condition
+  Condition --[triggers intervention]--> Therapy
+  Patient --[has surgical procedure]--> Surgical Procedure
+  Patient --[has nursing intervention]--> Nursing Intervention
+
+**Pattern 3 — Clinical Assessment and Outcome:**
+  Patient --[has clinical assessment]--> Clinical Assessment
+  Patient --[has outcome]--> Outcome
+  Patient --[has laboratory value]--> Laboratory Values
+  Monitoring Data --[monitoring indicates condition]--> Condition
+
+**Pattern 4 — Patient Context:**
+  Patient --[has session]--> Session
+  Patient --[has demographic data]--> Demographic Data
+  Patient --[has injury mechanism]--> Injury Mechanism
+
+**Pattern 5 — Data Quality:**
+  Data Quality Assessment --[affected by treatment]--> Therapy
+  Data Quality Assessment --[associated with condition]--> Condition
+
+**Pattern 6 — Composition (model as HIERARCHY, not relation):**
+  If X includes/comprises Y → extract as hierarchy: Y subClassOf X
+  Derived Parameter --[derived from]--> Source Parameter
+
+You SHOULD also extract other relations the text supports beyond these patterns.
+Do not invent relations not stated or clearly implied in the text.
+
+### CRITICAL: DO NOT USE 'includes' AS A RELATION LABEL
+If X includes Y, or Y is a type/kind/member of X, model it as HIERARCHY (Y subClassOf X), NOT as a relation. For example:
+  - 'Monitoring Data includes Heart Rate' → Heart Rate subClassOf Monitoring Data (hierarchy)
+  - 'Third-tier Treatment includes Barbiturates' → Barbiturates subClassOf Third-tier Treatment (hierarchy)
+The labels 'includes', 'consists of', 'comprises', 'is a type of' are NOT valid relation labels.
+
+### DEFINITION REQUIREMENT
+Every relation MUST include a `definition` field: a precise one-sentence description of what this relation means IN THE CONTEXT OF THIS TEXT.
+Read how the text describes the connection between these two concepts and capture:
+  (1) The NATURE of the link (measurement, treatment, assessment, composition, causation).
+  (2) HOW or WHY these concepts are connected according to the text.
+BAD: "Connects two clinical concepts."
+GOOD: "Links a patient to continuously recorded physiological measurements such as ICP, MAP, and heart rate captured during their ICU stay."
+Example: {"label": "has monitoring data", "domain": "Patient", "range": "Monitoring Data", "definition": "Links a patient to the set of continuously recorded physiological measurements (ICP, MAP, heart rate, etc.) captured minute-by-minute during their ICU stay.", "evidence": "..."}
+
+### RELATION EVIDENCE RULES
+- Each relation MUST have an 'evidence' field with an exact verbatim quote from the source text.
+- The evidence should mention or clearly imply at least one of the two endpoint classes (domain or range).
+- Use the ABSTRACT superclass as the range, not specific instances (e.g., 'Monitoring Data' not 'ICP').
+- Do NOT reuse the same evidence quote for multiple relations.
+
+### SELF-CHECK (before finalising output)
+- Do all domain and range labels match known classes from Phase 1?
+- Are there any duplicate relations (same domain-label-range)? Remove duplicates.
+- Does every evidence field contain a verbatim quote from the text?
+
+Output JSON with keys classes, relations, hierarchy.
+
+Known classes (use only these labels): Hypotension; Head Injury; Traumatic Brain Injury (TBI); Sepsis; Mean Arterial Pressure (MAP); Systolic Blood Pressure (SBP); Heart Rate
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "definition": "one-sentence scope note describing what this class represents in the domain", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "definition": "one-sentence description of what this relation means between domain and range", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Definition rule:** Every class and relation MUST include a `definition` field: a concise one-sentence scope note clarifying what the class represents or what the relation means in the clinical domain. Ground definitions in the text where possible, but you may use standard medical knowledge to write a clear scope note.
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+**REASONING STEP:** Before producing JSON, mentally scan the text for: (1) every named clinical concept, (2) explicit relations between them, (3) hierarchy cues (such as, is a, type of, include:). Then output only items with verbatim evidence.
+
+---
+--- Retrieved examples (3) ---
+
+Text: The minimum minute by minute monitoring data required for inclusion in the BrainIT Database include: Heart Rate, Respiration Rate, Mean Arterial Pressure, ICP, SaO2 and Temperature. Data is collected from patients every minute.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Patient",
+      "evidence": "patients",
+      "definition": "An individual receiving neurointensive care for traumatic brain injury."
+    },
+    {
+      "label": "Monitoring Data",
+      "evidence": "monitoring data",
+      "definition": "Continuously recorded physiological measurements collected from bedside monitors."
+    },
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate",
+      "definition": "The number of cardiac contractions per minute, a core physiological monitoring parameter in neuro-ICU."
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate",
+      "definition": "The number of breaths per minute, measured via impedance plethysmography or ventilator."
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature",
+      "definition": "Core body temperature measured at rectal, oesophageal, bladder, or skin sites."
+    }
+  ],
+  "relations": [
+    {
+      "label": "has monitoring data",
+      "domain": "Patient",
+      "range": "Monitoring Data",
+      "evidence": "Data is collected from patients every minute",
+      "definition": "Links a patient to the set of continuously recorded physiological measurements captured during their ICU stay."
+    },
+    {
+      "label": "includes",
+      "domain": "Monitoring Data",
+      "range": "Heart Rate",
+      "evidence": "monitoring data include: Heart Rate",
+      "definition": "Indicates that a data category contains or encompasses a specific parameter or subcategory."
+    },
+    {
+      "label": "includes",
+      "domain": "Monitoring Data",
+      "range": "Temperature",
+      "evidence": "monitoring data include: Heart Rate, Respiration Rate, Mean Arterial Pressure, ICP, SaO2 and Temperature",
+      "definition": "Indicates that a data category contains or encompasses a specific parameter or subcategory."
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+
+Text: BPs (systolic blood pressure) and BPm (mean arterial pressure) both indicate hypotensive events, but the trigger characteristics differ. BPs events were often preceded by a steady downward trend in systolic pressure, while BPm events showed more abrupt onset. Each hypotensive event was classified according to the Edinburgh University Secondary Insult Grades (EUSIG).
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Systolic Blood Pressure (SBP)",
+      "evidence": "BPs (systolic blood pressure)",
+      "definition": "Peak arterial pressure during cardiac systole."
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "BPm (mean arterial pressure)",
+      "definition": "The average arterial blood pressure during a cardiac cycle, a key haemodynamic parameter."
+    },
+    {
+      "label": "Hypotensive Event",
+      "evidence": "hypotensive events",
+      "definition": "An episode of blood pressure falling below a defined threshold for a sustained period."
+    },
+    {
+      "label": "EUSIG Grade",
+      "evidence": "Edinburgh University Secondary Insult Grades (EUSIG)",
+      "definition": "Edinburgh University Secondary Insult Grades classification system for adverse events."
+    }
+  ],
+  "relations": [
+    {
+      "label": "monitoring indicates condition",
+      "domain": "Monitoring Data",
+      "range": "Condition",
+      "evidence": "BPs (systolic blood pressure) and BPm (mean arterial pressure) both indicate hypotensive events",
+      "definition": "Indicates that monitoring data can reveal or detect a particular clinical condition."
+    },
+    {
+      "label": "has EUSIG grade",
+      "domain": "Hypotensive Event",
+      "range": "EUSIG Grade",
+      "evidence": "Each hypotensive event was classified according to the Edinburgh University Secondary Insult Grades"
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+
+Text: Each patient has monitoring sessions. Each timepoint in a monitoring session is associated with observations produced by sensors. Each observation measures a physiological parameter and is evaluated by a data quality assessment resulting in either a Possible Error (PoE) or Probable Error (PrE) classification. A reading outside range may be contextualised by a medical disorder (e.g. sepsis, hypertension) or recent treatment (e.g. noradrenaline), reclassifying a PrE as PoE.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Patient",
+      "evidence": "Each patient has monitoring sessions",
+      "definition": "An individual receiving neurointensive care for traumatic brain injury."
+    },
+    {
+      "label": "Session",
+      "evidence": "monitoring sessions"
+    },
+    {
+      "label": "Timepoint",
+      "evidence": "Each timepoint in a monitoring session",
+      "definition": "A discrete moment in time at which clinical observations are recorded."
+    },
+    {
+      "label": "Observation",
+      "evidence": "associated with observations",
+      "definition": "A single measurement of a physiological parameter at a specific timepoint."
+    },
+    {
+      "label": "Sensor",
+      "evidence": "observations produced by sensors"
+    },
+    {
+      "label": "Parameter",
+      "evidence": "measures a physiological parameter",
+      "definition": "A measurable physiological variable recorded during monitoring."
+    },
+    {
+      "label": "Data Quality Assessment",
+      "evidence": "data quality assessment"
+    },
+    {
+      "label": "Possible Error",
+      "evidence": "Possible Error (PoE)"
+    },
+    {
+      "label": "Probable Error",
+      "evidence": "Probable Error (PrE)"
+    },
+    {
+      "label": "Condition",
+      "evidence": "contextualised by a medical disorder (e.g. sepsis, hypertension)",
+      "definition": "A clinical condition or pathological state affecting the patient."
+    },
+    {
+      "label": "Sepsis",
+      "evidence": "medical disorder (e.g. sepsis)"
+    },
+    {
+      "label": "Hypertension",
+      "evidence": "hypertension",
+      "definition": "Abnormally elevated blood pressure."
+    },
+    {
+      "label": "Noradrenaline",
+      "evidence": "recent treatment (e.g. noradrenaline)",
+      "definition": "A catecholamine vasopressor used to raise blood pressure in ICU."
+    },
+    {
+      "label": "Therapy",
+      "evidence": "recent treatment (e.g. noradrenaline)",
+      "definition": "A clinical intervention or treatment administered to manage the patient's condition."
+    }
+  ],
+  "relations": [
+    {
+      "label": "has session",
+      "domain": "Patient",
+      "range": "Session",
+      "evidence": "Each patient has monitoring sessions"
+    },
+    {
+      "label": "has timepoint",
+      "domain": "Session",
+      "range": "Timepoint",
+      "evidence": "Each timepoint in a monitoring session"
+    },
+    {
+      "label": "has observation",
+      "domain": "Timepoint",
+      "range": "Observation",
+      "evidence": "Each timepoint in a monitoring session is associated with observations"
+    },
+    {
+      "label": "produced by sensor",
+      "domain": "Observation",
+      "range": "Sensor",
+      "evidence": "observations produced by sensors"
+    },
+    {
+      "label": "measures parameter",
+      "domain": "Observation",
+      "range": "Parameter",
+      "evidence": "Each observation measures a physiological parameter"
+    },
+    {
+      "label": "has quality assessment",
+      "domain": "Observation",
+      "range": "Data Quality Assessment",
+      "evidence": "evaluated by a data quality assessment resulting in Possible Error or Probable Error"
+    },
+    {
+      "label": "associated with condition",
+      "domain": "Data Quality Assessment",
+      "range": "Condition",
+      "evidence": "contextualised by a medical disorder (e.g. sepsis, hypertension)",
+      "definition": "Indicates that a data quality assessment is linked to a clinical condition."
+    },
+    {
+      "label": "affected by treatment",
+      "domain": "Data Quality Assessment",
+      "range": "Therapy",
+      "evidence": "contextualised by...recent treatment (e.g. noradrenaline), reclassifying a PrE as PoE",
+      "definition": "Indicates that a data quality measure is influenced by a therapeutic intervention."
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+TEXT TO ANALYZE:
+Journal of Clinical Monitoring and Computing (2019) 33:39-51 43
+
+3.3 Predictive accuracy: clinical studies
+test set, the project moved to the clinical environment with
+Age Demographic a prospective study collecting data using HYPO-NET on 30
+Sex Demographic patients (Phase 1). The ROC curve for this study is shown
+Mean arterial blood pressure Mean on the left hand side of Fig. 4. The results for the clinically
+Mean arterial blood pressure Slope interesting region of false positive rate 0.3-0.4 are, unuSystolic arterial blood pressure Mean sually, slightly better than predicted on the test set despite
+Systolic arterial blood pressure Slope being conducted in a live clinical setting. Improving upon a
+Heart rate Mean training model performance in a clinical setting is unusual
+Heart rate Slope and so we felt it was important to assess the repeatability
+Heart rate Standard deviation of this result. Thus, the next task was to see if we could
+Input features for the model selected for the clinical studies. The repeat these results on another group of patients (Phase 2).
+mean, slope and standard deviation features were calculated over two Using a study design given in Hanfelt, 49 patients were
+sequential time windows for the seven physiological variables: from recruited. Data from ten patients was excluded due to prob30 to 15 min before the prediction time, and from 15 min before up lems with data collection. The results of the repeat study
+to the prediction time. This produced two demographic and 14 physiological variables as inputs to the neural network (Phase 2) are shown on the right hand side of Fig. 4. Again,
+the results are slightly better than the model test set and
+similar to the Phase 1 study.
+We note that the AUC scores for the two clinical studies
+could achieve a target for sensitivity of 30% with specific- are less than the training set. This is a criticism of using
+ity at around 90%. Using the ROCR (R) package, an area the AUC metric and is noted in the literature that
+under curve value of 0.74 was generated. there are problems in comparing classifier performance
+
+44 Journal of Clinical Monitoring and Computing (2019) 33:39-51
+
+old range of 0.2-0.5 with point estimates and confidence
+1.0 intervals as error bars on the results trace. It can be seen
+from Fig. 6 that using a decision threshold of 0.4, with false
+positive techniques applied, the target sensitivity (> 30%)
+0.8 and specificity (> 90%) was achieved.
+
+3.4 Precision recall plot: clinical data
+0.6
+Sensitivity
+
+An alternative presentation of the predictive performance
+of the model is shown in Fig. 7. This plot shows precision
+aka: positive predictive value (PPV), defined as true posi-
+0.4
+tives/(true positives + false positives) on the y axis versus
+recall aka: sensitivity, defined as true positives/(true posi-
+tives + false negatives) on the x-axis. Although Fig. 7 indi-
+0.2
+cates low values of precision in the likely operating range of
+AUC: 0.74 0.3-0.4 for recall (sensitivity), the plot, similar to the ROC
+presentation also suggests that > 30% of the warnings would
+0.0 be clinically relevant.
+0.0 0.2 0.4 0.6 0.8 1.0
+3.5 Episode warning time: clinical data
+False Positive Rate (1-Specificity)
+
+Finally, Fig. 8 below presents the warning time for patients
+Fig. 3 Predictive accuracy from Bayesian artificial neural networks (BANN) test set. The decision threshold settings are marked with the crossed circles. The decision thresh- where the system was able to provide early warning of the
+olds shown start at 0.1 at the upper most mark and increase to 0.4 in onset of hypotension.
+the lower left part of the trace. Using the ROCR (R) package, an area
+under curve value of 0.74 was generated
+4 Discussion
+particularly when the ROC curves cross. For our purposes
+we are interested in false positive rates of between 0.3 It is known that the cumulative duration of arterial hypotenand 0.4. sive events is a prognostic factor for their clinical outcome
+Combining the prediction data from the prospective following a head injury. The importance of reducing
+pilot (Phase 1) and repeat pilot (Phase 2) studies produces the burden of hypotension is not restricted to the Abstract
+Traumatically brain injured (TBI) poputhe ROC curve plotted in Fig. 5. lation; for with the medical management of sepsis, it has
+been shown that duration of hypotension before initiation
+
+Fig. 4 ROC plots from clinical Phase 1, n=30 Phase 2, n=39
+studies. The solid line with
+filled circles show the results 1.0 1.0
+obtained with no false positive
+correction (FPC) applied. The
+dashed line with filled triangles 0.8 0.8
+show the results when The false positive correction (FPC)
+techniques are used. This results NoFPC NoFPC
+Sensitivity
+
+sive events is a prognostic factor for their clinical outcome
+Combining the prediction data from the prospective following a head injury. The importance of reducing
+pilot (Phase 1) and repeat pilot (Phase 2) studies produces the burden of hypotension is not restricted to the Abstract
+Traumatically brain injured (TBI) poputhe ROC curve plotted in Fig. 5. lation; for with the medical management of sepsis, it has
+been shown that duration of hypotension before initiation
+
+Sensitivity
+
+in a better sensitivity for a given 0.6 0.6
+WithFPC WithFPC
+test set results are shown with 0.4 0.4
+the dashed dot line and crossed
+circles for comparison AUC AUC
+0.2 TestSet: 0.74 0.2 TestSet: 0.74
+NoFPC: 0.67 NoFPC: 0.64
+0.0 WithFPC: 0.68 0.0 WithFPC: 0.67
+
+0.0 0.2 0.4 0.6 0.8 1.0 0.0 0.2 0.4 0.6 0.8 1.0
+False Positive Rate (1-Specificity) False Positive Rate (1-Specificity)
+
+Journal of Clinical Monitoring and Computing (2019) 33:39-51 45
+
+ROC Plot, Combined Phase 1 and 2 Data ROC Plot, Combined Phase 1 and 2 Data
+
+1.0 0.7 The false positive correction (FPC)
+NoFPC
+0.8 0.6 WithFPC
+
+0.6
+0.5 0.2 DT
+Sensitivity
+
+Sensitivity
+The false positive correction (FPC)
+NoFPC 0.4
+0.4
+WithFPC
+
+AUC 0.3
+
+lation; for with the medical management of sepsis, it has
+been shown that duration of hypotension before initiation
+
+Sensitivity
+
+in a better sensitivity for a given 0.6 0.6
+WithFPC WithFPC
+test set results are shown with 0.4 0.4
+the dashed dot line and crossed
+circles for comparison AUC AUC
+0.2 TestSet: 0.74 0.2 TestSet: 0.74
+NoFPC: 0.67 NoFPC: 0.64
+0.0 WithFPC: 0.68 0.0 WithFPC: 0.67
+
+0.0 0.2 0.4 0.6 0.8 1.0 0.0 0.2 0.4 0.6 0.8 1.0
+False Positive Rate (1-Specificity) False Positive Rate (1-Specificity)
+
+Journal of Clinical Monitoring and Computing (2019) 33:39-51 45
+
+ROC Plot, Combined Phase 1 and 2 Data ROC Plot, Combined Phase 1 and 2 Data
+
+1.0 0.7 The false positive correction (FPC)
+NoFPC
+0.8 0.6 WithFPC
+
+0.6
+0.5 0.2 DT
+Sensitivity
+
+Sensitivity
+The false positive correction (FPC)
+NoFPC 0.4
+0.4
+WithFPC
+
+0.2 TestSet: 0.74
+NoFPC: 0.65
+0.2 0.5 DT
+WithFPC: 0.68
+0.0
+
+0.0 0.2 0.4 0.6 0.8 1.0
+0.0 0.1 0.2 0.3 0.4
+False Positive Rate (1-Specificity)
+False Positive Rate (1-Specificity)
+
+Fig. 5 ROC plot from clinical data. The decision threshold markers indicate settings from 0 in the top right to 1 at the bottom left. Fig. 6 ROC plot with error bars. Using combined phase 1 and 2 cliniThe step size is 0.1. Decision threshold markers: crossed circles for cal data, this plot is a zoomed in version of Fig. 4 showing error bars
+Bayesian artificial neural networks (BANN) test set data; solid circle for clinical data with no false positive for the decision threshold (DT) settings of 0.2-0.5
+correction (FPC); solid triangle for clinical data with false positive
+correction
+AvertIT Precision Recall Plot
+---

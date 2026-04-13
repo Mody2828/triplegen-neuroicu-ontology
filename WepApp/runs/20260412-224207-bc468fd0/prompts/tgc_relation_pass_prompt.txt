@@ -1,0 +1,463 @@
+### TASK: Relation Extraction
+You are a clinical ontology engineer. Your task is to find semantic RELATIONS between the classes listed below, using the source text as evidence. Extract every relation the text explicitly supports.
+
+### WHAT IS AN ONTOLOGY RELATION?
+An ontology relation (object property) defines a typed semantic link between two classes. The DOMAIN is the subject; the RANGE is the object.
+Model the SCHEMA of the domain — not individual facts. Think:
+'Every instance of [domain] can be linked via [relation] to an instance of [range].'
+
+### RELATION EXTRACTION METHOD
+Systematically examine class pairs and reason step by step:
+1. Scan the text for sentences where two or more classes co-occur.
+2. For each co-occurrence, determine: what is the semantic nature of the link?
+   (measurement, treatment, assessment, outcome, composition, causation, etc.)
+3. Decide which class is domain (subject) and which is range (object).
+4. Assign a clear, descriptive relation label.
+5. Provide an exact verbatim quote from the text as evidence.
+
+### RELATION PATTERNS
+Patient-centric:
+  - has monitoring data: Patient → Monitoring Data
+  - receives therapy: Patient → Therapy
+  - has outcome: Patient → Outcome
+  - has clinical assessment: Patient → Clinical Assessment
+  - has laboratory value: Patient → Laboratory Values
+  - has nursing intervention: Patient → Nursing Intervention
+  - has surgical procedure: Patient → Surgical Procedure
+  - has session: Patient → Session
+  - has demographic data: Patient → Demographic Data
+Clinical process:
+  - monitoring indicates condition: Monitoring Data → Condition
+  - targets condition: Therapy → Condition
+  - triggers intervention: Condition → Therapy
+  - affected by treatment: Data Quality Assessment → Therapy
+  - associated with condition: Data Quality Assessment → Condition
+Structural:
+  - has observation: Timepoint → Observation
+  - has timepoint: Session → Timepoint
+  - measures parameter: Observation → Parameter
+  - produced by sensor: Observation → Sensor
+  - has quality assessment: Observation → Data Quality Assessment
+  - includes: Category → Member
+  - derived from: DerivedParameter → SourceParameter
+You SHOULD also discover relations not in this list if the text supports them.
+
+### CLASSES IN THE ONTOLOGY
+  - Acute Respiratory Distress Syndrome
+  - Area Under Curve (AUC)
+  - Artefact Detection
+  - Arterial Hypotension
+  - Barbiturates
+  - Bayesian Artificial Neural Network (BANN)
+  - Blood Pressure Measurement
+  - Brain Injury
+  - CPP
+  - Cerebral Perfusion Pressure
+  - Cerebrovascular Autoregulation
+  - Clinical Guidance
+  - Clinical Monitoring
+  - Clinical Outcome
+  - Clinical Setting
+  - Condition
+  - Decision Threshold
+  - Decompressive Craniectomy
+  - Disability
+  - Extended Glasgow Outcome Score
+  - Extracranial Injury
+  - False Positive Rate
+  - GCS Assessment
+  - GOSe Outcome
+  - Glasgow Outcome Score (GOS)
+  - Guideline
+  - Head Injury
+  - Head Trauma
+  - Hypoperfusion
+  - Hypotension
+  - ICP
+  - Intracranial Hypertension
+  - Intracranial Insult
+  - Machine Learning
+  - Mass Lesions
+  - Mean Arterial Pressure (MAP)
+  - Mean Intracranial Pressure (ICP)
+  - Monitoring
+  - Monitoring Data
+  - Monitoring System
+  - Mortality
+  - Neurocritical Care (NCC)
+  - Outcome
+  - Outcome Score (GOS)
+  - Physiological Monitoring
+  - Prebaseline
+  - Pressure Reactivity Index (PRx)
+  - Pressure-time Dose
+  - Pupil Abnormalities
+  - Secondary Brain Injury
+  - Secondary Insult
+  - Sepsis
+  - Septic Shock
+  - Swelling
+  - Traumatic Brain Injury
+  - Traumatic Intracranial Hypertension
+  - Vasopressors
+
+### CLASSES WITH NO RELATIONS (high priority — find connections!)
+  - Area Under Curve (AUC)
+  - Blood Pressure Measurement
+  - Brain Injury
+  - Cerebral Perfusion Pressure
+  - Cerebrovascular Autoregulation
+  - Clinical Guidance
+  - Clinical Monitoring
+  - Clinical Setting
+  - Condition
+  - Decision Threshold
+  - False Positive Rate
+  - Head Injury
+  - Head Trauma
+  - Machine Learning
+  - Mass Lesions
+  - Mean Intracranial Pressure (ICP)
+  - Monitoring
+  - Neurocritical Care (NCC)
+  - Physiological Monitoring
+  - Prebaseline
+  - Pressure Reactivity Index (PRx)
+  - Pressure-time Dose
+  - Secondary Brain Injury
+  - Sepsis
+  - Septic Shock
+  - Swelling
+  - Vasopressors
+
+### EXISTING RELATIONS (do NOT duplicate these)
+  - targets condition(Decompressive Craniectomy → ICP)
+  - has outcome(Traumatic Brain Injury → GOSe Outcome)
+  - is associated with(Traumatic Brain Injury → Mortality)
+  - is a type of(Disability → Secondary Insult)
+  - undergoes treatment(Patient → Decompressive Craniectomy)
+  - has outcome(Patient → GOSe Outcome)
+  - is treated with(Patient → Barbiturates)
+  - has characteristic(Patient → Pupil Abnormalities)
+  - has characteristic(Patient → Secondary Insult)
+  - has characteristic(Patient → Hypotension)
+  - has characteristic(Patient → Extracranial Injury)
+  - evaluates outcome(Decompressive Craniectomy → GOSe Outcome)
+  - measures pressure(ICP → CPP)
+  - administers(Decompressive Craniectomy → Barbiturates)
+  - results in(Decompressive Craniectomy → Disability)
+  - affects(Traumatic Brain Injury → Traumatic Intracranial Hypertension)
+  - evaluates outcome(Decompressive Craniectomy → Outcome)
+  - has outcome(Traumatic Intracranial Hypertension → Outcome)
+  - is a type of(Decompressive Craniectomy → Therapy)
+  - affects outcome(Intracranial Hypertension → Outcome Score (GOS))
+  - is a type of(Traumatic Brain Injury → Intracranial Hypertension)
+  - is monitored by(CPP → Monitoring Data)
+  - is assessed by(GCS Assessment → Traumatic Brain Injury)
+  - predicts outcome(Intracranial Hypertension → Outcome Score (GOS))
+  - has outcome(Patient → Glasgow Outcome Score (GOS))
+  - monitors(ICP → CPP)
+  - predicts outcome(Monitoring Data → Outcome)
+  - is associated with(ICP → Mortality)
+  - is associated with(CPP → ICP)
+  - influences(ICP → CPP)
+  - influences(Mean Arterial Pressure (MAP) → CPP)
+  - associated with(CPP → Acute Respiratory Distress Syndrome)
+  - guideline for(Guideline → CPP)
+  - predicts(Bayesian Artificial Neural Network (BANN) → Hypotension)
+  - is a risk factor for(Traumatic Brain Injury → Secondary Insult)
+  - is related to(Hypotension → Outcome)
+  - is a type of(Secondary Insult → Intracranial Insult)
+  - has GCS score(Traumatic Brain Injury → GCS Assessment)
+  - has hypotension(Traumatic Brain Injury → Hypotension)
+  - has heart rate(Traumatic Brain Injury → Heart Rate)
+  - has blood pressure(Traumatic Brain Injury → Mean Arterial Pressure (MAP))
+  - has mean arterial pressure(Traumatic Brain Injury → Mean Arterial Pressure (MAP))
+  - predicts(Monitoring System → Hypotension)
+  - affects(Hypotension → Clinical Outcome)
+  - requires(Monitoring System → Artefact Detection)
+  - has outcome(Decompressive Craniectomy → Extended Glasgow Outcome Score)
+  - is associated with(Intracranial Hypertension → Mortality)
+  - is treated with(Traumatic Brain Injury → Barbiturates)
+  - affects(Traumatic Brain Injury → Pupil Abnormalities)
+  - has characteristic(Traumatic Brain Injury → Arterial Hypotension)
+  - has characteristic(Traumatic Brain Injury → Extracranial Injury)
+  - is associated with(Intracranial Hypertension → Hypoperfusion)
+
+### EVIDENCE RULES (CRITICAL)
+- The 'evidence' field MUST be an exact verbatim quote from the SOURCE TEXT.
+- Evidence should mention or imply at least one endpoint class.
+- Do NOT reuse the same evidence for multiple relations.
+- Do NOT invent or paraphrase — if no supporting text exists, skip.
+- Use the abstract superclass as the range (e.g., 'Monitoring Data' not 'ICP').
+
+### DEFINITION REQUIREMENT
+Every relation MUST include a `definition` field: a concise one-sentence description of what the relation means between domain and range.
+
+### OUTPUT FORMAT (JSON only, no commentary)
+{
+  "relations": [{"label": "rel_name", "domain": "DomainClass", "range": "RangeClass", "definition": "one-sentence description", "evidence": "exact quote from text"}]
+}
+
+Extract as many valid relations as the text supports. Be thorough — especially for the classes that currently have NO relations.
+
+### SOURCE TEXT
+Injury 54 (2023) 110911
+
+Decompressive craniectomy as a second/third-tier intervention in
+traumatic brain injury: A multicenter observational study
+Brecht Decraene a, *, Samuel P Klein a, Ian Piper b, Barbara Gregson c, Per Enblad d,
+Arminas Ragauskas e, Giuseppe Citerio f, Iain Chambers g, Jan-Oliver Neumann h,
+Juan Sahuquillo i, Karl Kiening h, Laura Moss b, Pelle Nilsson d, Rob Donald j, Tim Howells d,
+Milly Lo k, Bart Depreitere a
+a
+University Hospitals Leuven, Leuven, Belgium
+b
+Southern General Hospital, Glasgow, United Kingdom
+c
+Newcastle University, Newcastle, United Kingdom
+d
+Uppsala University, Uppsala, Sweden
+e
+Kaunas University of Technology, Kaunas, Lithuania
+f
+University of Milano-Bicocca, Milano, Italy
+g
+James Cook University Hospital, Middlesbrough, United Kingdom
+h
+Universitätsklinikum Heidelberg, Heidelberg, Germany
+i
+University Hospital Vall d ́ Hebron, Barcelona, Spain
+j
+Stats Research, Scotland, United Kingdom
+k
+University of Edinburgh, Edinburgh, United Kingdom
+
+A R T I C L E I N F O A B S T R A C T
+
+Keywords: Objectives: RESCUEicp studied decompressive craniectomy (DC) applied as third-tier option in severe traumatic
+Traumatic brain injury brain injury (TBI) patients in a randomized controlled setting and demonstrated a decrease in mortality with
+Decompressive craniectomy similar rates of favorable outcome in the Decompressive craniectomy (DC) group compared to the medical management group. In many
+Neurointensive care
+centers, Decompressive craniectomy (DC) is being used in combination with other second/third-tier therapies. The aim of the present study is to
+Intracranial pressure
+investigate outcomes from Decompressive craniectomy (DC) in a prospective non-RCT context.
+Cerebral autoregulation
+Introduction TBI management
+
+Traumatic brain injury (TBI) Methods: This is a prospective observational study of 2 patient cohorts: one from the University Hospitals Leuven
+(2008-2016) and one from the Brain-IT study, a European multicenter database (2003-2005). In thirty-seven
+patients with refractory elevated intracranial pressure who underwent Decompressive craniectomy (DC) as a second/third-tier intervention,
+patient, injury and management variables including physiological monitoring data and administration of thio­
+pental were analysed, as well as Extended Glasgow Outcome score (GOSE) at 6 months.
+Results: In the current cohorts, patients were older than in the surgical RESCUEicp cohort (mean 39.6 vs. 32.3; p
+< 0.001), had higher Glasgow Motor Score on admission (GMS < 3 in 24.3% vs. 53.0%; p = 0.003) and 37.8%
+received thiopental (vs. 9.4%; p < 0.001). Other variables were not significantly different. Glasgow Outcome Scale (GOSE) distribution
+was: death 24.3%; vegetative 2.7%; lower severe disability 10.8%; upper severe disability 13.5%; lower mod­
+erate disability 5.4%; upper moderate disability 2.7%, lower good recovery 35.1%; and upper good recovery
+5.4%. The outcome was unfavorable in 51.4% and favorable in 48.6%, as opposed to 72.6% and 27.4%
+respectively in RESCUEicp (p = 0.02).
+Conclusion: Outcomes in Decompressive craniectomy (DC) patients from two prospective cohorts reflecting everyday practice were better than
+in RESCUEicp surgical patients. Mortality was similar, but fewer patients remained vegetative or severely
+disabled and more patients had a good recovery. Although patients were older and injury severity was lower, a
+potential partial explanation may be in the pragmatic use of Decompressive craniectomy (DC) in combination with other second/third-tier
+therapies in real-life cohorts. The findings underscore that Decompressive craniectomy (DC) maintains an important role in managing se­
+vere Introduction TBI management
+
+Traumatic brain injury (TBI).
+
+B. Decraene et al. Injury 54 (2023) 110911
+
+Introduction Introduction TBI management
+
+Traumatic brain injury (TBI) management
+
+Traumatic brain injury (TBI) constitutes a major health and socio­ First-tier (30◦ head elevation, neuromuscular paralysis, analgesia,
+economic problem that requires prompt management and is associated continued/deepened sedation, normocapnia and normothermia) and
+with high mortality and morbidity rates. In Europe, the incidence of second-tier treatments (deepening of sedation, cerebrospinal fluid
+Introduction TBI management
+
+Traumatic brain injury (TBI)-related hospitalization is estimated at 2.1 million/year, of which drainage, moderate hypocapnia, administration of hyperosmolar mole­
+approximately 82,000 patients will die. Uncontrollable intracranial cules) were used at the discretion of the managing teams. When despite
+hypertension is a major cause of death in patients with severe traumatic first and second-tier interventions Mean intracranial pressure (ICP) remained unacceptably high or
+brain injury. Therefore, one of the cornerstones of brain-protective followed a malignant course, Decompressive craniectomy (DC) was chosen as a next step, with or
+strategies is to reduce and control intracranial pressure (ICP), thereby without first having applied third-tier medical therapy with barbiturates
+avoiding secondary ischemic damage from associated hypoperfusion (thiopental). In some patients that underwent Decompressive craniectomy (DC), third-tier therapies. were used in combination. As for Decompressive craniectomy (DC), both hemicraniectomy (unilateral
+Decompressive craniectomy (DC) is a surgical technique originally frontotemporoparietal craniectomy) and bifrontal craniectomy were
+described by Kocher in 1901. However, this technique was aban­ performed.
+doned in the following decades because of high complication rates. Since
+the 1980s, Decompressive craniectomy (DC) in severe Introduction TBI management
+
+Traumatic brain injury (TBI) has been the subject of a revival due to Data collection
+advancing technical and medical standards. From a purely theoret­
+ical perspective, Decompressive craniectomy (DC) could be considered both as a first-tier option in For each patient, the following data were captured: age, sex, earliest
+situations of raised Mean intracranial pressure (ICP) or as a treatment of last resort in a tiered post-resuscitation Glasgow Coma Scale (GCS), earliest post-resuscitation
+approach, i.e., when less invasive treatments fail. However, Decompressive craniectomy (DC) as a pupil reactivity, Marshall score of the last scan before surgery, extra­
+first-tier option was demonstrated to result in worse outcomes in the cranial injuries, the occurrence of arterial hypotension (systolic pressure
+2011 DECRA randomized controlled trial, where it was instituted at the less than 90 mmHg) and hypoxia (SaO2 below 90%) at baseline, type of
+second episode of Mean intracranial pressure (ICP) rise above 20 mmHg. As opposed to DECRA, Decompressive craniectomy (DC), and barbiturate administration. The outcome was captured at six
+the 'Randomized Evaluation of Surgery with Craniectomy for Uncon­ months using the extended Glasgow Outcome Scale (GOSE). In
+trollable Elevation of Intracranial Pressure' (RESCUEicp) study, aimed this study a Glasgow Outcome Scale (GOSE) of 4 or less was considered unfavorable, in accordance
+at assessing the effectiveness of Decompressive craniectomy (DC) as a last-tier intervention in patients with the RESCUEicp analysis.
+with severe Introduction TBI management
+
+Traumatic brain injury (TBI) and refractory intracranial hypertension. The results The Therapy Intensity Level scale (TIL basic version) was used to
+of RESCUEicp showed that Decompressive craniectomy (DC) resulted in lower mortality rates, but assess the intensity of Mean intracranial pressure (ICP)-lowering strategies until immediately before
+higher rates of vegetative state and severe disability at six months Decompressive craniectomy (DC). The 'International Mission for Prognosis and Analysis of Clin­
+compared to medical care. The proportions of patients in the best ical Trials in Introduction TBI management
+
+Traumatic brain injury (TBI)' (IMPACT) extended prognostic scores, and the
+outcome categories were not different. Inherently, RCT protocols are 'Corticosteroid Randomization after Significant Head Injury' (CRASH)
+strictly designed and may often differ from real-life decision-making, prognostic scores were calculated for all patients based on admission
+that is tailored and in which combinations of therapies are often applied. variables. Impact scores produce a probability for six month mortality
+The aim of the present study is to verify these findings and evaluate the and six month unfavorable outcome (Glasgow Ouctome scale - Glasgow Outcome Scale (GOS) 1-3)
+outcomes of Decompressive craniectomy (DC) in 2 historical cohorts of patients with severe Introduction TBI management
+
+Traumatic brain injury (TBI) with. CRASH scores predict the risk of 14 days mortality and six-month
+prospective data collection and outcome registration. Notably, both unfavorable outcome (GOS 1-3).
+cohorts reflect everyday practice and associated pragmatic The administration of a pentothal as well as whether it was given
+decision-making. before and/or, after or during Decompressive craniectomy (DC) was also registered. In addition, we
+included data on the time between arrival at the emergency department
+Materials and methods and the timing of the Decompressive craniectomy (DC). We could retrieve whether or not patients
+underwent a cranioplasty before 6-month outcome scoring for UHL
+Study population patients.
+Mean intracranial pressure (ICP), mean cerebral perfusion pressure
+Prospectively collected data from all Introduction TBI management
+
+Traumatic brain injury (TBI) patients who underwent Decompressive craniectomy (DC) (CPP) and mean pressure reactivity index (PRx) were calculated six
+enrolled in the Brain-IT database were reviewed. The Brain-IT database hours before and seven days after Decompressive craniectomy (DC) for each patient. Also, the median
+is a multicenter prospective observational validated database that ran in percentage of monitoring time with Mean intracranial pressure (ICP)> 20 mmHg, Mean intracranial pressure (ICP)>25 mmHg,
+22 Intensive Care Unit (ICU)'s in 11 countries between July 2003 and October 2006. The Cerebral Perfusion Pressure (CPP)<60 mmHg and Pressure Reactivity Index (PRx)>0 in six hours pre- and seven days post-Decompressive craniectomy (DC) was
+granted the use of these data for scientific purposes on February 14, pertension index 20′, ''median intracranial hypertension index 25′,
+2002. A second cohort of patients was taken from the University Hos­ 'median intracranial hypoperfusion index 60′ and 'median Pressure Reactivity Index (PRx) index 0′,
+pitals Leuven (UHL) database between September 2010 and October respectively (see footnote of table 3 for further explanation). Pressure Reactivity Index (PRx) is the
+2016. UHL has a policy of digital storage of all physiological monitoring moving correlation between mean arterial blood pressure (MAP) and
+data collected through its Patient Data Management System and pro­ Mean intracranial pressure (ICP). It is calculated as a moving Pearson correlation coefficient between
+spectively collecting six month extended Glasgow Outcome Scores in all changes in 30 consecutive ten second-averages of the ratio between Mean Arterial Pressure (MAP)
+Introduction TBI management
+
+Traumatic brain injury (TBI) patients. Local Ethical Committee approval to use the anonymized and Mean intracranial pressure (ICP). It has values between - 1 and 1, with higher values
+data for this analysis was obtained. For this study, only patients who reflecting an indirect measure of more impaired cerebral autoregulation.
+underwent a Decompressive craniectomy (DC) as a second- or third-tier (last-tier) intervention were The six hours interval pre-Decompressive craniectomy (DC) was chosen as it enables comparison with
+included. Patients with intracranial hypertension treated conservatively the RESCUEicp data.
+were excluded, as well as patients who underwent a Decompressive craniectomy (DC) as a first-tier
+intervention, and patients with bilateral fixed and dilated pupils. The Statistical analysis
+Brain-IT database contained 16 eligible Decompressive craniectomy (DC) patients and the UHL cohort
+21. In the following sections both cohorts together are referred to as the Categorical variables were compared using the chi-square tests with
+RESCUEicp trial (RCT group). one-tailed exact p-value) while continuous variables were analyzed
+using Mann-Whitney U tests. Continuous variables pre-and post-Decompressive craniectomy (DC) (of
+the non-RCT group) were compared using the Wilcoxon matched-pairs
+
+B. Decraene et al. Injury 54 (2023) 110911
+
+signed-rank test. Data were compared between the non-RCT group and Table 2
+the surgical patients of the RESCUEicp (RCT) group. When possible, Treatment characteristics of non-RCT patients and RESCUEicp patients a.
+collected data are shown in both absolute numbers (with 'number of UHL Brain- UHL & RESCUEicp
+patients' as unit), as well as relative (fraction of patients for which it a IT Brain-IT Surgical
+certain value applies, expressed in percentages); as well as mean or group
+median values (mostly expressed as a percentage). A p-value less than Decompressive
+0.05 was considered significant. No correction for multiple testing was craniectomy 19/21 N/A N/A 109/173
+Bifrontal - no. (%) 2/21 64/173
+Statistics version 28. (9.5) (47.0)
+Barbiturates 11/21 3/16 14/37 19/201
+Results (52.4) (18.8) (37.8) (9.4)
+Barbiturate
+administration: 1/21 1/16 2/37 N/A
+Patient, injury and management characteristics
+Pre-Decompressive craniectomy (DC) - no. (%) (4.8) (6.3) (5.4)
+Post-Decompressive craniectomy (DC) - no. (%) 8/21 2/16 10/37 N/A
+Thirty-seven patients who underwent a Decompressive craniectomy (DC) in the Brain-IT database (38.1) (12.5) (27.0)
+and in the UHL cohort were eligible for inclusion (further referred to as Pre-& post-Decompressive craniectomy (DC) - 2/21 0/16 (0) 2/37 N/A
+the non-RCT group). Patient, injury and management characteristics are no. (%) (9.5) (5.4)
+Time between arrival at 67.7 18.7 51.0 N/A
+summarized in Tables 1 and 2. Four patients were aged less than 18 emergency department (110.0) (80.9) (84.6)
+years. The non-RCT group had a mean age of 39.6 years and was pre­ and Decompressive craniectomy (DC) b - h (IQR)
+dominantly male. Cranioplasty at six months 15/21 N/A N/A N/A
+The median initial Glasgow Motor Score (GMS) was 4, while 24.3% - no. (%) (71.4)
+Introduction TBI management
+
+Traumatic brain injury (TBI) treatment & prognostic
+of all patients had a The median initial Glasgow Motor Score (GMS) below 3. Pupil abnormalities were seen in
+scores c
+34.4% of our patients. Hypoxia and arterial hypotension were found in IMPACT - median -%
+10.0% and 6.1%, respectively. Non-evacuated mass lesions according to (IQR)
+the Marshall classification were observed in 26.5% of the non-RCT Core mort. 22 27 24 N/A
+group and 45.9% presented with an additional extracranial injury. (14-30) (19-54) (15-31)
+Core unfav. 40 40 40 N/A
+37.8% of patients (14 in absolute numbers) were treated with bar­
+(22-45) (35-69) (32-50)
+biturates in combination with Decompressive craniectomy (DC); ten of these received it only after Decompressive craniectomy (DC), Extended Core 20 24 21 N/A
+two only before and two received it before and after Decompressive craniectomy (DC). The patients mort. (14-26) (15-52) (14-35)
+who received pre-Decompressive craniectomy (DC) barbiturates did not significantly differ from the Extended core 32 42 37 N/A
+unfav. (30-50) (28-69) (29-53)
+group who did not receive it in terms of median mean pre-operative Mean intracranial pressure (ICP)
+Lab mort. 17 26 18 N/A
+(p = 0.571), median The median initial Glasgow Motor Score (GMS) or median total Glasgow Coma Scale (GCS) (p = 0.654 and p = (11-23) (15-39) (11-31)
+Lab unfav. 33 40 35 N/A
+(20-48) (27-66) (22-58)
+Table 1 CRASH -median -%
+Patient and injury characteristics of non-RCT patients and RESCUEicp patients. (IQR)
+Mort. 11 14 12 N/A
+UHL Brain- UHL & RESCUEicp
+(6-18) (7-41) (6-34)
+IT Brain-IT Surgical
+Unfav. 44 52 46 N/A
+group
+(22-57) (29-71) (28-67)
+Number of 21 16 37 202 Therapy Intensity Level (TIL) basic - no. (%)
+patients Score 0 2/21 0/15 (0) 2/36 N/A
+Age - mean - 38.9 40.6 (17 39.6 (16 32.3 (10 - P< (9.5) (5.6)
+years (range) (16 - - 72) - 72) 65) 0.001a Score 1 1/21 4/15 5/36 N/A
+70) (4.8) (26.7) (13.9)
+Glasgow Motor P= Score 2 7/21 3/15 10/36 N/A
+Score b 3/21 6/16 9/37 96/181 0.003 (33.3) (20) (27.8)
+1 - 2 - no. (14.3) (37.5) (24.3) (53.0) Score 3 10/21 7/15 17/36 N/A
+(%) 18/21 10/16 28/37 85/181 (47.6) (46.7) (47.2)
+3 - 6 - no. (85.7) (62.5) (75.6) (47.0) Score 4 1/21 1/15 2/36 N/A
+(%) (4.8) (6.7) (5.6)
+Abnormal pupils 4/21 7/11 11/32 59/202 p= a
+c
+- no. (%) (19.0) (63.6) (34.4) (29.2) 0.70 standard deviation=SD. For the (IQR) = Interquartile range. Mort. = mortality. Unfav
+Barbiturate - no. 11/21 3/16 14/37 19/202 P< = unfavorable.
+b
+(%) (52.4) (18.8) (37.8) (9.4) 0.001 Time between arrival at the emergency department and Decompressive craniectomy (DC) could be
+Extracranial 8/21 9/16 17/37 75/202 p= calculated for 20 out of 21 UHL patients and 15 out of 16 Brain-IT patients.
+injury - no. (%) (38.1) (56.0) (45.9) (37.1) 0.41 c
+All three scoring models and submodalities could be calculated for all 21
+Hypoxia - no. (%) 3/19 0/11 (0) 3/30 49/202 p= UHL patients. For Brain-IT patients TILbasic and CRASH could be calculated for
+(15.8) (10.0) (24.3) 0.13 15 out of 16 patients, IMPACT Core for all 16 patients, IMPACT Extended for 13/
+Hypotension - no. 1/21 1/12 2/33 40/202 p=
+16 patients and IMPACT lab for 9/16 patients.
+(%) (4.8) (8.3) (6.1) (19.8) 0.10
+Marshall score p=
+Diffuse - 17/21 8/13 25/34 161/198 0.41 0.114), average age (p = 0.654) or Marshall score (p = 0.661). Also, no
+no. (%) (81.0) (61.5) (73.5) (81.3) significant differences in recorded patient and injury characteristics
+NEML - no. 4/21 5/13 9/34 37/198
+(%) (19.0) (38.5) (26.5) (18.7)
+were found between patients who received barbiturates before Decompressive craniectomy (DC) and
+those who received it after Decompressive craniectomy (DC) (data not shown).
+a
+P-values of the differences between the 'UHL&Brain-IT group' and the The median time between arrival and Decompressive craniectomy (DC) was 51.0 h. About half of
+'RESCUEicp Surgical group'.
+b
+our patients received a Decompressive craniectomy (DC) after almost all other nonsurgical measures
+The Glasgow Motors Score was used for assessing motor impairment. The
+had been exhausted (TIL 3). The Therapy Intensity Level (TIL) scores before Decompressive craniectomy (DC) were 0 in 6%, 1 in
+score ranges from 1 to 6 with lower scores indicating greater impairment.
+c 14%, 2 in 28%, 3 in 47% and 4 in 6%.
+Pupil abnormality was defined as the presence of two unreactive pupils or
+anisocoria. Of the 21 UHL patients, 19 underwent a hemicraniectomy and 2 a
+
+B. Decraene et al. Injury 54 (2023) 110911
+
+bifrontal Decompressive craniectomy (DC), and 15 patients received a cranioplasty before 6 months. Table 3
+Outcome, intracranial pressure and cerebral autoregulation characteristics a,b,c.
+Physiological data UHL Brain-IT UHL & RESCUEicp
+Brain-IT Surgical
+Decompressive craniectomy (DC) resulted in an absolute reduction in median mean Mean intracranial pressure (ICP) from 19.5 group
+to 13.9 mmHg (p = 0.001) and a reduction in the median percentage Intracranialtime Mean intracranial pressure (ICP) was above 20 (from 32.8 to 5.2; p = 0.066) and above 25 (from pressure
+3.7 to 0.4; p = 0.114), as shown in Table 3 and supplementary table 2. A control
+Median mean 18.9 20.0 19.5 14.5
+varying effect on Cerebral Perfusion Pressure (CPP) was seen, as well as a trend of reduction in median Mean intracranial pressure (ICP) pre-Decompressive craniectomy (DC) (15.7-22.9) (19.5-21.5) (17.7-22.9) (1.7-18.0)
+intracranial hypoperfusion index 60 (21.0 to 8.5; p = 0.114). The (IQR) -
+reduction in median Pressure Reactivity Index (PRx) index above 0 was non-significan

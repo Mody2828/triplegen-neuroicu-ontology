@@ -1,0 +1,410 @@
+============================================================
+RUN SUMMARY  —  TripleGen Ontology Engineering Framework
+============================================================
+
+--- Metadata ---
+Run ID:          20260413-003813-3a92b719
+Timestamp (UTC): 2026-04-13T00:51:00.903822
+Method:          Few-Shot
+Pipeline mode:   Schema-Completed
+LLM provider:    google gemini-2.0-flash
+Reasoning LLM:   openai GPT-4o-mini
+Improvements:    Text-grounded completion (built-in), Schema-guided completion, Rule-based Reasoning Layer (optional)
+Eval settings:   Scope filter (clinical-only chunks), Medical NER anchor (experimental)
+
+--- Input paper(s) ---
+  • 10.Decraene et al. 2023 — Decompressive craniectomy as a secondt.txt
+  • 11.Güiza et al. (2015) - Visualizing the pressure and time burde.txt
+  • 8.Depreitere et al. 2018 — Cerebral Perfusion Pressure Variabili.txt
+  • 9.Donald R, Howells T, Piper I, et al. (2019) Forewarning of hyp.txt
+
+--- Improvement counts (for ablation / fairness) ---
+  Text-grounded completion (built-in): classes_added=10, relations_added=8, hierarchy_added=87
+  Schema-guided completion: classes_added=27, relations_added=6, hierarchy_added=45
+  Built-in cleanup (always active): includes_to_hierarchy=0, relation_labels_normalized=10, relations_range_normalized=47, classes_removed_dedupe=4, relations_removed_dedupe=31, hierarchy_removed_dedupe=9, out_of_scope_classes_removed=14, abstract_data_classes_removed=0, broad_contextual_classes_removed=0, classes_removed_evidence=1, endpoints_auto_added=26, relations_pruned_scope=0, hierarchy_pruned_scope=0, hierarchy_pruned_dangling=3, relations_pruned=0, relations_removed_evidence=4, hierarchy_fragments_removed=0, hierarchy_edges_corrected=10, hierarchy_scaffolded=3, hierarchy_removed_axiom=0, relations_removed_axiom=0, hierarchy_cycles_removed=0, hierarchy_completeness={'orphan_count': 59, 'total_classes': 178, 'orphan_rate': 0.331, 'orphan_rate_warning': False}, hierarchy_added=0, orphans_removed=0
+  Orphan Rescue (connect isolated classes): orphans_found=32, relations_added=12, hierarchy_added=2
+  Post-orphan scope cleanup: out_of_scope_removed=0
+  LLM CoT Refinement (semantic quality review): classes_removed=2, relations_removed=2, hierarchy_removed=0, hierarchy_corrected=1
+  Rule-based Reasoning Layer (optional): hierarchy_added=6, orphans_removed=13
+
+
+  Text-grounded completion (built-in): +10 classes, +8 relations, +87 hierarchy edges recovered from source text in second-pass extraction.
+
+  Orphan Rescue: 32 orphaned classes found → +12 relations, +2 hierarchy edges inferred from source text.
+
+  LLM CoT Refinement: -2 classes, -2 relations, -0 hierarchy removed; 1 hierarchy edges corrected.
+
+--- Metrics summary (final ontology) ---
+  Coverage:        88.17%
+  Precision:       50.00%
+  Recall:          88.17%
+  Errors:          hallucinations=0, schema_violations=0, omissions=0
+  Structural:      hierarchy_edges=135, hierarchy_coverage=0.87, relation_domain_range_rate=1.00
+  Clinical-only:   coverage=88.17%, precision=50.00%, recall=88.17%
+  Relations:       precision=83.78%, recall=61.11%, n_generated=37, n_gold=18
+  Hierarchy:       precision=45.52%, recall=80.26%, matched=61, n_generated=134, n_gold=76
+
+--- Metrics at extraction only (pre-improvement baseline) ---
+  Coverage:        43.01%
+  Precision:       29.85%
+  Recall:          43.01%
+  Structural:      hierarchy_edges=4, hierarchy_coverage=0.05, relation_domain_range_rate=1.00
+  Relations:       precision=98.00%, recall=44.44%, n_generated=50
+
+--- Per-stage ablation (pipeline progression) ---
+  Stage                   Classes   Rels   Hier   Coverage  Precision     Recall
+  --------------------------------------------------------------------------
+  Extraction                  134     50      4     43.01%     29.85%     43.01%
+  + Text-grounded             144     58     91     44.09%     28.47%     44.09%
+  + Schema-Guided             171     64    136     65.59%     35.67%     65.59%
+  + Cleanup                   178     27    127     88.17%     46.07%     88.17%
+  + Orphan Rescue             179     39    129     88.17%     45.81%     88.17%
+  + LLM Refinement            177     37    129     88.17%     46.33%     88.17%
+  + Rule-based                164     37    135     88.17%     50.00%     88.17%
+
+--- Concept counts (final ontology) ---
+  Classes:         164
+  Relations:       37
+  Hierarchy edges: 135
+
+--- Classes ---
+  • Decompressive craniectomy — A surgical technique used as a second/third-tier intervention in traumatic brain injury to reduce intracranial pressure.
+  • Traumatic Brain Injury — Damage to the brain caused by external mechanical force, potentially leading to permanent or temporary impairment of cognitive, physical, and psychosocial functions.
+  • Mortality — The state of being subject to death, often used as a measure of outcome in clinical studies.
+  • Neurointensive Care — Specialized care for patients with neurological injuries or conditions, often involving advanced monitoring and therapies.
+  • Intracranial Pressure — The pressure inside the skull, investigated for its instability's impact on outcome in patients with severe head trauma.
+  • Cerebrovascular Autoregulation — The brain's ability to maintain constant blood flow despite changes in blood pressure, impacting tolerance to intracranial pressure insults.
+  • Patient — An individual receiving medical care or treatment.
+  • Physiological Monitoring Data — Data collected from monitoring devices that reflect the patient's physiological state.
+  • Barbiturates — A barbiturate medication used in the management of elevated intracranial pressure.
+  • GOSe Outcome — Extended Glasgow Outcome Scale score at 6 months post-injury, measuring functional recovery.
+  • GCS Assessment — A neurological scale used to assess the level of consciousness in patients, measured at admission to the pre-neurosurgery hospital and at admission to the neurosurgery Intensive Care Unit (ICU).
+  • Severe Disability — A state of significant impairment in physical or mental function.
+  • Good Recovery — A state of functional recovery after an injury or illness.
+  • Baseline Therapy — A state of normal carbon dioxide levels in the blood.
+  • Paralysis — The use of medication to induce temporary paralysis of the muscles.
+  • Analgesia — The use of medication to relieve pain.
+  • Sedation — The use of medication to induce a state of calmness or sleep.
+  • Intracranial Hypertension — A condition characterized by increased pressure inside the skull, impacting clinical outcomes in traumatic brain injury patients.
+  • Bifrontal Craniectomy — A surgical procedure involving the removal of a portion of the skull in the frontal region on both sides of the head.
+  • Arterial Hypotension — Abnormally low blood pressure in the arteries, for which there is no universally accepted definition used during clinical management.
+  • Secondary Insult — A condition or event that occurs after the primary injury and worsens the patient's condition, measured in head-injured patients during intensive care.
+  • Therapy Intensity Level Scale — A scale used to assess the intensity of intracranial pressure-lowering strategies.
+  • Gos 1-3 — A score on the Glasgow Outcome Scale indicating vegetative state or severe disability, representing a poor neurological outcome.
+  • Cerebral Perfusion Pressure — The pressure gradient driving blood flow to the brain, influenced by Intracranial Pressure (ICP) and Mean Arterial Pressure (MAP), and targeted by clinical policies.
+  • Pressure Reactivity Index — An index that reflects the relationship between intracranial pressure and arterial blood pressure, used to assess cerebral autoregulation.
+  • Mean Arterial Pressure — The average arterial blood pressure during a cardiac cycle, influencing Cerebral Perfusion Pressure (CPP) and targeted by therapeutic actions.
+  • Pupil Abnormality — An abnormality of the pupil, defined as the presence of two unreactive pupils or anisocoria.
+  • Cranioplasty — Surgical repair of a skull defect, typically using the original bone flap.
+  • Hypotension — A condition defined as systolic arterial pressure (BPs) ≤ 90 mmHg or mean arterial pressure (BPm) ≤ 70 mmHg sustained for at least 5 min.
+  • Extracranial Injury — An injury occurring outside the skull.
+  • CT Scan Assessment — A classification system for traumatic brain injury based on CT scan findings.
+  • Therapy Intensity Level (TIL) — A score quantifying the intensity of ICP-directed treatments administered.
+  • Intracranial Hypoperfusion — Reduced blood flow to the brain.
+  • Vegetative State — A state of impaired consciousness with absent awareness of self and environment.
+  • Disability — A physical or mental condition that limits a person's movements, senses, or activities.
+  • Mean Intracranial Pressure (ICP) — The average pressure inside the skull, a key physiological parameter monitored in neurocritical care.
+  • Condition — An increase in the volume of brain tissue, often caused by mass lesions and ischaemic mechanisms.
+  • Traumatic Intracranial Hypertension — Elevated pressure within the skull caused by traumatic brain injury.
+  • Outcome — A measure of patient recovery or clinical result, which can be negatively affected by arterial hypotension.
+  • Clinical Outcome — The result of a medical intervention on a patient's health status.
+  • Standard Medical Treatment — The usual and customary medical care provided to patients, serving as a comparator in clinical trials.
+  • Glasgow Outcome Scores — A scale used to measure the overall functional outcome after brain injury.
+  • Monitoring — Continuous observation of a patient's physiological parameters, which can be intensified with early warning of hypotensive events.
+  • TBI Guidelines — Clinical guidelines that recommend a Cerebral Perfusion Pressure (CPP) range, influencing clinical practice and Cerebral Perfusion Pressure (CPP) targets.
+  • Intervention — A treatment or procedure undertaken to improve a patient's condition.
+  • Third-tier Treatment — A treatment option used after first and second-tier treatments have failed.
+  • Second-tier Therapies — A treatment option used after first-tier treatments have failed.
+  • Neurological Outcome — The state of a patient's nervous system function after a medical intervention or injury, measured at 6 months post-injury.
+  • Secondary Injury — Brain damage that occurs after the initial traumatic event, often due to factors like increased intracranial pressure.
+  • Outcome Score (GOS) — A measure of a patient's recovery or clinical result following treatment, visualized using a contour for zero correlation.
+  • Intracranial Pressure Insults — Episodes of elevated intracranial pressure, defined by intensity and duration, used to assess the impact on patient outcomes.
+  • Pupil Assessment — Clinical evaluation of pupil size and reactivity to light as a neurological indicator.
+  • Monitoring Data — Continuously recorded physiological measurements collected from bedside monitors.
+  • Monitoring Time — The duration over which a patient's physiological parameters are continuously measured and recorded.
+  • Active Autoregulation Insults — Cerebrovascular insults occurring when autoregulation is active, affecting cerebral blood flow.
+  • Passive Autoregulation Insults — Cerebrovascular insults occurring when autoregulation is passive, affecting cerebral blood flow.
+  • Gos Outcome Score — A score on the Glasgow Outcome Scale, used to assess a patient's long-term functional outcome after brain injury.
+  • Insult Intensity — The magnitude or severity of a physiological disturbance or injury.
+  • Insult Duration — The length of time for which a physiological disturbance or injury persists.
+  • Dose — A defined amount of intracranial pressure above a certain threshold.
+  • Time Pressure Burden — The duration and intensity of intracranial pressure, identified for a range of ICPs.
+  • Secondary Brain Injury — Brain damage that occurs after the initial injury, often due to factors like increased intracranial pressure.
+  • Clinical Examination — A physical assessment of a patient's condition by a healthcare professional.
+  • Multimodality Monitoring — The use of multiple monitoring techniques to assess a patient's condition.
+  • Assessment of Autoregulation — Evaluation of the brain's ability to maintain constant blood flow despite changes in perfusion pressure.
+  • Aggressive Therapy — Intensive medical interventions aimed at treating a condition.
+  • Intracranial Pressure (icp)-lowering Treatments — Medical interventions aimed at reducing pressure inside the skull.
+  • Vasopressors — Vasoactive drugs administered to maintain adequate blood pressure and cerebral perfusion.
+  • Ischaemia — A condition of insufficient blood flow to the brain, potentially associated with low Cerebral Perfusion Pressure (CPP).
+  • Acute Respiratory Distress Syndrome — A severe lung condition potentially associated with vasopressors in the Cerebral Perfusion Pressure (CPP) > 70 mmHg group.
+  • Neurocritical Care (NCC) — Specialized care for patients with life-threatening neurological conditions, where early warning of hypotensive events is beneficial.
+  • Clinical Assessment — Evaluation of a patient's condition, which can be improved with early warning of hypotensive events.
+  • Treatment — Therapeutic interventions given to patients, recorded as episodic data in the BrainIT database.
+  • Laboratory Value — Results from routine blood samples, recorded as episodic data in the BrainIT database.
+  • Physiological Data — Measurements of bodily functions and vital signs, collected at high resolution for research purposes in TBI patients.
+  • Demographic Data — Patient information such as age, gender, and time of injury, collected in the BrainIT database.
+  • Critically Low Blood Pressure — A dangerous state of low blood pressure that is a secondary insult.
+  • Clinical Data — Information related to patient health and treatment, collected in a standardized manner for research purposes.
+  • Injury — Physical damage or harm to the body, classified into types such as fall, road traffic accident, pedestrian, unknown, assault, and sports related.
+  • Patient Outcome — The result of medical treatment or intervention on a patient's health status.
+  • Demographic Parameter — Characteristics of a population, such as age and gender, used in predictive models.
+  • Heart Rate — The number of cardiac contractions per minute, used as a physiological variable in predictive models.
+  • Temperature — Body temperature, a parameter tested for inclusion in predictive models.
+  • Arterial Oxygen Saturation — Arterial oxygen saturation, a parameter tested for inclusion in predictive models.
+  • Arterial Blood Pressure Readings — Measurements of blood pressure in the arteries, subject to checks to minimize false positives.
+  • Pulse Pressure — The difference between systolic and diastolic blood pressure (BPs-BPd), used as an indicator of potential faults in the pressure measuring system.
+  • Age Demographic — A demographic variable representing the age of patients in the study.
+  • Sex Demographic — A demographic variable representing the sex of patients in the study.
+  • Head Injury — Traumatic damage to the head, which can lead to various clinical outcomes.
+  • Sepsis — A life-threatening condition caused by the body's overwhelming response to an infection, mentioned in the context of medical management.
+  • Haemodialysis Treatment — A renal replacement therapy used to filter waste and excess fluid from the blood.
+  • Demographic Indicator — A characteristic or factor relating to the population.
+  • Intensive Care Management — The overall care and treatment provided to patients in the intensive care unit.
+  • Brain Injury — Damage to the brain resulting from trauma or other causes.
+  • Blood Pressure (BP) Data — Measurements of blood pressure, including systolic, diastolic, and mean arterial pressure.
+  • Blood Pressure (BP) Systolic — The maximum blood pressure during one heartbeat.
+  • Blood Pressure (BP) Diastolic — The minimum blood pressure between two heartbeats.
+  • Blood Pressure (BP) Mean — The average blood pressure during one cardiac cycle.
+  • Hypotension Event — An episode of abnormally low blood pressure.
+  • Medical Treatment — The management and care provided to patients to alleviate or cure a medical condition.
+  • Critical Warnings/predictions — Alerts or forecasts regarding a patient's critical condition.
+  • Patient Data — Information related to a patient's medical history, condition, and treatment.
+  • Head Trauma — Physical injury to the head, investigated for the impact of intracranial pressure instability and hypotension on outcome.
+  • Septic Shock — A severe condition caused by a widespread infection, where the duration of hypotension before effective antimicrobial therapy is critical for survival.
+  • Intraoperative Hypotension — Low blood pressure occurring during surgery, associated with 1-year mortality after noncardiac surgery.
+  • General Anesthesia — A medically induced coma with loss of protective reflexes, where predictors of hypotension after induction are investigated.
+  • Mechanical Ventilation — A method of assisting or controlling respiration, contributing to the daily cost of an intensive care unit day.
+  • Vital Signs Monitoring Data — Physiological measurements recorded from bedside monitors, used to detect artifactual events.
+  • Extra Ventricular Drain Placement — A medical procedure to remove excess cerebrospinal fluid from the brain.
+  • Hyperosmolar Molecules — Substances that increase the osmotic pressure of the blood, used to reduce intracranial pressure.
+  • Malignant Course — A rapidly worsening or life-threatening progression of a disease or condition.
+  • Non-Evacuated Mass Lesions — A mass lesion within the brain that has not been surgically removed.
+  • CRASH Score — A clinical prediction rule used to estimate mortality and unfavorable outcomes in patients with head injury.
+  • Therapy
+  • Timepoint — A discrete moment in the minute-by-minute monitoring time-series, associated with a set of sensor readings.
+  • Core Monitoring Parameter — Minimum required minute-by-minute monitoring parameters for BrainIT Database inclusion.
+  • Optional Monitoring Parameter — Extended monitoring parameters included in the BrainIT Database whenever monitored as part of a centre's routine clinical management.
+  • Derived Parameter — Monitoring parameter computed from other measured parameters.
+  • Respiration Rate — Core BrainIT parameter measured to assess respiratory function.
+  • Brain Temperature — Cerebral temperature, an optional monitoring parameter.
+  • Non-Invasive Blood Pressure — Non-invasive blood pressure, an optional monitoring parameter.
+  • Secondary Insult Therapy — Non-surgical medical management specifically given to treat secondary insults.
+  • Ventilation — Mechanical ventilation settings and management in critical care.
+  • Fluids — Fluid input and output management in critical care.
+  • Secondary Insult Treatment — Coded therapy category for managing secondary insults.
+  • Arterial Pressors — Agents used in secondary insult therapy to manage blood pressure.
+  • Surgical Procedure — Any neurosurgical procedure performed on the patient.
+  • Evacuation of Mass Lesion — Surgical evacuation of an intracranial mass lesion.
+  • Systemic Hypotension — Condition of reduced systemic blood pressure.
+  • Hypertension — Condition of elevated blood pressure.
+  • Blood Gases — Arterial blood gas analysis conducted in ICU management.
+  • Nursing Intervention — Routine nursing care and clinical activities in ICU.
+  • Patient Transport — Transport of patients to and from clinical procedures.
+  • Observation — A single measurement recorded at a Timepoint for a Parameter.
+  • Parameter — A physiological or clinical variable measured and recorded.
+  • Sensor — A machine or sensor used to record physiological parameters.
+  • Data Quality Assessment — Automated evaluation of ICU data quality considering various factors.
+  • Antibiotics
+  • Bedside Intervention
+  • White Blood Cell Count
+  • Haemoglobin
+  • Sodium
+  • Anterior Fossa Repair
+  • ICP Sensor Placement
+  • Probable Error
+  • Noradrenaline
+  • Osmotics
+  • TCD
+  • Physiotherapy
+  • Peripheral Temperature
+  • Hypothermia Therapy
+  • SjO2
+  • Glucose
+  • Removal of Foreign Body
+  • Haematology
+  • Anti-pyretics
+  • Skull Fracture Elevation
+  • Biochemistry
+  • Haematocrit
+  • EtCO2
+  • Jugular Venous Desaturation
+  • Anti-hypertensives
+  • Routine Nursing Care
+  • Pressure Reactivity Index (PRx)
+
+--- Relations ---
+  • targets condition(Therapy → Condition) — Indicates that decompressive craniectomy is used as a treatment for traumatic brain injury.
+  • has outcome(Patient → Outcome) — Links a patient to their functional outcome as measured by the Glasgow Outcome Scale Extended.
+  • receives therapy(Patient → Therapy) — Indicates that a patient is administered thiopental as part of their treatment.
+  • has monitoring data(Patient → Physiological Monitoring Data) — Links a patient to the physiological monitoring data collected during their treatment.
+  • associated with condition(Intracranial Pressure Insults → Condition) — Indicates that episodes of elevated intracranial pressure are related to a patient's neurological outcome.
+  • monitoring indicates condition(Monitoring Data → Secondary Injury) — Indicates that intracranial pressure monitoring can detect and prevent secondary injury after severe traumatic brain injury.
+  • monitoring indicates condition(Monitoring Data → Condition) — Indicates that intracranial pressure monitoring is used to detect intracranial hypertension.
+  • associated with condition(Cerebrovascular Autoregulation → Intracranial Pressure Insults) — Indicates that impaired cerebrovascular autoregulation reduces the ability to tolerate intracranial pressure insults.
+  • monitoring indicates condition(Monitoring Data → Intracranial Pressure Insults) — Indicates that monitoring data can be used to identify and characterize episodes of elevated intracranial pressure.
+  • monitoring indicates condition(Monitoring Time → Condition) — Indicates that the amount of time spent in a particular monitoring state can forecast a patient's outcome.
+  • targets condition(Therapy → Secondary Brain Injury) — Indicates that aggressive therapy is used to treat or prevent secondary brain injury.
+  • has outcome(Traumatic Brain Injury → Outcome) — Links traumatic brain injury to its resulting clinical outcome.
+  • associated with condition(Cerebrovascular Autoregulation → Condition) — Indicates that cerebrovascular autoregulation status is related to patient outcomes.
+  • targets condition(Therapy → Cerebral Perfusion Pressure) — Indicates that vasopressors are used to maintain or increase cerebral perfusion pressure.
+  • correlated with(Cerebral Perfusion Pressure → Mean Arterial Pressure) — Indicates a statistical association between cerebral perfusion pressure and mean arterial pressure.
+  • targets condition(TBI Guidelines → Condition) — Indicates that guidelines are intended to manage or treat a specific clinical condition.
+  • has demographic data(Patient → Demographic Data) — Links a patient to their demographic characteristics such as age and gender.
+  • associated with condition(Hypotension → Condition) — Indicates that hypotension is related to or occurs in the context of head injury.
+  • monitoring indicates condition(Critical Warnings/predictions → Condition) — Indicates that critical warnings or predictions are used to alert medical staff to the risk of hypotension.
+  • has injury mechanism(Patient → Extracranial Injury) — Links a patient to the presence of an injury outside of the skull.
+  • has clinical assessment(Patient → CRASH Score) — Links a patient to their CRASH score.
+  • has monitoring data(Timepoint → Observation) — Indicates that a timepoint is associated with specific observations.
+  • measures parameter(Observation → Parameter) — Indicates that an observation is linked to a specific physiological parameter.
+  • produced by sensor(Observation → Sensor) — Indicates that an observation is generated by a specific sensor.
+  • has quality assessment(Observation → Data Quality Assessment) — Indicates that an observation is linked to a quality assessment of the data.
+  • associated with condition(Data Quality Assessment → Condition) — Indicates that a data quality assessment is related to a specific clinical condition.
+  • receives therapy(Data Quality Assessment → Therapy) — Indicates that a data quality assessment is influenced by a specific treatment.
+  • has data(Non-Evacuated Mass Lesions → Patient Data) — Non-Evacuated Mass Lesions has Patient Data.
+  • associated with(Non-Evacuated Mass Lesions → Condition) — Non-Evacuated Mass Lesions are associated with a specific condition.
+  • has(Patient → Time Pressure Burden) — A patient has a Time Pressure Burden.
+  • has(Patient → Insult Duration) — A patient has an Insult Duration.
+  • has(Patient → Insult Intensity) — A patient has an Insult Intensity.
+  • has(Patient → Dose) — A patient has a Dose.
+  • targets condition(Secondary Insult Treatment → Secondary Insult) — Secondary Insult Treatment targets Secondary Insult.
+  • targets condition(Treatment → Condition) — Treatment targets a Condition.
+  • associated with(Pressure Reactivity Index (PRx) → Cerebrovascular Autoregulation) — Pressure Reactivity Index is associated with Cerebrovascular Autoregulation.
+  • targets condition(Intervention → Intracranial Pressure) — Intervention targets Intracranial Pressure.
+
+--- Hierarchy (subclass → superclass) ---
+  • Decompressive Craniectomy ⊑ Surgical Procedure
+  • Arterial Hypotension ⊑ Secondary Insult
+  • Hypotension ⊑ Condition
+  • Sedation ⊑ Baseline Therapy
+  • Analgesia ⊑ Baseline Therapy
+  • Paralysis ⊑ Baseline Therapy
+  • Vasopressors ⊑ Baseline Therapy
+  • GCS Assessment ⊑ Clinical Assessment
+  • Pupil Assessment ⊑ Clinical Assessment
+  • CT Scan Assessment ⊑ Clinical Assessment
+  • Secondary Insult ⊑ Condition
+  • Intracranial Hypertension ⊑ Secondary Insult
+  • GOSe Outcome ⊑ Outcome
+  • Bifrontal Craniectomy ⊑ Decompressive Craniectomy
+  • Mortality ⊑ Outcome
+  • Cerebrovascular Autoregulation ⊑ Condition
+  • Therapy Intensity Level (TIL) ⊑ Clinical Assessment
+  • Brain Injury ⊑ Condition
+  • Traumatic Brain Injury ⊑ Brain Injury
+  • Head Injury ⊑ Head Trauma
+  • Injury ⊑ Condition
+  • Extracranial Injury ⊑ Injury
+  • Traumatic Intracranial Hypertension ⊑ Intracranial Hypertension
+  • Intracranial Hypoperfusion ⊑ Condition
+  • Ischaemia ⊑ Condition
+  • Malignant Course ⊑ Condition
+  • Sepsis ⊑ Condition
+  • Septic Shock ⊑ Condition
+  • Acute Respiratory Distress Syndrome ⊑ Secondary Insult
+  • Active Autoregulation Insults ⊑ Condition
+  • Passive Autoregulation Insults ⊑ Condition
+  • Baseline Therapy ⊑ Therapy
+  • Medical Treatment ⊑ Therapy
+  • Standard Medical Treatment ⊑ Medical Treatment
+  • Intensive Care Management ⊑ Medical Treatment
+  • Intracranial Pressure (icp)-lowering Treatments ⊑ Medical Treatment
+  • Hyperosmolar Molecules ⊑ Intracranial Pressure (icp)-lowering Treatments
+  • Second-tier Therapies ⊑ Therapy
+  • Third-tier Treatment ⊑ Therapy
+  • Aggressive Therapy ⊑ Therapy
+  • Barbiturates ⊑ Secondary Insult Therapy
+  • Cranioplasty ⊑ Therapy
+  • Extra Ventricular Drain Placement ⊑ Surgical Procedure
+  • General Anesthesia ⊑ Therapy
+  • Haemodialysis Treatment ⊑ Therapy
+  • Mechanical Ventilation ⊑ Therapy
+  • Physiological Data ⊑ Monitoring Data
+  • Vital Signs Monitoring Data ⊑ Physiological Data
+  • Arterial Blood Pressure Readings ⊑ Physiological Data
+  • Blood Pressure (BP) Data ⊑ Arterial Blood Pressure Readings
+  • Blood Pressure (BP) Diastolic ⊑ Blood Pressure (BP) Data
+  • Blood Pressure (BP) Mean ⊑ Blood Pressure (BP) Data
+  • Blood Pressure (BP) Systolic ⊑ Blood Pressure (BP) Data
+  • Critically Low Blood Pressure ⊑ Blood Pressure (BP) Systolic
+  • Heart Rate ⊑ Core Monitoring Parameter
+  • Mean Arterial Pressure (MAP) ⊑ Physiological Data
+  • Mean Intracranial Pressure (ICP) ⊑ Physiological Data
+  • Pulse Pressure ⊑ Physiological Data
+  • SaO2 ⊑ Physiological Data
+  • Temperature ⊑ Core Monitoring Parameter
+  • EtCO2 ⊑ Optional Monitoring Parameter
+  • Clinical Data ⊑ Monitoring Data
+  • Monitoring ⊑ Monitoring Data
+  • Multimodality Monitoring ⊑ Monitoring
+  • Assessment of Autoregulation ⊑ Clinical Assessment
+  • Clinical Examination ⊑ Clinical Assessment
+  • Pupil Abnormality ⊑ Pupil Assessment
+  • Therapy Intensity Level Scale ⊑ Clinical Assessment
+  • Clinical Outcome ⊑ Outcome
+  • Neurological Outcome ⊑ Clinical Outcome
+  • Glasgow Outcome Scores ⊑ Neurological Outcome
+  • Gos Outcome Score ⊑ Glasgow Outcome Scores
+  • Good Recovery ⊑ GOSe Outcome
+  • Severe Disability ⊑ GOSe Outcome
+  • Vegetative State ⊑ GOSe Outcome
+  • Gos 1-3 ⊑ GOSe Outcome
+  • Disability ⊑ Outcome
+  • Patient Outcome ⊑ Outcome
+  • Outcome Score (GOS) ⊑ Outcome
+  • Age Demographic ⊑ Demographic Data
+  • Sex Demographic ⊑ Demographic Data
+  • Demographic Indicator ⊑ Demographic Data
+  • Demographic Parameter ⊑ Demographic Data
+  • Hypotension Event ⊑ Hypotension
+  • Intraoperative Hypotension ⊑ Hypotension
+  • Derived Parameter ⊑ Monitoring Data
+  • Hypothermia Therapy ⊑ Baseline Therapy
+  • Haematocrit ⊑ Haematology
+  • TCD ⊑ Optional Monitoring Parameter
+  • Optional Monitoring Parameter ⊑ Monitoring Data
+  • Respiration Rate ⊑ Core Monitoring Parameter
+  • Pressure Reactivity Index (PRx) ⊑ Derived Parameter
+  • Physiotherapy ⊑ Nursing Intervention
+  • ICP Sensor Placement ⊑ Surgical Procedure
+  • White Blood Cell Count ⊑ Haematology
+  • Probable Error ⊑ Data Quality Assessment
+  • ICP ⊑ Core Monitoring Parameter
+  • Removal of Foreign Body ⊑ Surgical Procedure
+  • Peripheral Temperature ⊑ Optional Monitoring Parameter
+  • Noradrenaline ⊑ Vasopressors
+  • Sodium ⊑ Biochemistry
+  • Fluids ⊑ Baseline Therapy
+  • Anti-pyretics ⊑ Baseline Therapy
+  • Anti-hypertensives ⊑ Baseline Therapy
+  • SjO2 ⊑ Optional Monitoring Parameter
+  • Mean Arterial Pressure (MAP) ⊑ Core Monitoring Parameter
+  • Osmotics ⊑ Secondary Insult Therapy
+  • Jugular Venous Desaturation ⊑ Secondary Insult
+  • Blood Gases ⊑ Laboratory Value
+  • Skull Fracture Elevation ⊑ Surgical Procedure
+  • CPP ⊑ Derived Parameter
+  • Core Monitoring Parameter ⊑ Monitoring Data
+  • Haemoglobin ⊑ Haematology
+  • Patient Transport ⊑ Nursing Intervention
+  • Glucose ⊑ Biochemistry
+  • Anterior Fossa Repair ⊑ Surgical Procedure
+  • Systemic Hypotension ⊑ Secondary Insult
+  • Secondary Insult Therapy ⊑ Therapy
+  • Routine Nursing Care ⊑ Nursing Intervention
+  • Bedside Intervention ⊑ Nursing Intervention
+  • NIBP ⊑ Optional Monitoring Parameter
+  • Hypotension ⊑ Condition
+  • Haematology ⊑ Laboratory Value
+  • Antibiotics ⊑ Baseline Therapy
+  • Brain Temperature ⊑ Optional Monitoring Parameter
+  • Ventilation ⊑ Baseline Therapy
+  • Evacuation of Mass Lesion ⊑ Surgical Procedure
+  • Neurointensive Care ⊑ Intensive Care Management
+  • Neurocritical Care (NCC) ⊑ Intensive Care Management
+  • Arterial Hypotension ⊑ Systemic Hypotension
+  • Hypertension ⊑ Condition
+  • Biochemistry ⊑ Laboratory Value
+  • Arterial Oxygen Saturation ⊑ Core Monitoring Parameter
+  • Secondary Insult Treatment ⊑ Secondary Insult Therapy
+  • Arterial Pressors ⊑ Secondary Insult Therapy

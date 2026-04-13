@@ -1,0 +1,190 @@
+Suggested concepts (pre-identified by biomedical NER in this text): brain injury, TBI, Traumatic brain injury, sec- 20-mmHg, non-co-author, Arminas, intracranial hypertension, TBM.
+These are entity mentions detected in this chunk. Use them as additional evidence that a concept is present, but only extract labels from the allowed class list above.
+
+Candidate domain terms (contextual hints from this chunk — use only if supported by the text): pressure; BESTIntracranial pressure ICP; blood pressure; cpp; hypertension; intracranial hypertension; intracranial pressure; monitoring; outcome; secondary insult; therapy; BESTIntracranial pressure
+
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+### PRIMARY GOAL
+Extract a COMPREHENSIVE, evidence-grounded ontology from the text.
+Every item must have verbatim evidence from the source text.
+Be thorough — extract every clinical concept the text explicitly names.
+
+### RULES
+
+1. EVIDENCE FIRST
+- EVERY class, relation, and hierarchy edge MUST include an `evidence` field.
+- `evidence` must be an EXACT verbatim fragment COPIED from the text — do NOT paraphrase, summarize, truncate, or rephrase.
+- Copy the sentence or clause exactly as it appears, preserving original wording, word order, and punctuation.
+- If you cannot find an exact quote in the text, OMIT the item entirely.
+
+2. SOURCE FIDELITY
+- Extract concepts and relations stated or clearly implied in the text.
+- You may use standard medical knowledge for hierarchy (e.g. TBI is a type of Brain Injury).
+- Use short noun-phrase labels only.
+- Do NOT output sentence fragments, clauses, or paraphrases as class labels.
+
+3. EXTRACTION SCOPE
+Extract ALL clinical and biomedical content: conditions, diseases, injuries, syndromes, secondary insults, physiological parameters, monitoring variables, treatments/therapies/interventions/drugs, outcomes, assessments, scores, laboratory values, nursing interventions, surgical procedures, medical devices, sensors, clinical guidelines, management protocols, and data categories (Monitoring Data, Demographic Data, Admission Data, Treatment Data, Outcome Data, Core Monitoring Parameter, Optional Monitoring Parameter, Baseline Therapy, etc.).
+Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+
+4. CLASS RULES
+- Prefer concrete clinical labels from the text.
+- Prefer specific labels over abstract ones (e.g. prefer 'Heart Rate' over 'Monitoring Data' when both are mentioned). If an allowed class list is provided, you may use those labels; otherwise avoid abstract categories unless the text explicitly names them.
+- Keep labels close to the wording in the text.
+- Do not invent CamelCase labels.
+
+5. LABEL MAPPING
+- If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+  Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+- For other abbreviations, expand to their full clinical name as used in the text.
+
+6. STRUCTURAL COMPLETENESS
+- When the text mentions specific clinical items, also extract their general category if the text supports it.
+- Use the text’s own categories and groupings — do not impose an external hierarchy.
+
+7. RELATION RULES
+- Extract relations when the text clearly states a connection between two extracted class labels.
+- Domain and range must both be extracted class labels from the same text.
+- Prefer concise, domain-appropriate relation labels (e.g. treats, targets condition, has monitoring data).
+- If an allowed relation list was provided, use those labels. Otherwise, prefer labels that reflect the text’s wording.
+- CRITICAL: Do NOT use 'includes', 'consists of', 'comprises', 'contains', 'encompasses', 'is a type of', 'is a kind of', 'categorized as', 'classified as', 'belongs to', or 'part of' as relation labels. If X includes/contains Y, model it as HIERARCHY: Y subClassOf X. If A is a type of B, model it as HIERARCHY: A subClassOf B.
+
+8. HIERARCHY RULES
+- Extract hierarchy edges when the text supports them. Look for:
+  - Explicit cues: "is a", "type of", "kind of", "such as", "include:", "includes:", "consists of", "comprises"
+  - Implicit grouping: items listed under a heading or category
+  - Medical knowledge: when both concepts are in the text and one is clearly a subtype (e.g. TBI is a type of Brain Injury)
+- For enumeration cues, extract EACH listed item as a subclass.
+- NEVER output long clauses, verb phrases, or sentence fragments as subclass or superclass.
+- If either side is not a clean noun phrase, omit the hierarchy edge.
+
+### REASONING STEP
+Before producing JSON, mentally scan the text for:
+(1) every named clinical concept,
+(2) explicit relations between them,
+(3) hierarchy cues (such as, is a, type of, include:).
+Then output only items with verbatim evidence.
+
+### OUTPUT FORMAT (JSON ONLY)
+Return ONLY valid JSON.
+Do not include markdown, explanations, headings, or commentary.
+
+Use exactly this structure:
+{
+  "classes": [
+    {"label": "string", "definition": "one-sentence scope note describing what this class represents in the domain", "evidence": "string"}
+  ],
+  "relations": [
+    {"label": "string", "domain": "string", "range": "string", "definition": "one-sentence description of what this relation means between domain and range", "evidence": "string"}
+  ],
+  "hierarchy": [
+    {"subClass": "string", "superClass": "string", "evidence": "string"}
+  ]
+}
+
+9. DEFINITION RULES
+- Every class and relation MUST include a `definition` field: a concise one-sentence scope note.
+- The definition should clarify what the class represents or what the relation means in the clinical domain.
+- Ground definitions in the text where possible, but you may use standard medical knowledge to write a clear scope note.
+- Example class definition: "A physiological parameter measuring the pressure inside the cranium, used to monitor patients with traumatic brain injury."
+- Example relation definition: "Links a patient to the set of continuously recorded physiological measurements captured during their ICU stay."
+
+### NON-GOAL EXAMPLE
+The following sentence should produce NO extraction:
+Text: "The study was funded by the BrainIT Group and data were collected from 22 centres across 11 countries."
+Expected output: {"classes": [], "relations": [], "hierarchy": []}
+Reason: Funding, governance, study logistics, and multi-centre coordination are out of scope — only extract clinical concepts.
+
+### SELF-CHECK (before finalising output)
+- Is every label a clinical TYPE (not an instance, a person's name, or a study name)?
+- Are there any duplicate or synonym labels? Merge them.
+- Do all relation domain/range labels match extracted class labels?
+- Are there any circular hierarchy edges (A subClassOf B AND B subClassOf A)? Remove them.
+- Does every evidence field contain a verbatim quote from the text?
+- Do not invent concepts not present in the text.
+
+---
+TEXT TO ANALYZE:
+These plots do not ments above 20 mmHg, or the area under the curve
+
+of hourly values above 20 mmHg. The present study autoregulation is intact, the transition curve shifts to the
+builds further on this concept. First, the use of minute-by- right. Conversely, with impaired autoregulation, there is a
+minute monitoring data allows for a more precise dramatic shift to the left in the transition curves, sugdefinition of the concept 'dose'. Second, by considering gesting a higher vulnerability to raised The BESTIntracranial pressure (ICP) (Fig. 4; ESM
+all intensity thresholds above 10 mmHg, the 'dose' is not Table 11). This is in line with the findings from a recent
+limited to the 20-mmHg threshold. The time pressure retrospective study, where individualized The BESTIntracranial pressure (ICP) thresholds
+burden was identified for the whole range of ICPs be- based on the autoregulatory status of the patient were
+tween 15 and 25 mmHg, which is the same range of ICPs more predictive for mortality than fixed thresholds of 20
+that was identified in the early association studies. and 25 mmHg.
+It is striking that the exponential decay transition curve in At a Cerebral Perfusion Pressure (CPP) below 50 mmHg, the plots become almost
+adults (Fig. 2, left) approximates the vertical 15-mmHg uniformly red (Fig. 5). In other words, when Cerebral Perfusion Pressure (CPP) is
+line, which indicates that insults between 15 and critically low, The BESTIntracranial pressure (ICP) is no longer a univariate predictor for
+20 mmHg, if sustained for sufficiently long, can already outcome. Caution is warranted when interpreting these
+lead to worse outcomes. Above 20 mmHg, the vast ma- data, because arterial blood pressure (ABP) was not aljority of insults are clearly deleterious with the exception ways measured and zeroed at the same level: in some
+of those lasting less than 37 min in adults. Above patients the right atrium level was used, in some the ex25 mmHg, the association with worse The contour for zero correlation was
+Outcome Score (GOS) occurs within ternal auditory meatus, while in some patients this
+12 min. An alternative explanation for the transition information was not available. Therefore, the statements
+curves occurring at lower intensity values for longer du- on the influence of Cerebral Perfusion Pressure (CPP) on the association between The BESTIntracranial pressure (ICP)
+rations could have been the presence of patients who and outcome are only very general, and cannot be used to
+underwent decompressive craniectomy: these patients recommend specific Cerebral Perfusion Pressure (CPP) thresholds. In adults, a trend can
+were no longer be able to reach high The BESTIntracranial pressure (ICP) values but be observed such that The BESTIntracranial pressure (ICP) insults in the range
+nevertheless had a poor neurological outcome; however, 18-23 mmHg can have a longer duration (in the order of
+we do not believe that this was the case, because when minutes) at higher CPPs. When The BESTIntracranial pressure (ICP) is above 25 mmHg, a
+this clinical group was excluded, visualization results higher Cerebral Perfusion Pressure (CPP) has no effect (Fig. 6, left). In children, the
+remained unchanged (ESM Fig. 3; Tables 9-10). same effect can be observed, albeit at lower The BESTIntracranial pressure (ICP) values:
+The transition curve for the paediatric cohort resem- The BESTIntracranial pressure (ICP) insults in the range 13-20 mmHg, but not above
+bles that of adults, but the entire curve has shifted to the 20 mmHg, can be tolerated for a slightly longer duration
+left (Fig. 3; ESM Table 11): episodes of lower intensity (Fig. 6, right).
+and shorter duration than for adults are associated with This study suffers from several limitations, in addition
+worse outcomes. In children, the exponential decay to the ones already mentioned above. First, the number of
+transition curve approximates the vertical 10-mmHg line patients is relatively small. The creation of large high-
+(Fig. 2, right), and above 20 mmHg, the association with resolution databases of good quality in Traumatic brain injury (TBI) is challengworse The contour for zero correlation was
+Outcome Score (GOS) occurs within 8 min. ing. Current and future initiatives to create joint databases
+Cerebrovascular pressure autoregulation is often im- will facilitate addressing basic research questions
+paired in severe Traumatic brain injury (TBI), and such impairment is such as the relationship between physiological thresholds
+independently associated with worse outcomes [31, 34- and outcome. Second, because of their longer total
+36]. The autoregulatory status has a major effect on the monitoring time, longer-staying patients might have been
+transition curves in both adults and children. When overrepresented, possibly introducing bias. However,
+
+when using daily averages of the number of insults, in- secondary brain injury in a couple of minutes, and may
+stead of the entire monitoring time, all visualization thus be more appropriate clinical triggers to initiate agresults remain unchanged (ESM Fig. 2). Third, the ana- gressive therapy than the more commonly used value of
+lysis has been done in treated cohorts of patients. In 20 mmHg. This might also explain why previous ranretrospect, it is not possible to unravel the individual domized controlled trials in Traumatic brain injury (TBI) patients where a
+contributions to clinical outcome of the intensity of sec- 20-mmHg static threshold was used were desondary brain injury insults versus the possible benefit or tined to fail. In addition, ICPs in the 15- to 20-mmHg
+harm of the medical interventions employed to manage range in adults, or 10-15 mmHg in children, are not to be
+them. Fourth, the patient data collection extended over considered harmless. Additional information through
+10 years, and the critical care management of Traumatic brain injury (TBI) might clinical examination, multimodality monitoring, imaging
+have changed substantially over this period. We believe and assessment of autoregulation might be considered
+the results are robust over potential differences in man- with pressures in that range, in order to estimate the risk
+agement, because when plotting the graphs in different for secondary brain injury and the need for aggressive
+subgroups of patients from different time eras, the ap- The BESTIntracranial pressure (ICP)-lowering treatments.
+proximately exponential transition curve remained (data
+not shown). Fourth, only the obvious artefacts were removed, via visual inspection by two independent experts.
+Data was collected in a prospective way, and at the time Conclusion
+of collection, attention was paid to avoid incorrect data
+entries as much as possible. However, this does not ex- An image can be worth a thousand words: the visualizaclude that some less obvious artefacts might still have tions presented here summarize the complexity and
+been wrongfully identified as an The BESTIntracranial pressure (ICP) insult, and used in dynamic aspect of secondary insults of raised The BESTIntracranial pressure (ICP) in Traumatic brain injury (TBI),
+the analysis. Automatic artefact removal algorithms were showing that not all Traumatic brain injury (TBI) patients are equal in their ability
+not used, because we wanted to retain as much of the to cope with such injury.
+granularity of the minute-by-minute data as possible, and
+because we presumed that the incidence of erroneous Acknowledgments We wish to acknowledge the non-co-author
+Howells, Karl Kiening, Julia Mattern, Arminas Ragauskas and Juan
+insults analysed (8,181,337 insults in adults, and Sahuquillo, for collecting data and granting permission through the
+observed associations, visualized in a single clear image, like to acknowledge the contributors to the original study resulting
+do not imply a causative relationship between the insults in the paediatric database used here: R.J. Forsyth, B. Fulton, P.J.D.
+and the outcome, and other unmeasured confounders Andrews, A.D. Mendelow and R.A. Minns. The present study was
+supported by the Foundation for Scientific Research Flanders
+might have played a role. (FWO) (Research project G. 0904.11). Geert Meyfroidt receives
+The present study is an attempt to add to the current funding from FWO as senior clinical investigator (1846113N).
+knowledge in developing a new concept of 'pressure and Greet Van den Berghe receives long-term structural research fitime burden' for intracranial hypertension. The results nancing via the Methusalem program funded by the Flemish
+Government (METH/08/07). BrainIT was funded by the European
+indicate that the The BESTIntracranial pressure (ICP) threshold in Traumatic brain injury (TBI) patients depends on Framework Programme (FP5-QLRI-2000-00454, QLGT-2002insult duration, age, Cerebral Perfusion Pressure (CPP) and the autoregulatory status. 00160 AND FP7-IST-2007-217049). The NEMO project in the
+These findings need to be confirmed in other data sets. University Hospital Edegem (Antwerp), Belgium was funded by
+These data visualizations are not intended to issue a new the Flemish Government Agency for Innovation by Science and
+Technology (IWT)-Applied Biomedical Research (TBM)
+direct recommendation on specific The BESTIntracranial pressure (ICP) thresholds: they program.
+are meant as exploratory tools. On the basis of our findings, perhaps an argument could be made that ICPs Conflicts of interest We declare that we have no conflicts of
+exceeding 25 mmHg in adults, and 20 mmHg in children, interest.
+are absolute emergencies which could potentially lead to
+---

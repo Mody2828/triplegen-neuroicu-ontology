@@ -1,0 +1,316 @@
+============================================================
+RUN SUMMARY  —  TripleGen Ontology Engineering Framework
+============================================================
+
+--- Metadata ---
+Run ID:          20260413-023049-730e6b5e
+Timestamp (UTC): 2026-04-13T02:45:02.146414
+Method:          Zero-Shot
+Pipeline mode:   Strict
+LLM provider:    DeepSeek (chat)
+Improvements:    Text-grounded completion (built-in)
+Eval settings:   Scope filter (clinical-only chunks)
+
+--- Input paper(s) ---
+  • 1.Pipre 2003 - The BrainIT group concept and core dataset definition.txt
+  • 2. Moss 2013 — Trusting Intensive Care Unit .txt
+
+--- Improvement counts (for ablation / fairness) ---
+  Text-grounded completion (built-in): classes_added=9, relations_added=16, hierarchy_added=153
+  Built-in cleanup (always active): includes_to_hierarchy=0, relation_labels_normalized=8, relations_range_normalized=2, classes_removed_dedupe=0, relations_removed_dedupe=1, hierarchy_removed_dedupe=2, out_of_scope_classes_removed=48, abstract_data_classes_removed=2, broad_contextual_classes_removed=1, classes_removed_evidence=1, endpoints_auto_added=2, relations_pruned_scope=0, hierarchy_pruned_scope=0, hierarchy_pruned_dangling=5, relations_pruned=6, relations_removed_evidence=0, hierarchy_fragments_removed=1, hierarchy_edges_corrected=2, hierarchy_scaffolded=0, hierarchy_removed_axiom=0, relations_removed_axiom=0, hierarchy_cycles_removed=0, hierarchy_completeness={'orphan_count': 54, 'total_classes': 123, 'orphan_rate': 0.439, 'orphan_rate_warning': False}, hierarchy_added=0, orphans_removed=0
+  Orphan Rescue (connect isolated classes): orphans_found=36, relations_added=9, hierarchy_added=25
+  Post-orphan scope cleanup: out_of_scope_removed=0
+  LLM CoT Refinement (semantic quality review): classes_removed=1, relations_removed=1, hierarchy_removed=8, hierarchy_corrected=0
+
+
+  Text-grounded completion (built-in): +9 classes, +16 relations, +153 hierarchy edges recovered from source text in second-pass extraction.
+
+  Orphan Rescue: 36 orphaned classes found → +9 relations, +25 hierarchy edges inferred from source text.
+
+  LLM CoT Refinement: -1 classes, -1 relations, -8 hierarchy removed; 0 hierarchy edges corrected.
+
+--- Metrics summary (final ontology) ---
+  Coverage:        54.84%
+  Precision:       41.80%
+  Recall:          54.84%
+  Errors:          hallucinations=0, schema_violations=0, omissions=0
+  Structural:      hierarchy_edges=94, hierarchy_coverage=0.80, relation_domain_range_rate=1.00
+  Clinical-only:   coverage=54.84%, precision=41.80%, recall=54.84%
+  Relations:       precision=51.52%, recall=22.22%, n_generated=33, n_gold=18
+  Hierarchy:       precision=11.70%, recall=14.47%, matched=11, n_generated=94, n_gold=76
+
+--- Metrics at extraction only (pre-improvement baseline) ---
+  Coverage:        60.22%
+  Precision:       34.15%
+  Recall:          60.22%
+  Structural:      hierarchy_edges=8, hierarchy_coverage=0.06, relation_domain_range_rate=1.00
+  Relations:       precision=27.03%, recall=22.22%, n_generated=37
+
+--- Per-stage ablation (pipeline progression) ---
+  Stage                   Classes   Rels   Hier   Coverage  Precision     Recall
+  --------------------------------------------------------------------------
+  Extraction                  164     37      8     60.22%     34.15%     60.22%
+  + Text-grounded             173     53    161     60.22%     32.37%     60.22%
+  + Cleanup                   123     25     77     54.84%     41.46%     54.84%
+  + Orphan Rescue             123     34    102     54.84%     41.46%     54.84%
+  + LLM Refinement            122     33     94     54.84%     41.80%     54.84%
+
+--- Concept counts (final ontology) ---
+  Classes:         122
+  Relations:       33
+  Hierarchy edges: 94
+
+--- Classes ---
+  • Traumatic Brain Injury — A type of brain injury caused by external trauma, often resulting in significant morbidity and mortality, particularly in young males.
+  • Head Injury — Injury to the head, which can lead to serious and long-term morbidity and is a leading cause of death in young males.
+  • Brain Injury — A clinical condition involving damage to the brain, often requiring intensive care monitoring and treatment.
+  • Secondary Insult — An adverse physiological event occurring after the initial injury, such as intracranial hypertension or hypotension, that can worsen patient outcome.
+  • Cerebral Perfusion Pressure — A physiological parameter calculated as the difference between mean arterial pressure and intracranial pressure, critical for brain blood flow.
+  • Mean Arterial Pressure — Arterial pressure measured typically via fluid-filled catheter-transducer systems, used in calculating cerebral perfusion pressure.
+  • Intracranial Pressure — A physiological parameter measuring the pressure inside the cranium, used to monitor patients with traumatic brain injury.
+  • Monitoring Data — Physiological data collected from patients, typically at high frequency (e.g., minute-by-minute), as part of the core dataset.
+  • Demographic Data — Information about patient characteristics such as age, gender, and other background factors.
+  • Management Approach — Strategies and protocols for the care and treatment of patients, particularly in intensive care settings.
+  • Outcome — The result or end-point following treatment or intervention, often measured in terms of patient recovery or morbidity.
+  • Neuro-intensive Care — Specialized intensive care for patients with neurological conditions, involving high-resolution monitoring.
+  • Guideline — Recommended protocols or standards for clinical practice, such as in the management of severely head injured patients.
+  • Blood Brain Barrier — A selective barrier that protects the brain from harmful substances, which can affect drug penetration in treatments.
+  • Bed Tilt — The angle of the hospital bed, which can affect hydrostatic pressure gradients between the head and heart.
+  • Hydrostatic Pressure Gradient — Pressure difference due to fluid height, relevant in monitoring when bed tilt changes.
+  • Central Venous Pressure — A physiological parameter measuring the pressure in the central veins, often monitored in critically ill patients.
+  • GCS Assessment — A neurological assessment scale used to evaluate the level of consciousness in patients with brain injury.
+  • Pupil Assessment — A clinical assessment parameter recording the size of the pupils, categorized as small, normal, or large.
+  • Pupil Responsiveness — A clinical assessment parameter recording the reaction of pupils to light, categorized as reacting or un-reacting.
+  • Computed Tomography Scan — An imaging modality used to assess brain injury, with data collected including lesion type and cistern state.
+  • Traumatic Coma Databank Classification — A nomenclature system for classifying traumatic brain injury based on CT scan findings.
+  • Main Lesion — The primary traumatic brain injury lesion identified on CT scan, categorized as none, subdural, extradural, or intraparenchymal.
+  • Cistern State — A CT scan finding describing the status of the basal cisterns, categorized as present, compressed, or absent.
+  • Mass Lesion of Mixed or High Density of > 25 Ml — A CT scan abnormality defined as a mass lesion with mixed or high density greater than 25 milliliters in volume.
+  • Extended 8-point Glasgow Outcome Scale — An outcome assessment scale used to evaluate the functional recovery of head-injured patients at 6 months post-discharge.
+  • Ventilation — A therapeutic intervention involving mechanical support for breathing, recorded as part of intensive care management.
+  • Suctioning — A nursing intervention involving clearing secretions from the airway, performed regularly in ventilated patients.
+  • Heart Rate — A physiological parameter measuring the number of heartbeats per minute, monitored via electrocardiogram or pulse oximetry.
+  • Respiration Rate — A physiological parameter measuring the number of breaths per minute, monitored via impedance plethysmography or ventilator.
+  • Arterial Oxygen Saturation — A monitoring method measuring oxygen saturation in the blood, often via SaO2.
+  • Temperature — A physiological parameter measuring body heat, monitored via rectal, oesophageal, bladder, or skin sources.
+  • End-Tidal Carbon Dioxide — A respiratory parameter measuring the partial pressure of carbon dioxide at the end of exhalation.
+  • Jugular Venous Oxygen Saturation — A monitoring parameter measuring oxygen saturation in the jugular vein, used to assess cerebral oxygenation.
+  • Transcranial Doppler — A monitoring technique using ultrasound to measure cerebral blood flow velocity.
+  • Brain Tissue Oxygen — A monitoring parameter measuring oxygen partial pressure in brain tissue, often denoted as PbrO2.
+  • Brain Temperature — A physiological parameter measuring the temperature of brain tissue.
+  • Microdialysis — A monitoring technique involving the sampling of extracellular fluid to measure biochemical markers.
+  • Pupil Score — A clinical assessment of pupil size and reactivity, used in neurological monitoring.
+  • Ventilation Setting — Parameters configured on a mechanical ventilator to support respiratory function.
+  • Sedation — The degree of sedation administered to a patient, monitored to ensure appropriate depth.
+  • Fluids — The volume of fluids excreted or drained from a patient, recorded as part of fluid balance management.
+  • Vasopressor — A medication used to increase blood pressure by constricting blood vessels.
+  • Routine Nursing — Standard nursing care interventions such as eye and mouth care, endotracheal tube suction, and bed care.
+  • Physiotherapy — Therapeutic exercises and interventions performed by physiotherapists to maintain or restore physical function.
+  • Bedside Intervention — Clinical procedures performed at the patient's bedside, such as line insertion or transducer calibration.
+  • Patient Transport — The movement of patients to and from locations such as the operating theatre or CT scan.
+  • Routine Blood Gas — Laboratory tests measuring blood gases, including pH, pO2, and pCO2, performed regularly.
+  • Daily Laboratory Value — Regular laboratory measurements including biochemistry and haematology parameters.
+  • Biochemistry — Laboratory tests measuring biochemical parameters such as sodium, potassium, and glucose.
+  • Haematology — Laboratory tests measuring blood components such as hemoglobin, white cell count, and hematocrit.
+  • Secondary Insult Therapy — Medical management or therapy given specifically to treat secondary insults in patients.
+  • Arterial Pressor — A medication used to increase arterial blood pressure, often to treat systemic hypotension.
+  • Systemic Hypotension — A clinical condition characterized by abnormally low blood pressure in the systemic circulation.
+  • Continuous Infusion — A method of drug delivery via a continuous infusion pump.
+  • Bolus — A method of drug delivery involving a single, non-continuous dose.
+  • Non-monitoring Data — Patient data elements that are not continuous physiological measurements, included as part of the core dataset.
+  • Intracranial Hypertension — A secondary insult characterized by elevated pressure inside the cranium.
+  • Arterial Hypotension — A secondary insult characterized by abnormally low blood pressure.
+  • Jugular Venous Desaturation — A condition where oxygen saturation in the jugular venous blood falls below a critical threshold, such as <50%.
+  • Acute Respiratory Distress Syndrome — A severe lung condition that can occur as a complication of aggressive management strategies.
+  • Neurological Outcome — The clinical result or status of a patient's neurological function following injury and treatment.
+  • Adverse Event — An undesirable clinical occurrence, such as a secondary insult, that may be detected through monitoring.
+  • Data Sampling Rate — The frequency at which patient data is collected, with higher rates (e.g., <1 sample per minute) enabling better detection of short-duration events.
+  • Treatment Threshold — A specific value of a physiological parameter, such as cerebral perfusion pressure, used to trigger or guide therapeutic interventions.
+  • Pharmacological Therapy — Drug-based treatments, including new neuroprotective agents, evaluated in clinical trials.
+  • Management Data — Information regarding the clinical care and interventions provided to patients, collected as part of standardized datasets.
+  • High Resolution Data — Detailed patient data collected at high frequency, allowing for precise quantification of physiological events.
+  • Core Monitoring Parameter — Essential physiological variables, such as intracranial pressure and blood pressure, monitored as part of the core dataset.
+  • Admission Data — Information collected upon a patient's entry into the intensive care unit, relevant for brain injury management.
+  • Treatment Data — Information regarding therapeutic interventions administered to patients with brain injury.
+  • Outcome Data — Data reflecting the results or end-points following management of brain injury.
+  • Intensive Care Unit — A specialized hospital department providing life support and continuous monitoring for critically ill patients, such as those with brain injury.
+  • Trial Drug — An experimental pharmaceutical agent being tested for efficacy in clinical trials.
+  • New Management Approach — A novel therapeutic or care strategy for treating conditions like brain injury.
+  • New Monitoring Approach — An innovative method for observing and measuring patient physiological parameters.
+  • General Medical Icu — An intensive care unit that treats patients with a wide range of medical conditions requiring critical care.
+  • Traumatic Brain Injury Icu — A specialized intensive care unit focused on the management and monitoring of patients with traumatic brain injuries.
+  • Patient Data — Information collected from patients, including physiological measurements and clinical records, used for medical decision-making and research.
+  • Sepsis — A life-threatening condition caused by the body's response to an infection, leading to organ dysfunction.
+  • Physiologically Impossible Values — Data values that fall outside the biologically plausible range for a given physiological parameter, indicating potential errors.
+  • Medical Decision Making — The process by which healthcare professionals use patient data and clinical knowledge to determine diagnosis and treatment.
+  • Offline Analysis — The examination of stored patient data after it has been collected, typically for research or retrospective review.
+  • Symptom — A clinical sign or indicator of a disease or condition, such as an elevated heart rate in sepsis.
+  • Disorder — A medical condition characterized by abnormal physiological or psychological functioning, such as sepsis.
+  • Domain Knowledge — Specialized understanding of a particular field, such as clinical medicine, required to interpret data accurately.
+  • Human Judgement — The application of expert clinical reasoning to evaluate data, especially in complex or ambiguous situations.
+  • Medical Data Assessment — The process of evaluating the quality, accuracy, and trustworthiness of patient data using computational frameworks.
+  • Clinical Knowledge — Expertise and information derived from medical practice and research, applied to interpret patient data.
+  • Patient — An individual receiving medical care, represented as a feature of interest in sensor observations.
+  • Session — A period or instance of medical data collection for a patient.
+  • Timepoint — A specific point in time associated with a set of observations during a patient session.
+  • Reading — A recorded value produced by a sensing process, representing an observation of a parameter.
+  • Parameter — A property or characteristic that is recorded as part of medical observations.
+  • Observation Value — The value produced by a sensing process, representing a specific measurement.
+  • Property — An attribute or characteristic that can be observed, such as a physiological parameter.
+  • Feature of Interest — An entity, such as a patient, that is the subject of sensor observations.
+  • Observation Collection — A set of observations grouped together, such as those at a specific timepoint.
+  • Observation — An individual measurement or data point captured by a sensor.
+  • Provenance — Information describing the entities and processes involved in producing a resource, such as medical data.
+  • Sensor — A device that detects and measures a property, producing observations.
+  • Machine — A platform or device that hosts sensors used in medical evaluation.
+  • Platform — A physical or logical entity that hosts sensors, such as a medical machine.
+  • Sensing Process — A procedure or method implemented by a sensor to observe a property.
+  • Measurement Capability — The ability or specification of a sensor to perform measurements under certain conditions.
+  • Possible Error — An annotation indicating that a value in medical data may be incorrect.
+  • Probable Error — An annotation indicating that a value in medical data is likely incorrect.
+  • Acceptable Value — A value within defined limits considered valid for a medical parameter.
+  • Sensor Accuracy — The precision and reliability of medical sensors used to measure physiological parameters, often expressed as +/- values or percentages.
+  • Condition — A health-related state or disease affecting a patient.
+  • Treatment — An intervention or therapy applied to address a medical condition.
+  • Physiological Data — Time-series measurements of biological functions and vital signs collected from patient monitoring equipment.
+  • Monitoring Parameter — A specific physiological variable that is continuously measured and recorded during patient monitoring.
+  • Hypotension — A medical condition characterized by abnormally low blood pressure.
+  • Hypertension — A medical condition characterized by abnormally high blood pressure.
+  • Noradrenaline — A medication used to treat hypotension by increasing blood pressure through vasoconstriction.
+  • Adrenaline — A medication used in emergency situations to treat severe hypotension and cardiac arrest.
+  • Data Error — Anomalous or invalid data points identified through validation rules during medical data quality assessment.
+  • Acceptable Range Error — A data quality issue where recorded physiological values fall outside predefined minimum or maximum acceptable limits.
+  • Contextual Information — Additional clinical context that helps interpret physiological data, such as medical disorders or treatments.
+  • EtCO2
+  • Electrocardiogram (ECG)
+
+--- Relations ---
+  • has monitoring data(Cerebral Perfusion Pressure → Traumatic Brain Injury) — Indicates that cerebral perfusion pressure is used as a monitoring parameter for patients with traumatic brain injury.
+  • improves(Guideline → Management Approach) — Suggests that guidelines help improve management approaches for patient care.
+  • receives therapy(Bed Tilt → Hydrostatic Pressure Gradient) — Shows that changes in bed tilt influence hydrostatic pressure gradients in the body.
+  • includes parameter(Monitoring Data → Cerebral Perfusion Pressure) — Specifies that cerebral perfusion pressure is one of the parameters collected as part of monitoring data.
+  • includes parameter(Monitoring Data → Intracranial Pressure) — Specifies that intracranial pressure is one of the parameters collected as part of monitoring data.
+  • includes parameter(Monitoring Data → Mean Arterial Pressure) — Specifies that blood pressure is one of the parameters collected as part of monitoring data.
+  • calculated from(Cerebral Perfusion Pressure → Mean Arterial Pressure) — Indicates that cerebral perfusion pressure is derived from blood pressure measurements.
+  • calculated from(Cerebral Perfusion Pressure → Intracranial Pressure) — Indicates that cerebral perfusion pressure is derived from intracranial pressure measurements.
+  • influences outcome(Secondary Insult → Neurological Outcome) — Suggests that secondary insults can affect the neurological outcome of patients.
+  • generates(Intensive Care Unit → Patient Data) — Indicates that intensive care units produce large volumes of patient data through monitoring and treatment activities.
+  • used for(Patient Data → Medical Decision Making) — Describes the application of patient data in clinical processes to inform diagnosis and treatment choices.
+  • stored for(Patient Data → Offline Analysis) — Refers to the practice of archiving patient data for later examination, typically in research contexts.
+  • associated with condition(Timepoint → Reading) — Links a timepoint to the set of readings recorded at that time.
+  • refers to(Reading → Parameter) — Indicates that a reading corresponds to a specific parameter being observed.
+  • produced by(Reading → Sensor) — Indicates that a reading is generated by a sensor or machine.
+  • implements(Sensor → Sensing Process) — Specifies that a sensor carries out a particular sensing process.
+  • observes(Sensor → Property) — Indicates that a sensor measures a specific property.
+  • has(Sensor → Measurement Capability) — Links a sensor to its measurement capabilities.
+  • receives therapy(Hypertension → Data Error) — Indicates that a medical condition can influence the interpretation of physiological data errors.
+  • receives therapy(Hypotension → Data Error) — Indicates that a medical condition can influence the interpretation of physiological data errors.
+  • receives therapy(Noradrenaline → Data Error) — Indicates that a medication can influence the interpretation of physiological data errors.
+  • receives therapy(Adrenaline → Data Error) — Indicates that a medication can influence the interpretation of physiological data errors.
+  • has outcome(Patient → Outcome) — Patients have outcomes that can be assessed from new therapies or monitoring devices.
+  • has monitoring data(Patient → Monitoring Data) — Patients have monitoring data collected from them, particularly in neuro-intensive care units.
+  • detected via(Secondary Insult → Monitoring Data) — Secondary insults can be missed through use of inappropriate monitoring methods.
+  • has monitoring data(Patient → Admission Data) — Patient data includes admission information collected at the beginning of care.
+  • has monitoring data(Patient → Demographic Data) — Patient data includes demographic information about the individual.
+  • has monitoring data(Traumatic Brain Injury → Medical Data Assessment) — Traumatic brain injury monitoring data undergoes medical assessment for clinical use.
+  • has monitoring data(Traumatic Brain Injury → Contextual Information) — Traumatic brain injury monitoring data includes contextual information about the collection environment.
+  • has monitoring data(Traumatic Brain Injury → Provenance) — Traumatic brain injury monitoring data includes provenance information about its origin.
+  • has monitoring data(Traumatic Brain Injury → Patient Transport) — Traumatic brain injury monitoring may include data collected during patient transport.
+  • has monitoring data(Traumatic Brain Injury → Mass Lesion of Mixed or High Density of > 25 Ml) — Traumatic brain injury may involve mass lesions that are monitored through imaging.
+  • has monitoring data(Traumatic Brain Injury → Blood Brain Barrier) — Traumatic brain injury affects the blood brain barrier which is relevant to treatment.
+
+--- Hierarchy (subclass → superclass) ---
+  • Electrocardiogram (ECG) ⊑ Monitoring Data
+  • Respiration Rate ⊑ Core Monitoring Parameter
+  • Mean Arterial Pressure (MAP) ⊑ Monitoring Data
+  • SaO2 ⊑ Monitoring Data
+  • Temperature ⊑ Core Monitoring Parameter
+  • Intracranial Hypertension ⊑ Secondary Insult
+  • Arterial Hypotension ⊑ Secondary Insult
+  • Core Monitoring Parameter ⊑ Monitoring Data
+  • Mean Arterial Pressure (MAP) ⊑ Core Monitoring Parameter
+  • Heart Rate ⊑ Core Monitoring Parameter
+  • SaO2 ⊑ Core Monitoring Parameter
+  • Secondary Insult ⊑ Condition
+  • Systemic Hypotension ⊑ Secondary Insult
+  • Jugular Venous Desaturation ⊑ Secondary Insult
+  • ICP ⊑ Core Monitoring Parameter
+  • CPP ⊑ Core Monitoring Parameter
+  • CVP ⊑ Core Monitoring Parameter
+  • EtCO2 ⊑ Core Monitoring Parameter
+  • PbrO2 ⊑ Core Monitoring Parameter
+  • Brain Temperature ⊑ Core Monitoring Parameter
+  • Jugular Venous Oxygen Saturation ⊑ Core Monitoring Parameter
+  • Monitoring Parameter ⊑ Monitoring Data
+  • Transcranial Doppler ⊑ Monitoring Parameter
+  • Microdialysis ⊑ Monitoring Parameter
+  • Routine Blood Gas ⊑ Monitoring Parameter
+  • Routine Nursing ⊑ Monitoring Parameter
+  • Pupil Assessment ⊑ Monitoring Parameter
+  • Pupil Responsiveness ⊑ Monitoring Parameter
+  • Pupil Score ⊑ Monitoring Parameter
+  • GCS Assessment ⊑ Monitoring Parameter
+  • Cistern State ⊑ Monitoring Parameter
+  • Main Lesion ⊑ Monitoring Parameter
+  • Traumatic Coma Databank Classification ⊑ Monitoring Parameter
+  • Computed Tomography Scan ⊑ Monitoring Parameter
+  • Bed Tilt ⊑ Monitoring Parameter
+  • Hydrostatic Pressure Gradient ⊑ Monitoring Parameter
+  • Arterial Pressor ⊑ Secondary Insult Therapy
+  • Vasopressor ⊑ Secondary Insult Therapy
+  • Adrenaline ⊑ Secondary Insult Therapy
+  • Noradrenaline ⊑ Secondary Insult Therapy
+  • Fluids ⊑ Secondary Insult Therapy
+  • Bolus ⊑ Secondary Insult Therapy
+  • Continuous Infusion ⊑ Secondary Insult Therapy
+  • Ventilation ⊑ Secondary Insult Therapy
+  • Ventilation Setting ⊑ Secondary Insult Therapy
+  • Sedation ⊑ Secondary Insult Therapy
+  • Physiotherapy ⊑ Secondary Insult Therapy
+  • Suctioning ⊑ Secondary Insult Therapy
+  • Bedside Intervention ⊑ Secondary Insult Therapy
+  • Trial Drug ⊑ Secondary Insult Therapy
+  • Pharmacological Therapy ⊑ Secondary Insult Therapy
+  • Hypertension ⊑ Secondary Insult
+  • Hypotension ⊑ Secondary Insult
+  • Sepsis ⊑ Secondary Insult
+  • Acute Respiratory Distress Syndrome ⊑ Secondary Insult
+  • Brain Injury ⊑ Condition
+  • Traumatic Brain Injury ⊑ Brain Injury
+  • Head Injury ⊑ Brain Injury
+  • Disorder ⊑ Condition
+  • Symptom ⊑ Condition
+  • Neurological Outcome ⊑ Outcome
+  • Extended 8-point Glasgow Outcome Scale ⊑ Neurological Outcome
+  • Adverse Event ⊑ Outcome
+  • Management Approach ⊑ Management Data
+  • New Management Approach ⊑ Management Approach
+  • New Monitoring Approach ⊑ Management Approach
+  • Guideline ⊑ Management Approach
+  • Treatment Data ⊑ Management Data
+  • Medical Decision Making ⊑ Clinical Knowledge
+  • Human Judgement ⊑ Clinical Knowledge
+  • Central Venous Pressure ⊑ Core Monitoring Parameter
+  • End-Tidal Carbon Dioxide ⊑ Core Monitoring Parameter
+  • General Medical Icu ⊑ Intensive Care Unit
+  • Neuro-intensive Care ⊑ Intensive Care Unit
+  • Traumatic Brain Injury Icu ⊑ Intensive Care Unit
+  • Admission Data ⊑ Patient Data
+  • Demographic Data ⊑ Patient Data
+  • Outcome Data ⊑ Patient Data
+  • Treatment Data ⊑ Patient Data
+  • Management Data ⊑ Patient Data
+  • Physiological Data ⊑ Monitoring Data
+  • Non-monitoring Data ⊑ Patient Data
+  • Observation ⊑ Monitoring Data
+  • Observation Collection ⊑ Monitoring Data
+  • Observation Value ⊑ Monitoring Data
+  • Daily Laboratory Value ⊑ Monitoring Data
+  • Biochemistry ⊑ Monitoring Data
+  • Haematology ⊑ Monitoring Data
+  • Routine Blood Gas ⊑ Monitoring Data
+  • Acceptable Range Error ⊑ Data Error
+  • Physiologically Impossible Values ⊑ Data Error
+  • Possible Error ⊑ Data Error
+  • Probable Error ⊑ Data Error
+  • Mass Lesion of Mixed or High Density of > 25 Ml ⊑ Main Lesion

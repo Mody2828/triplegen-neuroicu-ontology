@@ -1,0 +1,452 @@
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+Suggested concepts (pre-identified by biomedical NER in this text): traumatic brain injury, hypotension, hypertension, noradrenaline, adrenaline, TBI.
+These are entity mentions detected in this chunk. Use them as additional evidence that a concept is present, but only extract labels from the allowed class list above.
+
+Candidate domain terms (contextual hints from this chunk — use only if supported by the text): PrE; glasgow; hypertension; hypotension; monitoring; GRI; TBI; errors; min; recorded; sensor
+
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing an EXACT VERBATIM sentence or clause COPIED from the text — do NOT paraphrase, summarize, truncate, or rephrase. Copy the text exactly as it appears, preserving original wording, word order, and punctuation. If you cannot find an exact quote, OMIT the item.
+
+3. **Extraction Scope:** Extract clinical and biomedical content: conditions, physiological parameters, monitoring variables, treatments/therapies/interventions, outcomes, assessments, laboratory values, nursing interventions, surgical procedures, and clinical dataset categories when explicitly named.
+   Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+   If a sentence or paragraph is mainly about these excluded topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+6. **Label Mapping Rule:** If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+   Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+   For other abbreviations, expand to their full clinical name as used in the text.
+
+7. **Structural Completeness Rule:** When the text mentions specific clinical items, also extract their general category if the text supports it.
+   For example, if the text discusses 'ventilation, sedation, fluids' as therapies, also extract the general class 'Therapy' or 'Baseline Therapy' if the text uses that grouping.
+   Use the text's own categories and groupings — do not impose an external hierarchy.
+
+**Default priority: classes first, then relations.** Extract relations when the text clearly states a connection between two concepts — both domain and range must be extracted classes. If a phase instruction below overrides this priority, follow the phase instruction.
+
+**Completeness:** Extract every distinct clinical concept the text names — err on the side of inclusion when evidence exists.
+
+### CURRENT TASK: Phase 2 — RELATION & HIERARCHY EXTRACTION (+ supplementary classes)
+Primary task: extract semantic RELATIONS between the known classes below. Extract every relation the text explicitly supports with evidence.
+Secondary task: if you notice clinical concepts in the text that Phase 1 missed (e.g. a concept needed as domain/range), add them to the classes array with evidence.
+Also extract hierarchy (subClassOf) edges wherever the text shows parent-child relationships — look for cues like 'such as', 'includes', 'type of', 'consists of', 'categorized as', enumeration lists, or even implied groupings.
+
+### WHAT IS AN ONTOLOGY RELATION?
+An ontology relation (object property) defines a typed semantic link between two class types. The DOMAIN is the subject class; the RANGE is the object class. Think: 'Every instance of [domain] can be linked via [relation] to an instance of [range].' Relations model the SCHEMA of the domain, not individual facts.
+Example: 'has monitoring data(Patient → Monitoring Data)' means every Patient can have Monitoring Data associated with them.
+
+### RELATION EXTRACTION METHOD (Chain-of-Thought)
+For each pair of known classes, reason step by step:
+1. Do these two classes co-occur or interact in the text?
+2. What is the SEMANTIC NATURE of their link? (measurement, treatment, assessment, outcome, composition, causation, etc.)
+3. Which class is the subject (domain) and which is the object (range)?
+4. Assign a descriptive relation label from the patterns below, or create a meaningful label if none fits.
+5. Find an exact text quote that supports this relationship.
+
+### ONTOLOGY DESIGN PATTERNS (use when the text supports them)
+These are reusable structural patterns showing how clinical concepts relate.
+Match them against the text — extract every supported edge.
+
+**Pattern 1 — Clinical Monitoring:**
+  Patient --[has monitoring data]--> Monitoring Data
+  Monitoring Data --[includes]--> Parameter
+  Observation --[measures parameter]--> Parameter
+  Observation --[produced by sensor]--> Sensor
+  Observation --[has quality assessment]--> Data Quality Assessment
+  Session --[has timepoint]--> Timepoint
+  Timepoint --[has observation]--> Observation
+
+**Pattern 2 — Clinical Intervention:**
+  Patient --[receives therapy]--> Therapy
+  Therapy --[targets condition]--> Condition
+  Condition --[triggers intervention]--> Therapy
+  Patient --[has surgical procedure]--> Surgical Procedure
+  Patient --[has nursing intervention]--> Nursing Intervention
+
+**Pattern 3 — Clinical Assessment and Outcome:**
+  Patient --[has clinical assessment]--> Clinical Assessment
+  Patient --[has outcome]--> Outcome
+  Patient --[has laboratory value]--> Laboratory Values
+  Monitoring Data --[monitoring indicates condition]--> Condition
+
+**Pattern 4 — Patient Context:**
+  Patient --[has session]--> Session
+  Patient --[has demographic data]--> Demographic Data
+  Patient --[has injury mechanism]--> Injury Mechanism
+
+**Pattern 5 — Data Quality:**
+  Data Quality Assessment --[affected by treatment]--> Therapy
+  Data Quality Assessment --[associated with condition]--> Condition
+
+**Pattern 6 — Composition (model as HIERARCHY, not relation):**
+  If X includes/comprises Y → extract as hierarchy: Y subClassOf X
+  Derived Parameter --[derived from]--> Source Parameter
+
+You SHOULD also extract other relations the text supports beyond these patterns.
+Do not invent relations not stated or clearly implied in the text.
+
+### CRITICAL: DO NOT USE 'includes' AS A RELATION LABEL
+If X includes Y, or Y is a type/kind/member of X, model it as HIERARCHY (Y subClassOf X), NOT as a relation. For example:
+  - 'Monitoring Data includes Heart Rate' → Heart Rate subClassOf Monitoring Data (hierarchy)
+  - 'Third-tier Treatment includes Barbiturates' → Barbiturates subClassOf Third-tier Treatment (hierarchy)
+The labels 'includes', 'consists of', 'comprises', 'is a type of' are NOT valid relation labels.
+
+### DEFINITION REQUIREMENT
+Every relation MUST include a `definition` field: a precise one-sentence description of what this relation means IN THE CONTEXT OF THIS TEXT.
+Read how the text describes the connection between these two concepts and capture:
+  (1) The NATURE of the link (measurement, treatment, assessment, composition, causation).
+  (2) HOW or WHY these concepts are connected according to the text.
+BAD: "Connects two clinical concepts."
+GOOD: "Links a patient to continuously recorded physiological measurements such as ICP, MAP, and heart rate captured during their ICU stay."
+Example: {"label": "has monitoring data", "domain": "Patient", "range": "Monitoring Data", "definition": "Links a patient to the set of continuously recorded physiological measurements (ICP, MAP, heart rate, etc.) captured minute-by-minute during their ICU stay.", "evidence": "..."}
+
+### RELATION EVIDENCE RULES
+- Each relation MUST have an 'evidence' field with an exact verbatim quote from the source text.
+- The evidence should mention or clearly imply at least one of the two endpoint classes (domain or range).
+- Use the ABSTRACT superclass as the range, not specific instances (e.g., 'Monitoring Data' not 'ICP').
+- Do NOT reuse the same evidence quote for multiple relations.
+
+### SELF-CHECK (before finalising output)
+- Do all domain and range labels match known classes from Phase 1?
+- Are there any duplicate relations (same domain-label-range)? Remove duplicates.
+- Does every evidence field contain a verbatim quote from the text?
+
+Output JSON with keys classes, relations, hierarchy.
+
+Known classes (use only these labels): Traumatic Brain Injury (TBI); Hypotension; Hypertension; Noradrenaline; Adrenaline; Physiological Data; Monitoring Equipment; Missing Data; Acceptable Range; Sensor Accuracy; Medical Disorder; Treatment; Data Validation Error; RDF; Glasgow Royal Infirmary (GRI); Clinical Domain Ontology; Data Collection Frequency
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "definition": "one-sentence scope note describing what this class represents in the domain", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "definition": "one-sentence description of what this relation means between domain and range", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Definition rule:** Every class and relation MUST include a `definition` field: a concise one-sentence scope note clarifying what the class represents or what the relation means in the clinical domain. Ground definitions in the text where possible, but you may use standard medical knowledge to write a clear scope note.
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+**REASONING STEP:** Before producing JSON, mentally scan the text for: (1) every named clinical concept, (2) explicit relations between them, (3) hierarchy cues (such as, is a, type of, include:). Then output only items with verbatim evidence.
+
+---
+--- Retrieved examples (3) ---
+
+Text: The minimum minute by minute monitoring data required for inclusion in the BrainIT Database include: Heart Rate, Respiration Rate, Mean Arterial Pressure, ICP, SaO2 and Temperature. Data is collected from patients every minute.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Patient",
+      "evidence": "patients",
+      "definition": "An individual receiving neurointensive care for traumatic brain injury."
+    },
+    {
+      "label": "Monitoring Data",
+      "evidence": "monitoring data",
+      "definition": "Continuously recorded physiological measurements collected from bedside monitors."
+    },
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate",
+      "definition": "The number of cardiac contractions per minute, a core physiological monitoring parameter in neuro-ICU."
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate",
+      "definition": "The number of breaths per minute, measured via impedance plethysmography or ventilator."
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature",
+      "definition": "Core body temperature measured at rectal, oesophageal, bladder, or skin sites."
+    }
+  ],
+  "relations": [
+    {
+      "label": "has monitoring data",
+      "domain": "Patient",
+      "range": "Monitoring Data",
+      "evidence": "Data is collected from patients every minute",
+      "definition": "Links a patient to the set of continuously recorded physiological measurements captured during their ICU stay."
+    },
+    {
+      "label": "includes",
+      "domain": "Monitoring Data",
+      "range": "Heart Rate",
+      "evidence": "monitoring data include: Heart Rate",
+      "definition": "Indicates that a data category contains or encompasses a specific parameter or subcategory."
+    },
+    {
+      "label": "includes",
+      "domain": "Monitoring Data",
+      "range": "Temperature",
+      "evidence": "monitoring data include: Heart Rate, Respiration Rate, Mean Arterial Pressure, ICP, SaO2 and Temperature",
+      "definition": "Indicates that a data category contains or encompasses a specific parameter or subcategory."
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+
+Text: Each patient has monitoring sessions. Each timepoint in a monitoring session is associated with observations produced by sensors. Each observation measures a physiological parameter and is evaluated by a data quality assessment resulting in either a Possible Error (PoE) or Probable Error (PrE) classification. A reading outside range may be contextualised by a medical disorder (e.g. sepsis, hypertension) or recent treatment (e.g. noradrenaline), reclassifying a PrE as PoE.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Patient",
+      "evidence": "Each patient has monitoring sessions",
+      "definition": "An individual receiving neurointensive care for traumatic brain injury."
+    },
+    {
+      "label": "Session",
+      "evidence": "monitoring sessions"
+    },
+    {
+      "label": "Timepoint",
+      "evidence": "Each timepoint in a monitoring session",
+      "definition": "A discrete moment in time at which clinical observations are recorded."
+    },
+    {
+      "label": "Observation",
+      "evidence": "associated with observations",
+      "definition": "A single measurement of a physiological parameter at a specific timepoint."
+    },
+    {
+      "label": "Sensor",
+      "evidence": "observations produced by sensors"
+    },
+    {
+      "label": "Parameter",
+      "evidence": "measures a physiological parameter",
+      "definition": "A measurable physiological variable recorded during monitoring."
+    },
+    {
+      "label": "Data Quality Assessment",
+      "evidence": "data quality assessment"
+    },
+    {
+      "label": "Possible Error",
+      "evidence": "Possible Error (PoE)"
+    },
+    {
+      "label": "Probable Error",
+      "evidence": "Probable Error (PrE)"
+    },
+    {
+      "label": "Condition",
+      "evidence": "contextualised by a medical disorder (e.g. sepsis, hypertension)",
+      "definition": "A clinical condition or pathological state affecting the patient."
+    },
+    {
+      "label": "Sepsis",
+      "evidence": "medical disorder (e.g. sepsis)"
+    },
+    {
+      "label": "Hypertension",
+      "evidence": "hypertension",
+      "definition": "Abnormally elevated blood pressure."
+    },
+    {
+      "label": "Noradrenaline",
+      "evidence": "recent treatment (e.g. noradrenaline)",
+      "definition": "A catecholamine vasopressor used to raise blood pressure in ICU."
+    },
+    {
+      "label": "Therapy",
+      "evidence": "recent treatment (e.g. noradrenaline)",
+      "definition": "A clinical intervention or treatment administered to manage the patient's condition."
+    }
+  ],
+  "relations": [
+    {
+      "label": "has session",
+      "domain": "Patient",
+      "range": "Session",
+      "evidence": "Each patient has monitoring sessions"
+    },
+    {
+      "label": "has timepoint",
+      "domain": "Session",
+      "range": "Timepoint",
+      "evidence": "Each timepoint in a monitoring session"
+    },
+    {
+      "label": "has observation",
+      "domain": "Timepoint",
+      "range": "Observation",
+      "evidence": "Each timepoint in a monitoring session is associated with observations"
+    },
+    {
+      "label": "produced by sensor",
+      "domain": "Observation",
+      "range": "Sensor",
+      "evidence": "observations produced by sensors"
+    },
+    {
+      "label": "measures parameter",
+      "domain": "Observation",
+      "range": "Parameter",
+      "evidence": "Each observation measures a physiological parameter"
+    },
+    {
+      "label": "has quality assessment",
+      "domain": "Observation",
+      "range": "Data Quality Assessment",
+      "evidence": "evaluated by a data quality assessment resulting in Possible Error or Probable Error"
+    },
+    {
+      "label": "associated with condition",
+      "domain": "Data Quality Assessment",
+      "range": "Condition",
+      "evidence": "contextualised by a medical disorder (e.g. sepsis, hypertension)",
+      "definition": "Indicates that a data quality assessment is linked to a clinical condition."
+    },
+    {
+      "label": "affected by treatment",
+      "domain": "Data Quality Assessment",
+      "range": "Therapy",
+      "evidence": "contextualised by...recent treatment (e.g. noradrenaline), reclassifying a PrE as PoE",
+      "definition": "Indicates that a data quality measure is influenced by a therapeutic intervention."
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+
+Text: Adherence to traumatic brain injury guidelines was calculated automatically from physiological and treatment data. The system measures guideline adherence for hypotension management, ICP management, and CPP management. Intensive care management protocols define target ranges for these parameters.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Guideline Adherence",
+      "evidence": "Adherence to traumatic brain injury guidelines"
+    },
+    {
+      "label": "Intensive Care Management",
+      "evidence": "Intensive care management protocols",
+      "definition": "The category of data covering routine ICU care activities delivered to patients."
+    },
+    {
+      "label": "Hypotension",
+      "evidence": "hypotension management",
+      "definition": "Abnormally low blood pressure, a recognised secondary insult after TBI."
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "ICP management",
+      "definition": "The pressure inside the cranium, continuously monitored to detect intracranial hypertension in TBI patients."
+    },
+    {
+      "label": "Cerebral Perfusion Pressure (CPP)",
+      "evidence": "CPP management",
+      "definition": "The net pressure gradient driving blood flow to the brain, calculated as MAP minus ICP."
+    }
+  ],
+  "relations": [
+    {
+      "label": "has guideline adherence",
+      "domain": "Intensive Care Management",
+      "range": "Guideline Adherence",
+      "evidence": "Intensive care management protocols define target ranges...adherence was calculated automatically"
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+TEXT TO ANALYZE:
+RDF also provides a common representational formalism, allowing
+data to be provided in a proprietary format, e.g. database or spreadsheet. Trusting Intensive Care Unit (ICU) Medical Data 71
+
+Name Details of Rule Conclusion
+Missing If, for every sequential pair of readings, the time period PrE
+Data 3 between them does not equal the sampling rate
+Acceptable If the recorded value is less than the min. acceptable value PrE
+Range 1
+Acceptable If the recorded value is greater than the max. acceptable PrE
+Range 2 value
+Acceptable If an accuracy value (defining a +/- value or %) is PoE
+Range 3 associated with the sensor AND the recorded value minus
+accuracy value is below the min. acceptable value
+Acceptable If an accuracy value (defining a +/- value or %) is No longer an
+Range 4 associated with the sensor AND the recorded value plus the error
+accuracy value is above the min. acceptable value
+Acceptable If an accuracy value (defining a +/- value or %) is PoE
+Range 5 associated with the sensor AND the recorded value plus the
+accuracy value is above the max. acceptable value
+Medical If the recorded value is outwith its acceptable range AND Reclassify
+Disorders is associated with a symptom of a disorder, AND at the from PrE to
+Rule 1 same time other symptoms associated with the disorder PoE
+Treatments If the recorded value is outwith its acceptable range AND Reclassify
+Rule 1 is associated with an effect of a treatment AND that from PrE to
+treatment was administered previous to that value PoE
+
+3 Evaluation
+
+We have applied our framework to data taken from two types of ICUs: general
+medical and traumatic brain injury (TBI)2 . In both cases, time series physiological data was collected from patient monitoring equipment, but the machines
+used, parameters recorded, and frequency of data collection differs. We were able
+to reuse the same clinical domain ontology for both evaluations. For the Medical
+Disorders rule, we created specific queries for hypotension and hypertension; and
+for the Treatments rule, queries for effects of noradrenaline and adrenaline.
+For the Traumatic Brain Injury (TBI) domain, we used data consisting of 37 patients, 595,439 distinct
+timepoints, 4,467,949 observations for 14 parameters, and the resulting RDF
+consists of 52,093,104 triples. Glasgow Royal Infirmary's (GRI) general medical
+Trusting Intensive Care Unit (ICU) dataset consisted of 209 patients, 68,142 distinct timepoints, 687,393 observations for 14 parameters, and the resulting RDF consists of 41,819,163 triples.
+In both domains, data is collected every minute, exported every minute in the
+Traumatic Brain Injury (TBI) domain, and exported hourly in the GRI domain; the machine recording
+and export configuration tools were set accordingly.
+Missing Data Rule 3 found 27,002 (≥0.6%) and 64,307 (≥9.4%) sequences
+of missing data points for the Traumatic Brain Injury (TBI) and GRI datasets respectively. In the Traumatic Brain Injury (TBI)
+dataset, 376,389 (9.4%) values were found to be less than the min. acceptable for
+a parameter, and 1,386,262 (31%) were found to be higher than the max.; when
+Further evaluation results are available at: http://www.abdn.ac.uk/~ csc316
+
+72 L. Moss et al.
+
+sensor accuracies were considered 18,839 additional errors were found and 19,604
+of the original errors removed. In the GRI dataset, 129,716 (18.9%) values were
+found to be less than the min. acceptable for a parameter, and 189,601 (27.6%)
+were found to be higher than the max.; when sensor accuracies were considered
+272,357 additional errors were found and 159,219 of the original errors removed.
+In the GRI dataset, a number of readings identified by Acceptable Range Rules
+1 & 2 may have been affected by hypertension (91%), hypotension (85.6%),
+noradrenaline (24.2%) and adrenaline (6.7%)3 . A number of Traumatic Brain Injury (TBI) values may
+also be affected by hypertension (92.1%) and hypotension (80.5%).
+
+4 Discussion and Future Work
+We have shown that our approach can be successfully applied to assess medical
+data and illustrates the benefit of additional contextual information provided by
+linking data. Using a simple approach, a large number of acceptable range errors
+are identified; however, when the context of the data is considered, many are reclassified or new errors are identified. In the future we plan to investigate: further
+context dependent rules; detection of interventions that have been carried out on
+a patient but not recorded; and using High Performance Computing to improve
+performance times, e.g. it took 2 hours 8 mins to apply the Medical Disorders
+rules which clearly would not be practical if used regularly in a clinical setting.
+
+Acknowledgements. The staff and patients of the Trusting Intensive Care Unit (ICU) Unit, GRI. This work
+was an extension of the routine audit process in GRI's Trusting Intensive Care Unit (ICU); requirements for
+further Ethical Committee Approval have been waved. The authors would like
+centres to the BrainIT dataset.
+---

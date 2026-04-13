@@ -1,0 +1,340 @@
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+Suggested concepts (pre-identified by biomedical NER in this text): DSG, T-BPm-C-Both, BPs T-Both-C-BPs-BPm-Enclosed, hypotensive, sec-.
+These are entity mentions detected in this chunk. Use them as additional evidence that a concept is present, but only extract labels from the allowed class list above.
+
+Candidate domain terms (contextual hints from this chunk — use only if supported by the text): cerebral perfusion pressure; cpp; glasgow; monitoring; Secondary Insult; Secondary Insult Grades; BPm; BPs; DSG; DSG program; PERL; SQL
+
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing an EXACT VERBATIM sentence or clause COPIED from the text — do NOT paraphrase, summarize, truncate, or rephrase. Copy the text exactly as it appears, preserving original wording, word order, and punctuation. If you cannot find an exact quote, OMIT the item.
+
+3. **Extraction Scope:** Extract clinical and biomedical content: conditions, physiological parameters, monitoring variables, treatments/therapies/interventions, outcomes, assessments, laboratory values, nursing interventions, surgical procedures, and clinical dataset categories when explicitly named.
+   Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+   If a sentence or paragraph is mainly about these excluded topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+6. **Label Mapping Rule:** If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+   Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+   For other abbreviations, expand to their full clinical name as used in the text.
+
+7. **Structural Completeness Rule:** When the text mentions specific clinical items, also extract their general category if the text supports it.
+   For example, if the text discusses 'ventilation, sedation, fluids' as therapies, also extract the general class 'Therapy' or 'Baseline Therapy' if the text uses that grouping.
+   Use the text's own categories and groupings — do not impose an external hierarchy.
+
+**Default priority: classes first, then relations.** Extract relations when the text clearly states a connection between two concepts — both domain and range must be extracted classes. If a phase instruction below overrides this priority, follow the phase instruction.
+
+**Completeness:** Extract every distinct clinical concept the text names — err on the side of inclusion when evidence exists.
+
+### CURRENT TASK: Phase 1 — COMPREHENSIVE CLASS EXTRACTION
+Extract all clinical and biomedical classes mentioned in the text.
+
+### CHAIN-OF-THOUGHT (follow these steps before producing output)
+1. Read each paragraph and identify every clinical noun phrase (conditions, parameters, therapies, assessments, outcomes, devices, data categories).
+2. For each candidate, classify it: Is it a clinical condition? A physiological parameter? A treatment? An assessment? A laboratory value? A nursing intervention? A data category? A device or sensor?
+3. Check: does the text provide a verbatim phrase you can cite as evidence?
+4. If yes, include it. If the concept is purely organisational, governance, or publication metadata, skip it.
+
+### CONCEPT TYPES TO LOOK FOR
+  - Clinical conditions, diseases, injuries, syndromes, secondary insults
+  - Physiological parameters and monitoring variables (e.g. ICP, MAP, HR, SpO2)
+  - Treatments, therapies, interventions, drugs, medications
+  - Surgical procedures and clinical procedures
+  - Clinical assessments, scores, and scales (e.g. GCS, GOSe, pupil assessment)
+  - Patient outcomes and outcome measures
+  - Laboratory values and test categories (e.g. blood gases, biochemistry)
+  - Nursing interventions and bedside care (e.g. suctioning, sedation)
+  - Medical devices and sensors
+  - Data categories and abstract grouping classes (e.g. Monitoring Data, Therapy, Condition, Outcome, Core Monitoring Parameter, Optional Monitoring Parameter, Baseline Therapy, Demographic Data, Admission Data, Treatment Data, Outcome Data)
+  - Clinical guidelines and management protocols
+
+### LABEL GUIDANCE
+  - Use short, clean noun-phrase labels.
+  - Expand common abbreviations: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+  - For other abbreviations, expand to their full clinical name.
+
+### STRUCTURAL COMPLETENESS
+When the text mentions specific clinical items, also extract their general category if the text supports it. Use the text's own categories and groupings. For example, if the text lists 'heart rate, ICP, MAP' under 'core monitoring parameters', extract BOTH the individual parameters AND 'Core Monitoring Parameter' as a class.
+
+### DEFINITION REQUIREMENT
+Every class MUST include a `definition` field: a precise one-sentence scope note that captures what this concept means IN THE CONTEXT OF THIS TEXT.
+Read how the text uses this concept and write a definition that includes:
+  (1) What TYPE of concept it is (condition, parameter, therapy, assessment, lab value, device, data category).
+  (2) What it MEASURES, TREATS, MONITORS, or DESCRIBES.
+  (3) Its ROLE or PURPOSE as described in this specific text.
+Ground the definition in the text context first. Only fall back to general medical knowledge if the text provides no contextual clues.
+BAD (too vague):  "A clinical parameter used in patient care."
+GOOD (text-grounded): "A physiological parameter measuring pressure inside the cranium, recorded minute-by-minute as part of the BrainIT core monitoring dataset to detect secondary insults in TBI patients."
+Example: {"label": "Intracranial Pressure", "definition": "A core monitoring parameter measuring pressure inside the cranium, recorded continuously to detect intracranial hypertension in traumatic brain injury patients.", "evidence": "..."}
+
+### EXTRACTION PRINCIPLE
+Extract every clinical concept the text explicitly names. Do not invent concepts not present in the text. Each concept needs a verbatim evidence quote from the source.
+
+### SELF-CHECK (before finalising output)
+- Is every label a clinical TYPE (not an instance or a person's name)?
+- Are there any duplicate or synonym labels? Merge them.
+- Does every evidence field contain a verbatim quote from the text?
+
+Output JSON with keys classes, relations, hierarchy. Set relations and hierarchy to empty arrays.
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "definition": "one-sentence scope note describing what this class represents in the domain", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "definition": "one-sentence description of what this relation means between domain and range", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Definition rule:** Every class and relation MUST include a `definition` field: a concise one-sentence scope note clarifying what the class represents or what the relation means in the clinical domain. Ground definitions in the text where possible, but you may use standard medical knowledge to write a clear scope note.
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+**REASONING STEP:** Before producing JSON, mentally scan the text for: (1) every named clinical concept, (2) explicit relations between them, (3) hierarchy cues (such as, is a, type of, include:). Then output only items with verbatim evidence.
+
+---
+--- Retrieved examples (3) ---
+
+Text: This is the minimum minute by minute monitoring data required for inclusion in the BrainIT Database and include: Heart Rate (specifying source: ECG or Pulse Oximetry), Respiration Rate (sources: impedance plethmography or ventilator), Mean Arterial Pressure, mean ICP, Pulse Oximetry (SaO2) and Temperature (sources: rectal=oesophageal= bladder=skin.) However, additional variables: Central Venous Pressure (CVP), EtCO2, SjO2, TCD, PbrO2, Brain Temperature, Microdialysis. . . will also be included in the database if they are monitored, in a given patient, as part of their usual clinical management.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate (specifying source: ECG or Pulse Oximetry)",
+      "definition": "The number of cardiac contractions per minute, a core physiological monitoring parameter in neuro-ICU."
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate (sources: impedance plethmography or ventilator)",
+      "definition": "The number of breaths per minute, measured via impedance plethysmography or ventilator."
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "Mean Arterial Pressure",
+      "definition": "The average arterial blood pressure during a cardiac cycle, a key haemodynamic parameter."
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "mean ICP",
+      "definition": "The pressure inside the cranium, continuously monitored to detect intracranial hypertension in TBI patients."
+    },
+    {
+      "label": "SaO2",
+      "evidence": "Pulse Oximetry (SaO2)",
+      "definition": "Arterial oxygen saturation measured by pulse oximetry, indicating blood oxygenation levels."
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature (sources: rectal=oesophageal= bladder=skin.)",
+      "definition": "Core body temperature measured at rectal, oesophageal, bladder, or skin sites."
+    },
+    {
+      "label": "CVP",
+      "evidence": "Central Venous Pressure (CVP)",
+      "definition": "Central venous pressure, measuring the pressure in the thoracic vena cava near the right atrium."
+    },
+    {
+      "label": "EtCO2",
+      "evidence": "EtCO2",
+      "definition": "End-tidal carbon dioxide concentration, reflecting ventilation adequacy."
+    },
+    {
+      "label": "SjO2",
+      "evidence": "SjO2",
+      "definition": "Jugular venous oxygen saturation, an indicator of cerebral oxygen consumption."
+    },
+    {
+      "label": "TCD",
+      "evidence": "TCD",
+      "definition": "Transcranial Doppler ultrasonography, used to assess cerebral blood flow velocity."
+    },
+    {
+      "label": "PbrO2",
+      "evidence": "PbrO2",
+      "definition": "Partial pressure of brain tissue oxygen, measuring local cerebral oxygenation."
+    },
+    {
+      "label": "Brain Temperature",
+      "evidence": "Brain Temperature",
+      "definition": "Temperature measured directly within brain tissue, distinct from core body temperature."
+    },
+    {
+      "label": "Microdialysis",
+      "evidence": "Microdialysis",
+      "definition": "A sampling technique for measuring extracellular brain chemistry metabolites."
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+
+Text: The Edinburgh University Secondary Insult Grades (EUSIG) system classifies a hypotensive event as systolic blood pressure (BPs) less than 90 mmHg or mean arterial pressure (BPm) less than 70 mmHg with a holddown period of 5 minutes. The distinction between BPs and BPm is important because the trigger characteristics and clinical significance of these event types differ.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "EUSIG Grade",
+      "evidence": "Edinburgh University Secondary Insult Grades (EUSIG) system",
+      "definition": "Edinburgh University Secondary Insult Grades classification system for adverse events."
+    },
+    {
+      "label": "Hypotensive Event",
+      "evidence": "classifies a hypotensive event",
+      "definition": "An episode of blood pressure falling below a defined threshold for a sustained period."
+    },
+    {
+      "label": "Systolic Blood Pressure (SBP)",
+      "evidence": "systolic blood pressure (BPs) less than 90 mmHg",
+      "definition": "Peak arterial pressure during cardiac systole."
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "mean arterial pressure (BPm) less than 70 mmHg",
+      "definition": "The average arterial blood pressure during a cardiac cycle, a key haemodynamic parameter."
+    },
+    {
+      "label": "Secondary Insult",
+      "evidence": "Secondary Insult Grades",
+      "definition": "An adverse physiological event occurring after the primary brain injury that worsens outcome."
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+
+Text: Vital monitoring data are bedside monitoring data which are collected at regular intervals with a minimum sampling rate of once per minute. The parameters monitored include: BP (blood pressure: mmHg; systolic, diastolic, mean), ICP (intracranial pressure: mmHg; mean), CPP (cerebral perfusion pressure: mmHg; mean), HRT (heart rate: bpm), SaO2 (arterial oxygen saturation: %; pulse oximetry), Tc (core temperature: degrees C).
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Monitoring Data",
+      "evidence": "Vital monitoring data are bedside monitoring data",
+      "definition": "Continuously recorded physiological measurements collected from bedside monitors."
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "BP (blood pressure: mmHg; systolic, diastolic, mean)",
+      "definition": "The average arterial blood pressure during a cardiac cycle, a key haemodynamic parameter."
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "ICP (intracranial pressure: mmHg; mean)",
+      "definition": "The pressure inside the cranium, continuously monitored to detect intracranial hypertension in TBI patients."
+    },
+    {
+      "label": "Cerebral Perfusion Pressure (CPP)",
+      "evidence": "CPP (cerebral perfusion pressure: mmHg; mean)",
+      "definition": "The net pressure gradient driving blood flow to the brain, calculated as MAP minus ICP."
+    },
+    {
+      "label": "Heart Rate",
+      "evidence": "HRT (heart rate: bpm)",
+      "definition": "The number of cardiac contractions per minute, a core physiological monitoring parameter in neuro-ICU."
+    },
+    {
+      "label": "SaO2",
+      "evidence": "SaO2 (arterial oxygen saturation: %; pulse oximetry)",
+      "definition": "Arterial oxygen saturation measured by pulse oximetry, indicating blood oxygenation levels."
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Tc (core temperature: degrees C)",
+      "definition": "Core body temperature measured at rectal, oesophageal, bladder, or skin sites."
+    },
+    {
+      "label": "Patient",
+      "evidence": "bedside monitoring data",
+      "definition": "An individual receiving neurointensive care for traumatic brain injury."
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+TEXT TO ANALYZE:
+Table 2 Event profile definitions then further processed using the "R" statistical package
+Trigger Clear Profile name to produce the statistical plots and results that are included in
+BPs (Type 1) BPs T-BPs-C-BPs-BPm-Enclosed --- (1) this report. More detailed notes on the structure and opera-
+BPs T-BPs-C-BPs-BPs-Only --- (2) tion of the DSG program are provided in a project report,
+BPm T-BPs-C-BPm --- (3) which can be obtained from the lead author.
+The initial results (see the Results section) showed that most
+Both T-BPs-C-Both --- (4)
+events were associated with the BPm signal crossing the thresh-
+BPm (Type 2) BPm T-BPm-C-BPm-BPs-Enclosed --- (5)
+old. Accordingly, the DSG program was modified to look for
+BPm T-BPm-C-BPm-Only --- (6) trigger patterns, as described in the section Event Profiles.
+BPs T-BPm-C-BPs --- (7)
+Both T-BPm-C-Both --- (8)
+Both BPs, BPm BPs T-Both-C-BPs-BPm-Enclosed --- (9)
+(Type 3) SQL and PERL Scripts
+BPm T-Both-C-BPm-BPs-Enclosed --- (10)
+Both T-Both-C-Both --- (11)
+Because the results showed such a striking dominance of
+BPm triggered events, it was decided to obtain confirmation
+of these trigger patterns using a different software approach.
+and the event clear mechanism (BPs and BPm). In Table 2,
+To this end, a simple SQL script was coded to select the
+T = trigger, C = Clear, and --- (x) = Event Profile (Fig. 2).
+timestamp, BPs and BPm values from the entire database
+that fell below the Edinburgh University Secondary Insult Grades (EUSIG) definition. This produced two
+files, one for BPs and one for BPm, and these two files were
+Data Analysis further processed by a single PERL script, which counted the
+number of event starts/stops for each patient.
+The method used to initially investigate this problem was to
+develop a Java-based application called "Data Set Generator"
+(DSG) to scan the The brain monitoring with information
+technology (BrainIT) database for hypotensive events; Results
+this is outlined in the section Java-Based Software. After
+deciding that investigations should focus on the use of the An initial investigation using the definitions from Table 1
+Edinburgh University Secondary Insult Grades (EUSIG) showed that the highest number of events occurred when
+definitions, the DSG was programmed to classify each event using the definition from Glasgow, which is based on mean
+as coming from one of the 11 profiles described in the sec- arterial pressure (BPm). The second highest number of
+tion Event Profiles. As the results emerged it was decided to events was produced using the Uppsala definition. Although
+verify the findings by using an alternative technique based on the Uppsala definition is based on systolic arterial pressure,
+SQL and PERL scripts, this is described in the section SQL the threshold value and holddown used of 100 mmHg for
+and PERL Scripts. 2 min are stricter than the more usual values of 90 mmHg
+with a hold-down of 5 min. The next highest number of
+events was produced using the Heidelberg definition, which
+uses cerebral perfusion pressure (CPP), which of course uses
+Java-Based Software BPm in its calculation.
+Given these results it was decided to investigate a scheme
+The DSG program is a Java-based application that we have that uses both BPm and BPs, and therefore the work by Jones
+coded for the AvertIT project. and colleagues at Edinburgh University in the mid 1990s was
+It reads a configuration file that details the parameters to used as a starting point for another sweep through the The brain monitoring with information
+technology (BrainIT)
+be used, as defined by one of the six neurosurgery centers. database. This previous work had produced the "Edinburgh
+The DSG program produces a series of output files that are University Secondary Insult Grades" (EUSIG) and provides
+
+section, there are 11 possible event profiles that can occur. This database was the result of a multicenter study across 22 These are defined by the type of event trigger (BPs or BPm)
+
+Trigger Characteristics of Edinburgh University Secondary Insult Grades (EUSIG)-Defined Hypotensive Events 47
+
+48 R. Donald et al.
+
+Fig. 2 BPm triggers event
+profiles BPs BPs
+90 90
+---

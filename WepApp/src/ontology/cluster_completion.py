@@ -225,6 +225,7 @@ def run_cluster_completion(
             "cluster_id": cluster.get("id", i),
             "cluster_name": cluster_name,
             "members": cluster.get("members", []),
+            "prompt": prompt,
             "prompt_length": len(prompt),
             "response_length": len(response) if response else 0,
             "parsed_ok": parsed is not None,

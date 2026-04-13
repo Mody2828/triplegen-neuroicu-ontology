@@ -53,13 +53,31 @@
   };
 
   if ($('btn-select-all')) {
-    $('btn-select-all').addEventListener('click', () => { checkboxes().forEach(c => c.checked = true); updateCount(); });
+    $('btn-select-all').addEventListener('click', () => { checkboxes().forEach(c => { if (c.closest('.oe-run-item').style.display !== 'none') c.checked = true; }); updateCount(); });
   }
   if ($('btn-deselect-all')) {
     $('btn-deselect-all').addEventListener('click', () => { checkboxes().forEach(c => c.checked = false); updateCount(); });
   }
   document.querySelectorAll('.oe-run-check').forEach(c => c.addEventListener('change', updateCount));
   updateCount();
+
+  // ── Pipeline mode filter ──
+  document.querySelectorAll('input[name="oe-mode-filter"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      const mode = radio.value;
+      document.querySelectorAll('.oe-run-item').forEach(item => {
+        if (mode === 'all' || item.dataset.mode === mode) {
+          item.style.display = '';
+        } else {
+          item.style.display = 'none';
+          // uncheck hidden items so they don't get included
+          const cb = item.querySelector('.oe-run-check');
+          if (cb) cb.checked = false;
+        }
+      });
+      updateCount();
+    });
+  });
 
   // ══════════════════════════════════════════════════════════════════
   //  Last-result + Analyze (selected) — mirrors the run comparison page
@@ -678,10 +696,15 @@
     // Cytoscape graph
     renderGraph(data);
 
-    // Download button
+    // Download buttons
     if ($('btn-download-json')) {
       $('btn-download-json').onclick = function () {
         window.open('/api/ontology-engineering/' + sessId + '/result', '_blank');
+      };
+    }
+    if ($('btn-download-ttl')) {
+      $('btn-download-ttl').onclick = function () {
+        window.open('/api/ontology-engineering/' + sessId + '/ttl', '_blank');
       };
     }
   }
@@ -795,6 +818,118 @@
       const d = evt.target.data();
       const tip = d.fullLabel + (d.definition ? '\n' + d.definition : '');
       alert(tip);
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  //  Load Previous Cluster
+  // ══════════════════════════════════════════════════════════════════
+  const loadPrevCluster = $('oe-load-prev-cluster');
+  if (loadPrevCluster) {
+    fetch('/api/ontology-engineering/cluster-sessions')
+      .then(r => r.json())
+      .then(sessions => {
+        if (!sessions || !sessions.length) return;
+        sessions.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s.session_id;
+          opt.dataset.sourceRuns = JSON.stringify(s.source_runs || []);
+          const label = s.session_id.replace('oe-', '') + ' — ' + s.n_clusters + ' clusters, ' + s.total_classes + ' classes';
+          opt.textContent = label;
+          loadPrevCluster.appendChild(opt);
+        });
+      })
+      .catch(() => {});
+
+    loadPrevCluster.addEventListener('change', function () {
+      const sessId = this.value;
+      if (!sessId) return;
+      const opt = this.options[this.selectedIndex];
+      const srcRuns = JSON.parse(opt.dataset.sourceRuns || '[]');
+
+      // Set state
+      sessionId = sessId;
+      sourceRunIds = srcRuns;
+      reconstructedRunId = null;
+
+      // Unlock Stage 2 and mark done, unlock Stage 3
+      const stage2 = $('stage-cluster');
+      if (stage2) { stage2.classList.remove('locked'); }
+      markDone($('step-2'));
+      unlock($('stage-reconstruct'), $('step-3'));
+
+      // Load and render cluster data
+      fetch('/api/ontology-engineering/' + sessId + '/cluster-data')
+        .then(r => r.json())
+        .then(data => {
+          if (data.error) {
+            alert('Error loading cluster: ' + data.error);
+            return;
+          }
+          renderClusterResults(data);
+          $('cluster-results').classList.remove('d-none');
+        })
+        .catch(err => alert('Error: ' + err.message));
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  //  Load Previous OE Run
+  // ══════════════════════════════════════════════════════════════════
+  const loadPrevSelect = $('oe-load-previous');
+  if (loadPrevSelect) {
+    // Populate dropdown on page load
+    fetch('/api/ontology-engineering/sessions')
+      .then(r => r.json())
+      .then(sessions => {
+        if (!sessions || !sessions.length) return;
+        sessions.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s.session_id;
+          opt.dataset.runId = s.run_id || '';
+          opt.dataset.sourceRuns = JSON.stringify(s.source_runs || []);
+          const label = s.session_id.replace('oe-', '') + ' — ' + s.n_classes + ' classes';
+          opt.textContent = label;
+          loadPrevSelect.appendChild(opt);
+        });
+      })
+      .catch(() => {});
+
+    loadPrevSelect.addEventListener('change', function () {
+      const sessId = this.value;
+      if (!sessId) return;
+      const opt = this.options[this.selectedIndex];
+      const runId = opt.dataset.runId || '';
+      const srcRuns = JSON.parse(opt.dataset.sourceRuns || '[]');
+
+      // Set state as if we had just done the full pipeline
+      sessionId = sessId;
+      sourceRunIds = srcRuns;
+      reconstructedRunId = runId;
+
+      // Unlock Stage 3 visually and mark done
+      const stage3 = $('stage-reconstruct');
+      if (stage3) { stage3.classList.remove('locked'); }
+      markDone($('step-3'));
+
+      // Hide progress bar, show results area
+      $('reconstruct-progress').classList.add('d-none');
+      $('reconstruct-results').classList.remove('d-none');
+
+      // Show View Results button if we have a promoted run
+      const viewBtn = $('btn-view-results');
+      if (viewBtn && runId) {
+        viewBtn.setAttribute('data-run-id', runId);
+        viewBtn.classList.remove('d-none');
+      }
+      // Show Compare Metrics if we have source runs
+      const cmpBtn = $('btn-compare-metrics');
+      if (cmpBtn && srcRuns.length > 0 && runId) {
+        cmpBtn.classList.remove('d-none');
+      }
+
+      // Load the graph
+      loadReconstructedOntology(sessId);
     });
   }
 

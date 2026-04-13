@@ -1,0 +1,295 @@
+Suggested concepts (pre-identified by biomedical NER in this text): respiratory distress, ARDS, traumatic brain injury, graph-edit.
+These are entity mentions detected in this chunk. Use them as additional evidence that a concept is present, but only extract labels from the allowed class list above.
+
+Candidate domain terms (contextual hints from this chunk — use only if supported by the text): pressure; blood pressure; icp; intracranial pressure; monitoring; therapy; CPP; Cerebral Perfusion; Cerebral Perfusion Pressure; Perfusion Pressure; Perfusion Pressure CPP; adherence
+
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+### PRIMARY GOAL
+Extract a COMPREHENSIVE, evidence-grounded ontology from the text.
+Every item must have verbatim evidence from the source text.
+Be thorough — extract every clinical concept the text explicitly names.
+
+### RULES
+
+1. EVIDENCE FIRST
+- EVERY class, relation, and hierarchy edge MUST include an `evidence` field.
+- `evidence` must be an EXACT verbatim fragment COPIED from the text — do NOT paraphrase, summarize, truncate, or rephrase.
+- Copy the sentence or clause exactly as it appears, preserving original wording, word order, and punctuation.
+- If you cannot find an exact quote in the text, OMIT the item entirely.
+
+2. SOURCE FIDELITY
+- Extract concepts and relations stated or clearly implied in the text.
+- You may use standard medical knowledge for hierarchy (e.g. TBI is a type of Brain Injury).
+- Use short noun-phrase labels only.
+- Do NOT output sentence fragments, clauses, or paraphrases as class labels.
+
+3. EXTRACTION SCOPE
+Extract ALL clinical and biomedical content: conditions, diseases, injuries, syndromes, secondary insults, physiological parameters, monitoring variables, treatments/therapies/interventions/drugs, outcomes, assessments, scores, laboratory values, nursing interventions, surgical procedures, medical devices, sensors, clinical guidelines, management protocols, and data categories (Monitoring Data, Demographic Data, Admission Data, Treatment Data, Outcome Data, Core Monitoring Parameter, Optional Monitoring Parameter, Baseline Therapy, etc.).
+Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+
+4. CLASS RULES
+- Prefer concrete clinical labels from the text.
+- Prefer specific labels over abstract ones (e.g. prefer 'Heart Rate' over 'Monitoring Data' when both are mentioned). If an allowed class list is provided, you may use those labels; otherwise avoid abstract categories unless the text explicitly names them.
+- Keep labels close to the wording in the text.
+- Do not invent CamelCase labels.
+
+5. LABEL MAPPING
+- If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+  Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+- For other abbreviations, expand to their full clinical name as used in the text.
+
+6. STRUCTURAL COMPLETENESS
+- When the text mentions specific clinical items, also extract their general category if the text supports it.
+- Use the text’s own categories and groupings — do not impose an external hierarchy.
+
+7. RELATION RULES
+- Extract relations when the text clearly states a connection between two extracted class labels.
+- Domain and range must both be extracted class labels from the same text.
+- Prefer concise, domain-appropriate relation labels (e.g. treats, targets condition, has monitoring data).
+- If an allowed relation list was provided, use those labels. Otherwise, prefer labels that reflect the text’s wording.
+- CRITICAL: Do NOT use 'includes', 'consists of', 'comprises', 'contains', 'encompasses', 'is a type of', 'is a kind of', 'categorized as', 'classified as', 'belongs to', or 'part of' as relation labels. If X includes/contains Y, model it as HIERARCHY: Y subClassOf X. If A is a type of B, model it as HIERARCHY: A subClassOf B.
+
+8. HIERARCHY RULES
+- Extract hierarchy edges when the text supports them. Look for:
+  - Explicit cues: "is a", "type of", "kind of", "such as", "include:", "includes:", "consists of", "comprises"
+  - Implicit grouping: items listed under a heading or category
+  - Medical knowledge: when both concepts are in the text and one is clearly a subtype (e.g. TBI is a type of Brain Injury)
+- For enumeration cues, extract EACH listed item as a subclass.
+- NEVER output long clauses, verb phrases, or sentence fragments as subclass or superclass.
+- If either side is not a clean noun phrase, omit the hierarchy edge.
+
+### REASONING STEP
+Before producing JSON, mentally scan the text for:
+(1) every named clinical concept,
+(2) explicit relations between them,
+(3) hierarchy cues (such as, is a, type of, include:).
+Then output only items with verbatim evidence.
+
+### OUTPUT FORMAT (JSON ONLY)
+Return ONLY valid JSON.
+Do not include markdown, explanations, headings, or commentary.
+
+Use exactly this structure:
+{
+  "classes": [
+    {"label": "string", "definition": "one-sentence scope note describing what this class represents in the domain", "evidence": "string"}
+  ],
+  "relations": [
+    {"label": "string", "domain": "string", "range": "string", "definition": "one-sentence description of what this relation means between domain and range", "evidence": "string"}
+  ],
+  "hierarchy": [
+    {"subClass": "string", "superClass": "string", "evidence": "string"}
+  ]
+}
+
+9. DEFINITION RULES
+- Every class and relation MUST include a `definition` field: a concise one-sentence scope note.
+- The definition should clarify what the class represents or what the relation means in the clinical domain.
+- Ground definitions in the text where possible, but you may use standard medical knowledge to write a clear scope note.
+- Example class definition: "A physiological parameter measuring the pressure inside the cranium, used to monitor patients with traumatic brain injury."
+- Example relation definition: "Links a patient to the set of continuously recorded physiological measurements captured during their ICU stay."
+
+### NON-GOAL EXAMPLE
+The following sentence should produce NO extraction:
+Text: "The study was funded by the BrainIT Group and data were collected from 22 centres across 11 countries."
+Expected output: {"classes": [], "relations": [], "hierarchy": []}
+Reason: Funding, governance, study logistics, and multi-centre coordination are out of scope — only extract clinical concepts.
+
+### SELF-CHECK (before finalising output)
+- Is every label a clinical TYPE (not an instance, a person's name, or a study name)?
+- Are there any duplicate or synonym labels? Merge them.
+- Do all relation domain/range labels match extracted class labels?
+- Are there any circular hierarchy edges (A subClassOf B AND B subClassOf A)? Remove them.
+- Does every evidence field contain a verbatim quote from the text?
+- Do not invent concepts not present in the text.
+
+---
+TEXT TO ANALYZE:
+The Intracranial Pressure (ICP) or Cerebral Perfusion Pressure (CPP) event was the target pattern within the
+connection between these two levels, which is where data-set (for all pattern definitions the structure was
+the work proposed in this document is focused, is the same - see figure 2 - but the parameter values,
+rare, though it does exist. looks such as threshold and hold-down time were varied). at the "clinical pathway" area, where a clinical event
+log is analysed and common remedial medical
+behaviours are extracted. The work was validated by
+clinical experts as a true representation of some of
+their behaviours, but it did conclude that the general
+nature of the conclusions, meant that more specific
+work was required, and that some critical behaviours
+were missed. This is where the focus on a specific condition
+helps in identifying processes more exactly and in a
+way that is immediately useful to clinicians working
+in the Intensive Care Unit (ICU).
+
+profile" database), the entity-relationship diagram of the risk of adult respiratory distress
+(and hence schema) can be seen in figure 3. syndrome (ARDS)"
+From this "treatment profile" database, a logical ▪ "Cerebral Perfusion Pressure (CPP) of <50 mm Hg should be avoided"
+representation of an event log can be drawn, which ▪ "The Cerebral Perfusion Pressure (CPP) value to target lies within the range
+will then be converted into a process model. (Note: of 50-70 mm Hg. Patients with intact pressure
+when considering the definition of an "event" in the autoregulation tolerate higher Cerebral Perfusion Pressure (CPP) values"
+terms supporting the development of a process ▪ "Ancillary monitoring of cerebral parameters
+model, the log actually encompasses both the that include blood flow, oxygenation, or
+pressure events and the application of treatments). metabolism facilitates Cerebral Perfusion Pressure (CPP) management"
+The implementation of the process models
+When converting this to a process model, the
+involved at this stage can be considered as a set of
+model was chosen to be expressed in business
+elements indicating an "event" taken at any one time
+process model notation (BPMN). Figure 4 shows
+(the most useful temporal measure deemed to be
+how these text bullet points translate to this notation.
+minute-by-minute). So using a combination of the
+event, any treatments falling within the time
+window, a "guideline object" is created that
+indicates what those elements are at a given minute
+due to the actual actions that have occurred in the
+Intensive Care Unit (ICU). In the next section a similar set of objects are
+constructed, which form the ideal actions that would
+have occurred if the guidelines had been followed
+exactly.
+
+4.2 Process Model from Guidelines
+model requires more manual interpretation and
+implementation than the conversion from the Intensive Care Unit (ICU)
+Figure 4: BPMN chart showing the representation of the
+data. Some semantic processing technologies were Cerebral Perfusion Pressure (CPP) guideline (BTF #9).
+considered to achieve this, but were considered
+unnecessary once the specific guidelines were listed, Similar BPMN diagrams were compiled for the
+as the conversion process turned out to be relatively other guidelines (#9 being the most complex) and
+simple. There are 15 severe traumatic brain injury then related to the process model drawn from the
+guidelines (for severe in-hospital treatment) raw Intensive Care Unit (ICU) data.
+covering various types of injury and treatment In terms of how the information from the
+(www.tbiguidelines.org). Of these, the four that physio/treatment stream relates to this example, the
+were specifically looked at (due to their relevance to most important information captured is the presence
+the management of Intracranial Pressure (ICP) and CPP) were: of a threshold-crossing in the Cerebral Perfusion Pressure (CPP) read-out. This
+▪ #1 - Blood pressure and oxygenation indicates the beginning of a Cerebral Perfusion Pressure (CPP) pressure event and
+▪ #2 - Hyperosmolar therapy the start of the cycle denoted in figure 4. Ancillary
+▪ #8 - Intracranial pressure thresholds monitoring and autoregulation status are stored in
+▪ #9 - Cerebral perfusion thresholds other clinical monitoring parameters, with the
+An example of text that required translation was treatment applied stored in the treatment profile
+guideline #9 which had several conditions relating to database. The treatment profile database is searched
+the threshold of Cerebral Perfusion Pressure (CPP) where treatment must be for this combination of event and treatment. The red
+applied, dependent on the presence (or not) of box in figure 4 denotes a detail about the type of
+cerebral autoregulation (the feedback mechanism treatment: if the patient is highly loaded with
+that protects the brain for a limited time when blood pressors already then a water treatment is mandated,
+flow is impaired). The guideline text reads: as well as vice versa. Therefore the process model
+checks for the type as well as the presence of a
+▪ "Aggressive attempts to maintain cerebral treatment.
+perfusion pressure (CPP) above 70 mm Hg with The process models are therefore compiled by
+fluids and pressors should be avoided because listing the relevant nodes and graphs (e.g. treatment
+presence, type, and response time and their sequence
+
+in time in relation to each other). To re-state again: considering non-adherence level against duration,
+one is generated for the actual timeline from the similar to those used for risk analysis. In the bottom
+treatment profiles database, which is a model left quadrant, we have deviations that are of a low
+representing what happened in the Intensive Care Unit (ICU). And the level for a short time (the least significant clinical
+other - drawn from the guideline - represents the scenario). In the top right, are deviations that are of a
+ideal timeline and shows what the ideal clinical high level for a long time (the highest significance).
+response would have been given the context of The opposing quadrants indicate a mid-range of
+events, patient situation, etc. significance. Therefore two combinatorial metrics
+indicate approximately where on this quadrant the
+4.3 Similarity Calculations output sits:
+▪ Duration / Non-adherence (A)
+These two process models can now be compared, ▪ Duration * Non-adherence (B)
+and the distance calculation chosen builds on the
+work conducted by . In this The clinical analogue of these combinations is
+paper a distance between two business process that if A is very high or very low, the severity
+models is calculated using several different occupies either of the two mid-range quadrants. If A
+algorithms and representations of the models tends to 1, then it is either in the least or most
+themselves. The fundamental calculation presented significant quadrants. To ascertain which of these
+comes down to a weighting attached to the different latter quadrants the output occupies, B indicates
+nodes and edges, then a calculation of how many either high (most significant) or low (least
+transitions the first model needs to make in order to significant). Testing where the thresholds of these
+reach the same state as the second model. The limits occur will be follow-up work (see discussion
+different distances calculated include string-edit section).
+distance (nodes only) and graph-edit distance (nodes
+and edges). The distances between the process
+models presented are calculated using four different
+algorithms, each with different characteristics that
+trade-off between completeness and efficiency:
+"Greedy", "A-star", "Process heuristic",
+"Exhaustive". The conclusion of the paper is that the
+"Greedy" algorithm (searching for local optima) and
+"A-star" (a well-known shortest distance algorithm)
+were the best performing in terms of speed versus
+acceptable completeness ("A-star" being slightly
+slower but more accurate).
+To build on and apply these methods to the
+guideline adherence work in this paper, the simplest
+methods were initially chosen, corresponding to the
+Figure 5: Quadrants of severity that provide a clinical
+"string-edit distance" used in .
+interpretation of the non-adherence and duration numbers.
+These include two algorithms which have a simple
+direct comparison with no weighting added to the
+nodes ("Direct") and one with node-weighting added
+("Weighted"). 5 RESULTS
+
+4.4 Clinical Result Presentation The results in this section show the adherence output
+when the system is run against a real neurological
+Using these distance calculations, the final number Intensive Care Unit (ICU) data-set. The data-set is the Brain-IT database
+of adherence is generated. They are presented in two (Piper, Chambers, Citerio, Enblad, Gregson,
+categories: level of non-adherence (expressed as a Howells, Kiening, Mattern, Nilsson & Ragauskas
+percentage) and the duration of these levels of non- 2010): a compilation of 262 brain-injured patients
+adherence (in minutes). However, to apply real collected over a period of three years from 2003clinical relevance to these numbers, the factors must 2006, across 22 specialist neurological Intensive Care Unit (ICU) centres
+be considered in combination. Figure 5 shows a in Europe.
+square with four quadrants indicating severity when
+
+Output corresponding to the two clinically- Table 1: Total duration and non-adherence levels for
+relevant categories is shown: non-adherence patient 15026161, along with qualitative reasons for nonmeasurements on a minute-by-minute basis over adherence ("direct").
+single pressure events and aggregate information Total Non- Reason(s)
+about non-adherence and duration over all pressure duration adherence
+events occurring in individual patient stays. (mins) (%)
+The relative weightings used for non-adherence 42 25.0 - Treatment should be
+factors are: 0.25 for repeat pattern treatment non- part of repeat pattern
+adherence, 0.5 for a type non-adherence and 1.0 for 708 50.0 - Treatment not
+treatment outside the time window. administered within
+time window
+5.1 Minute-by-minute - Treatment should be
+part of repeat pattern
+The clinical analogue to measuring adherence on a
+minute-by-minute basis would be that of a real-time In both tables, the reasons that make up these
+monitor, allowing a clinician to know immediately non-adherence values are two-fold: "Treatment
+where the patient's clinical context lies in relation to should be part of a repeat pattern" and "Treatment
+the official guideline. In the framework built for this not administered within time window". The
+work an example of this output is shown in figure 6. difference between the two tables relates entirely to
+the numbers resulting from the different scales
+assigned to each reason. Therefore with a factor 0.25
+assigned to the repeat pattern treatment, the levels of
+non-adherence skew in either direction (the lower
+number decreases significantly from 25% to 6.25%,
+whilst the higher number increases slightly from
+50% to 56.25%). To develop this as a useful clinical
+tool, would require a survey of domain experts to
+find a common consensus on what weighting values
+should be attached to each reason. Or expressed
+another way: how important is each reason in
+Figure 6: Minute-by-minute read-out of guideline
+relation to each other?
+adherence for a single pressure event on one patient using
+the direct algorithm.
+Table 2: Total duration and non-adherence levels for
+patient 15026161, with qualitative reasons for non-
+In this example the time-window of response adherence ("weighted").
+mandated by the guideline is 15 minutes as an
+acceptable clinical response time. In figure 6 the Total Non- Reason(s)
+blue line indicates the trace of physiological series duration adherence
+(in this case mean ICP), with flags indicating (mins) (%)
+treatments administered by the clinician during the 42 6.25 - Treatment should be
+course of the event. The red line indicates the non- part of repeat pattern
+adherence level at that immediate minute. It can be 708 56.25 - Treatment not
+seen that two non-adherence values dominate the red administered within
+line: 25% and 50%. The total output for this patient time window
+- all events, therefore more than the single event - Treatment should be
+shown in figure 6 - is shown in tables 1 and 2 part of repeat pattern
+(corresponding to the use of the direct and weighted Also notable between tables 1 and 2 is that the
+algorithms respectively). structural information output remains unchanged
+(the duration size and the number/nature of the non-
+adherence reasons). This intuitively makes sense as
+the only difference between the two algorithms is
+one of scale due to the differently weighted factors.
+As the work develops to include distance
+calculations between edge directions as well as node
+---

@@ -1,0 +1,483 @@
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+Suggested concepts (pre-identified by biomedical NER in this text): nonadherence, non-administration, steroids, ICCA, heart failure, traumatic brain injury, head injury, head trauma, Hypothermia, P., sepsis, septic shock, Trauma, Infection, brain injury, glucose, head-injured, TBI, Der.
+These are entity mentions detected in this chunk. Use them as additional evidence that a concept is present, but only extract labels from the allowed class list above.
+
+Candidate domain terms (contextual hints from this chunk — use only if supported by the text): glasgow; icp; monitoring; outcome; Intracranial Pressure; adherence; against; brain; clinical; different; duration; duration non-adherence
+
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing an EXACT VERBATIM sentence or clause COPIED from the text — do NOT paraphrase, summarize, truncate, or rephrase. Copy the text exactly as it appears, preserving original wording, word order, and punctuation. If you cannot find an exact quote, OMIT the item.
+
+3. **Extraction Scope:** Extract clinical and biomedical content: conditions, physiological parameters, monitoring variables, treatments/therapies/interventions, outcomes, assessments, laboratory values, nursing interventions, surgical procedures, and clinical dataset categories when explicitly named.
+   Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+   If a sentence or paragraph is mainly about these excluded topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+6. **Label Mapping Rule:** If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+   Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+   For other abbreviations, expand to their full clinical name as used in the text.
+
+7. **Structural Completeness Rule:** When the text mentions specific clinical items, also extract their general category if the text supports it.
+   For example, if the text discusses 'ventilation, sedation, fluids' as therapies, also extract the general class 'Therapy' or 'Baseline Therapy' if the text uses that grouping.
+   Use the text's own categories and groupings — do not impose an external hierarchy.
+
+**Default priority: classes first, then relations.** Extract relations when the text clearly states a connection between two concepts — both domain and range must be extracted classes. If a phase instruction below overrides this priority, follow the phase instruction.
+
+**Completeness:** Extract every distinct clinical concept the text names — err on the side of inclusion when evidence exists.
+
+### CURRENT TASK: Phase 1 — COMPREHENSIVE CLASS EXTRACTION
+Extract all clinical and biomedical classes mentioned in the text.
+
+### CHAIN-OF-THOUGHT (follow these steps before producing output)
+1. Read each paragraph and identify every clinical noun phrase (conditions, parameters, therapies, assessments, outcomes, devices, data categories).
+2. For each candidate, classify it: Is it a clinical condition? A physiological parameter? A treatment? An assessment? A laboratory value? A nursing intervention? A data category? A device or sensor?
+3. Check: does the text provide a verbatim phrase you can cite as evidence?
+4. If yes, include it. If the concept is purely organisational, governance, or publication metadata, skip it.
+
+### CONCEPT TYPES TO LOOK FOR
+  - Clinical conditions, diseases, injuries, syndromes, secondary insults
+  - Physiological parameters and monitoring variables (e.g. ICP, MAP, HR, SpO2)
+  - Treatments, therapies, interventions, drugs, medications
+  - Surgical procedures and clinical procedures
+  - Clinical assessments, scores, and scales (e.g. GCS, GOSe, pupil assessment)
+  - Patient outcomes and outcome measures
+  - Laboratory values and test categories (e.g. blood gases, biochemistry)
+  - Nursing interventions and bedside care (e.g. suctioning, sedation)
+  - Medical devices and sensors
+  - Data categories and abstract grouping classes (e.g. Monitoring Data, Therapy, Condition, Outcome, Core Monitoring Parameter, Optional Monitoring Parameter, Baseline Therapy, Demographic Data, Admission Data, Treatment Data, Outcome Data)
+  - Clinical guidelines and management protocols
+
+### LABEL GUIDANCE
+  - Use short, clean noun-phrase labels.
+  - Expand common abbreviations: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+  - For other abbreviations, expand to their full clinical name.
+
+### STRUCTURAL COMPLETENESS
+When the text mentions specific clinical items, also extract their general category if the text supports it. Use the text's own categories and groupings. For example, if the text lists 'heart rate, ICP, MAP' under 'core monitoring parameters', extract BOTH the individual parameters AND 'Core Monitoring Parameter' as a class.
+
+### DEFINITION REQUIREMENT
+Every class MUST include a `definition` field: a precise one-sentence scope note that captures what this concept means IN THE CONTEXT OF THIS TEXT.
+Read how the text uses this concept and write a definition that includes:
+  (1) What TYPE of concept it is (condition, parameter, therapy, assessment, lab value, device, data category).
+  (2) What it MEASURES, TREATS, MONITORS, or DESCRIBES.
+  (3) Its ROLE or PURPOSE as described in this specific text.
+Ground the definition in the text context first. Only fall back to general medical knowledge if the text provides no contextual clues.
+BAD (too vague):  "A clinical parameter used in patient care."
+GOOD (text-grounded): "A physiological parameter measuring pressure inside the cranium, recorded minute-by-minute as part of the BrainIT core monitoring dataset to detect secondary insults in TBI patients."
+Example: {"label": "Intracranial Pressure", "definition": "A core monitoring parameter measuring pressure inside the cranium, recorded continuously to detect intracranial hypertension in traumatic brain injury patients.", "evidence": "..."}
+
+### EXTRACTION PRINCIPLE
+Extract every clinical concept the text explicitly names. Do not invent concepts not present in the text. Each concept needs a verbatim evidence quote from the source.
+
+### SELF-CHECK (before finalising output)
+- Is every label a clinical TYPE (not an instance or a person's name)?
+- Are there any duplicate or synonym labels? Merge them.
+- Does every evidence field contain a verbatim quote from the text?
+
+Output JSON with keys classes, relations, hierarchy. Set relations and hierarchy to empty arrays.
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "definition": "one-sentence scope note describing what this class represents in the domain", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "definition": "one-sentence description of what this relation means between domain and range", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Definition rule:** Every class and relation MUST include a `definition` field: a concise one-sentence scope note clarifying what the class represents or what the relation means in the clinical domain. Ground definitions in the text where possible, but you may use standard medical knowledge to write a clear scope note.
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+**REASONING STEP:** Before producing JSON, mentally scan the text for: (1) every named clinical concept, (2) explicit relations between them, (3) hierarchy cues (such as, is a, type of, include:). Then output only items with verbatim evidence.
+
+---
+--- Retrieved examples (3) ---
+
+Text: This is the minimum minute by minute monitoring data required for inclusion in the BrainIT Database and include: Heart Rate (specifying source: ECG or Pulse Oximetry), Respiration Rate (sources: impedance plethmography or ventilator), Mean Arterial Pressure, mean ICP, Pulse Oximetry (SaO2) and Temperature (sources: rectal=oesophageal= bladder=skin.) However, additional variables: Central Venous Pressure (CVP), EtCO2, SjO2, TCD, PbrO2, Brain Temperature, Microdialysis. . . will also be included in the database if they are monitored, in a given patient, as part of their usual clinical management.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate (specifying source: ECG or Pulse Oximetry)",
+      "definition": "The number of cardiac contractions per minute, a core physiological monitoring parameter in neuro-ICU."
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate (sources: impedance plethmography or ventilator)",
+      "definition": "The number of breaths per minute, measured via impedance plethysmography or ventilator."
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "Mean Arterial Pressure",
+      "definition": "The average arterial blood pressure during a cardiac cycle, a key haemodynamic parameter."
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "mean ICP",
+      "definition": "The pressure inside the cranium, continuously monitored to detect intracranial hypertension in TBI patients."
+    },
+    {
+      "label": "SaO2",
+      "evidence": "Pulse Oximetry (SaO2)",
+      "definition": "Arterial oxygen saturation measured by pulse oximetry, indicating blood oxygenation levels."
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature (sources: rectal=oesophageal= bladder=skin.)",
+      "definition": "Core body temperature measured at rectal, oesophageal, bladder, or skin sites."
+    },
+    {
+      "label": "CVP",
+      "evidence": "Central Venous Pressure (CVP)",
+      "definition": "Central venous pressure, measuring the pressure in the thoracic vena cava near the right atrium."
+    },
+    {
+      "label": "EtCO2",
+      "evidence": "EtCO2",
+      "definition": "End-tidal carbon dioxide concentration, reflecting ventilation adequacy."
+    },
+    {
+      "label": "SjO2",
+      "evidence": "SjO2",
+      "definition": "Jugular venous oxygen saturation, an indicator of cerebral oxygen consumption."
+    },
+    {
+      "label": "TCD",
+      "evidence": "TCD",
+      "definition": "Transcranial Doppler ultrasonography, used to assess cerebral blood flow velocity."
+    },
+    {
+      "label": "PbrO2",
+      "evidence": "PbrO2",
+      "definition": "Partial pressure of brain tissue oxygen, measuring local cerebral oxygenation."
+    },
+    {
+      "label": "Brain Temperature",
+      "evidence": "Brain Temperature",
+      "definition": "Temperature measured directly within brain tissue, distinct from core body temperature."
+    },
+    {
+      "label": "Microdialysis",
+      "evidence": "Microdialysis",
+      "definition": "A sampling technique for measuring extracellular brain chemistry metabolites."
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+
+Text: Therapy data is divided into two categories: baseline therapy covering routine ICU management delivered to all patients (ventilation settings, sedation levels, fluid input and output, nutrition, vasopressors, antibiotics), and secondary insult therapy covering non-surgical medical management specifically given to treat secondary insults, with assigned therapy targets (e.g. arterial pressors targeting systemic hypotension or reduced CPP secondary to raised ICP).
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Therapy",
+      "evidence": "Therapy data",
+      "definition": "A clinical intervention or treatment administered to manage the patient's condition."
+    },
+    {
+      "label": "Baseline Therapy",
+      "evidence": "baseline therapy covering routine ICU management",
+      "definition": "Routine ICU management therapies delivered to all TBI patients as standard care."
+    },
+    {
+      "label": "Secondary Insult Therapy",
+      "evidence": "secondary insult therapy covering non-surgical medical management",
+      "definition": "Non-surgical medical treatments specifically targeting secondary insults."
+    },
+    {
+      "label": "Ventilation",
+      "evidence": "ventilation settings",
+      "definition": "Mechanical ventilation settings and parameters delivered as part of ICU care."
+    },
+    {
+      "label": "Sedation",
+      "evidence": "sedation levels",
+      "definition": "Administration of sedative agents to manage patient comfort and intracranial pressure."
+    },
+    {
+      "label": "Fluids",
+      "evidence": "fluid input and output",
+      "definition": "Intravenous fluid input and output management during ICU care."
+    },
+    {
+      "label": "Nutrition",
+      "evidence": "nutrition",
+      "definition": "Nutritional support provided to ICU patients, including enteral and parenteral routes."
+    },
+    {
+      "label": "Vasopressors",
+      "evidence": "vasopressors",
+      "definition": "Vasoactive drugs administered to maintain adequate blood pressure and cerebral perfusion."
+    },
+    {
+      "label": "Antibiotics",
+      "evidence": "antibiotics",
+      "definition": "Antimicrobial agents administered to prevent or treat infections in ICU patients."
+    },
+    {
+      "label": "Arterial Pressors",
+      "evidence": "arterial pressors targeting systemic hypotension",
+      "definition": "Vasoactive agents administered to raise arterial blood pressure."
+    },
+    {
+      "label": "Systemic Hypotension",
+      "evidence": "targeting systemic hypotension",
+      "definition": "Abnormally low systemic blood pressure, a recognised secondary insult in TBI."
+    },
+    {
+      "label": "Cerebral Perfusion Pressure (CPP)",
+      "evidence": "reduced CPP secondary to raised ICP",
+      "definition": "The net pressure gradient driving blood flow to the brain, calculated as MAP minus ICP."
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "raised ICP",
+      "definition": "The pressure inside the cranium, continuously monitored to detect intracranial hypertension in TBI patients."
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+
+Text: Hypotensive events were classified as either mean ABP (ABPm) less than 70 mmHg or systolic ABP (ABPs) less than 90 mmHg. For an event to be valid it had to remain below the threshold for at least 5 min. Also included in the BrainIT data set are a series of annotations of nursing and medical interventions such as blood sampling, transducer calibration, endotracheal suction and patient turning.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Hypotension",
+      "evidence": "Hypotensive events",
+      "definition": "Abnormally low blood pressure, a recognised secondary insult after TBI."
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "mean ABP (ABPm) less than 70 mmHg",
+      "definition": "The average arterial blood pressure during a cardiac cycle, a key haemodynamic parameter."
+    },
+    {
+      "label": "Nursing Intervention",
+      "evidence": "nursing and medical interventions",
+      "definition": "Care activities performed by nursing staff as part of ICU management."
+    },
+    {
+      "label": "Routine Nursing Care",
+      "evidence": "endotracheal suction and patient turning",
+      "definition": "Standard bedside nursing activities including eye care, mouth care, and suctioning."
+    },
+    {
+      "label": "Bedside Intervention",
+      "evidence": "blood sampling, transducer calibration",
+      "definition": "Clinical procedures performed at the bedside such as line insertion and transducer calibration."
+    },
+    {
+      "label": "Patient Transport",
+      "evidence": "patient turning",
+      "definition": "Movement of the patient to and from theatre, CT scanner, or other facilities."
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+TEXT TO ANALYZE:
+size, it is anticipated that there may be structural Table 4: Spread and central tendency calculations for nondifferences to evaluate (see discussion section). adherence level, duration, duration/non-adherence (A),
+and duration * non-adherence (B) using the "weighted"
+Table 3: Total duration and non-adherence levels for algorithm for patient 15026161.
+patient 26138384, with qualitative reasons for nonadherence ("weighted") including contraindication due to
+treatment type.
+Total Non- Reason(s)
+duration adherence
+(mins) (%) The clinical interpretation of these results is
+17 18.75 - Treatment type potentially broad, but a first step is to check the
+contraindicates in mean values against the quadrants outlined in figure
+patient context 5. For patient 15026161, the duration/non-adherence
+- Treatment should be
+(A) is 4.63 and the duration * non-adherence (B) is
+part of repeat pattern
+10014.06. Assuming both of these figures to be
+483 56.25 - Treatment not
+considered "large" - which in the case of A means
+administered within
+time window that the ratio is significantly higher than 1 - would
+- Treatment should be put the overall impact of these deviations into the
+part of repeat pattern mid-range quadrant close to the border of "most
+significant". When looking at the detailed output of
+Table 3 shows another patient that has similar individual deviations, this could be interpreted as the
+non-adherence levels due to the dominant factors of analogue of many "small" deviations (due to the
+treatments outside of the time window and repeat non-administration of treatments in timely manner)
+patterns. However, there is an additional factor of adding up to a significant impact on management of
+"treatment type contraindicates in patient context", Intracranial Pressure (ICP) events. Table 5 shows a similar table for the
+which adds a different number to the deviation patient 26138384, where the mean value of (A) is
+amount (in this case 18.75%, as treatment type has a significantly lower than a ratio of 1 and the mean
+weighting of 0.5). This has come about as the patient value is an order of magnitude lower than 15026161
+has been administered steroids when the load is therefore the relative non-adherence potentially
+already high, which is an aspect that this guideline indicates a lower impact.
+(#9) mandates against.
+Table 5: Spread and central tendency calculations for non5.2 Single Patient Stay adherence level, duration, duration/non-adherence (A),
+and duration * non-adherence (B) using the "weighted"
+algorithm for patient 26138384.
+The second category to consider is the nonadherence levels over an entire patient stay. The
+clinical utility of this is to gain an understanding of
+how non-adherence relates to the management of
+individual pressure events given a patient's clinical
+context. To this end aggregated output is compiled
+for the individual patients. Total information for
+patients 15026161 and 26138384 are already shown 6 DISCUSSION
+in tables 1, 2 and 3 but more detailed statistics on the
+non-adherence and duration for each patient (using The output of the spread and central tendency
+the "weighted" algorithm) are shown in tables 4 and information in the interquartile range tables (4 and
+5. For each of these patients, an inter-quartile range 5) indicate the dominance of a particular set of nonis calculated to understand the range and spread of adherence reasons ("treatment not administered
+the data. An obvious point of interest from the non- within time window" and "treatment not part of
+adherence level is how much the non-adherence repeat pattern"). This is very likely due to the low
+level skews towards the maximum level of 56.25% annotation level of this data-set, which in turn is
+linked to the age of the data-set (itself a pioneering
+effort in neurological Intensive Care Unit (ICU) data collection at the turn
+of the millennium). The next step in this research is
+to run the same validation test over several more
+
+modern data-sets, three of which have been same metrics taken over all patients in all data-sets,
+identified and will be available for further work very and linked to clinical outcome, the quantitative
+shortly (the CSO project data for the identification measures of non-adherence could inform studies that
+of artefactual data in neurological ICUs, the ICCA contribute to official guideline development. This
+system data from the Queen Elizabeth University work is currently underway and makes use of the
+Hospital Intensive Care Unit (ICU), Glasgow, and MIMIC III (Saeed (highly unusual) aspect of the Brain-IT data-set
+2007)). These are similarly representative of capturing patient outcome, measured using the
+different aspects of the neurological Intensive Care Unit (ICU) - CSO Glasgow Outcome Scale, at 6-months post-injury.
+indicates a physical check on treatment information
+supplied by computer (an observer notes whether a
+treatment was actually delivered at the time the 7 CONCLUSIONS
+computer indicates), ICCA is one of the latest
+software frameworks in neurological ICUs, and Presented in this work are the preliminary results
+MIMIC III is a compilation of data from 2008 to
+from an automated system constructed to use data
+2013 on non-specialist Intensive Care Unit (ICU) information from around that is currently available in many high-dependency
+the USA. Not only will the output of using these neurological ICUs. The central framework uses
+data-sets provide further valuable information on the
+simple process model technology to interpret data
+validity of the approach in this paper, but will from two sources (bedside physio/treatment data and
+provide accuracy checks of different steps along the text guidelines) and use these to compare and add
+process of compilation.
+quantitative value. The output presents information
+Similarly, a consensus check against domain in a variety of ways to gain detailed insight into the
+experts will be performed in order to match the
+duration and nature of non-adherence to mandated
+output from this work against what is considered
+guidelines that has the potential to aid immediate
+"typical" reactions in a neurological Intensive Care Unit (ICU). From this real-time clinical response, as well as aggregated
+comparison, it would be hoped that the notion of
+study information to provide feedback on pressure
+scaling of the weighted nodes would give an event management.
+indication of how important the different clinical
+factors are and how this affects the quantitative
+output when combined with other factors. An
+indication of the thresholds on figure 5 indicating ACKNOWLEDGEMENTS
+the difference between different regions of severity
+could be ascertained through a similar process. An The authors would like to acknowledge the work of
+interesting study would be a real-time output of a the Brain-IT group investigators and participating
+clinician (e.g. recording a verbal commentary of centres to the Brain-IT data-set without whom this
+actions taken as they are occurring) to compare work could not have been conducted.
+against the evaluation occurring in the work.
+However the difficulties of achieving enough data
+beyond a small sample for this type of study - due to REFERENCES
+privacy and ethical concerns - may be too
+challenging. Ansari, M. et al., 2003. Improving guideline adherence: a
+Another strand that will be expanded on shortly randomized trial evaluating strategies to increase betawill be the usage of the more sophisticated distance blocker use in heart failure. Circulation, 107(22),
+comparison algorithms posited by (Dijkman et al. pp.2799-804.
+2009). It is assumed that structural distance Bratton, S. & Chestnut, R., 2006. Guidelines for the
+calculations - "graph-edit similarity" in the language management of severe traumatic brain injury. XII.
+of that work - will affect the structural output of the Nutrition. Journal of ..., (212).
+Bullock, R., Chesnut, R. & Clifton, G., 1996. Guidelines
+non-adherence and duration, which would be visible for the management of severe head injury. European
+in the results for a single patient run over several Journal of ...
+different algorithms. The statistical significance of Chesnut, R.M. et al., 2012. A trial of intracranial-pressure
+this difference will be calculated then verified monitoring in traumatic brain injury. The New
+against the experience of domain experts. England journal of medicine, 367(26), pp.2471-81.
+Finally, whilst the output can guide real-time Chinosi, M. & Trombetta, A., 2012. BPMN: An
+immediate clinical reaction, and give information on introduction to the standard. Computer Standards and
+pressure event management, it is hoped that with the Interfaces, 34(1), pp.124-134.
+
+Clifton, G.L. et al., 2001. Intercenter variance in clinical network: EC feasibility study results. Acta
+trials of head trauma--experience of the National Neurochirurgica, 102, pp.217-221.
+Acute Brain Injury Study: Hypothermia. Journal of Piper, I., Chambers, I., Citerio, G., Enblad, P., Gregson,
+neurosurgery, 95(5), pp.751-5. B., Howells, T., Kiening, K., Mattern, J., Nilsson, P. &
+Dawes, A.J. et al., 2016. Compliance With Evidence- Ragauskas, A., 2010. The brain monitoring with
+Based Guidelines and Interhospital Variation in Information Technology (BrainIT) collaborative
+Mortality for Patients With Severe Traumatic Brain network: EC feasibility study results and future
+Injury. , 90095(10), pp.965-972. direction. Acta neurochirurgica, 152(11), pp.1859-
+Dellinger, R.P. et al., 2013. Surviving sepsis campaign: 1871.
+International guidelines for management of severe Piper, I., Chambers, I., Citerio, G., Enblad, P., Gregson,
+sepsis and septic shock, 2012. Intensive Care B., Howells, T., Kiening, K., Mattern, J., Nilsson, P.,
+Medicine, 39(2), pp.165-228. Ragauskas, A., et al., 2010. The brain monitoring with
+Dijkman, R., Dumas, M. & Garc, L., 2009. Graph Information Technology (BrainIT) collaborative
+Matching Algorithms for Business Process Model network: EC feasibility study results and future
+Similarity Search. direction. Acta neurochirurgica, 152(11), pp.1859-71.
+Fakhry, S.M. et al., 2004. Management of Brain-Injured Prior, M., Guerin, M. & Grimmer-Somers, K., 2008. The
+Patients by an Evidence-Based Medicine Protocol effectiveness of clinical guideline implementation
+Improves Outcomes and Decreases Hospital Charges. strategies - A synthesis of systematic review findings.
+The Journal of Trauma: Injury, Infection, and Critical Journal of Evaluation in Clinical Practice, 14(5),
+Care, 56(3), pp.492-500. pp.888-897.
+Ghajar, J., 2000. Traumatic brain injury. Lancet, Rood, E. et al., 2005. Use of a computerized guideline for
+356(9233), pp.923-9. glucose regulation in the intensive care unit improved
+Grol, R., 2016. Successes and Failures in the both guideline adherence and glucose regulation.
+Implementation of Evidence-Based Guidelines for Journal of the American Medical Informatics
+Clinical Practice. , 39(8). Association : JAMIA, 12(2), pp.172-80.
+Grol, R. & Grimshaw, J., 2003. From best evidence to best Saeed, M., 2007. Temporal Pattern Recognition in
+practice: Effective implementation of change in Multiparameter Intensive Care Unit (ICU) Data.
+patients' care. Lancet, 362(9391), pp.1225-1230. Shalom, E. et al., 2015. A multiple-scenario assessment of
+Huang, Z., Lu, X. & Duan, H., 2012. On mining clinical the effect of a continuous-care, guideline-based
+pathway patterns from medical behaviors. Artificial decision support system on clinicians' compliance to
+intelligence in medicine, 56(1), pp.35-50. clinical guidelines. International Journal of Medical
+Jones, P. a et al., 1994. Measuring the burden of secondary Informatics, 84(4), pp.248-262.
+insults in head-injured patients during intensive care. STELL, A., MOSS, L. & Piper, I., 2014. Building an
+Journal of neurosurgical anesthesiology, 6(1), pp.4- Empirical Treatment Protocol from High-Resolution
+14. Traumatic Brain Injury Data. , (Schteingart).
+Kaiser, K. & Miksch, S., 2009. Versioning computer- Tarapore, P.E. et al., 2016. Establishing a Automated Measurement of Adherence to Traumatic Brain Injury (TBI) Program of
+interpretable guidelines: semi-automatic modeling of Care - Benchmarking Outcomes after Institutional
+"Living Guidelines" using an information extraction Adoption of Evidence-based Guidelines. Journal of
+method. Artificial intelligence in medicine, 46(1), Neurotrauma, 8, p.
+pp.55-66. Werf, J.M.E.M. Van Der, Verbeek, H.M.W. & Aalst,
+Lee, J.C. et al., 2015. An analysis of Brain Trauma W.M.P. Van Der, 2012. Context-Aware Compliance
+Foundation traumatic brain injury guideline Checking. , pp.98-113.
+compliance and patient outcome §. Injury, 46(5),
+pp.854-858.
+Lehman, L. et al., 2011. Multiparameter Intelligent
+Monitoring in Intensive Care II (MIMIC-II): A public-
+access intensive care unit database. , 39, pp.952-960.
+Levy, M.M. et al., 2010. The Surviving Sepsis Campaign:
+results of an international guideline-based
+performance improvement program targeting severe
+sepsis. Intensive care medicine, 36(2), pp.222-31.
+Mans, R. & Schonenberg, M., 2009. Application of
+process mining in healthcare-a case study in a dutch
+hospital. Biomedical Engineering ..., pp.425-438.
+Perimal-lewis, L. et al., 2012. Gaining Insight from Patient
+Journey Data using Process-Oriented Analysis
+Approach. , 129(Hikm).
+Piper, I. et al., 2009. The brain monitoring with
+information technology (BrainIT) collaborative
+---

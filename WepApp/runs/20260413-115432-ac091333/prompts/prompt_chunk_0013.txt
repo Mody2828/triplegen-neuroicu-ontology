@@ -1,0 +1,186 @@
+
+
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+### PRIMARY GOAL
+Extract a COMPREHENSIVE, evidence-grounded ontology from the text.
+Every item must have verbatim evidence from the source text.
+Be thorough — extract every clinical concept the text explicitly names.
+
+### RULES
+
+1. EVIDENCE FIRST
+- EVERY class, relation, and hierarchy edge MUST include an `evidence` field.
+- `evidence` must be an EXACT verbatim fragment COPIED from the text — do NOT paraphrase, summarize, truncate, or rephrase.
+- Copy the sentence or clause exactly as it appears, preserving original wording, word order, and punctuation.
+- If you cannot find an exact quote in the text, OMIT the item entirely.
+
+2. SOURCE FIDELITY
+- Extract concepts and relations stated or clearly implied in the text.
+- You may use standard medical knowledge for hierarchy (e.g. TBI is a type of Brain Injury).
+- Use short noun-phrase labels only.
+- Do NOT output sentence fragments, clauses, or paraphrases as class labels.
+
+3. EXTRACTION SCOPE
+Extract ALL clinical and biomedical content: conditions, diseases, injuries, syndromes, secondary insults, physiological parameters, monitoring variables, treatments/therapies/interventions/drugs, outcomes, assessments, scores, laboratory values, nursing interventions, surgical procedures, medical devices, sensors, clinical guidelines, management protocols, and data categories (Monitoring Data, Demographic Data, Admission Data, Treatment Data, Outcome Data, Core Monitoring Parameter, Optional Monitoring Parameter, Baseline Therapy, etc.).
+Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+
+4. CLASS RULES
+- Prefer concrete clinical labels from the text.
+- Prefer specific labels over abstract ones (e.g. prefer 'Heart Rate' over 'Monitoring Data' when both are mentioned). If an allowed class list is provided, you may use those labels; otherwise avoid abstract categories unless the text explicitly names them.
+- Keep labels close to the wording in the text.
+- Do not invent CamelCase labels.
+
+5. LABEL MAPPING
+- If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+  Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+- For other abbreviations, expand to their full clinical name as used in the text.
+
+6. STRUCTURAL COMPLETENESS
+- When the text mentions specific clinical items, also extract their general category if the text supports it.
+- Use the text’s own categories and groupings — do not impose an external hierarchy.
+
+7. RELATION RULES
+- Extract relations when the text clearly states a connection between two extracted class labels.
+- Domain and range must both be extracted class labels from the same text.
+- Prefer concise, domain-appropriate relation labels (e.g. treats, targets condition, has monitoring data).
+- If an allowed relation list was provided, use those labels. Otherwise, prefer labels that reflect the text’s wording.
+- CRITICAL: Do NOT use 'includes', 'consists of', 'comprises', 'contains', 'encompasses', 'is a type of', 'is a kind of', 'categorized as', 'classified as', 'belongs to', or 'part of' as relation labels. If X includes/contains Y, model it as HIERARCHY: Y subClassOf X. If A is a type of B, model it as HIERARCHY: A subClassOf B.
+
+8. HIERARCHY RULES
+- Extract hierarchy edges when the text supports them. Look for:
+  - Explicit cues: "is a", "type of", "kind of", "such as", "include:", "includes:", "consists of", "comprises"
+  - Implicit grouping: items listed under a heading or category
+  - Medical knowledge: when both concepts are in the text and one is clearly a subtype (e.g. TBI is a type of Brain Injury)
+- For enumeration cues, extract EACH listed item as a subclass.
+- NEVER output long clauses, verb phrases, or sentence fragments as subclass or superclass.
+- If either side is not a clean noun phrase, omit the hierarchy edge.
+
+### REASONING STEP
+Before producing JSON, mentally scan the text for:
+(1) every named clinical concept,
+(2) explicit relations between them,
+(3) hierarchy cues (such as, is a, type of, include:).
+Then output only items with verbatim evidence.
+
+### OUTPUT FORMAT (JSON ONLY)
+Return ONLY valid JSON.
+Do not include markdown, explanations, headings, or commentary.
+
+Use exactly this structure:
+{
+  "classes": [
+    {"label": "string", "definition": "one-sentence scope note describing what this class represents in the domain", "evidence": "string"}
+  ],
+  "relations": [
+    {"label": "string", "domain": "string", "range": "string", "definition": "one-sentence description of what this relation means between domain and range", "evidence": "string"}
+  ],
+  "hierarchy": [
+    {"subClass": "string", "superClass": "string", "evidence": "string"}
+  ]
+}
+
+9. DEFINITION RULES
+- Every class and relation MUST include a `definition` field: a concise one-sentence scope note.
+- The definition should clarify what the class represents or what the relation means in the clinical domain.
+- Ground definitions in the text where possible, but you may use standard medical knowledge to write a clear scope note.
+- Example class definition: "A physiological parameter measuring the pressure inside the cranium, used to monitor patients with traumatic brain injury."
+- Example relation definition: "Links a patient to the set of continuously recorded physiological measurements captured during their ICU stay."
+
+### NON-GOAL EXAMPLE
+The following sentence should produce NO extraction:
+Text: "The study was funded by the BrainIT Group and data were collected from 22 centres across 11 countries."
+Expected output: {"classes": [], "relations": [], "hierarchy": []}
+Reason: Funding, governance, study logistics, and multi-centre coordination are out of scope — only extract clinical concepts.
+
+### SELF-CHECK (before finalising output)
+- Is every label a clinical TYPE (not an instance, a person's name, or a study name)?
+- Are there any duplicate or synonym labels? Merge them.
+- Do all relation domain/range labels match extracted class labels?
+- Are there any circular hierarchy edges (A subClassOf B AND B subClassOf A)? Remove them.
+- Does every evidence field contain a verbatim quote from the text?
+- Do not invent concepts not present in the text.
+
+---
+TEXT TO ANALYZE:
+In adults, the duration above which The BESTIntracranial pressure (ICP)
+unfavourable neurological outcome [defined as death, worse outcome is 223, 37, 12 and 8 min, respectively. In
+vegetative or severely disabled (GOS 1-3)] were built, children, at intensity thresholds of 15 and 20 mmHg, the
+
+p \ 0.050] cohorts. The percentage of monitoring time in
+the red zone was also a significant predictor of un-
+favourable outcome in adults [OR 3.97 (95 % CI
+1.30-12.1); p = 0.014] (ESM Tables 2-5). The percent-
+age of monitoring time in the red zone during the first day
+only was a significant independent predictor of mortality
+[OR 2.90 (95 % CI 1.03-8.14); p = 0.039], but not of
+6-month unfavourable outcome [OR 1.80 (95 % CI
+0.78-4.18); p = 0.16] in adults. In paediatric Traumatic brain injury (TBI) pa-
+tients, there was a trend towards significance for the
+percentage of monitoring time in the red zone during the
+first day only, for both mortality [OR 266 9 101 (95 % CI
+0.564-126 9 105); p = 0.062] and unfavourable out-
+come [OR 5.82 (95 % CI 0.861-39.4); p = 0.065] (ESM
+Tables 6-9).
+Figure 4 shows the transition curves resulting from
+visualizations of active and passive autoregulation insults
+(the corresponding colour-coded plots are available in the
+ESM Fig. 1, the percentages of active and passive insults
+in each cohort in the ESM Table 10). In the adult as well
+as in the paediatric population, the transition curve for
+Fig. 3 Comparison of transition curves in adult (black) and passive insults shifts towards the left, and the transition
+paediatric (purple) cohorts. Transition curves are the lines of zero
+correlation between The BESTIntracranial pressure (ICP) insults and outcome. Episodes above and curve for active insults shifts towards the right, with reto the right of this transition curve are associated with worse spect to the 'all insults' curve. In adults, episodes above
+outcomes 20 mmHg when cerebrovascular autoregulation is active
+had a duration of 233 min before they were associated
+respective transitions occur at shorter durations of 48 and with worse outcome, versus 19 min when autoregulation
+8 min. The transition curves of the two cohorts are shown was passive. Duration thresholds derived from the active
+together in Fig. 3. and passive transition curves for commonly used intensity
+monitoring time spent by each patient in the red zone was Finally, the association of The BESTIntracranial pressure (ICP) insults and outcome
+an independent significant predictor of death, both in was plotted for three different levels of Cerebral Perfusion Pressure (CPP). In adults as
+adults [OR 9.91 (95 % CI 2.67-36.8); p \ 0.001] as in well as in children, when Cerebral Perfusion Pressure (CPP) was below 50 mmHg, alchildren [OR 178 9 103 (95 % CI 1.02-309 9 108); most all The BESTIntracranial pressure (ICP) insults were associated with worse outcome,
+
+Fig. 4 Transition curve visualizations according to cerebrovascular Right paediatric cohort (n = 99). Transition curves are the lines of
+autoregulatory status. The transition curves for all insults (irre- zero correlation between The BESTIntracranial pressure (ICP) insults and outcome. Episodes above
+spective of autoregulation) are drawn in blue, while the transition and to the right of this transition curve are associated with worse
+curves for autoregulation active insults are shown in green and for outcomes
+autoregulation passive insults in red. Left adult cohort (n = 261).
+
+Fig. 5 Visualization of correlation between The contour for zero correlation was
+Outcome Score (GOS) and average explanation of this colour-coded plot, refer to the legend of
+number of The BESTIntracranial pressure (ICP) insults per The contour for zero correlation was
+Outcome Score (GOS) category according to a cerebral Fig. 1. Left panel Cerebral Perfusion Pressure (CPP) B50 mmHg. Right panel Cerebral Perfusion Pressure (CPP) [50 mmHg.
+perfusion pressure (CPP) threshold of 50 mmHg. For an Above adult cohort (n = 261). Below paediatric cohort (n = 99)
+
+In adults as
+adults [OR 9.91 (95 % CI 2.67-36.8); p \ 0.001] as in well as in children, when Cerebral Perfusion Pressure (CPP) was below 50 mmHg, alchildren [OR 178 9 103 (95 % CI 1.02-309 9 108); most all The BESTIntracranial pressure (ICP) insults were associated with worse outcome,
+
+regardless of duration and intensity (Fig. 5). When Cerebral Perfusion Pressure (CPP) represent the cumulative time/pressure dose per patient,
+was above 50 mmHg, the transition curve shifted to the but per type of insult, characterized by duration and inright as compared to the 'all insults' curve. At CPPs of 60tensity. The cumulative The BESTIntracranial pressure (ICP) burden per patient (defined as
+and 70 mmHg there was a further small rightward shift of the percentage of time in the red zone) was assessed
+sociated with mortality at 6 months.
+The main finding is the emergence of clearly distinct
+insult intensity and duration thresholds that occur more
+Discussion frequently in patients with lower 6-month The contour for zero correlation was
+Outcome Score (GOS), delin-
+eated by an approximately exponential transition curve.
+In this study, the univariate relationship between 6-month This supports the 'dose of The BESTIntracranial pressure (ICP)' concept, which has been
+neurological outcome and insults of raised The BESTIntracranial pressure (ICP) is sum- proposed earlier as the proportion of hourly measuremarized in colour-coded plots. These plots do not ments above 20 mmHg, or the area under the curve
+
+Fig. 6 Transition curves of The BESTIntracranial pressure (ICP)
+insults according to three
+different thresholds of cerebral
+perfusion pressure (CPP). For
+an explanation of transition
+curves, refer to the legend of
+Fig. 4. All insults irrespective
+of Cerebral Perfusion Pressure (CPP) (black); insults with
+Cerebral Perfusion Pressure (CPP) [50 mmHg (red); with
+Cerebral Perfusion Pressure (CPP) [60 mmHg (green) and
+with Cerebral Perfusion Pressure (CPP) [70 mmHg (blue).
+Left panel adult cohort
+(n = 261). Right panel
+paediatric cohort (n = 99)
+---

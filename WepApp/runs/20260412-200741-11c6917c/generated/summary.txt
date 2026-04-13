@@ -1,0 +1,319 @@
+============================================================
+RUN SUMMARY  —  TripleGen Ontology Engineering Framework
+============================================================
+
+--- Metadata ---
+Run ID:          20260412-200741-11c6917c
+Timestamp (UTC): 2026-04-12T20:15:20.404867
+Method:          Zero-Shot
+Pipeline mode:   Schema-Completed
+LLM provider:    openai gpt-4o-mini
+Improvements:    Text-grounded completion (built-in), Schema-guided completion, Rule-based Reasoning Layer (optional)
+Eval settings:   Scope filter (clinical-only chunks), Medical NER anchor (experimental)
+
+--- Input paper(s) ---
+  • 1.Pipre 2003 - The BrainIT group concept and core dataset definition.txt
+  • 2. Moss 2013 — Trusting Intensive Care Unit .txt
+
+--- Improvement counts (for ablation / fairness) ---
+  Text-grounded completion (built-in): classes_added=7, relations_added=12, hierarchy_added=31
+  Schema-guided completion: classes_added=38, relations_added=17, hierarchy_added=46
+  Built-in cleanup (always active): includes_to_hierarchy=3, relation_labels_normalized=25, relations_range_normalized=3, classes_removed_dedupe=6, relations_removed_dedupe=2, hierarchy_removed_dedupe=4, out_of_scope_classes_removed=11, abstract_data_classes_removed=1, broad_contextual_classes_removed=0, classes_removed_evidence=1, endpoints_auto_added=25, relations_pruned_scope=0, hierarchy_pruned_scope=0, hierarchy_pruned_dangling=7, relations_pruned=8, relations_removed_evidence=1, hierarchy_fragments_removed=0, hierarchy_edges_corrected=4, hierarchy_scaffolded=6, hierarchy_removed_axiom=0, relations_removed_axiom=0, hierarchy_cycles_removed=0, hierarchy_completeness={'orphan_count': 38, 'total_classes': 107, 'orphan_rate': 0.355, 'orphan_rate_warning': False}, hierarchy_added=0, orphans_removed=0
+  Orphan Rescue (connect isolated classes): orphans_found=9, relations_added=9, hierarchy_added=0
+  Post-orphan scope cleanup: out_of_scope_removed=0
+  LLM CoT Refinement (semantic quality review): classes_removed=0, relations_removed=0, hierarchy_removed=1, hierarchy_corrected=0
+  Rule-based Reasoning Layer (optional): hierarchy_added=11, orphans_removed=0
+
+
+  Text-grounded completion (built-in): +7 classes, +12 relations, +31 hierarchy edges recovered from source text in second-pass extraction.
+
+  Orphan Rescue: 9 orphaned classes found → +9 relations, +0 hierarchy edges inferred from source text.
+
+  LLM CoT Refinement: -0 classes, -0 relations, -1 hierarchy removed; 0 hierarchy edges corrected.
+
+--- Metrics summary (final ontology) ---
+  Coverage:        90.32%
+  Precision:       77.78%
+  Recall:          90.32%
+  Errors:          hallucinations=0, schema_violations=0, omissions=0
+  Structural:      hierarchy_edges=90, hierarchy_coverage=0.84, relation_domain_range_rate=1.00
+  Clinical-only:   coverage=90.32%, precision=77.78%, recall=90.32%
+  Relations:       precision=90.00%, recall=88.89%, n_generated=50, n_gold=18
+  Hierarchy:       precision=72.22%, recall=85.53%, matched=65, n_generated=90, n_gold=76
+
+--- Metrics at extraction only (pre-improvement baseline) ---
+  Coverage:        35.48%
+  Precision:       58.93%
+  Recall:          35.48%
+  Structural:      hierarchy_edges=11, hierarchy_coverage=0.27, relation_domain_range_rate=1.00
+  Relations:       precision=70.59%, recall=27.78%, n_generated=34
+
+--- Per-stage ablation (pipeline progression) ---
+  Stage                   Classes   Rels   Hier   Coverage  Precision     Recall
+  --------------------------------------------------------------------------
+  Extraction                   56     34     11     35.48%     58.93%     35.48%
+  + Text-grounded              63     46     42     38.71%     57.14%     38.71%
+  + Schema-Guided             101     63     88     74.19%     68.32%     74.19%
+  + Cleanup                   107     41     80     89.25%     77.57%     89.25%
+  + Orphan Rescue             108     50     80     90.32%     77.78%     90.32%
+  + LLM Refinement            108     50     79     90.32%     77.78%     90.32%
+  + Rule-based                108     50     90     90.32%     77.78%     90.32%
+
+--- Concept counts (final ontology) ---
+  Classes:         108
+  Relations:       50
+  Hierarchy edges: 90
+
+--- Classes ---
+  • Head Injury — An injury to the head that may involve damage to the brain and has significant social and economic consequences.
+  • Cerebral Perfusion Pressure — The pressure gradient driving blood flow to the brain, calculated as the difference between mean arterial pressure and intracranial pressure.
+  • Intracranial Pressure — The pressure inside the skull, which can affect brain function and is monitored in patients with brain injuries.
+  • Secondary Insult — An additional injury or complication that occurs after the initial injury, potentially worsening the patient's condition.
+  • Monitoring Data — Data collected from patients to assess their physiological parameters and responses during treatment.
+  • Brain Injury — A condition resulting from damage to the brain, often requiring intensive medical management.
+  • Neurological Injury — An injury that affects the nervous system, which may include the brain and spinal cord.
+  • Substance Abuse — The harmful or hazardous use of psychoactive substances, including alcohol and illicit drugs.
+  • Coma — A state of prolonged unconsciousness where a person cannot be awakened and fails to respond to stimuli.
+  • GCS Assessment — A clinical tool used to assess a patient's level of consciousness and neurological function.
+  • Mean Arterial Pressure — A physiological parameter that represents the average blood pressure in a person's arteries during one cardiac cycle.
+  • Central Venous Pressure — A physiological parameter measuring the pressure in the thoracic vena cava, reflecting right atrial pressure.
+  • Heart Rate — A physiological parameter measuring the number of heartbeats per minute, used for monitoring cardiac function.
+  • Respiration Rate — A physiological parameter measuring the number of breaths taken per minute, used for monitoring respiratory function.
+  • Arterial Oxygen Saturation — A non-invasive method used to measure the oxygen saturation level in the blood.
+  • Temperature — A physiological parameter measuring the body temperature, used to monitor for fever or hypothermia.
+  • End-Tidal Carbon Dioxide — A measurement of the concentration of carbon dioxide in exhaled air, used to assess ventilation.
+  • Jugular Venous Oxygen Saturation — A measurement of the oxygen saturation in the blood returning from the brain, used to assess cerebral oxygenation.
+  • Transcranial Doppler — A non-invasive ultrasound method used to measure blood flow velocity in the brain's blood vessels.
+  • Brain Tissue Oxygen — A measurement of the oxygen level in brain tissue, used to assess cerebral oxygenation.
+  • Hypotension — A condition characterized by abnormally low blood pressure, which can lead to inadequate blood flow to organs.
+  • Vasopressors — Medications used to constrict blood vessels and increase blood pressure in patients with hypotension.
+  • Biochemistry — A branch of science that explores the chemical processes within and related to living organisms, often assessed through laboratory values.
+  • Haematology — The study of blood, blood-forming organs, and blood diseases, often assessed through laboratory values.
+  • Injuries — Physical damage to the body resulting from external force or trauma.
+  • Arterial Hypotension — A condition characterized by abnormally low blood pressure, which can occur in head-injured patients.
+  • Intracranial Hypertension — A condition where there is increased pressure within the skull, often monitored in patients with brain injuries.
+  • Respiratory Distress Syndrome — A condition that can complicate the management of patients with traumatic brain injury.
+  • Jugular Venous Desaturations — A condition that can occur in patients with traumatic brain injury, indicating reduced oxygen levels in the blood returning from the brain.
+  • Clinical Research Form — A document used for recording data on adverse events during clinical trials.
+  • Outcome Data — Data related to the results or consequences of medical treatment or intervention.
+  • Management — The process of administering medical care and treatment to patients.
+  • Sepsis — A life-threatening condition that arises when the body's response to infection causes injury to its own tissues and organs.
+  • Patient — A person receiving medical care or treatment.
+  • Session — A defined period during which medical observations are recorded.
+  • Timepoint — A specific moment in time associated with medical observations.
+  • Reading — A recorded value of a parameter observed at a specific timepoint.
+  • Parameter — A measurable characteristic or variable observed in a patient.
+  • Observation — A recorded instance of a measurement or assessment.
+  • Sensor — A device used to measure or observe a specific parameter.
+  • Machine — A device used in medical evaluations to record observations.
+  • Provenance — Information about the entities and processes involved in producing observations.
+  • Error — An identified issue in the recorded medical data.
+  • Hypertension — A condition characterized by abnormally high blood pressure, which can lead to various health complications.
+  • Noradrenaline — A hormone and neurotransmitter involved in the body's response to stress, often used in medical treatments to increase blood pressure.
+  • Adrenaline — A hormone and neurotransmitter that plays a key role in the body's fight-or-flight response, often used in medical treatments.
+  • Core Monitoring Parameter
+  • Condition
+  • Therapy
+  • Demographic Data — Demographic and clinical admission data collected at enrolment, including age, sex, injury classification, and medical history.
+  • Optional Monitoring Parameter — Extended monitoring parameters included in the BrainIT Database whenever monitored as part of a centre's routine clinical management.
+  • Brain Temperature — Cerebral temperature, an optional BrainIT parameter.
+  • Microdialysis — Cerebral microdialysis, an optional BrainIT parameter.
+  • Non-Invasive Blood Pressure — Non-invasive blood pressure, an optional BrainIT parameter.
+  • Baseline Therapy — Routine ICU management delivered to all TBI patients.
+  • Secondary Insult Therapy — Non-surgical medical management specifically given to treat secondary insults.
+  • Ventilation — Mechanical ventilation settings and management.
+  • Sedation — Sedation level management.
+  • Fluids — Fluid input and output management.
+  • Secondary Insult Treatment — Coded therapy category with an assigned therapy target.
+  • Arterial Pressors — Arterial pressure agents used in secondary insult therapy.
+  • Surgical Procedure — Neurosurgical procedures performed on patients.
+  • ICP Sensor Placement — Placement of ICP monitoring sensor.
+  • Evacuation of Mass Lesion — Surgical evacuation of intracranial mass lesion.
+  • Systemic Hypotension — Reduced systemic blood pressure, targeted by therapy.
+  • Clinical Assessment — Structured clinical evaluation performed at admission.
+  • Pupil Assessment — Assessment of pupil size and responsiveness.
+  • CT Scan Assessment — CT scan classification using TCDB nomenclature.
+  • Outcome — Patient outcome measure.
+  • GOSe Outcome — Extended Glasgow Outcome Scale at 6 months post-discharge.
+  • Laboratory Values — Routine laboratory tests performed during ICU management.
+  • Blood Gases — Arterial blood gas analysis.
+  • Glucose — Blood glucose value.
+  • White Blood Cell Count — White cell count.
+  • Nursing Intervention — Routine nursing care and clinical activities.
+  • Routine Nursing Care — Basic nursing care activities.
+  • Physiotherapy — Physiotherapy sessions in ICU management.
+  • Bedside Intervention — Clinical interventions performed at the bedside.
+  • Patient Transport — Transport to and from Theatre or CT-Scan.
+  • Intensive Care Management — ICU management data category.
+  • Data Quality Assessment — Automated evaluation of ICU data quality.
+  • Probable Error — A reading outside its acceptable range with no contextual clinical explanation.
+  • Antibiotics
+  • Pressure Reactivity Index (PRx)
+  • impedance plethmography
+  • Haemoglobin
+  • Sodium
+  • Anterior Fossa Repair
+  • Paralysis
+  • Osmotics
+  • TCD
+  • Peripheral Temperature
+  • Hypothermia Therapy
+  • SjO2
+  • Derived Parameter
+  • Barbiturates
+  • Removal of Foreign Body
+  • ventilator
+  • Analgesia
+  • Steroids
+  • Anti-pyretics
+  • Skull Fracture Elevation
+  • Extra Ventricular Drain Placement
+  • Haematocrit
+  • EtCO2
+  • Anti-hypertensives
+  • Electrocardiogram (ECG)
+  • NIBP
+
+--- Relations ---
+  • has monitoring data(Heart Rate → Monitoring Data) — Indicates that Heart Rate is measured using an Electrocardiogram.
+  • has monitoring data(Respiration Rate → impedance plethmography) — Indicates that Respiration Rate is measured using impedance plethmography.
+  • has monitoring data(Respiration Rate → ventilator) — Indicates that Respiration Rate is measured using a ventilator.
+  • has monitoring data(Mean Arterial Pressure → Monitoring Data) — Indicates that Mean Arterial Pressure is part of the monitoring data.
+  • has monitoring data(Intracranial Pressure → Monitoring Data) — Indicates that Intracranial Pressure is part of the monitoring data.
+  • has monitoring data(Arterial Oxygen Saturation → Monitoring Data) — Indicates that Pulse Oximetry is part of the monitoring data.
+  • has monitoring data(Temperature → Monitoring Data) — Indicates that Temperature is part of the monitoring data.
+  • has monitoring data(Central Venous Pressure → Monitoring Data) — Indicates that Central Venous Pressure is part of the monitoring data.
+  • has monitoring data(EtCO2 → Monitoring Data) — Indicates that End-Tidal CO2 is part of the monitoring data.
+  • has monitoring data(Jugular Venous Oxygen Saturation → Monitoring Data) — Indicates that Jugular Venous Oxygen Saturation is part of the monitoring data.
+  • has monitoring data(Transcranial Doppler → Monitoring Data) — Indicates that Transcranial Doppler is part of the monitoring data.
+  • has monitoring data(Brain Tissue Oxygen → Monitoring Data) — Indicates that Brain Tissue Oxygen is part of the monitoring data.
+  • has monitoring data(GCS Assessment → Monitoring Data) — Indicates that Glasgow Coma Scale is part of the monitoring data.
+  • targets condition(Hypotension → Vasopressors) — Indicates that Vasopressors are used to treat Hypotension.
+  • targets condition(Intracranial Pressure → Vasopressors) — Indicates that Vasopressors are used to treat reduced cerebral perfusion pressure secondary to raised Intracranial Pressure.
+  • receives therapy(Cerebral Perfusion Pressure → Respiratory Distress Syndrome) — Describes how changes in Cerebral Perfusion Pressure can influence the occurrence of Respiratory Distress Syndrome.
+  • has monitoring data(Brain Injury → Monitoring Data) — Links a brain injury to the set of physiological measurements collected during monitoring.
+  • has outcome(Brain Injury → Outcome Data) — Links a brain injury to the results or consequences of medical treatment.
+  • is managed by(Brain Injury → Management) — Links a brain injury to the processes involved in its medical care.
+  • has monitoring data(Patient → Observation) — Links a patient to the observations recorded during their care.
+  • is associated with(Timepoint → Reading) — Links a timepoint to the readings recorded at that moment.
+  • produced by sensor(Sensor → Reading) — Indicates that a sensor generates a specific reading.
+  • has monitoring data(Cerebral Perfusion Pressure → Monitoring Data) — Indicates that cerebral perfusion pressure is a parameter that is monitored as part of patient care.
+  • has monitoring data(Patient → Monitoring Data) — Patients with brain injuries have associated monitoring data collected during their treatment.
+  • is associated with(Sepsis → Outcome Data) — Sepsis is associated with outcome data reflecting the impact on patients' health.
+  • has demographic data(Patient → Demographic Data) — Indicates that a patient has associated demographic data.
+  • has surgical procedure(Patient → Surgical Procedure) — Indicates that a patient has undergone a surgical procedure.
+  • receives therapy(Patient → Therapy) — Indicates that a patient receives a specific therapy.
+  • monitoring indicates condition(Monitoring Data → Condition) — Indicates that monitoring data suggests a specific condition.
+  • has clinical assessment(Patient → Clinical Assessment) — Indicates that a patient has undergone a clinical assessment.
+  • has outcome(Patient → Outcome) — Indicates that a patient has an associated outcome measure.
+  • has laboratory value(Patient → Laboratory Values) — Indicates that a patient has associated laboratory values.
+  • has nursing intervention(Patient → Nursing Intervention) — Indicates that a patient has received nursing interventions.
+  • has session(Patient → Session) — Indicates that a patient has associated sessions of care.
+  • has timepoint(Session → Timepoint) — Indicates that a session has specific timepoints associated with it.
+  • has monitoring data(Timepoint → Observation) — Indicates that a timepoint has specific observations associated with it.
+  • measures parameter(Observation → Parameter) — Indicates that an observation measures a specific parameter.
+  • produced by sensor(Observation → Sensor) — Indicates that an observation is produced by a specific sensor.
+  • has quality assessment(Observation → Data Quality Assessment) — Indicates that an observation has undergone quality assessment.
+  • associated with condition(Data Quality Assessment → Condition) — Indicates that a data quality assessment is associated with a specific condition.
+  • receives therapy(Data Quality Assessment → Therapy) — Indicates that a data quality assessment is affected by a specific treatment.
+  • targets condition(Arterial Pressors → Arterial Hypotension) — Arterial Pressors are used to target the condition of Arterial Hypotension.
+  • has clinical assessment(Clinical Research Form → Clinical Assessment) — Clinical Research Forms are used to gather data for Clinical Assessments.
+  • has monitoring data(End-Tidal Carbon Dioxide → Monitoring Data) — End-Tidal Carbon Dioxide is a parameter that has associated monitoring data.
+  • is associated with(Error → Monitoring Data) — Errors are associated with monitoring data that may indicate issues in patient assessment.
+  • has outcome(Injuries → Outcome Data) — Injuries have associated outcome data that reflect the results of clinical assessments.
+  • is managed by(Intensive Care Management → Management) — Intensive Care Management is a process that is managed by specific management protocols.
+  • has monitoring data(NIBP → Monitoring Data) — Non-Invasive Blood Pressure is a parameter that has associated monitoring data.
+  • has monitoring data(Provenance → Monitoring Data) — Provenance is related to the monitoring data that tracks the source of clinical information.
+  • targets condition(Substance Abuse → Condition) — Substance Abuse targets various clinical conditions related to addiction and health.
+
+--- Hierarchy (subclass → superclass) ---
+  • Electrocardiogram (ECG) ⊑ Monitoring Data
+  • Respiration Rate ⊑ Core Monitoring Parameter
+  • Mean Arterial Pressure (MAP) ⊑ Monitoring Data
+  • SaO2 ⊑ Monitoring Data
+  • Temperature ⊑ Core Monitoring Parameter
+  • Intracranial Hypertension ⊑ Secondary Insult
+  • Arterial Hypotension ⊑ Secondary Insult
+  • Reading ⊑ Observation
+  • Parameter ⊑ Observation
+  • Machine ⊑ Sensor
+  • Core Monitoring Parameter ⊑ Monitoring Data
+  • Heart Rate ⊑ Core Monitoring Parameter
+  • Mean Arterial Pressure (MAP) ⊑ Core Monitoring Parameter
+  • SaO2 ⊑ Core Monitoring Parameter
+  • CPP ⊑ Core Monitoring Parameter
+  • EtCO2 ⊑ Optional Monitoring Parameter
+  • CVP ⊑ Core Monitoring Parameter
+  • Brain Injury ⊑ Condition
+  • Head Injury ⊑ Brain Injury
+  • Neurological Injury ⊑ Brain Injury
+  • Coma ⊑ Brain Injury
+  • Secondary Insult ⊑ Condition
+  • Hypotension ⊑ Secondary Insult
+  • Hypertension ⊑ Secondary Insult
+  • Respiratory Distress Syndrome ⊑ Secondary Insult
+  • Sepsis ⊑ Secondary Insult
+  • Vasopressors ⊑ Baseline Therapy
+  • Adrenaline ⊑ Therapy
+  • Noradrenaline ⊑ Therapy
+  • Derived Parameter ⊑ Monitoring Data
+  • Hypothermia Therapy ⊑ Baseline Therapy
+  • Haematocrit ⊑ Haematology
+  • TCD ⊑ Optional Monitoring Parameter
+  • Optional Monitoring Parameter ⊑ Monitoring Data
+  • Pressure Reactivity Index (PRx) ⊑ Derived Parameter
+  • Physiotherapy ⊑ Nursing Intervention
+  • ICP Sensor Placement ⊑ Surgical Procedure
+  • White Blood Cell Count ⊑ Haematology
+  • Probable Error ⊑ Data Quality Assessment
+  • ICP ⊑ Core Monitoring Parameter
+  • Removal of Foreign Body ⊑ Surgical Procedure
+  • Analgesia ⊑ Baseline Therapy
+  • Peripheral Temperature ⊑ Optional Monitoring Parameter
+  • Noradrenaline ⊑ Vasopressors
+  • Barbiturates ⊑ Secondary Insult Therapy
+  • Sodium ⊑ Biochemistry
+  • Fluids ⊑ Baseline Therapy
+  • Anti-pyretics ⊑ Baseline Therapy
+  • Extra Ventricular Drain Placement ⊑ Surgical Procedure
+  • Paralysis ⊑ Baseline Therapy
+  • Anti-hypertensives ⊑ Baseline Therapy
+  • SjO2 ⊑ Optional Monitoring Parameter
+  • Osmotics ⊑ Secondary Insult Therapy
+  • Jugular Venous Desaturations ⊑ Secondary Insult
+  • Blood Gases ⊑ Laboratory Values
+  • Skull Fracture Elevation ⊑ Surgical Procedure
+  • CPP ⊑ Derived Parameter
+  • Haemoglobin ⊑ Haematology
+  • Patient Transport ⊑ Nursing Intervention
+  • Glucose ⊑ Biochemistry
+  • Anterior Fossa Repair ⊑ Surgical Procedure
+  • Systemic Hypotension ⊑ Secondary Insult
+  • Ventilation ⊑ Baseline Therapy
+  • Secondary Insult Treatment ⊑ Secondary Insult Therapy
+  • Routine Nursing Care ⊑ Nursing Intervention
+  • Bedside Intervention ⊑ Nursing Intervention
+  • NIBP ⊑ Optional Monitoring Parameter
+  • Baseline Therapy ⊑ Therapy
+  • Steroids ⊑ Secondary Insult Therapy
+  • Sedation ⊑ Baseline Therapy
+  • CT Scan Assessment ⊑ Clinical Assessment
+  • Antibiotics ⊑ Baseline Therapy
+  • CPP ⊑ Parameter
+  • Brain Temperature ⊑ Optional Monitoring Parameter
+  • Microdialysis ⊑ Optional Monitoring Parameter
+  • Evacuation of Mass Lesion ⊑ Surgical Procedure
+  • GCS Assessment ⊑ Clinical Assessment
+  • Pupil Assessment ⊑ Clinical Assessment
+  • GOSe Outcome ⊑ Outcome
+  • Arterial Hypotension ⊑ Systemic Hypotension
+  • Hypertension ⊑ Condition
+  • Hypotension ⊑ Condition
+  • Haematology ⊑ Laboratory Values
+  • Biochemistry ⊑ Laboratory Values
+  • Arterial Pressors ⊑ Secondary Insult Therapy
+  • Secondary Insult Therapy ⊑ Therapy
+  • Sepsis ⊑ Condition
+  • Adrenaline ⊑ Vasopressors
+  • Central Venous Pressure ⊑ Optional Monitoring Parameter
+  • Brain Tissue Oxygen ⊑ Optional Monitoring Parameter

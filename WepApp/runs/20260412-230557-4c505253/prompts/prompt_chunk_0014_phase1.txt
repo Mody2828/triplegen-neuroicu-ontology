@@ -1,0 +1,384 @@
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+Suggested concepts (pre-identified by biomedical NER in this text): hypotension, sepsis, ated, hypotensive, brain injury, technol-, demwarnings/predictions.
+These are entity mentions detected in this chunk. Use them as additional evidence that a concept is present, but only extract labels from the allowed class list above.
+
+Candidate domain terms (contextual hints from this chunk — use only if supported by the text): pressure; monitoring; outcome; Blood Pressure; Clinical Monitoring; hypotension; care; clinical; decision; event; events; hypotensive
+
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing an EXACT VERBATIM sentence or clause COPIED from the text — do NOT paraphrase, summarize, truncate, or rephrase. Copy the text exactly as it appears, preserving original wording, word order, and punctuation. If you cannot find an exact quote, OMIT the item.
+
+3. **Extraction Scope:** Extract clinical and biomedical content: conditions, physiological parameters, monitoring variables, treatments/therapies/interventions, outcomes, assessments, laboratory values, nursing interventions, surgical procedures, and clinical dataset categories when explicitly named.
+   Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+   If a sentence or paragraph is mainly about these excluded topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+6. **Label Mapping Rule:** If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+   Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+   For other abbreviations, expand to their full clinical name as used in the text.
+
+7. **Structural Completeness Rule:** When the text mentions specific clinical items, also extract their general category if the text supports it.
+   For example, if the text discusses 'ventilation, sedation, fluids' as therapies, also extract the general class 'Therapy' or 'Baseline Therapy' if the text uses that grouping.
+   Use the text's own categories and groupings — do not impose an external hierarchy.
+
+**Default priority: classes first, then relations.** Extract relations when the text clearly states a connection between two concepts — both domain and range must be extracted classes. If a phase instruction below overrides this priority, follow the phase instruction.
+
+**Completeness:** Extract every distinct clinical concept the text names — err on the side of inclusion when evidence exists.
+
+### CURRENT TASK: Phase 1 — COMPREHENSIVE CLASS EXTRACTION
+Extract all clinical and biomedical classes mentioned in the text.
+
+### CHAIN-OF-THOUGHT (follow these steps before producing output)
+1. Read each paragraph and identify every clinical noun phrase (conditions, parameters, therapies, assessments, outcomes, devices, data categories).
+2. For each candidate, classify it: Is it a clinical condition? A physiological parameter? A treatment? An assessment? A laboratory value? A nursing intervention? A data category? A device or sensor?
+3. Check: does the text provide a verbatim phrase you can cite as evidence?
+4. If yes, include it. If the concept is purely organisational, governance, or publication metadata, skip it.
+
+### CONCEPT TYPES TO LOOK FOR
+  - Clinical conditions, diseases, injuries, syndromes, secondary insults
+  - Physiological parameters and monitoring variables (e.g. ICP, MAP, HR, SpO2)
+  - Treatments, therapies, interventions, drugs, medications
+  - Surgical procedures and clinical procedures
+  - Clinical assessments, scores, and scales (e.g. GCS, GOSe, pupil assessment)
+  - Patient outcomes and outcome measures
+  - Laboratory values and test categories (e.g. blood gases, biochemistry)
+  - Nursing interventions and bedside care (e.g. suctioning, sedation)
+  - Medical devices and sensors
+  - Data categories and abstract grouping classes (e.g. Monitoring Data, Therapy, Condition, Outcome, Core Monitoring Parameter, Optional Monitoring Parameter, Baseline Therapy, Demographic Data, Admission Data, Treatment Data, Outcome Data)
+  - Clinical guidelines and management protocols
+
+### LABEL GUIDANCE
+  - Use short, clean noun-phrase labels.
+  - Expand common abbreviations: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+  - For other abbreviations, expand to their full clinical name.
+
+### STRUCTURAL COMPLETENESS
+When the text mentions specific clinical items, also extract their general category if the text supports it. Use the text's own categories and groupings. For example, if the text lists 'heart rate, ICP, MAP' under 'core monitoring parameters', extract BOTH the individual parameters AND 'Core Monitoring Parameter' as a class.
+
+### DEFINITION REQUIREMENT
+Every class MUST include a `definition` field: a precise one-sentence scope note that captures what this concept means IN THE CONTEXT OF THIS TEXT.
+Read how the text uses this concept and write a definition that includes:
+  (1) What TYPE of concept it is (condition, parameter, therapy, assessment, lab value, device, data category).
+  (2) What it MEASURES, TREATS, MONITORS, or DESCRIBES.
+  (3) Its ROLE or PURPOSE as described in this specific text.
+Ground the definition in the text context first. Only fall back to general medical knowledge if the text provides no contextual clues.
+BAD (too vague):  "A clinical parameter used in patient care."
+GOOD (text-grounded): "A physiological parameter measuring pressure inside the cranium, recorded minute-by-minute as part of the BrainIT core monitoring dataset to detect secondary insults in TBI patients."
+Example: {"label": "Intracranial Pressure", "definition": "A core monitoring parameter measuring pressure inside the cranium, recorded continuously to detect intracranial hypertension in traumatic brain injury patients.", "evidence": "..."}
+
+### EXTRACTION PRINCIPLE
+Extract every clinical concept the text explicitly names. Do not invent concepts not present in the text. Each concept needs a verbatim evidence quote from the source.
+
+### SELF-CHECK (before finalising output)
+- Is every label a clinical TYPE (not an instance or a person's name)?
+- Are there any duplicate or synonym labels? Merge them.
+- Does every evidence field contain a verbatim quote from the text?
+
+Output JSON with keys classes, relations, hierarchy. Set relations and hierarchy to empty arrays.
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "definition": "one-sentence scope note describing what this class represents in the domain", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "definition": "one-sentence description of what this relation means between domain and range", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Definition rule:** Every class and relation MUST include a `definition` field: a concise one-sentence scope note clarifying what the class represents or what the relation means in the clinical domain. Ground definitions in the text where possible, but you may use standard medical knowledge to write a clear scope note.
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+**REASONING STEP:** Before producing JSON, mentally scan the text for: (1) every named clinical concept, (2) explicit relations between them, (3) hierarchy cues (such as, is a, type of, include:). Then output only items with verbatim evidence.
+
+---
+--- Retrieved examples (3) ---
+
+Text: This is the minimum minute by minute monitoring data required for inclusion in the BrainIT Database and include: Heart Rate (specifying source: ECG or Pulse Oximetry), Respiration Rate (sources: impedance plethmography or ventilator), Mean Arterial Pressure, mean ICP, Pulse Oximetry (SaO2) and Temperature (sources: rectal=oesophageal= bladder=skin.) However, additional variables: Central Venous Pressure (CVP), EtCO2, SjO2, TCD, PbrO2, Brain Temperature, Microdialysis. . . will also be included in the database if they are monitored, in a given patient, as part of their usual clinical management.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate (specifying source: ECG or Pulse Oximetry)",
+      "definition": "The number of cardiac contractions per minute, a core physiological monitoring parameter in neuro-ICU."
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate (sources: impedance plethmography or ventilator)",
+      "definition": "The number of breaths per minute, measured via impedance plethysmography or ventilator."
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "Mean Arterial Pressure",
+      "definition": "The average arterial blood pressure during a cardiac cycle, a key haemodynamic parameter."
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "mean ICP",
+      "definition": "The pressure inside the cranium, continuously monitored to detect intracranial hypertension in TBI patients."
+    },
+    {
+      "label": "SaO2",
+      "evidence": "Pulse Oximetry (SaO2)",
+      "definition": "Arterial oxygen saturation measured by pulse oximetry, indicating blood oxygenation levels."
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature (sources: rectal=oesophageal= bladder=skin.)",
+      "definition": "Core body temperature measured at rectal, oesophageal, bladder, or skin sites."
+    },
+    {
+      "label": "CVP",
+      "evidence": "Central Venous Pressure (CVP)",
+      "definition": "Central venous pressure, measuring the pressure in the thoracic vena cava near the right atrium."
+    },
+    {
+      "label": "EtCO2",
+      "evidence": "EtCO2",
+      "definition": "End-tidal carbon dioxide concentration, reflecting ventilation adequacy."
+    },
+    {
+      "label": "SjO2",
+      "evidence": "SjO2",
+      "definition": "Jugular venous oxygen saturation, an indicator of cerebral oxygen consumption."
+    },
+    {
+      "label": "TCD",
+      "evidence": "TCD",
+      "definition": "Transcranial Doppler ultrasonography, used to assess cerebral blood flow velocity."
+    },
+    {
+      "label": "PbrO2",
+      "evidence": "PbrO2",
+      "definition": "Partial pressure of brain tissue oxygen, measuring local cerebral oxygenation."
+    },
+    {
+      "label": "Brain Temperature",
+      "evidence": "Brain Temperature",
+      "definition": "Temperature measured directly within brain tissue, distinct from core body temperature."
+    },
+    {
+      "label": "Microdialysis",
+      "evidence": "Microdialysis",
+      "definition": "A sampling technique for measuring extracellular brain chemistry metabolites."
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+
+Text: Hypotensive events were classified as either mean ABP (ABPm) less than 70 mmHg or systolic ABP (ABPs) less than 90 mmHg. For an event to be valid it had to remain below the threshold for at least 5 min. Also included in the BrainIT data set are a series of annotations of nursing and medical interventions such as blood sampling, transducer calibration, endotracheal suction and patient turning.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Hypotension",
+      "evidence": "Hypotensive events",
+      "definition": "Abnormally low blood pressure, a recognised secondary insult after TBI."
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "mean ABP (ABPm) less than 70 mmHg",
+      "definition": "The average arterial blood pressure during a cardiac cycle, a key haemodynamic parameter."
+    },
+    {
+      "label": "Nursing Intervention",
+      "evidence": "nursing and medical interventions",
+      "definition": "Care activities performed by nursing staff as part of ICU management."
+    },
+    {
+      "label": "Routine Nursing Care",
+      "evidence": "endotracheal suction and patient turning",
+      "definition": "Standard bedside nursing activities including eye care, mouth care, and suctioning."
+    },
+    {
+      "label": "Bedside Intervention",
+      "evidence": "blood sampling, transducer calibration",
+      "definition": "Clinical procedures performed at the bedside such as line insertion and transducer calibration."
+    },
+    {
+      "label": "Patient Transport",
+      "evidence": "patient turning",
+      "definition": "Movement of the patient to and from theatre, CT scanner, or other facilities."
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+
+Text: Intensive care management information. Types of data include: GCS scores, pupil scores, ventilation settings, sedation levels, fluid input and output, nutrition, use of vasopressors, antibiotics. Routine blood gases and daily laboratory values will also be recorded – Biochemistry (Na, K+, Glucose), Haematology (Haemoglobin, White Cell Count, Haematocrit).
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Intensive Care Management",
+      "evidence": "Intensive care management information",
+      "definition": "The category of data covering routine ICU care activities delivered to patients."
+    },
+    {
+      "label": "GCS Assessment",
+      "evidence": "GCS scores",
+      "definition": "Glasgow Coma Scale assessment, a standardised neurological score for consciousness level."
+    },
+    {
+      "label": "Pupil Assessment",
+      "evidence": "pupil scores",
+      "definition": "Clinical evaluation of pupil size and reactivity to light as a neurological indicator."
+    },
+    {
+      "label": "Ventilation",
+      "evidence": "ventilation settings",
+      "definition": "Mechanical ventilation settings and parameters delivered as part of ICU care."
+    },
+    {
+      "label": "Sedation",
+      "evidence": "sedation levels",
+      "definition": "Administration of sedative agents to manage patient comfort and intracranial pressure."
+    },
+    {
+      "label": "Fluids",
+      "evidence": "fluid input and output",
+      "definition": "Intravenous fluid input and output management during ICU care."
+    },
+    {
+      "label": "Nutrition",
+      "evidence": "nutrition",
+      "definition": "Nutritional support provided to ICU patients, including enteral and parenteral routes."
+    },
+    {
+      "label": "Vasopressors",
+      "evidence": "use of vasopressors",
+      "definition": "Vasoactive drugs administered to maintain adequate blood pressure and cerebral perfusion."
+    },
+    {
+      "label": "Antibiotics",
+      "evidence": "antibiotics",
+      "definition": "Antimicrobial agents administered to prevent or treat infections in ICU patients."
+    },
+    {
+      "label": "Laboratory Values",
+      "evidence": "daily laboratory values",
+      "definition": "Results from blood and biochemical tests performed on patient samples."
+    },
+    {
+      "label": "Blood Gases",
+      "evidence": "Routine blood gases",
+      "definition": "Arterial blood gas analysis measuring pH, PaO2, PaCO2, and related values."
+    },
+    {
+      "label": "Biochemistry",
+      "evidence": "Biochemistry (Na, K+, Glucose)",
+      "definition": "Biochemical blood test results including sodium, potassium, and glucose levels."
+    },
+    {
+      "label": "Haematology",
+      "evidence": "Haematology (Haemoglobin, White Cell Count, Haematocrit)",
+      "definition": "Haematological test results including haemoglobin, white cell count, and haematocrit."
+    }
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+
+---
+TEXT TO ANALYZE:
+An earlier study also
+of hypotension. The standard deviation of the 1-min demonstrated that a neural network model was an effective
+
+46 Journal of Clinical Monitoring and Computing (2019) 33:39-51
+
+predictor of hypotension during haemodialysis treatment prevent the event from occurring, or, to treat it sooner and. less aggressively. In the medical management of sepsis, it
+A distinguishing feature of this study is that predictions has been shown that with each hour delay in treatment of
+are produced and evaluated continuously on a minute-by- hypotension leads to an increase in in-hospital mortality of
+minute basis. Previous studies have made a single prediction 7.6%. Another potential clinical outcome of this work
+for each patient based on demographic and physiological is that fostering earlier and less aggressive intervention will
+indicators at a point in time either immediately preceding in turn lead to a quantifiable reduction in the duration of
+a specific procedure, or chosen by the competition average patient stay, with associated reduction in cost of
+organizers. The single prediction was then evalu- intensive care management (in 2005, typically estimated at
+ated based on the occurrence of hypotension during the pro- c. £1200/patient/day). Another point worth discussion
+cedure (in the former case) or during the entire remaining is with regards to the poorer performance of the system at
+monitoring period (in the latter case). This makes a mean- the upper sensitivity ranges The Bayesian artificial neural networks (BANN) ROC is a more simingful comparison with previous results difficult, but it also plistic score of exact prediction of a hypotensive event in
+makes our results of special interest in terms of fielding a 15 min time whereas the scoring of the clinical data uses a
+practical intensive care system. A second distinguishing fea- more complex decision process. Ultimately, our focus upon
+ture of this work is that a real-time system (HYPO-NET) has the decision threshold of 0.3-0.5 is driven by clinical pragbeen implemented and tested running live in intensive care matism of requiring an acceptably low false-positive rate and
+units in a multi-center study. Although developed in patients thus the poorer performance at higher sensitivities although
+with brain injury, there is every possibility that this technol- clearly desirable is not relevant.
+ogy will also find application in general intensive care where There is no doubt that the technology could be
+the optimal management of the patient's blood pressure is improved further by research into reducing the influence
+ubiquitous and paramount. of false-positives (when the device claims a hypotensive
+One could argue that a sensitivity of only 35-40% is event is about to occur but then it does not). In this study
+low. However the ability to pick up even one potentially we have not attempted to distinguish between good and
+emerging hypotensive event in three before it has happened bad false-positives. Many predictions recorded as false
+is clinically important. We know from our research that on positive closely precede, by just a few minutes, a true
+average a patient will have 8-10 hypotensive events dur- positive prediction, for example. Further clinical studing their management in the Intensive Care Unit (ICU). The system will forewarn ies are needed in which the clinical staff can classify an
+accurately 3-4 of these events and give the nursing and alarm as a valid warning or a nuisance. A major obstacle
+medical staff more time to assess the patient and potentially to reducing nuisance alarms is the problem of artifactual
+
+Journal of Clinical Monitoring and Computing (2019) 33:39-51 47
+
+and missing data. Blood pressure measurement systems The technology used in this study has been shown to be
+are sensitive to patient movement such as that produced capable of forewarning arterial hypotension events with >
+by nursing and medical procedures (e.g.: blood sampling, 15 min of warning. By adjusting the decision threshold within
+routine patient hygiene or pressure area care) that either the range 0.3-0.5, which could be carried out on a patientinterrupt recording or cause movement of the recording by-patient basis, an operational system could expect to prosystem. Automatic false positive correction is challeng- vide warning to a clinical team somewhere between 10 and
+ing. Many authors agree on the need for systems that can 15 min in advance of a hypotensive episode. Adjustment of
+automatically detect and remove non-physiological arte- the decision threshold would, of course, have effects on sysfact, yet due to the inherent plethora of causes of artefact tem sensitivity and specificity. As an example, with a decision
+within a clinical environment such as an intensive care threshold of 0.4, a sensitivity of 39.3% (95% CI 32.9-46.1)
+unit, a robust general purpose system does not exist. Some and specificity of 91.5% (95% CI 89.0-93.7) was achieved.
+authors (e.g.: Williams et al.) have successfully designed The average warning at this setting was 14 min. This result
+and tested dynamic linear models trained on specific arte- has been obtained from two independent patient cohorts
+fact types (such as those caused by blood sampling from using real-time data collection in a live clinical environment.
+the arterial pressure line), but many of these approaches Before a randomized controlled trial can be designed to test
+require relevant centre specific training data. this technology to assess if the warnings delivered influence
+The problem of invalid data may have caused the inci- medical management and patient outcome, two areas of furdence of hypotension to be underestimated in this study. ther research are warranted: (a) research towards implementAnalysis of the dataset for the presence of hypotension ing artefact detection and removal from Blood Pressure (BP) data such as that
+events using the Insult Grading (EUSIG) classification has detected 2081 developed by Williams et al. and (b) research on optimishypotension events from 100 patients with full Blood Pressure (BP) systolic, ing the display of hypotensive warnings to medical staff using
+diastolic and mean data parameters. In this dataset, addition- Bayesian artificial neural networks (BANN) prediction data. There is no doubt that a revolution is
+ally there were 600 "Abandoned events" defined as where currently taking place in healthcare; technology is enabling
+an event was in the "Active" state but the next readings did the creation and collection of vast amounts of patient data,
+not contain valid measurements for BPs, BPd or BPm. There as part of a "Big Data" phenomenon. This rapid expanwere also 47 "Invalid Events" defined as where the event sion of data has the potential to transform clinical practice,
+ran to completion but there were missing time blocks of no more so than in the management of patients within critical
+data. Thus taking the worst-case scenario that all aban- care. Critical care is arguably one of the most techdoned and invalid events would have become hypotension nology led medical domains; sophisticated patient monitoring
+events indicates that 31% of potential hypotension events are systems can capture large volumes of streaming physiological
+lost to detection and potentially to medical treatment. This data which continuously report on a patient's status and are
+is compelling evidence for the need for advanced statisti- often combined with patient data captured in electronic health
+cal methods for coping with artifactual and missing data. records. The potential clinical benefit of harnessing this large
+Closely aligned and following on from this study, Williams amount of physiological data available will inevitably require
+et al. developed and tested a descrimitive switching linear the real-time application of machine learning technology able
+dynamical system model to automatically detect both arte- to run unattended within a live clinical environment. The sucrial pressure artefact due to line interruption during blood cess of such an approach will require the collaboration of clinisampling and pressure line damping events. Work such cians, computer scientists and technologists and will depend
+as this renders the ability to run predictive models even on upon their shared understanding of each others understanding
+physiological data channels known to be susceptible to arte- of the areas of unmet need within their own domains. Machine
+fact, more feasible. learning algorithms are crucially dependant on the quality of
+Another area that could benefit from further research is the data available for model training and a solid understanding
+that concerning user interface. How best to present critical of the requirements of the busy clinician. This work has demwarnings/predictions to intensive care medical staff? Intensive Care Unit (ICU) onstrated that machine learning algorithms can be developed
+staff are already bombarded with hundreds of buzzers, bells and used prospectively within a live critical care environment.
+and lights from a plethora of medical devices surrounding The next crucial step is to demonstrate their robustness and
+the patient. The technology used in this study and its ability clinical effectiveness.
+to predict hypotension before it has emerged is only part of
+the challenge. The other part is how to ensure the medical
+staff respond to the increased risk warning and adhere to an
+expected guideline or response which can be quantified as
+part of a future randomised clinical trial on the technology
+used in this study.
+---

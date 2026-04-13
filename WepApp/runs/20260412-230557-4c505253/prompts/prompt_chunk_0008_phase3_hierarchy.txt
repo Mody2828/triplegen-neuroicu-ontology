@@ -1,0 +1,442 @@
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+Suggested concepts (pre-identified by biomedical NER in this text): traumatic brain injury, TBI, Trauma, vasopressors, P., Jorens • A., Selfotel, intracranial hypertension, 140, ± 10.4, ± 14.5), CPPs.
+These are entity mentions detected in this chunk. Use them as additional evidence that a concept is present, but only extract labels from the allowed class list above.
+
+Candidate domain terms (contextual hints from this chunk — use only if supported by the text): blood pressure; glasgow; hypertension; intracranial hypertension; intracranial pressure; map; mean arterial pressure; monitoring; outcome; vasopressors; CPP; Cerebral Perfusion
+
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing an EXACT VERBATIM sentence or clause COPIED from the text — do NOT paraphrase, summarize, truncate, or rephrase. Copy the text exactly as it appears, preserving original wording, word order, and punctuation. If you cannot find an exact quote, OMIT the item.
+
+3. **Extraction Scope:** Extract clinical and biomedical content: conditions, physiological parameters, monitoring variables, treatments/therapies/interventions, outcomes, assessments, laboratory values, nursing interventions, surgical procedures, and clinical dataset categories when explicitly named.
+   Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+   If a sentence or paragraph is mainly about these excluded topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+6. **Label Mapping Rule:** If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+   Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+   For other abbreviations, expand to their full clinical name as used in the text.
+
+7. **Structural Completeness Rule:** When the text mentions specific clinical items, also extract their general category if the text supports it.
+   For example, if the text discusses 'ventilation, sedation, fluids' as therapies, also extract the general class 'Therapy' or 'Baseline Therapy' if the text uses that grouping.
+   Use the text's own categories and groupings — do not impose an external hierarchy.
+
+**Default priority: classes first, then relations.** Extract relations when the text clearly states a connection between two concepts — both domain and range must be extracted classes. If a phase instruction below overrides this priority, follow the phase instruction.
+
+**Completeness:** Extract every distinct clinical concept the text names — err on the side of inclusion when evidence exists.
+
+### CURRENT TASK: Phase 3 — HIERARCHY EXTRACTION
+Extract subclass/superclass (is-a) edges supported by the text. A hierarchy edge means one class is a TYPE, SUBTYPE, CATEGORY MEMBER, or SPECIFIC INSTANCE of another. Extract every edge the text explicitly supports with evidence.
+
+### HIERARCHY DETECTION METHOD
+Look for ALL of these patterns in the text:
+  1. Explicit cues: 'such as', 'is a', 'type of', 'kind of', 'form of'
+  2. Enumeration: 'include:', 'includes:', 'consists of', 'comprises'
+  3. Category grouping: 'categorized as', 'classified as', 'grouped into'
+  4. List patterns: items listed under a heading or category name
+  5. Implicit grouping: when several specific items are mentioned alongside a general category (e.g., 'therapy: ventilation, sedation' implies both are subclasses of Therapy; 'core parameters: HR, ICP, MAP' implies all three are subclasses of Core Monitoring Parameter)
+  6. Definitional: 'X is a Y', 'X, a type of Y', 'X (a form of Y)'
+  7. Context-based: if the text organises items into sections or tables, each section heading implies a parent class for the items listed under it
+  8. Medical knowledge: TBI is a type of Brain Injury, Hypotension is a type of Secondary Insult — extract these when the text discusses them together
+
+For enumeration patterns (e.g. 'include: X, Y, Z'), extract EACH listed item as a subclass of the parent category.
+IMPORTANT: If X 'includes' Y, model it as: Y subClassOf X (a hierarchy edge). Do NOT output 'includes' as a relation label — it belongs in the hierarchy.
+
+### CHAIN-OF-THOUGHT
+For each pair of known classes, reason:
+1. Does the text describe one class as a specialization of another?
+2. Does the text list one class under another as a member/subtype?
+3. Even if not explicitly stated, does medical context clearly imply a parent-child relationship?
+4. What text evidence supports this parent-child link?
+
+Be thorough: extract every parent-child relationship the text supports. Aim for at least one hierarchy edge per class if possible.
+If the text lists items under a category heading, EACH item is a subClassOf that category. For example, if 'core monitoring' is followed by 'heart rate, ICP, MAP', then each is a subClassOf Core Monitoring Parameter.
+Use ONLY the known classes below for subClass and superClass labels.
+
+### SELF-CHECK (before finalising output)
+- Are there any circular edges (A subClassOf B AND B subClassOf A)? Remove them.
+- Are subClass and superClass labels from the known-classes list?
+- Does every evidence field contain a verbatim quote from the text?
+
+Output JSON with keys classes, relations, hierarchy. Set classes and relations to empty arrays.
+
+Known classes (use only these for subclass/superclass): Cerebral Perfusion Pressure (CPP); Severe Traumatic Brain Injury (TBI); Mean Arterial Pressure (MAP); Intracranial Pressure (ICP); Guideline Change; Data Collection; Inter-individual Variability; Centre Policy
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "definition": "one-sentence scope note describing what this class represents in the domain", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "definition": "one-sentence description of what this relation means between domain and range", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Definition rule:** Every class and relation MUST include a `definition` field: a concise one-sentence scope note clarifying what the class represents or what the relation means in the clinical domain. Ground definitions in the text where possible, but you may use standard medical knowledge to write a clear scope note.
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+**REASONING STEP:** Before producing JSON, mentally scan the text for: (1) every named clinical concept, (2) explicit relations between them, (3) hierarchy cues (such as, is a, type of, include:). Then output only items with verbatim evidence.
+
+---
+--- Retrieved examples (3) ---
+
+Text: This is the minimum minute by minute monitoring data required for inclusion in the BrainIT Database and include: Heart Rate, Respiration Rate, Mean Arterial Pressure, mean ICP, SaO2 and Temperature.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Monitoring Data",
+      "evidence": "minute by minute monitoring data",
+      "definition": "Continuously recorded physiological measurements collected from bedside monitors."
+    },
+    {
+      "label": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required",
+      "definition": "A mandatory physiological variable collected at minimum once per minute."
+    },
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate",
+      "definition": "The number of cardiac contractions per minute, a core physiological monitoring parameter in neuro-ICU."
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate",
+      "definition": "The number of breaths per minute, measured via impedance plethysmography or ventilator."
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "Mean Arterial Pressure",
+      "definition": "The average arterial blood pressure during a cardiac cycle, a key haemodynamic parameter."
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "mean ICP",
+      "definition": "The pressure inside the cranium, continuously monitored to detect intracranial hypertension in TBI patients."
+    },
+    {
+      "label": "SaO2",
+      "evidence": "SaO2",
+      "definition": "Arterial oxygen saturation measured by pulse oximetry, indicating blood oxygenation levels."
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature",
+      "definition": "Core body temperature measured at rectal, oesophageal, bladder, or skin sites."
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Heart Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required...include: Heart Rate"
+    },
+    {
+      "subClass": "Respiration Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Heart Rate, Respiration Rate"
+    },
+    {
+      "subClass": "Mean Arterial Pressure (MAP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Mean Arterial Pressure"
+    },
+    {
+      "subClass": "Intracranial Pressure (ICP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: mean ICP"
+    },
+    {
+      "subClass": "SaO2",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: SaO2"
+    },
+    {
+      "subClass": "Temperature",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Temperature"
+    }
+  ]
+}
+
+---
+
+Text: BrainIT monitoring parameters are classified as core (required from all centres: Heart Rate, Respiration Rate, MAP, ICP, SaO2, Temperature) or optional (included when part of routine clinical management: CVP, EtCO2, SjO2, TCD, PbrO2, Brain Temperature, Microdialysis). CPP is a derived parameter computed as MAP minus ICP.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Monitoring Data",
+      "evidence": "BrainIT monitoring parameters",
+      "definition": "Continuously recorded physiological measurements collected from bedside monitors."
+    },
+    {
+      "label": "Core Monitoring Parameter",
+      "evidence": "core (required from all centres)",
+      "definition": "A mandatory physiological variable collected at minimum once per minute."
+    },
+    {
+      "label": "Optional Monitoring Parameter",
+      "evidence": "optional (included when part of routine clinical management)",
+      "definition": "An additional physiological variable collected when clinically available."
+    },
+    {
+      "label": "Derived Parameter",
+      "evidence": "derived parameter computed as MAP minus ICP",
+      "definition": "A calculated variable derived from primary monitoring parameters."
+    },
+    {
+      "label": "Cerebral Perfusion Pressure (CPP)",
+      "evidence": "CPP is a derived parameter",
+      "definition": "The net pressure gradient driving blood flow to the brain, calculated as MAP minus ICP."
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Core Monitoring Parameter",
+      "superClass": "Monitoring Data",
+      "evidence": "BrainIT monitoring parameters are classified as core"
+    },
+    {
+      "subClass": "Optional Monitoring Parameter",
+      "superClass": "Monitoring Data",
+      "evidence": "monitoring parameters are classified as core or optional"
+    },
+    {
+      "subClass": "Derived Parameter",
+      "superClass": "Monitoring Data",
+      "evidence": "CPP is a derived parameter computed as MAP minus ICP"
+    },
+    {
+      "subClass": "Cerebral Perfusion Pressure (CPP)",
+      "superClass": "Derived Parameter",
+      "evidence": "CPP is a derived parameter computed as MAP minus ICP"
+    },
+    {
+      "subClass": "CVP",
+      "superClass": "Optional Monitoring Parameter",
+      "evidence": "optional: CVP"
+    },
+    {
+      "subClass": "EtCO2",
+      "superClass": "Optional Monitoring Parameter",
+      "evidence": "optional: CVP, EtCO2"
+    },
+    {
+      "subClass": "SjO2",
+      "superClass": "Optional Monitoring Parameter",
+      "evidence": "optional: SjO2"
+    },
+    {
+      "subClass": "TCD",
+      "superClass": "Optional Monitoring Parameter",
+      "evidence": "optional: TCD"
+    },
+    {
+      "subClass": "PbrO2",
+      "superClass": "Optional Monitoring Parameter",
+      "evidence": "optional: PbrO2"
+    },
+    {
+      "subClass": "Brain Temperature",
+      "superClass": "Optional Monitoring Parameter",
+      "evidence": "optional: Brain Temperature"
+    },
+    {
+      "subClass": "Microdialysis",
+      "superClass": "Optional Monitoring Parameter",
+      "evidence": "optional: Microdialysis"
+    }
+  ]
+}
+
+---
+
+Text: Hypotension is a recognized secondary insult after traumatic brain injury. There are several classes of secondary insults. Several authors have shown that significant periods of arterial hypotension consistently relate to clinical outcome.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Hypotension",
+      "evidence": "Hypotension is a recognized secondary insult",
+      "definition": "Abnormally low blood pressure, a recognised secondary insult after TBI."
+    },
+    {
+      "label": "Secondary Insult",
+      "evidence": "secondary insult after traumatic brain injury",
+      "definition": "An adverse physiological event occurring after the primary brain injury that worsens outcome."
+    },
+    {
+      "label": "Arterial Hypotension",
+      "evidence": "arterial hypotension",
+      "definition": "Low arterial blood pressure, defined as systolic BP below 90 mmHg or MAP below 70 mmHg."
+    },
+    {
+      "label": "Outcome",
+      "evidence": "clinical outcome",
+      "definition": "A measure of the patient's recovery or clinical result following treatment."
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Hypotension",
+      "superClass": "Secondary Insult",
+      "evidence": "Hypotension is a recognized secondary insult"
+    },
+    {
+      "subClass": "Arterial Hypotension",
+      "superClass": "Hypotension",
+      "evidence": "arterial hypotension consistently relate to clinical outcome"
+    }
+  ]
+}
+
+---
+TEXT TO ANALYZE:
+Cerebral Perfusion Pressure Variability Between Patients
+and Between Centres
+
+Bart Depreitere, Fabian Güiza, Ian Piper, Giuseppe Citerio, Iain Chambers, Patricia A. Jones, Tsz-Yan M. Lo, Per Enblad,
+Pelle Nilsson, Bart Feyen, Philippe Jorens, Andrew Maas, Martin U. Schuhmann, Rob Donald, Laura Moss,
+Greet Van den Berghe, and Geert Meyfroidt
+
+Abstract Introduction: The aim of this analysis was to centres had medians above 70 mmHg and 4 above 80 mmHg.
+investigate to what extent median cerebral perfusion pres- Post-2007, three out of four centres had medians between 60
+sure (CPP) differs between severe traumatic brain injury and 70 mmHg and one above 80 mmHg. One out of two
+(TBI) patients and between centres, and whether the 2007 centres with data pre- and post-2007 shifted from a median
+change in Cerebral Perfusion Pressure (CPP) threshold in the Brain Trauma Foundation Cerebral Perfusion Pressure (CPP) of 76 mmHg to 60 mmHg, while the other remained at
+guidelines is reflected in patient data collected at several cen- 68-67 mmHg.
+tres over different time periods. Conclusions: Cerebral Perfusion Pressure (CPP) data are characterised by a high inter-
+Methods: Data were collected from the Brain-IT data- individual variability, but the data also suggest differences in
+base, a multi-­centre project between 2003 and 2005, and Cerebral Perfusion Pressure (CPP) policies between centres. The 2007 guideline change
+from a recent project in four centres between 2009 and 2013. may have affected policies towards lower Cerebral Perfusion Pressure (CPP) in some cenFor patients nursed with their head up at 30° and with the tres. Deviations from the guidelines occur in the direction of
+blood pressure transducer at atrium level, Cerebral Perfusion Pressure (CPP) was corrected Cerebral Perfusion Pressure (CPP) > 70 mmHg.
+by 10 mmHg. Median Cerebral Perfusion Pressure (CPP), interquartile ranges and total
+Cerebral Perfusion Pressure (CPP) ranges over the monitoring time were calculated per
+patient and per centre. Keywords Severe traumatic brain injury · Cerebral perfu-
+between 50 and 70 mmHg in 6 out of 16 centres, while 10 Pressure variability
+
+B. Depreitere (*) • F. Güiza • G. Van den Berghe • G. Meyfroidt
+University Hospitals Leuven, Leuven, University Hospitals Leuven (Belgium) Introduction
+I. Piper • L. Moss
+Southern General Hospital, Glasgow, UK
+The recommendation for targeting cerebral perfusion pres-
+sure (CPP) in the Brain Trauma Foundation (BTF) guideG. Citerio
+San Gerardo Hospital, Monza, San Gerardo Hospital Monza (Italy)
+lines on the management of severe traumatic brain injury
+(TBI) has changed from keeping Cerebral Perfusion Pressure (CPP) above 70 mmHg in
+I. Chambers
+James Cook University Hospital, Middlesborough, UK
+the 1996 edition to 50-70 mmHg in the 2007 edition. The change to recommending lower Cerebral Perfusion Pressure (CPP) was mainly
+P.A. Jones • T.-Y. M. Lo
+Royal Hospital for Sick Children, Edinburgh, UK
+inspired by the non-beneficial effect of keeping Cerebral Perfusion Pressure (CPP) above
+70 mmHg by administering high doses of vasopressors in
+P. Enblad • P. Nilsson
+Uppsala University Hospital, Uppsala, Sweden
+the randomised controlled trial performed by Robertson
+et al.. This was later confirmed in the post hoc analysis
+B. Feyen • P. Jorens • A. Maas
+University Hospital Antwerp, Antwerp, University Hospitals Leuven (Belgium)
+of the Selfotel data. As it has been demonstrated that
+M.U. Schuhmann
+Universitätsklinikum Tübingen, Tübingen, Germany
+effect on outcomes in severe One out of two (TBI), one would expect
+such change in recommendation to be followed, and hence
+R. Donald
+University of Glasgow, Glasgow, UK
+to lead to alterations in Cerebral Perfusion Pressure (CPP) policy across centres. Our
+
+4 B. Depreitere et al.
+
+study on the visualisation of pressure and time burden of time were calculated per patient and per centre, a similar
+intracranial hypertension in One out of two (TBI) included patients who analysis was done for patients' median CPPs.
+were collected from data-capture initiatives in several centres over different periods of time. The aim of this analysis was to investigate to what extent median Cerebral Perfusion Pressure (CPP) differed
+between patients and between centres and whether the
+change in guideline with respect to Cerebral Perfusion Pressure (CPP) target in 2007 was
+reflected in the clinical data. Over the entire cohort, the median Cerebral Perfusion Pressure (CPP) per patient varied
+between 27 and 96 mmHg, while the global Cerebral Perfusion Pressure (CPP) range
+extended from 0 to >140 mmHg. The per-centre median of
+patients' medians varied between 58 and 87 mmHg. Overall,
+Methods inter-individual variability exceeded inter-centre variability.
+Cerebral Perfusion Pressure (CPP) variability was independent of intracranial pressure,
+The adult group of the study cohort consisted of 261 patients and hence was also reflected in mean arterial pressure
+with severe One out of two (TBI). Of these, 166 patients were included from (MAP) variability. In line, Cerebral Perfusion Pressure (CPP) strongly correlated with
+the Brain-IT database, a European multi-centre data collec- Mean Arterial Pressure (MAP), and this analysis expressed different centre policies.
+tion made between March 2003 and July 2005. The Per-centre medians pre-2007 were situated between 50 and
+purposes on 14 February 2002. The data of the remaining 95 comparison post-2007 demonstrates that three centres had
+adult patients were collected from four centres between their median Cerebral Perfusion Pressure (CPP) between 50 and 70 mmHg, while one was
+2009 and 2013: San Gerardo Hospital Monza (Italy), above 80 mmHg (Fig. 1). The post-2007 patient data
+University Hospitals Leuven (Belgium), University Hospital grouped per centre clearly suggest an effect of centre Cerebral Perfusion Pressure (CPP)
+Antwerp (Belgium) and University Hospital Tübingen policy in addition to inter-individual Cerebral Perfusion Pressure (CPP) variability (Fig. 2).
+anonymised data for this analysis was obtained in all four 2007, the overall mean Cerebral Perfusion Pressure (CPP) dropped from 71.1 (± 10.4) mmHg
+centres. Two centres delivered data to both the early and before 2007 to 61.1 (± 14.5) mmHg after 2007 (p = 0.001).
+later cohort. For patients nursed head up at 30° and with the One of the two centres with data pre- and post-­2007 shifted
+blood pressure transducer at atrium level, Cerebral Perfusion Pressure (CPP) was cor- from a centre median Cerebral Perfusion Pressure (CPP) of 76 to 60 mmHg before and after
+rected by subtracting 10 mmHg. Median Cerebral Perfusion Pressure (CPP), interquartile 2007, while the other remained at 68-67 mmHg.
+range and total Cerebral Perfusion Pressure (CPP) range over the patients' monitoring
+
+a b
+100 100
+95 95
+90 ** 90
+**
+85 85
+80 * 80
+*
+75 75
+70 70
+65 65
+60 60
+55 55
+50 50
+45 45
+40 40
+
+Fig. 1 Per-centre CPPs (median, interquartile range and total range of patients' medians). (a) Study cohort 2003-2005. (b) Study cohort 2009-
+2013. Each colour represents a centre; * and ** indicate centres appearing in both cohorts
+
+Median Cerebral Perfusion Pressure (CPP), interquartile 2007, while the other remained at 68-67 mmHg. range and total Cerebral Perfusion Pressure (CPP) range over the patients' monitoring
+
+a b
+100 100
+95 95
+90 ** 90
+**
+85 85
+80 * 80
+*
+75 75
+70 70
+65 65
+60 60
+55 55
+50 50
+45 45
+40 40
+
+Cerebral Perfusion Pressure Variability Between Patients and Between Centres 5
+
+Fig. 2 Per-patient CPPs (median, interquartile range and total range) for the 2009-2013 study cohort. Each colour represents a centre
+---

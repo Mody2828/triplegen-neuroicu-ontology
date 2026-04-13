@@ -1,0 +1,461 @@
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+Suggested concepts (pre-identified by biomedical NER in this text): intracranial hypertension, traumatic brain injury, P., Klinik für Neurochirurgie, ated, cerebrovascular cerebrovascular autoregulation recurve, brain injury, trau-, TBI, pacity, posium, GM, Trauma, Coma.
+These are entity mentions detected in this chunk. Use them as additional evidence that a concept is present, but only extract labels from the allowed class list above.
+
+Candidate domain terms (contextual hints from this chunk — use only if supported by the text): pressure; BESTIntracranial pressure ICP; blood pressure; cerebral perfusion pressure; cpp; gcs; glasgow; hypertension; intracranial hypertension; intracranial pressure; map; monitoring
+
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing an EXACT VERBATIM sentence or clause COPIED from the text — do NOT paraphrase, summarize, truncate, or rephrase. Copy the text exactly as it appears, preserving original wording, word order, and punctuation. If you cannot find an exact quote, OMIT the item.
+
+3. **Extraction Scope:** Extract clinical and biomedical content: conditions, physiological parameters, monitoring variables, treatments/therapies/interventions, outcomes, assessments, laboratory values, nursing interventions, surgical procedures, and clinical dataset categories when explicitly named.
+   Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+   If a sentence or paragraph is mainly about these excluded topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+6. **Label Mapping Rule:** If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+   Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+   For other abbreviations, expand to their full clinical name as used in the text.
+
+7. **Structural Completeness Rule:** When the text mentions specific clinical items, also extract their general category if the text supports it.
+   For example, if the text discusses 'ventilation, sedation, fluids' as therapies, also extract the general class 'Therapy' or 'Baseline Therapy' if the text uses that grouping.
+   Use the text's own categories and groupings — do not impose an external hierarchy.
+
+**Default priority: classes first, then relations.** Extract relations when the text clearly states a connection between two concepts — both domain and range must be extracted classes. If a phase instruction below overrides this priority, follow the phase instruction.
+
+**Completeness:** Extract every distinct clinical concept the text names — err on the side of inclusion when evidence exists.
+
+### CURRENT TASK: Phase 2 — RELATION & HIERARCHY EXTRACTION (+ supplementary classes)
+Primary task: extract semantic RELATIONS between the known classes below. Extract every relation the text explicitly supports with evidence.
+Secondary task: if you notice clinical concepts in the text that Phase 1 missed (e.g. a concept needed as domain/range), add them to the classes array with evidence.
+Also extract hierarchy (subClassOf) edges wherever the text shows parent-child relationships — look for cues like 'such as', 'includes', 'type of', 'consists of', 'categorized as', enumeration lists, or even implied groupings.
+
+### WHAT IS AN ONTOLOGY RELATION?
+An ontology relation (object property) defines a typed semantic link between two class types. The DOMAIN is the subject class; the RANGE is the object class. Think: 'Every instance of [domain] can be linked via [relation] to an instance of [range].' Relations model the SCHEMA of the domain, not individual facts.
+Example: 'has monitoring data(Patient → Monitoring Data)' means every Patient can have Monitoring Data associated with them.
+
+### RELATION EXTRACTION METHOD (Chain-of-Thought)
+For each pair of known classes, reason step by step:
+1. Do these two classes co-occur or interact in the text?
+2. What is the SEMANTIC NATURE of their link? (measurement, treatment, assessment, outcome, composition, causation, etc.)
+3. Which class is the subject (domain) and which is the object (range)?
+4. Assign a descriptive relation label from the patterns below, or create a meaningful label if none fits.
+5. Find an exact text quote that supports this relationship.
+
+### ONTOLOGY DESIGN PATTERNS (use when the text supports them)
+These are reusable structural patterns showing how clinical concepts relate.
+Match them against the text — extract every supported edge.
+
+**Pattern 1 — Clinical Monitoring:**
+  Patient --[has monitoring data]--> Monitoring Data
+  Monitoring Data --[includes]--> Parameter
+  Observation --[measures parameter]--> Parameter
+  Observation --[produced by sensor]--> Sensor
+  Observation --[has quality assessment]--> Data Quality Assessment
+  Session --[has timepoint]--> Timepoint
+  Timepoint --[has observation]--> Observation
+
+**Pattern 2 — Clinical Intervention:**
+  Patient --[receives therapy]--> Therapy
+  Therapy --[targets condition]--> Condition
+  Condition --[triggers intervention]--> Therapy
+  Patient --[has surgical procedure]--> Surgical Procedure
+  Patient --[has nursing intervention]--> Nursing Intervention
+
+**Pattern 3 — Clinical Assessment and Outcome:**
+  Patient --[has clinical assessment]--> Clinical Assessment
+  Patient --[has outcome]--> Outcome
+  Patient --[has laboratory value]--> Laboratory Values
+  Monitoring Data --[monitoring indicates condition]--> Condition
+
+**Pattern 4 — Patient Context:**
+  Patient --[has session]--> Session
+  Patient --[has demographic data]--> Demographic Data
+  Patient --[has injury mechanism]--> Injury Mechanism
+
+**Pattern 5 — Data Quality:**
+  Data Quality Assessment --[affected by treatment]--> Therapy
+  Data Quality Assessment --[associated with condition]--> Condition
+
+**Pattern 6 — Composition (model as HIERARCHY, not relation):**
+  If X includes/comprises Y → extract as hierarchy: Y subClassOf X
+  Derived Parameter --[derived from]--> Source Parameter
+
+You SHOULD also extract other relations the text supports beyond these patterns.
+Do not invent relations not stated or clearly implied in the text.
+
+### CRITICAL: DO NOT USE 'includes' AS A RELATION LABEL
+If X includes Y, or Y is a type/kind/member of X, model it as HIERARCHY (Y subClassOf X), NOT as a relation. For example:
+  - 'Monitoring Data includes Heart Rate' → Heart Rate subClassOf Monitoring Data (hierarchy)
+  - 'Third-tier Treatment includes Barbiturates' → Barbiturates subClassOf Third-tier Treatment (hierarchy)
+The labels 'includes', 'consists of', 'comprises', 'is a type of' are NOT valid relation labels.
+
+### DEFINITION REQUIREMENT
+Every relation MUST include a `definition` field: a precise one-sentence description of what this relation means IN THE CONTEXT OF THIS TEXT.
+Read how the text describes the connection between these two concepts and capture:
+  (1) The NATURE of the link (measurement, treatment, assessment, composition, causation).
+  (2) HOW or WHY these concepts are connected according to the text.
+BAD: "Connects two clinical concepts."
+GOOD: "Links a patient to continuously recorded physiological measurements such as ICP, MAP, and heart rate captured during their ICU stay."
+Example: {"label": "has monitoring data", "domain": "Patient", "range": "Monitoring Data", "definition": "Links a patient to the set of continuously recorded physiological measurements (ICP, MAP, heart rate, etc.) captured minute-by-minute during their ICU stay.", "evidence": "..."}
+
+### RELATION EVIDENCE RULES
+- Each relation MUST have an 'evidence' field with an exact verbatim quote from the source text.
+- The evidence should mention or clearly imply at least one of the two endpoint classes (domain or range).
+- Use the ABSTRACT superclass as the range, not specific instances (e.g., 'Monitoring Data' not 'ICP').
+- Do NOT reuse the same evidence quote for multiple relations.
+
+### SELF-CHECK (before finalising output)
+- Do all domain and range labels match known classes from Phase 1?
+- Are there any duplicate relations (same domain-label-range)? Remove duplicates.
+- Does every evidence field contain a verbatim quote from the text?
+
+Output JSON with keys classes, relations, hierarchy.
+
+Known classes (use only these labels): Intracranial Pressure (ICP); Traumatic Brain Injury (TBI); Cerebral Perfusion Pressure (CPP); Cerebrovascular Autoregulation; Glasgow Outcome Scale (GOS); Mean Arterial Pressure (MAP); Intracranial Hypertension; Pressure-Time Dose; Outcome; Monitoring Data; Secondary Injury; Derived Parameter; Baseline Risk Factors; Glasgow Coma Scale (GCS); Pupil Assessment; Decompressive Craniectomy; Therapeutic Threshold; Colour-Coded Plot; Transition Curve
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "definition": "one-sentence scope note describing what this class represents in the domain", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "definition": "one-sentence description of what this relation means between domain and range", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Definition rule:** Every class and relation MUST include a `definition` field: a concise one-sentence scope note clarifying what the class represents or what the relation means in the clinical domain. Ground definitions in the text where possible, but you may use standard medical knowledge to write a clear scope note.
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+**REASONING STEP:** Before producing JSON, mentally scan the text for: (1) every named clinical concept, (2) explicit relations between them, (3) hierarchy cues (such as, is a, type of, include:). Then output only items with verbatim evidence.
+
+---
+--- Retrieved examples (3) ---
+
+Text: The minimum minute by minute monitoring data required for inclusion in the BrainIT Database include: Heart Rate, Respiration Rate, Mean Arterial Pressure, ICP, SaO2 and Temperature. Data is collected from patients every minute.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Patient",
+      "evidence": "patients",
+      "definition": "An individual receiving neurointensive care for traumatic brain injury."
+    },
+    {
+      "label": "Monitoring Data",
+      "evidence": "monitoring data",
+      "definition": "Continuously recorded physiological measurements collected from bedside monitors."
+    },
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate",
+      "definition": "The number of cardiac contractions per minute, a core physiological monitoring parameter in neuro-ICU."
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate",
+      "definition": "The number of breaths per minute, measured via impedance plethysmography or ventilator."
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature",
+      "definition": "Core body temperature measured at rectal, oesophageal, bladder, or skin sites."
+    }
+  ],
+  "relations": [
+    {
+      "label": "has monitoring data",
+      "domain": "Patient",
+      "range": "Monitoring Data",
+      "evidence": "Data is collected from patients every minute",
+      "definition": "Links a patient to the set of continuously recorded physiological measurements captured during their ICU stay."
+    },
+    {
+      "label": "includes",
+      "domain": "Monitoring Data",
+      "range": "Heart Rate",
+      "evidence": "monitoring data include: Heart Rate",
+      "definition": "Indicates that a data category contains or encompasses a specific parameter or subcategory."
+    },
+    {
+      "label": "includes",
+      "domain": "Monitoring Data",
+      "range": "Temperature",
+      "evidence": "monitoring data include: Heart Rate, Respiration Rate, Mean Arterial Pressure, ICP, SaO2 and Temperature",
+      "definition": "Indicates that a data category contains or encompasses a specific parameter or subcategory."
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+
+Text: Secondary insults such as intracranial hypertension and arterial hypotension have been found to occur frequently in head injured patients. The minute by minute monitoring data allows clinicians to detect these conditions. Each Therapy must be assigned a target Condition from a drop down list.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Monitoring Data",
+      "evidence": "minute by minute monitoring data",
+      "definition": "Continuously recorded physiological measurements collected from bedside monitors."
+    },
+    {
+      "label": "Condition",
+      "evidence": "secondary insults such as intracranial hypertension and arterial hypotension",
+      "definition": "A clinical condition or pathological state affecting the patient."
+    },
+    {
+      "label": "Secondary Insult",
+      "evidence": "Secondary insults such as intracranial hypertension",
+      "definition": "An adverse physiological event occurring after the primary brain injury that worsens outcome."
+    },
+    {
+      "label": "Therapy",
+      "evidence": "Each Therapy must be assigned a target Condition",
+      "definition": "A clinical intervention or treatment administered to manage the patient's condition."
+    },
+    {
+      "label": "Intracranial Hypertension",
+      "evidence": "intracranial hypertension",
+      "definition": "Sustained elevation of intracranial pressure above normal thresholds, a major secondary insult."
+    },
+    {
+      "label": "Arterial Hypotension",
+      "evidence": "arterial hypotension",
+      "definition": "Low arterial blood pressure, defined as systolic BP below 90 mmHg or MAP below 70 mmHg."
+    }
+  ],
+  "relations": [
+    {
+      "label": "monitoring indicates condition",
+      "domain": "Monitoring Data",
+      "range": "Condition",
+      "evidence": "minute by minute monitoring data allows clinicians to detect these conditions",
+      "definition": "Indicates that monitoring data can reveal or detect a particular clinical condition."
+    },
+    {
+      "label": "targets condition",
+      "domain": "Therapy",
+      "range": "Condition",
+      "evidence": "Each Therapy must be assigned a target Condition",
+      "definition": "Indicates that a therapy is administered to treat or manage a specific clinical condition."
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+
+Text: One of the cornerstones of brain-protective strategies is to reduce and control intracranial pressure (ICP), thereby avoiding secondary ischemic damage. When despite first and second-tier interventions ICP remained unacceptably high, decompressive craniectomy was chosen as a next step. Patient outcome was assessed using the Glasgow Outcome Scale Extended (GOSe) at six months post-injury.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "reduce and control intracranial pressure (ICP)",
+      "definition": "The pressure inside the cranium, continuously monitored to detect intracranial hypertension in TBI patients."
+    },
+    {
+      "label": "Intracranial Hypertension",
+      "evidence": "ICP remained unacceptably high",
+      "definition": "Sustained elevation of intracranial pressure above normal thresholds, a major secondary insult."
+    },
+    {
+      "label": "Secondary Insult Treatment",
+      "evidence": "decompressive craniectomy was chosen as a next step",
+      "definition": "Therapeutic interventions targeting secondary insults such as raised ICP."
+    },
+    {
+      "label": "GOSe Outcome",
+      "evidence": "Glasgow Outcome Scale Extended (GOSe) at six months",
+      "definition": "Extended Glasgow Outcome Scale score at 6 months post-injury, measuring functional recovery."
+    },
+    {
+      "label": "Patient",
+      "evidence": "Patient outcome was assessed",
+      "definition": "An individual receiving neurointensive care for traumatic brain injury."
+    }
+  ],
+  "relations": [
+    {
+      "label": "targets condition",
+      "domain": "Therapy",
+      "range": "Condition",
+      "evidence": "ICP remained unacceptably high, decompressive craniectomy was chosen",
+      "definition": "Indicates that a therapy is administered to treat or manage a specific clinical condition."
+    },
+    {
+      "label": "has outcome",
+      "domain": "Patient",
+      "range": "Outcome",
+      "evidence": "Patient outcome was assessed using the Glasgow Outcome Scale Extended (GOSe)",
+      "definition": "Links a patient to a measure of their clinical result or functional recovery."
+    }
+  ],
+  "hierarchy": []
+}
+
+---
+TEXT TO ANALYZE:
+Fabian Güiza
+Bart Depreitere
+Visualizing the pressure and time burden
+Ian Piper of intracranial hypertension in adult
+Giuseppe Citerio
+Iain Chambers and paediatric traumatic brain injury
+Patricia A. Jones
+Tsz-Yan Milly Lo
+Per Enblad
+Pelle Nillson
+Bart Feyen
+Philippe Jorens
+Andrew Maas
+Martin U. Schuhmann
+Rob Donald
+Laura Moss
+Greet Van den Berghe
+Geert Meyfroidt
+
+I. Piper R. Donald
+ESICM 2015 G. Citerio L. Moss
+San Gerardo Hospital, Monza, Italy Department of Clinical Physics and
+F. Güiza and B. Depreitere contributed Bioengineering, NHS Greater Glasgow &
+equally. I. Chambers Clyde, Glasgow, UK
+James Cook University Hospital, Medical
+Take-home message: In adult and Physics, Middlesbroughnza, UK
+paediatric patients suffering from severe Abstract Purpose: To assess the
+traumatic brain injury, an approximately
+exponential curve describes the relationship
+P. A. Jones impact of the duration and intensity
+between intensity and duration of episodes Department of Paediatric Neurology, Royal of episodes of increased intracranial
+of increased intracranial pressure (ICP) and Hospital for Sick Children, Edinburgh, UK pressure on 6-month neurological
+worse clinical outcomes. In children, outcome in adult and paediatric traucompared to adults, this occurs at lower The BESTIntracranial pressure (ICP) T.-Y. M. Lo
+thresholds of shorter duration. Department of Paediatric Intensive Care, matic brain injury.
+Royal Hospital for Sick Children, Methods: Analysis of prospectively
+to authorized users. paediatric traumatic brain injury pa-
+Uppsala, Sweden
+tients from multiple European
+B. Feyen A. Maas centres. The relationship of episodes
+Department of Neurosurgery, University Hospital Edegem (Antwerp) of elevated intracranial pressure (deF. Güiza G. Van den Berghe University Hospital, Edegem, Belgium fined as a pressure above a certain
+G. Meyfroidt ()) threshold during a certain time) with
+Department of Intensive Care Medicine, P. Jorens 6-month Glasgow Outcome Scale
+University Hospitals Leuven, Herestraat 49, Department of Intensive Care Medicine, was visualized in a colour-coded plot.
+3000 Leuven, Belgium University Hospital Edegem (Antwerp) University Hospital, Edegem,
+Belgium
+Results: The colour-coded plot ile-mail: geert.meyfroidt@uzleuven.be
+Tel.: ?32 16 344021 lustrates the intuitive concept that
+M. U. Schuhmann episodes of higher intracranial presB. Depreitere Klinik für Neurochirurgie, sure can only be tolerated for shorter
+Department of Neurosurgery, University Universitätsklinikum Tübingen, Tübingen, durations: the curve that delineates
+Hospitals Leuven, Leuven, Belgium Germany the duration and intensity of those
+
+intracranial pressure episodes associ- intracranial pressure-time burden is lower intracranial pressure thresholds
+ated with worse outcome is an independently associated with mor- as compared to adults. Impaired
+approximately exponential decay tality. When cerebrovascular cerebrovascular autoregulation recurve. In children, the curve resem- autoregulation, assessed with the low- duces the ability to tolerate
+bles that of adults, but the delineation frequency autoregulation index, is intracranial pressure insults. Thus,
+between episodes associated with impaired, the ability to tolerate 50 mmHg might be the lower acworse outcome occurs at lower in- elevated intracranial pressures is re- ceptable threshold for cerebral
+tracranial pressure thresholds. duced. When the cerebral perfusion perfusion pressure.
+Intracranial pressures above pressure is below 50 mmHg, all in20 mmHg lasting longer than 37 min tracranial pressure insults, regardless Keywords Traumatic brain injury
+in adults, and longer than 8 min in of duration, are associated with worse Adults Children Intracranial
+children, are associated with worse outcome. Conclusions: The in- pressure Cerebral perfusion
+outcomes. In a multivariate model, tracranial pressure-time burden pressure Cerebrovascular
+together with known baseline risk associated with worse outcome is vi- autoregulation
+factors for outcome in severe trau- sualised in a colour-coded plot. In
+matic brain injury, the cumulative children, secondary injury occurs at
+
+Introduction superiority of a Traumatic brain injury (TBI) management strategy with The BESTIntracranial pressure (ICP)
+monitoring and treatment at 20 mmHg, versus a purely
+Traumatic brain injury (TBI) remains one of the most clinical and radiological management strategy. Notwithimportant health care problems worldwide, even when standing these results, The BESTIntracranial pressure (ICP) monitoring is still considered
+advancements in Traumatic brain injury (TBI) management have led to improve- to provide important information to detect and prevent
+ments in outcome over the past decades. secondary injury after severe Traumatic brain injury (TBI). The BESTIntracranial pressure (ICP) monitoring, first described in TRIP trial has fostered a renewed interest in the definition
+the 1950s, was introduced as a monitoring tool for of secondary insults and therapeutic thresholds for The BESTIntracranial pressure (ICP)
+severe Traumatic brain injury (TBI) in the 1960s. The most recent version of and Cerebral Perfusion Pressure (CPP).
+mends monitoring of The BESTIntracranial pressure (ICP) in every salvageable patient analysis on prospective data from continuously monitored
+with severe Traumatic brain injury (TBI). Although these guidelines ac- adult and paediatric Traumatic brain injury (TBI) patients to assess the impact of
+knowledge a lack of level I evidence, the recommended duration and intensity of The BESTIntracranial pressure (ICP) insults, on 6 months neutreatment threshold for The BESTIntracranial pressure (ICP)-lowering therapies is rological outcome. In addition, we will assess the impact
+20 mmHg, based mainly on observational data. An of cerebrovascular autoregulation and Cerebral Perfusion Pressure (CPP) on the caincreased The BESTIntracranial pressure (ICP) is an independent risk factor for mortality pacity to tolerate these insults. This research has been, and the total burden of The BESTIntracranial pressure (ICP) derangements, cal- presented before, in part, at the 2014 International Symculated as the area under the The BESTIntracranial pressure (ICP) curve (measured over posium on Intensive Care and Emergency Medicine
+time) above 20 mmHg, is an independent predictor of (ISICEM, Brussels), and at the 2014 European Soworse outcome in adults and children. ciety of Intensive Care Medicine Congress (ESICM,
+Paediatric guidelines on The BESTIntracranial pressure (ICP)/cerebral perfusion pressure Barcelona).
+(CPP) management have largely followed those for
+adults. An observational study of 81 children with Traumatic brain injury (TBI)
+demonstrated that the The BESTIntracranial pressure (ICP) threshold associated with
+worse outcomes is lower, and differs in three age bands
+Materials and methods.
+Aggressive The BESTIntracranial pressure (ICP) management is not free of risk. In Patients and data
+the Decompressive Craniectomy in Patients with Severe
+Traumatic brain injury (TBI) (DECRA) trial, early decompressive craniecto- The adult cohort comprised 261 Traumatic brain injury (TBI) patients, aged
+my when The BESTIntracranial pressure (ICP) rose above 20 mmHg resulted in a higher 16 years and older.
+proportion of patients with poor neurological outcome as
+compared to standard care; however, after correction of • From the European Union Brain-IT project,
+baseline group imbalance (pupil reactivity), the outcomes 166 patients admitted to 22 neuro-ICUs in 11 European
+were not different in the two groups. The multicentre countries between March 2003 and July 2005 were
+Evidence from South American Trials: Treatment of In- for Scotland (MREC/02/0/9) granted the use of these
+tracranial Pressure) could not demonstrate the data for scientific purposes on 14 February 2002.
+
+• Data of the remaining 95 adult patients were collected database was recorded and stored every second; the me-
+from the ICUs of four centres: 38 patients from the San dian value of each minute interval was taken to obtain a
+Gerardo Hospital Monza, Italy, between March 2010 minute-by-minute value. In all data sets, minute-by-min-
+and April 2013; 25 patients from the University ute signals were reviewed independently by two clinicians
+Hospitals Leuven, Belgium, between September 2010 in Leuven (GM, BDP), and artefacts that were obvious
+and September 2013; 20 patients from the University through visual inspection of the time series were removed
+Hospital Edegem (Antwerp), Belgium, as part of the and not used for further analysis (ESM Table 10).
+'Individualized targeted monitoring in neurocritical
+care' (NEMO) project, between May 2010 and June
+2013; and 12 patients from University Hospital
+Tübingen, Germany, between February and December
+2009. All data referring to the identity of these patients
+The univariate association between The BESTIntracranial pressure (ICP) insults and The contour for zero correlation was
+Outcome Score (GOS)
+were removed; ethical committee approval was ob-
+at 6 months was done using the visualization method
+tained in all centres to use these data for analysis.
+explained in Fig. 1. First, each time series of minute-by-
+The paediatric cohort consisted of 99 Traumatic brain injury (TBI) patients, minute The BESTIntracranial pressure (ICP) data was segmented into different episodes,
+aged between 2 and 16 years. called 'The BESTIntracranial pressure (ICP) insults'. The BESTIntracranial pressure (ICP) insults were defined according to
+their intensity (I) and duration (D). Intensity thresholds
+• 81 patients were part of a study on Traumatic brain injury (TBI) in children, from 10 to 40 mmHg on the X-axis and duration thresh-
+recruited during 62 non-consecutive months up to July olds from 5 to 360 min on the Y-axis were considered. For
+2003, from two paediatric centres in Edinburgh and every The BESTIntracranial pressure (ICP) insult, the Pearson correlation coefficient be-
+Newcastle, UK. The study had local ethics tween The contour for zero correlation was
+Outcome Score (GOS) and the average number of these types of The BESTIntracranial pressure (ICP)
+committee and management approval in both centres insults per patient in each The contour for zero correlation was
+Outcome Score (GOS) category was computed.
+• The remaining 18 paediatric patients were part of the measures the degree of linear dependency: a negative
+Brain-IT database. value indicates that the particular The BESTIntracranial pressure (ICP) insult occurs more
+frequently with lower The contour for zero correlation was
+Outcome Score (GOS); a positive correlation indi-
+Patients were managed according to Brain Trauma Foundation (BTF) guidelines cates that the particular The BESTIntracranial pressure (ICP) insult is more frequent with. Data collection in both cohorts included baseline higher The contour for zero correlation was
+Outcome Score (GOS). A contour plot showing lines of equal corrisk factors (age, gender, admission Glasgow Coma Scale (GCS), admission pupil relation was derived from the grid and colour coded:
+reactivity), minute-by-minute The BESTIntracranial pressure (ICP) and mean arterial correlations of -1 and ?1 are shown in dark red and dark
+blood pressure (MAP) monitoring data, and Glasgow blue, respectively. The contour for zero correlation was
+Outcome Score (GOS) at 6 months [Electronic Supple- highlighted in black, and defined as the 'transition curve',
+mentary Material (ESM) Table 1]. For the paediatric because it indicates the transition into the region of insult
+patients, a modified The contour for zero correlation was
+Outcome Score (GOS) was used, as described in the types that occur more frequently in patients with lower
+original paper. Monitoring data in the NEMO The contour for zero correlation was
+Outcome Score (GOS).
+
+Fig. 1 Visualization methodology. The average number of insults correlation between The contour for zero correlation was
+Outcome Score (GOS) and the average number of insults per
+of The BESTIntracranial pressure (ICP) above an intensity threshold I (in mmHg), lasting for at least The contour for zero correlation was
+Outcome Score (GOS) category is computed for all I and D combinations (b) and
+a duration threshold D (in minutes) is computed for each The contour for zero correlation was
+Outcome Score (GOS) given a colour according to a predefined colour map ranging from
+---

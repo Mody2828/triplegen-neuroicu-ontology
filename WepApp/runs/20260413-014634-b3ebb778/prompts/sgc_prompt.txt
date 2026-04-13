@@ -1,0 +1,2019 @@
+You are performing schema-guided completion. The current ontology was merged from extraction; the missing items below are gold schema items NOT yet in the ontology.
+
+Task: From the corpus evidence below, which of these missing items are SUPPORTED by the text?
+1. Consider ONLY the missing classes, relations, and hierarchy edges listed.
+2. For each item, provide an evidence span: an EXACT VERBATIM quote copied from the corpus text below.
+   Do NOT paraphrase, summarize, truncate, or rephrase — copy the text exactly as it appears.
+   IMPORTANT: Evidence must be actual text from the corpus, NOT ontology URIs (e.g. 'pd:Session'), NOT the label repeated, and NOT definitions. Copy a real fragment from the corpus.
+3. A brief mention (even 1-3 words) in the corpus IS sufficient evidence. Do not require a full sentence.
+4. You MUST output as many matching items as the corpus supports — do not leave known classes out.
+5. Use exact labels from the gold schema (same spelling and capitalisation).
+6. For relations, domain and range must be gold class labels or already in the ontology.
+7. For hierarchy edges, output only edges where the text implies an is-a relationship (e.g. 'X such as Y', 'types of X include Y', 'Y is a form of X'). Both subClass and superClass must be classes in the current ontology or in your classes output.
+
+Output valid JSON only with keys: classes, relations, hierarchy.
+
+## EXAMPLE (do not copy — for format guidance only):
+Missing classes: Fluids, Nutrition, Sedation
+Corpus snippet: "...ventilation settings, sedation levels, fluid input and output, nutrition..."
+Correct output:
+{
+  "classes": [
+    {"label": "Fluids", "evidence": "fluid input and output"},
+    {"label": "Nutrition", "evidence": "nutrition"},
+    {"label": "Sedation", "evidence": "sedation levels"}
+  ],
+  "relations": [],
+  "hierarchy": []
+}
+Note: even a brief mention (1-3 words) is sufficient evidence — do NOT require full sentences.
+
+## Missing from current ontology (in gold schema but not yet predicted):
+
+### Missing classes:
+- Optional Monitoring Parameter (Extended monitoring parameters included in the BrainIT Database whenever monitored as part of a centre's routine clinical management. [P1])
+- Respiration Rate (Core BrainIT parameter. Source: impedance plethysmography or ventilator. [P1])
+- Intracranial Pressure (ICP) (Core BrainIT parameter. Monitoring site: intraventricular, intraparenchymal, or subdural. Technology: catheter-tip or fluid-filled catheter-transducer. [P1])
+- Temperature (Core BrainIT parameter. Source: rectal, oesophageal, bladder, or skin. [P1])
+- CVP (Central Venous Pressure. Optional BrainIT parameter. [P1])
+- EtCO2 (End-tidal CO2. Optional BrainIT parameter. [P1])
+- SjO2 (Jugular venous oxygen saturation. Optional BrainIT parameter. [P1])
+- TCD (Transcranial Doppler. Optional BrainIT parameter. [P1])
+- PbrO2 (Brain tissue oxygen partial pressure. Optional BrainIT parameter. [P1])
+- Brain Temperature (Cerebral temperature. Optional BrainIT parameter. [P1])
+- Microdialysis (Cerebral microdialysis. Optional BrainIT parameter. [P1])
+- Peripheral Temperature (Peripheral (skin/tympanic) temperature. Optional BrainIT parameter. [P1])
+- Cardiac Output (Cardiac output monitoring. Optional BrainIT parameter. [P1])
+- NIBP (Non-invasive blood pressure. Optional BrainIT parameter. [P1])
+- Cerebral Perfusion Pressure (CPP) (Derived: CPP = MAP − ICP. Critical threshold ~70 mmHg. CPP-targeted therapy is a key BrainIT secondary-insult management concept. [P1])
+- Fluids (Fluid input and output management. Baseline therapy. [P1])
+- Nutrition (Nutritional support. Baseline therapy. [P1])
+- Antibiotics (Antibiotic therapy. Baseline therapy. [P1])
+- Analgesia (Analgesic therapy. Baseline therapy. [P1])
+- Anti-hypertensives (Anti-hypertensive therapy. Baseline therapy. [P1])
+- Anti-pyretics (Anti-pyretic therapy. Baseline therapy. [P1])
+- Hypothermia Therapy (Therapeutic hypothermia / induced cooling. Baseline therapy. [P1])
+- Noradrenaline (Noradrenaline (norepinephrine). Specific vasopressor whose administration contextualises out-of-range heart rate readings during data quality assessment. [P2])
+- Adrenaline (Adrenaline (epinephrine). Specific vasopressor whose administration contextualises out-of-range heart rate and blood pressure readings. [P2])
+- Secondary Insult Treatment (Coded therapy category with an assigned therapy target (e.g. arterial pressors targeting systemic hypotension or reduced CPP). [P1])
+- Arterial Pressors (Arterial pressure agents used in secondary insult therapy. Therapy target: systemic hypotension OR reduced CPP secondary to raised ICP. [P1])
+- Steroids (Corticosteroid therapy. Secondary insult therapy. [P1])
+- Surgical Procedure (Neurosurgical procedure performed on the patient during ICU stay. [P1])
+- ICP Sensor Placement (Placement of ICP monitoring sensor (intraventricular, intraparenchymal, or subdural). [P1])
+- Evacuation of Mass Lesion (Surgical evacuation of intracranial mass lesion (craniotomy). [P1])
+- Skull Fracture Elevation (Surgical elevation of depressed skull fracture. [P1])
+- Removal of Foreign Body (Surgical removal of intracranial foreign body. [P1])
+- Anterior Fossa Repair (Anterior fossa repair for CSF leak. [P1])
+- Systemic Hypotension (Reduced systemic blood pressure. Secondary insult in TBI; targeted by arterial pressor therapy. [P1])
+- Jugular Venous Desaturation (SjO2 < 50%. A secondary insult associated with aggressive CPP management (>70 mmHg). [P1])
+- Hypertension (Elevated blood pressure. Medical disorder that can contextualise out-of-range readings and reclassify probable errors to possible errors in ICU data quality assessment. 91% reclassification rate in general ICU. [P2])
+- Clinical Assessment (Structured clinical evaluation performed at admission and during the ICU stay. Abstract superclass. [P1])
+- Laboratory Values (Routine laboratory tests performed during ICU management. Includes blood gases, biochemistry, and haematology. Recorded daily alongside minute-by-minute monitoring. [P1])
+- Blood Gases (Arterial blood gas analysis. Recorded routinely in ICU management data. [P1])
+- Biochemistry (Daily biochemistry panel: Sodium (Na), Potassium (K+), Glucose. [P1])
+- Haematology (Daily haematology panel: Haemoglobin, White Blood Cell Count, Haematocrit. [P1])
+- Sodium (Serum sodium (Na). Daily biochemistry value. [P1])
+- Potassium (Serum potassium (K+). Daily biochemistry value. [P1])
+- Glucose (Blood glucose. Daily biochemistry value. [P1])
+- Haemoglobin (Haemoglobin concentration. Daily haematology value. [P1])
+- White Blood Cell Count (White cell count (WBC). Daily haematology value. [P1])
+- Haematocrit (Packed cell volume. Daily haematology value. [P1])
+- Nursing Intervention (Routine nursing care, physiotherapy, or bedside clinical activities annotated in the ICU management time-series. [P1])
+- Routine Nursing Care (Eye/mouth care, ET tube suction, bed care. Coded and annotated in ICU management data. [P1])
+- Physiotherapy (Physiotherapy sessions annotated in ICU management data. [P1])
+- Patient Transport (Transport to and from Theatre or CT-Scan. Annotated in ICU management data. [P1])
+- Observation (A single measurement or reading recorded at a Timepoint for a given Parameter. Linked to the Sensor that produced it and assessable for data quality. [P2])
+- Possible Error (PoE: a reading outside acceptable range that is contextually explained by a concurrent medical disorder or recent treatment (reclassified from PrE). [P2])
+- Probable Error (PrE: a reading outside its acceptable range with no contextual clinical explanation from disorders or treatments. More likely a genuine data error. [P2])
+
+### Missing relations:
+- has surgical procedure(Patient -> Surgical Procedure)
+- has laboratory value(Patient -> Laboratory Values)
+- has nursing intervention(Patient -> Nursing Intervention)
+- has session(Patient -> Session)
+- has timepoint(Session -> Timepoint)
+- has observation(Timepoint -> Observation)
+
+### Missing hierarchy edges (subClass -> superClass):
+- Hypothermia Therapy -> Baseline Therapy
+- Haematocrit -> Haematology
+- TCD -> Optional Monitoring Parameter
+- Optional Monitoring Parameter -> Monitoring Data
+- Respiration Rate -> Core Monitoring Parameter
+- Physiotherapy -> Nursing Intervention
+- ICP Sensor Placement -> Surgical Procedure
+- White Blood Cell Count -> Haematology
+- Probable Error -> Data Quality Assessment
+- Intracranial Pressure (ICP) -> Core Monitoring Parameter
+- Removal of Foreign Body -> Surgical Procedure
+- Analgesia -> Baseline Therapy
+- Peripheral Temperature -> Optional Monitoring Parameter
+- Noradrenaline -> Vasopressors
+- Sodium -> Biochemistry
+- Fluids -> Baseline Therapy
+- Anti-pyretics -> Baseline Therapy
+- Extra Ventricular Drain Placement -> Surgical Procedure
+- EtCO2 -> Optional Monitoring Parameter
+- Anti-hypertensives -> Baseline Therapy
+- SjO2 -> Optional Monitoring Parameter
+- Jugular Venous Desaturation -> Secondary Insult
+- Blood Gases -> Laboratory Values
+- Skull Fracture Elevation -> Surgical Procedure
+- Cerebral Perfusion Pressure (CPP) -> Derived Parameter
+- Haemoglobin -> Haematology
+- Patient Transport -> Nursing Intervention
+- Glucose -> Biochemistry
+- Anterior Fossa Repair -> Surgical Procedure
+- Systemic Hypotension -> Secondary Insult
+- CVP -> Optional Monitoring Parameter
+- PbrO2 -> Optional Monitoring Parameter
+- Biochemistry -> Laboratory Values
+- Cardiac Output -> Optional Monitoring Parameter
+- Arterial Pressors -> Secondary Insult Therapy
+- Hypertension -> Condition
+- Sepsis -> Condition
+- GCS Assessment -> Clinical Assessment
+- Microdialysis -> Optional Monitoring Parameter
+- Brain Temperature -> Optional Monitoring Parameter
+- Potassium -> Biochemistry
+- Possible Error -> Data Quality Assessment
+- Evacuation of Mass Lesion -> Surgical Procedure
+- Pupil Assessment -> Clinical Assessment
+- Adrenaline -> Vasopressors
+- Nutrition -> Baseline Therapy
+- Arterial Hypotension -> Systemic Hypotension
+- Secondary Insult Treatment -> Secondary Insult Therapy
+- Routine Nursing Care -> Nursing Intervention
+- Temperature -> Core Monitoring Parameter
+- Bedside Intervention -> Nursing Intervention
+- NIBP -> Optional Monitoring Parameter
+- Steroids -> Secondary Insult Therapy
+- Hypotension -> Condition
+- Haematology -> Laboratory Values
+- Decompressive Craniectomy -> Surgical Procedure
+- CT Scan Assessment -> Clinical Assessment
+- Antibiotics -> Baseline Therapy
+
+## Corpus (evidence source):
+
+Injury 54 (2023) 110911
+
+Decompressive craniectomy as a second/third-tier intervention in
+traumatic brain injury: A multicenter observational study
+Brecht Decraene a, *, Samuel P Klein a, Ian Piper b, Barbara Gregson c, Per Enblad d,
+Arminas Ragauskas e, Giuseppe Citerio f, Iain Chambers g, Jan-Oliver Neumann h,
+Juan Sahuquillo i, Karl Kiening h, Laura Moss b, Pelle Nilsson d, Rob Donald j, Tim Howells d,
+Milly Lo k, Bart Depreitere a
+a
+University Hospitals Leuven, Leuven, Belgium
+b
+Southern General Hospital, Glasgow, United Kingdom
+c
+Newcastle University, Newcastle, United Kingdom
+d
+Uppsala University, Uppsala, Sweden
+e
+Kaunas University of Technology, Kaunas, Lithuania
+f
+University of Milano-Bicocca, Milano, Italy
+g
+James Cook University Hospital, Middlesbrough, United Kingdom
+h
+Universitätsklinikum Heidelberg, Heidelberg, Germany
+i
+University Hospital Vall d ́ Hebron, Barcelona, Spain
+j
+Stats Research, Scotland, United Kingdom
+k
+University of Edinburgh, Edinburgh, United Kingdom
+
+A R T I C L E I N F O A B S T R A C T
+
+Keywords: Objectives: RESCUEicp studied decompressive craniectomy (DC) applied as third-tier option in severe traumatic
+Traumatic brain injury brain injury (TBI) patients in a randomized controlled setting and demonstrated a decrease in mortality with
+Decompressive craniectomy similar rates of favorable outcome in the Decompressive craniectomy (DC) group compared to the medical management group. In many
+Neurointensive care
+centers, Decompressive craniectomy (DC) is being used in combination with other second/third-tier therapies. The aim of the present study is to
+Intracranial pressure
+investigate outcomes from Decompressive craniectomy (DC) in a prospective non-RCT context.
+Cerebral autoregulation
+Introduction TBI management
+
+Traumatic brain injury (TBI) Methods: This is a prospective observational study of 2 patient cohorts: one from the University Hospitals Leuven
+(2008-2016) and one from the Brain-IT study, a European multicenter database (2003-2005). In thirty-seven
+patients with refractory elevated intracranial pressure who underwent Decompressive craniectomy (DC) as a second/third-tier intervention,
+patient, injury and management variables including physiological monitoring data and administration of thio­
+pental were analysed, as well as Extended Glasgow Outcome score (GOSE) at 6 months.
+Results: In the current cohorts, patients were older than in the surgical RESCUEicp cohort (mean 39.6 vs. 32.3; p
+< 0.001), had higher Glasgow Motor Score on admission (GMS < 3 in 24.3% vs. 53.0%; p = 0.003) and 37.8%
+received thiopental (vs. 9.4%; p < 0.001). Other variables were not significantly different. Glasgow Outcome Scale (GOSE) distribution
+was: death 24.3%; vegetative 2.7%; lower severe disability 10.8%; upper severe disability 13.5%; lower mod­
+erate disability 5.4%; upper moderate disability 2.7%, lower good recovery 35.1%; and upper good recovery
+5.4%. The outcome was unfavorable in 51.4% and favorable in 48.6%, as opposed to 72.6% and 27.4%
+respectively in RESCUEicp (p = 0.02).
+Conclusion: Outcomes in Decompressive craniectomy (DC) patients from two prospective cohorts reflecting everyday practice were better than
+in RESCUEicp surgical patients. Mortality was similar, but fewer patients remained vegetative or severely
+disabled and more patients had a good recovery. Although patients were older and injury severity was lower, a
+potential partial explanation may be in the pragmatic use of Decompressive craniectomy (DC) in combination with other second/third-tier
+therapies in real-life cohorts. The findings underscore that Decompressive craniectomy (DC) maintains an important role in managing se­
+vere Introduction TBI management
+
+Traumatic brain injury (TBI).
+
+B. Decraene et al. Injury 54 (2023) 110911
+
+Introduction Introduction TBI management
+
+Traumatic brain injury (TBI) management
+
+Traumatic brain injury (TBI) constitutes a major health and socio­ First-tier (30◦ head elevation, neuromuscular paralysis, analgesia,
+economic problem that requires prompt management and is associated continued/deepened sedation, normocapnia and normothermia) and
+with high mortality and morbidity rates. In Europe, the incidence of second-tier treatments (deepening of sedation, cerebrospinal fluid
+Introduction TBI management
+
+Traumatic brain injury (TBI)-related hospitalization is estimated at 2.1 million/year, of which drainage, moderate hypocapnia, administration of hyperosmolar mole­
+approximately 82,000 patients will die. Uncontrollable intracranial cules) were used at the discretion of the managing teams. When despite
+hypertension is a major cause of death in patients with severe traumatic first and second-tier interventions Mean intracranial pressure (ICP) remained unacceptably high or
+brain injury. Therefore, one of the cornerstones of brain-protective followed a malignant course, Decompressive craniectomy (DC) was chosen as a next step, with or
+strategies is to reduce and control intracranial pressure (ICP), thereby without first having applied third-tier medical therapy with barbiturates
+avoiding secondary ischemic damage from associated hypoperfusion (thiopental). In some patients that underwent Decompressive craniectomy (DC), third-tier therapies. were used in combination. As for Decompressive craniectomy (DC), both hemicraniectomy (unilateral
+Decompressive craniectomy (DC) is a surgical technique originally frontotemporoparietal craniectomy) and bifrontal craniectomy were
+described by Kocher in 1901. However, this technique was aban­ performed.
+doned in the following decades because of high complication rates. Since
+the 1980s, Decompressive craniectomy (DC) in severe Introduction TBI management
+
+Traumatic brain injury (TBI) has been the subject of a revival due to Data collection
+advancing technical and medical standards. From a purely theoret­
+ical perspective, Decompressive craniectomy (DC) could be considered both as a first-tier option in For each patient, the following data were captured: age, sex, earliest
+situations of raised Mean intracranial pressure (ICP) or as a treatment of last resort in a tiered post-resuscitation Glasgow Coma Scale (GCS), earliest post-resuscitation
+approach, i.e., when less invasive treatments fail. However, Decompressive craniectomy (DC) as a pupil reactivity, Marshall score of the last scan before surgery, extra­
+first-tier option was demonstrated to result in worse outcomes in the cranial injuries, the occurrence of arterial hypotension (systolic pressure
+2011 DECRA randomized controlled trial, where it was instituted at the less than 90 mmHg) and hypoxia (SaO2 below 90%) at baseline, type of
+second episode of Mean intracranial pressure (ICP) rise above 20 mmHg. As opposed to DECRA, Decompressive craniectomy (DC), and barbiturate administration. The outcome was captured at six
+the 'Randomized Evaluation of Surgery with Craniectomy for Uncon­ months using the extended Glasgow Outcome Scale (GOSE). In
+trollable Elevation of Intracranial Pressure' (RESCUEicp) study, aimed this study a Glasgow Outcome Scale (GOSE) of 4 or less was considered unfavorable, in accordance
+at assessing the effectiveness of Decompressive craniectomy (DC) as a last-tier intervention in patients with the RESCUEicp analysis.
+with severe Introduction TBI management
+
+Traumatic brain injury (TBI) and refractory intracranial hypertension. The results The Therapy Intensity Level scale (TIL basic version) was used to
+of RESCUEicp showed that Decompressive craniectomy (DC) resulted in lower mortality rates, but assess the intensity of Mean intracranial pressure (ICP)-lowering strategies until immediately before
+higher rates of vegetative state and severe disability at six months Decompressive craniectomy (DC). The 'International Mission for Prognosis and Analysis of Clin­
+compared to medical care. The proportions of patients in the best ical Trials in Introduction TBI management
+
+Traumatic brain injury (TBI)' (IMPACT) extended prognostic scores, and the
+outcome categories were not different. Inherently, RCT protocols are 'Corticosteroid Randomization after Significant Head Injury' (CRASH)
+strictly designed and may often differ from real-life decision-making, prognostic scores were calculated for all patients based on admission
+that is tailored and in which combinations of therapies are often applied. variables. Impact scores produce a probability for six month mortality
+The aim of the present study is to verify these findings and evaluate the and six month unfavorable outcome (Glasgow Ouctome scale - Glasgow Outcome Scale (GOS) 1-3)
+outcomes of Decompressive craniectomy (DC) in 2 historical cohorts of patients with severe Introduction TBI management
+
+Traumatic brain injury (TBI) with. CRASH scores predict the risk of 14 days mortality and six-month
+prospective data collection and outcome registration. Notably, both unfavorable outcome (GOS 1-3).
+cohorts reflect everyday practice and associated pragmatic The administration of a pentothal as well as whether it was given
+decision-making. before and/or, after or during Decompressive craniectomy (DC) was also registered. In addition, we
+included data on the time between arrival at the emergency department
+Materials and methods and the timing of the Decompressive craniectomy (DC). We could retrieve whether or not patients
+underwent a cranioplasty before 6-month outcome scoring for UHL
+Study population patients.
+Mean intracranial pressure (ICP), mean cerebral perfusion pressure
+Prospectively collected data from all Introduction TBI management
+
+Traumatic brain injury (TBI) patients who underwent Decompressive craniectomy (DC) (CPP) and mean pressure reactivity index (PRx) were calculated six
+enrolled in the Brain-IT database were reviewed. The Brain-IT database hours before and seven days after Decompressive craniectomy (DC) for each patient. Also, the median
+is a multicenter prospective observational validated database that ran in percentage of monitoring time with Mean intracranial pressure (ICP)> 20 mmHg, Mean intracranial pressure (ICP)>25 mmHg,
+22 Intensive Care Unit (ICU)'s in 11 countries between July 2003 and October 2006. The Cerebral Perfusion Pressure (CPP)<60 mmHg and Pressure Reactivity Index (PRx)>0 in six hours pre- and seven days post-Decompressive craniectomy (DC) was
+granted the use of these data for scientific purposes on February 14, pertension index 20′, ''median intracranial hypertension index 25′,
+2002. A second cohort of patients was taken from the University Hos­ 'median intracranial hypoperfusion index 60′ and 'median Pressure Reactivity Index (PRx) index 0′,
+pitals Leuven (UHL) database between September 2010 and October respectively (see footnote of table 3 for further explanation). Pressure Reactivity Index (PRx) is the
+2016. UHL has a policy of digital storage of all physiological monitoring moving correlation between mean arterial blood pressure (MAP) and
+data collected through its Patient Data Management System and pro­ Mean intracranial pressure (ICP). It is calculated as a moving Pearson correlation coefficient between
+spectively collecting six month extended Glasgow Outcome Scores in all changes in 30 consecutive ten second-averages of the ratio between Mean Arterial Pressure (MAP)
+Introduction TBI management
+
+Traumatic brain injury (TBI) patients. Local Ethical Committee approval to use the anonymized and Mean intracranial pressure (ICP). It has values between - 1 and 1, with higher values
+data for this analysis was obtained. For this study, only patients who reflecting an indirect measure of more impaired cerebral autoregulation.
+underwent a Decompressive craniectomy (DC) as a second- or third-tier (last-tier) intervention were The six hours interval pre-Decompressive craniectomy (DC) was chosen as it enables comparison with
+included. Patients with intracranial hypertension treated conservatively the RESCUEicp data.
+were excluded, as well as patients who underwent a Decompressive craniectomy (DC) as a first-tier
+intervention, and patients with bilateral fixed and dilated pupils. The Statistical analysis
+Brain-IT database contained 16 eligible Decompressive craniectomy (DC) patients and the UHL cohort
+21. In the following sections both cohorts together are referred to as the Categorical variables were compared using the chi-square tests with
+RESCUEicp trial (RCT group). one-tailed exact p-value) while continuous variables were analyzed
+using Mann-Whitney U tests. Continuous variables pre-and post-Decompressive craniectomy (DC) (of
+the non-RCT group) were compared using the Wilcoxon matched-pairs
+
+B. Decraene et al. Injury 54 (2023) 110911
+
+signed-rank test. Data were compared between the non-RCT group and Table 2
+the surgical patients of the RESCUEicp (RCT) group. When possible, Treatment characteristics of non-RCT patients and RESCUEicp patients a.
+collected data are shown in both absolute numbers (with 'number of UHL Brain- UHL & RESCUEicp
+patients' as unit), as well as relative (fraction of patients for which it a IT Brain-IT Surgical
+certain value applies, expressed in percentages); as well as mean or group
+median values (mostly expressed as a percentage). A p-value less than Decompressive
+0.05 was considered significant. No correction for multiple testing was craniectomy 19/21 N/A N/A 109/173
+Bifrontal - no. (%) 2/21 64/173
+Statistics version 28. (9.5) (47.0)
+Barbiturates 11/21 3/16 14/37 19/201
+Results (52.4) (18.8) (37.8) (9.4)
+Barbiturate
+administration: 1/21 1/16 2/37 N/A
+Patient, injury and management characteristics
+Pre-Decompressive craniectomy (DC) - no. (%) (4.8) (6.3) (5.4)
+Post-Decompressive craniectomy (DC) - no. (%) 8/21 2/16 10/37 N/A
+Thirty-seven patients who underwent a Decompressive craniectomy (DC) in the Brain-IT database (38.1) (12.5) (27.0)
+and in the UHL cohort were eligible for inclusion (further referred to as Pre-& post-Decompressive craniectomy (DC) - 2/21 0/16 (0) 2/37 N/A
+the non-RCT group). Patient, injury and management characteristics are no. (%) (9.5) (5.4)
+Time between arrival at 67.7 18.7 51.0 N/A
+summarized in Tables 1 and 2. Four patients were aged less than 18 emergency department (110.0) (80.9) (84.6)
+years. The non-RCT group had a mean age of 39.6 years and was pre­ and Decompressive craniectomy (DC) b - h (IQR)
+dominantly male. Cranioplasty at six months 15/21 N/A N/A N/A
+The median initial Glasgow Motor Score (GMS) was 4, while 24.3% - no. (%) (71.4)
+Introduction TBI management
+
+Traumatic brain injury (TBI) treatment & prognostic
+of all patients had a The median initial Glasgow Motor Score (GMS) below 3. Pupil abnormalities were seen in
+scores c
+34.4% of our patients. Hypoxia and arterial hypotension were found in IMPACT - median -%
+10.0% and 6.1%, respectively. Non-evacuated mass lesions according to (IQR)
+the Marshall classification were observed in 26.5% of the non-RCT Core mort. 22 27 24 N/A
+group and 45.9% presented with an additional extracranial injury. (14-30) (19-54) (15-31)
+Core unfav. 40 40 40 N/A
+37.8% of patients (14 in absolute numbers) were treated with bar­
+(22-45) (35-69) (32-50)
+biturates in combination with Decompressive craniectomy (DC); ten of these received it only after Decompressive craniectomy (DC), Extended Core 20 24 21 N/A
+two only before and two received it before and after Decompressive craniectomy (DC). The patients mort. (14-26) (15-52) (14-35)
+who received pre-Decompressive craniectomy (DC) barbiturates did not significantly differ from the Extended core 32 42 37 N/A
+unfav. (30-50) (28-69) (29-53)
+group who did not receive it in terms of median mean pre-operative Mean intracranial pressure (ICP)
+Lab mort. 17 26 18 N/A
+(p = 0.571), median The median initial Glasgow Motor Score (GMS) or median total Glasgow Coma Scale (GCS) (p = 0.654 and p = (11-23) (15-39) (11-31)
+Lab unfav. 33 40 35 N/A
+(20-48) (27-66) (22-58)
+Table 1 CRASH -median -%
+Patient and injury characteristics of non-RCT patients and RESCUEicp patients. (IQR)
+Mort. 11 14 12 N/A
+UHL Brain- UHL & RESCUEicp
+(6-18) (7-41) (6-34)
+IT Brain-IT Surgical
+Unfav. 44 52 46 N/A
+group
+(22-57) (29-71) (28-67)
+Number of 21 16 37 202 Therapy Intensity Level (TIL) basic - no. (%)
+patients Score 0 2/21 0/15 (0) 2/36 N/A
+Age - mean - 38.9 40.6 (17 39.6 (16 32.3 (10 - P< (9.5) (5.6)
+years (range) (16 - - 72) - 72) 65) 0.001a Score 1 1/21 4/15 5/36 N/A
+70) (4.8) (26.7) (13.9)
+Glasgow Motor P= Score 2 7/21 3/15 10/36 N/A
+Score b 3/21 6/16 9/37 96/181 0.003 (33.3) (20) (27.8)
+1 - 2 - no. (14.3) (37.5) (24.3) (53.0) Score 3 10/21 7/15 17/36 N/A
+(%) 18/21 10/16 28/37 85/181 (47.6) (46.7) (47.2)
+3 - 6 - no. (85.7) (62.5) (75.6) (47.0) Score 4 1/21 1/15 2/36 N/A
+(%) (4.8) (6.7) (5.6)
+Abnormal pupils 4/21 7/11 11/32 59/202 p= a
+c
+- no. (%) (19.0) (63.6) (34.4) (29.2) 0.70 standard deviation=SD. For the (IQR) = Interquartile range. Mort. = mortality. Unfav
+Barbiturate - no. 11/21 3/16 14/37 19/202 P< = unfavorable.
+b
+(%) (52.4) (18.8) (37.8) (9.4) 0.001 Time between arrival at the emergency department and Decompressive craniectomy (DC) could be
+Extracranial 8/21 9/16 17/37 75/202 p= calculated for 20 out of 21 UHL patients and 15 out of 16 Brain-IT patients.
+injury - no. (%) (38.1) (56.0) (45.9) (37.1) 0.41 c
+All three scoring models and submodalities could be calculated for all 21
+Hypoxia - no. (%) 3/19 0/11 (0) 3/30 49/202 p= UHL patients. For Brain-IT patients TILbasic and CRASH could be calculated for
+(15.8) (10.0) (24.3) 0.13 15 out of 16 patients, IMPACT Core for all 16 patients, IMPACT Extended for 13/
+Hypotension - no. 1/21 1/12 2/33 40/202 p=
+16 patients and IMPACT lab for 9/16 patients.
+(%) (4.8) (8.3) (6.1) (19.8) 0.10
+Marshall score p=
+Diffuse - 17/21 8/13 25/34 161/198 0.41 0.114), average age (p = 0.654) or Marshall score (p = 0.661). Also, no
+no. (%) (81.0) (61.5) (73.5) (81.3) significant differences in recorded patient and injury characteristics
+NEML - no. 4/21 5/13 9/34 37/198
+(%) (19.0) (38.5) (26.5) (18.7)
+were found between patients who received barbiturates before Decompressive craniectomy (DC) and
+those who received it after Decompressive craniectomy (DC) (data not shown).
+a
+P-values of the differences between the 'UHL&Brain-IT group' and the The median time between arrival and Decompressive craniectomy (DC) was 51.0 h. About half of
+'RESCUEicp Surgical group'.
+b
+our patients received a Decompressive craniectomy (DC) after almost all other nonsurgical measures
+The Glasgow Motors Score was used for assessing motor impairment. The
+had been exhausted (TIL 3). The Therapy Intensity Level (TIL) scores before Decompressive craniectomy (DC) were 0 in 6%, 1 in
+score ranges from 1 to 6 with lower scores indicating greater impairment.
+c 14%, 2 in 28%, 3 in 47% and 4 in 6%.
+Pupil abnormality was defined as the presence of two unreactive pupils or
+anisocoria. Of the 21 UHL patients, 19 underwent a hemicraniectomy and 2 a
+
+B. Decraene et al. Injury 54 (2023) 110911
+
+bifrontal Decompressive craniectomy (DC), and 15 patients received a cranioplasty before 6 months. Table 3
+Outcome, intracranial pressure and cerebral autoregulation characteristics a,b,c.
+Physiological data UHL Brain-IT UHL & RESCUEicp
+Brain-IT Surgical
+Decompressive craniectomy (DC) resulted in an absolute reduction in median mean Mean intracranial pressure (ICP) from 19.5 group
+to 13.9 mmHg (p = 0.001) and a reduction in the median percentage Intracranialtime Mean intracranial pressure (ICP) was above 20 (from 32.8 to 5.2; p = 0.066) and above 25 (from pressure
+3.7 to 0.4; p = 0.114), as shown in Table 3 and supplementary table 2. A control
+Median mean 18.9 20.0 19.5 14.5
+varying effect on Cerebral Perfusion Pressure (CPP) was seen, as well as a trend of reduction in median Mean intracranial pressure (ICP) pre-Decompressive craniectomy (DC) (15.7-22.9) (19.5-21.5) (17.7-22.9) (1.7-18.0)
+intracranial hypoperfusion index 60 (21.0 to 8.5; p = 0.114). The (IQR) -
+reduction in median Pressure Reactivity Index (PRx) index above 0 was non-significant (64.9% to mmHg
+47.8%; p = 0.25). The latter value was only available for UHL patients. Median mean 14.1 13.5 13.9 N/A
+Mean intracranial pressure (ICP) post-Decompressive craniectomy (DC) (12.5-16.0) (11.0-15.0) (12.2-15.7)
+(IQR) -
+Outcome mmHg
+Median 20.6 42.1 32.8 18.1
+Eighteen patients (48.6%) sustained a favorable outcome at six intracranial (5.5-34.4) (36.7-53.4) (15.0-43.1) (9.9-36.7)
+months (GOSE 5-8), of whom 13 (35.1%) recovered to Glasgow Outcome Scale (GOSE) 7 (Fig. 1). hypertension
+index
+Mortality (=Glasgow Outcome Scale (GOSE) 1) was 24.3% (9/37). 20 pre-Decompressive craniectomy (DC) -%
+The exact Glasgow Outcome Scale (GOSE) distribution for the non-RCT group is: death 24.3%; (IQR)
+vegetative 2.7%; lower severe disability 10.8%; upper severe disability Median 7.8 (4.3 4.6 5.2 N/A
+13.5%; lower moderate disability 5.4%; upper moderate disability 2.7%, intracranial - 6.7) (2.6-5.7) (3.2-6.7)
+hypertension
+lower good recovery 35.1%; and upper good recovery 5.4% (Fig. 1;
+index
+supplementary table 3). 20 post-Decompressive craniectomy (DC) -%
+risk at six months of 24.0% which is comparable with the 24.3% seen in Median 0.6 16.1 3.7 6.6
+our patients. The median probability for our patients to have an unfa­ intracranial (0.1-7.5) (5.0-32.4) (0.4-21.8) (3.1-13.6)
+hypertension
+vorable outcome (GOS 1-3, corresponding to a Glasgow Outcome Scale (GOSE) of 1-4) at six index
+months according to this IMPACT score and the CRASH prediction was 25 pre-Decompressive craniectomy (DC) -%
+40.0% and 46.0%, respectively (in our cohort it was 51.3%). For the (IQR)
+remaining IMPACT models, we refer to Table 2. Median 0.2 0.5 0.4 N/A
+intracranial (0.1-1.4) (0.2-1.2) (0.1-1.5)
+Seven out of 19 patients with an unfavorable Glasgow Outcome Scale (GOSE) and 7 out of 18
+hypertension
+patients with a favorable Glasgow Outcome Scale (GOSE) received barbiturates (thiopental) index
+(Fig. 1; supplementary table 3). Mortality was similar in patients that 25 post-Decompressive craniectomy (DC) -%
+received barbiturates and those who did not. A Therapy Intensity Level (TIL) of 1,2,3 and 4 (IQR)
+resulted in a median Glasgow Outcome Scale (GOSE) of 1, 4, 7 and 2.5, respectively (supple­ Cerebral
+perfusion
+mentary table 1). control
+Median mean 74.5 60.0 71.7 N/A
+Comparison with the surgical group of the RESCUEicp trial Cerebral Perfusion Pressure (CPP) pre-Decompressive craniectomy (DC) (71.6-80.7) (57.3-62.8) (60.3-77.4)
+(IQR) -
+mmHg
+In terms of patients and injury characteristics the non-RCT group was
+Median mean 70.2 72.0 71.7 N/A
+very similar to the RCT group, with significant differences only in age, Cerebral Perfusion Pressure (CPP) post-Decompressive craniectomy (DC) (67.8-74.2) (70.8-81.5) (68.2-79.2)
+The median initial Glasgow Motor Score (GMS) on admission and application of thiopental coma: non-RCT patients (IQR) -
+were older (mean age 39.6 years versus 32.3 years in the RCT group; p < mmHg
+0.001), had a higher The median initial Glasgow Motor Score (GMS) on admission (24.3% with The median initial Glasgow Motor Score (GMS) < 3 vs 53.0% Median 3.0 47.3 21.0 6.8
+cerebral (1.3-70.5) (28.9-63.1) (1.4-76.7) (3.1-16.6)
+in the RCT group) (p = 0.003), 37.8% received thiopental (vs 9.4% in the hypoperfusion
+RCT group; p < 0.001). Patient characteristics are summarized in Ta­ index
+bles 1 and 2. The median mean Mean intracranial pressure (ICP) in the non-RCT group was above 20 60 pre-Decompressive craniectomy (DC) -%
+mmHg for a longer period in the 6 h before Decompressive craniectomy (DC) than in the RCT group. (IQR)
+Median 13.1 1.4 8.5 N/A
+The median mean pre-Decompressive craniectomy (DC) Mean intracranial pressure (ICP) was 19.5 mmHg in the non-RCT group,
+cerebral (9.8-17.4) (0.7-9.3) (1.2-13.3)
+which was higher than the median mean Mean intracranial pressure (ICP) of 14.5 mmHg in the RCT hypoperfusion
+group (Table 3). index
+When compared with the RCT group, the non-RCT group had a 60 post-Decompressive craniectomy (DC) -%
+similar mortality rate (26.9% and 24.3%, respectively) (Fig. 1; supple­ (IQR)
+Median Pressure Reactivity Index (PRx) 64.9 N/A N/A N/A
+mentary Table 3), but the non-RCT group showed a favorable Glasgow Outcome Scale (GOSE) of 5 index 0 (30.0-86.8)
+and more in 48.6% compared to 27.4% in the RCT group (p = 0.02). pre-Decompressive craniectomy (DC)
+-% (IQR)
+Discussion Median Pressure Reactivity Index (PRx) 47.8 N/A N/A N/A
+index 0 (26.8-56.4)
+post-
+In this study, prospectively collected outcome data from Introduction TBI management
+
+Traumatic brain injury (TBI) patients Decompressive craniectomy (DC) -% (IQR)
+who underwent Decompressive craniectomy (DC) as a last-tier intervention in two observational co­ Glasgow Outcome Scale (GOSE) d
+horts reflecting actual practice were compared with outcomes from the Unfavorable (1 57.1 (12/ 43.8 (7/16) 51.4 (19/ 72.6 (146/
+surgical patients in the RESCUEicp trial. The RESCUEicp trial similarly - 4) -% (no.) 21) 56.2 (9/16) 37) 201)
+favorable 42.9 (9/21) 48.6 (18/ 27.4 (55/
+applied Decompressive craniectomy (DC) as a last-tier intervention. However, in its study context (5 - 8) -% (no.) 37) 201)
+following a strict consecutive protocol that differs from pragmatic de­
+a
+cisions in real and actual practice, with e.g. much stricter Mean intracranial pressure (ICP) criteria For the (IQR) = Interquartile range.
+before proceeding with decompression and with a design that tends to
+
+B. Decraene et al. Injury 54 (2023) 110911
+
+b
+Pre-Decompressive craniectomy (DC) refers to a measurement period of ideally 6 h pre-Decompressive craniectomy (DC) (and 7 days The investigators of the RESCUEicp trial should be commended for
+post-DC) in all non-RCT patients and to the period after randomization and their thorough efforts and well-balanced trial protocol. From their re­
+before Decompressive craniectomy (DC) in RESCUEicp patients, which was between 4 and 6 h. For the UHL sults, they concluded that Decompressive craniectomy (DC) resulted in lower mortality rates. Still, at
+patients the average available Mean intracranial pressure (ICP)/Cerebral Perfusion Pressure (CPP) measurement duration was 5.5 h pre-Decompressive craniectomy (DC) the same time, there was an increase in a vegetative state and severe
+and 6 days and 6 h post-Decompressive craniectomy (DC). For Brain-IT patients this was 6 h pre-Decompressive craniectomy (DC) and 5 days
+disability without clear and net improvement of good outcomes.
+and 5 h post-Decompressive craniectomy (DC).
+c Nevertheless, they have been cautious in their interpretation and
+The six Mean intracranial pressure (ICP) and Cerebral Perfusion Pressure (CPP) related indexes could be calculated for 10 patients (6
+UHL and 4 Brain-IT) pre-Decompressive craniectomy (DC) and 30 patients (18 UHL patients and 12 Brain-IT)
+resulting messages, advocating to use the results in the counseling of
+post-Decompressive craniectomy (DC), for which minute-by-minute data were available. The two Pressure Reactivity Index (PRx) indexes families with respect for the quality of life and ethical considerations
+were only available for the UHL patients. The mean pre-Decompressive craniectomy (DC) Mean intracranial pressure (ICP) and Cerebral Perfusion Pressure (CPP) values. Still, the present study results highlight that transferring outcomes
+were calculated for 4 more UHL patients with only paired end-hourly data obtained in strict RCT settings to the pragmatic actual pragmatic setting
+available (and thus for 14 patients pre-Decompressive craniectomy (DC) in total). The intracranial hyperten­ of daily practice is not an easy and unambiguous task.
+sion index 20 and 25 are the number of minute-by-minute measures of Mean intracranial pressure (ICP) of Furthermore, it could be noticed that both IMPACT and CRASH
+more than respectively 20 and 25 mm Hg divided by the total number of mea­ scores were adequate predictors of the outcome in the non-RCT patients
+surements, multiplied by 100. Analogue is the cerebral hypoperfusion index 60, with estimates approximating reality. IMPACT scores predicted the
+which is the number of minute-by-minute measures of cerebral perfusion pres­ median chance of an unfavorable 6-months outcome at six months be­
+sure of less than 60 mm Hg divided by the total number of measurements,
+tween 35% and 40% in our patients (depending on the tool's modality).
+multiplied by 100; and the Pressure Reactivity Index (PRx) index 0 being the relative number of minutes
+For the CRASH score, this was estimated to be around 46%. This resulted
+with a negative Pressure Reactivity Index (PRx). All those indexes for a period of 6 h pre-Decompressive craniectomy (DC) and 7 days postDC. In the RESCUEicp only end-hourly data were used. in fairly similar percentages as the real ones. This means that, even when
+d
+All 8 outcome categories of the Glasgow Outcome Scale (GOSE) are summed up in the text. A more decompressive surgery is performed or thiopental is administered, the
+extensive description is provided in the Supplementary Appendix. prognostic models are certainly still relevant based on admission data.
+Furthermore, the fairly similar prediction scores show a more nuanced
+evaluate barbiturate administration and Decompressive craniectomy (DC) rather as two alternative picture of our two sub-cohorts (UHL and BRAIN-it) and allow better
+methods. At six months follow-up similar mortality rates of approxi­ inter-comparison as a the limitations will be further explained. There
+mately one quarter were seen in both groups. However, almost twice as was a trend towards more intense/extensive treatment pre-Decompressive craniectomy (DC) being
+many patients had a favorable outcome in the non-RCT setting (48.6%) associated with better outcome (except for the Therapy Intensity Level (TIL) 4 score). This seems
+compared to the RCT setting (27.4%). Patient and injury characteristics to align with the observations that Decompressive craniectomy (DC) has its best beneficial effect as a
+did not differ between the two settings, except for age (higher and hence third-tier option. Another factor, however, available only for the UHL
+a disadvantage for the non-RCT group) and The median initial Glasgow Motor Score (GMS) (lower and therefore a subgroup, is the technique used. In this UHL subgroup, hemi­
+disadvantage for the RESCUEicp group). Furthermore, non-RCT patients craniectomies vs. bifrontal procedures were relatively more likely to be
+had a higher mean Mean intracranial pressure (ICP) pre-Decompressive craniectomy (DC) and spent relatively more time with an performed. Although one could argue that the latter indicate a more
+Mean intracranial pressure (ICP) above 20 mmHg in the hours pre-Decompressive craniectomy (DC). More patients had combina­ severe Introduction TBI management
+
+Traumatic brain injury (TBI), severity is already taken into account through other pa­
+tions of third-tier interventions in the non-RCT setting. However, similar rameters such as Glasgow Coma Scale (GCS), pre-Decompressive craniectomy (DC) values, ... .
+proportions had combined Decompressive craniectomy (DC) and barbiturates in the favorable and The current study has several limitations. First, the non-RCT group
+unfavorable outcome groups in the non-RCT setting. In other words, consists of two cohorts (UHL and BrainI-IT) that were investigated in
+there is no clear explanation for the markedly better outcomes in the two different time episodes, slightly differ in some baseline character­
+non-RCT setting, except maybe for the setting itself. istcs, and still has a low sample size. Also with regard to some outcome
+A similar observation was made when investigating the efficacy of parameters, the values in both subgroups sometimes differ. We under­
+surgical evacuation of spontaneous intracerebral hemorrhage. Two took the present analysis since these patients were very well docu­
+RCTs (STICH I and II) showed no significant benefit of early surgery mented. Moreover, these patients not only reflect the characteristic
+versus conservative management. However, a meta-analysis of inter-patient and outcome variation in the daily clinical setting, but,
+10 prospective non-RCT series showed a substantial reduction in de­ when combined, are very similar in baseline characteristics to the
+pendency in the surgical cohorts, which may in a similar way be RESCEUicp surgical cohort. Second, two non-matched groups are being
+due to the pragmatic clinical setting in these series, including individual compared. Another point of attention is the follow-up limited to six
+decision-making and individualized treatment. In a new analysis of the months. While it is known that the majority of the recovery process takes
+International Surgical
+Trial in Intracerebral Haemorrhage (STICH) I & II data using new non-parametric methods, subgroups could place during these first months, some may argue that patients may not
+be identified that did benefit from surgery, and were mixed with patients have fully recovered neurologically after this time period. How­
+that were harmed in the initial analyses. The same may be true for ever, in the recently published long-term results (24 months) of the
+RESCUEicp. Furthermore, despite being difficult to compare, other RESCUEicp, surgical patients with traumatic intracranial hypertension
+non-RCT studies reported more favorable clinical outcomes after Decompressive craniectomy (DC) as were more likely to improve than patients in the standard medical
+well. treatment group.. Further, outcome was only evaluated in terms of
+
+Fig. 1. Glasgow Outcome Scale (GOSE) distribution (and barbiturate use
+for UHL + Information Technology (BrainIT) patients).
+The absolute number of patients was displayed
+above each bar. For non-RCT patients, the ab­
+solute number of patients who did and did not
+receive thiopental was shown separately in the
+part of the bar with the corresponding color.
+'
+Decompressive craniectomy (DC) + thiopental' can be referring to barbitu­
+rate administration either before, during or
+after Decompressive craniectomy (DC). 0-values were not written down.
+
+How­
+that were harmed in the initial analyses. The same may be true for ever, in the recently published long-term results (24 months) of the
+RESCUEicp. Furthermore, despite being difficult to compare, other RESCUEicp, surgical patients with traumatic intracranial hypertension
+non-RCT studies reported more favorable clinical outcomes after Decompressive craniectomy (DC) as were more likely to improve than patients in the standard medical
+well. treatment group.. Further, outcome was only evaluated in terms of
+
+B. Decraene et al. Injury 54 (2023) 110911
+
+robust extended Glasgow Outcome Scores rather than considering the monitoring. Intensive Care Med 2022;48(10):1471-81. https://doi.org/10.1007/
+s00134-022-06786-y.
+quality of life or neurocognitive scores. Finally, although the decision to Kocher, T. (1901). Hirnerschütterung, Hirndruck und chirurgische Eingriffe bei
+perform a Decompressive craniectomy (DC) in then non-RCT group was based on the Brain Trauma Foundation (BTF) guidelines, Hirnkrankheiten.
+surgeons had the possibility to deviate from these guidelines. As a Kolias, A.G., Adams, H., Timofeev, I., Czosnyka, M., Corteen, E., Pickard, J.D., ...
+consequence, bias cannot be completely ruled out. Hutchinson, P. (n.d.). Decompressive craniectomy following traumatic brain
+Still, the differences between the RCT and non-RCT groups do not 02688697.2016.1159655.
+preclude the mere observation that the entire set of interventions, Cooper DJ, Rosenfeld JV, Murray L, Arabi YM, Davies AR, D'Urso P, Wolfe R.
+including Decompressive craniectomy (DC), in a pragmatic setting, was able to produce favorable Decompressive craniectomy in diffuse traumatic brain injury. N Engl J Med 2011;
+364(16):1493-502. https://doi.org/10.1056/NEJMoa1102077.
+outcomes in half of the patients. Decompressive craniectomy (DC) in a patient-tailored combination Hutchinson PJ, Kolias AG, Timofeev IS, Corteen EA, Czosnyka M, Timothy J,
+with other second and third-tier therapies should maintain its place in Kirkpatrick PJ. Trial of decompressive craniectomy for traumatic intracranial
+the management of severe Introduction TBI management
+
+Traumatic brain injury (TBI). At the same time, the valuable data that hypertension. N Engl J Med 2016;375(12):1119-30. https://doi.org/10.1056/
+NEJMoa1605215.
+emerged from the RESCUEicp trial should refrain physicians from over- Piper I, Chambers I, Citerio G, Enblad P, Gregson B, Howells T, Group O. The brain
+optimistic projections, and emphasis should be on careful and individual monitoring with Information Technology (BrainIT) collaborative network: EC
+decision-making and counseling. Therefore, we argue that the decision feasibility study results and future direction. Acta Neurochir (Wien) 2010;152:
+1859-71. https://doi.org/10.1007/s00701-010-0719-1.
+whether to perform a Decompressive craniectomy (DC) procedure should be based on the multidisci­ Jennett B, Snoek J, Bond MR, Brooks N. Disability after severe head injury:
+plinary consensus by neurosurgeon and neuro-intensivist, and with observations on the use of the Glasgow outcome scale. J Neurol Neurosurg
+consensus from the patient's representatives. Psychiatr 1981;44(4):285-93. https://doi.org/10.1136/jnnp.44.4.285. Wilson JT, Pettigrew LE, Teasdale GM. Structured interviews for the Glasgow
+outcome scale and the extended glasgow outcome scale: guidelines for their use.
+Conclusion J Neurotrauma 1998;(8):15. Levin HS, Boake C, Song J, Mccauley S, Contant C, Diaz-Marchan P, Kotrla KJ.
+Validity and sensitivity to change of the extended Glasgow Outcome Scale in mild
+Decompressive craniectomy (DC) is a third-tier treatment to reduce Mean intracranial pressure (ICP) in refractory cases of severe to moderate traumatic brain injury. J Neurotrauma 2001;18(6):575-84. https://
+Introduction TBI management
+
+Traumatic brain injury (TBI). While it effectively reduces Mean intracranial pressure (ICP), the RESCUEicp trial demonstrated doi.org/10.1089/089771501750291819.
+that it does not result in a higher percentage of favorable outcomes. In Maset AL, Marmarou A, Ward JD, Choi S, Lutz HA, Brooks D, Turner H. Pressure-
+volume index in head injury. J Neurosurg 1987;67(6):832-40. https://doi.org/
+the present non-RCT prospective study, we observed that favorable
+10.3171/jns.1987.67.6.0832.
+outcomes resulted from the entire set of interventions, including Decompressive craniectomy (DC), in a Steyerberg EW, Mushkudiani N, Perel P, Butcher I, Lu J, McHugh GS, Maas AIR.
+pragmatic clinical setting in half of the patients. Predicting outcome after traumatic brain injury: development and international
+validation of prognostic scores based on admission characteristics. PLoS Med 2008;
+5(8):e165. https://doi.org/10.1371/journal.pmed.0050165. Retrieved from.
+Yutthakasemsunt S. Predicting outcome after traumatic brain injury: practical
+prognostic models based on large cohort of international patients. BMJ 2008;336
+All authors declare that the article is the authors' original work, (7641):425-9. https://doi.org/10.1136/bmj.39461.643438.25.
+hasn't received prior publication and isn't under consideration for Cho WS, Ha EJ, Ko SB, Yang S, Kim HC, Kim JE. New parameters for evaluating
+publication elsewhere cerebral autoregulation and pressure-volume compensatory reserve in neurocritial
+patients. J Neurointensive Care 2018;1(1):7-11. https://doi.org/10.32587/
+jnic.2018.00038.
+Continuous assessment of the cerebral vasomotor reactivity in head injury.
+Neurosurgery 1997;41(1):11-9. https://doi.org/10.1097/00006123-199707000-
+The project was approved by the Ethical Commission of the UHL. 00005. Mendelow AD, Gregson BA, Fernandes HM, Murray GD, Teasdale GM, Hope DT,
+Funding sources Barer DH. Early surgery versus initial conservative treatment in patients with
+spontaneous supratentorial intracerebral haematomas in the International Surgical
+Trial in Intracerebral Haemorrhage (STICH): a randomised trial. Lancet 2005;365
+The authors declare that they have no relevant or material financial (9457):387-97. https://doi.org/10.1016/S0140-6736(05)17826-X.
+interests that relate to the research described in this paper. Mendelow AD, Gregson BA, Rowan EN, Murray GD, Gholkar A, Mitchell PM. Early
+surgery versus initial conservative treatment in patients with spontaneous
+supratentorial lobar intracerebral haematomas (STICH II): a randomised trial.
+Lancet 2013;382(9890):397-408. https://doi.org/10.1016/S0140-6736(13)
+None. intracerebral haemorrhage. Cochrane Database Syst Rev 2008;(4):CD000200.
+Acknowledgements hemorrhage. Stroke 2019;50(5):1108-15. https://doi.org/10.1161/
+STROKEAHA.118.022694. Skoglund TS, Eriksson-Ritzén C, Jensen C, Rydenhag B. Aspects on decompressive
+None. craniectomy in patients with traumatic head injuries. J Neurotrauma 2006;23(10):
+1502-9. https://doi.org/10.1089/neu.2006.23.1502. Whitfield PC, Patel H, Hutchinson PJ, Czosnyka M, Parry D, Menon D,
+Kirkpatrick PJ. Bifrontal decompressive craniectomy in the management of
+posttraumatic intracranial hypertension. Br J Neurosurg 2001;15(6):500-7.
+Supplementary material associated with this article can be found, in https://doi.org/10.1080/02688690120105110. Olivecrona M, Rodling-Wahlström M, Naredi S, Koskinen L-OD. Effective Mean intracranial pressure (ICP)
+reduction by decompressive craniectomy in patients with severe traumatic brain
+injury treated by an Mean intracranial pressure (ICP)-targeted therapy. J. Neurotrauma 2007;24(6):927-35.
+References https://doi.org/10.1089/neu.2005.356E. Wettervik TS, Lenell S, Nyholm L, Howells T, Lewén A, Enblad P. Decompressive
+craniectomy in traumatic brain injury: usage and clinical outcome in a single Maas AIR, Menon DK, Manley GT, Abrams M, Åkerlund C, Andelic N, Zemek R.
+centre. Acta Neurochir (Wien) 2018;160(2):229-37. https://doi.org/10.1007/
+Traumatic brain injury: progress and challenges in prevention, clinical care, and
+s00701-017-3418-3.
+research. Lancet Neurol 2022;21(11):1004-60. https://doi.org/10.1016/S1474- Timofeev, I., & Hutchinson, P.J. (2006). Outcome after surgical decompression of
+4422(22)00309-X.
+severe traumatic brain injury. doi:10.1016/j.injury.2006.07.031. Majdan M, Plancikova D, Brazinova A, Rusnak M, Nieboer D, Feigin V, Maas A. Hutchinson PJ, Kolias AG, Tajsic T, Adeleye A, Aklilu AT, Apriawan T, Servadei F.
+Epidemiology of traumatic brain injuries in Europe: a cross-sectional analysis. The
+Consensus statement from the international consensus meeting on the role of
+Lancet. Public health 2016;1(2):e76-83. https://doi.org/10.1016/S2468-2667(16)
+decompressive craniectomy in the management of traumatic brain injury :
+30017-2. Hawryluk GWJ, Citerio G, Hutchinson P, Kolias A, Meyfroidt G, Robba C,
+Chesnut R. Intracranial pressure: current perspectives on physiology and
+
+B. Decraene et al. Injury 54 (2023) 110911
+
+consensus statement. Acta Neurochir (Wien) 2019;161(7):1261-74. https://doi. Kolias AG, Adams H, Timofeev IS, Corteen EA, Hossain I, Czosnyka M, Rescue T.
+org/10.1007/s00701-019-03936-y. Evaluation of outcomes among patients with traumatic intracranial hypertension van der Naalt J. Prediction of outcome in mild to moderate head injury: a review. treated with decompressive craniectomy vs standard medical care at 24 months: a
+J Clin Exp Neuropsychol 2001;23(6):837-51. https://doi.org/10.1076/ secondary analysis of the RESCUEicp randomized clinical trial. JAMA Neurol 2022;
+jcen.23.6.837.1018. 79(7):664-71. https://doi.org/10.1001/jamaneurol.2022.1070.
+
+Fabian Güiza
+Bart Depreitere
+Visualizing the pressure and time burden
+Ian Piper of intracranial hypertension in adult
+Giuseppe Citerio
+Iain Chambers and paediatric traumatic brain injury
+Patricia A. Jones
+Tsz-Yan Milly Lo
+Per Enblad
+Pelle Nillson
+Bart Feyen
+Philippe Jorens
+Andrew Maas
+Martin U. Schuhmann
+Rob Donald
+Laura Moss
+Greet Van den Berghe
+Geert Meyfroidt
+
+I. Piper R. Donald
+ESICM 2015 G. Citerio L. Moss
+San Gerardo Hospital, Monza, Italy Department of Clinical Physics and
+F. Güiza and B. Depreitere contributed Bioengineering, NHS Greater Glasgow &
+equally. I. Chambers Clyde, Glasgow, UK
+James Cook University Hospital, Medical
+Take-home message: In adult and Physics, Middlesbroughnza, UK
+paediatric patients suffering from severe Abstract Purpose: To assess the
+traumatic brain injury, an approximately
+exponential curve describes the relationship
+P. A. Jones impact of the duration and intensity
+between intensity and duration of episodes Department of Paediatric Neurology, Royal of episodes of increased intracranial
+of increased intracranial pressure (ICP) and Hospital for Sick Children, Edinburgh, UK pressure on 6-month neurological
+worse clinical outcomes. In children, outcome in adult and paediatric traucompared to adults, this occurs at lower The BESTIntracranial pressure (ICP) T.-Y. M. Lo
+thresholds of shorter duration. Department of Paediatric Intensive Care, matic brain injury.
+Royal Hospital for Sick Children, Methods: Analysis of prospectively
+to authorized users. paediatric traumatic brain injury pa-
+Uppsala, Sweden
+tients from multiple European
+B. Feyen A. Maas centres. The relationship of episodes
+Department of Neurosurgery, University Hospital Edegem (Antwerp) of elevated intracranial pressure (deF. Güiza G. Van den Berghe University Hospital, Edegem, Belgium fined as a pressure above a certain
+G. Meyfroidt ()) threshold during a certain time) with
+Department of Intensive Care Medicine, P. Jorens 6-month Glasgow Outcome Scale
+University Hospitals Leuven, Herestraat 49, Department of Intensive Care Medicine, was visualized in a colour-coded plot.
+3000 Leuven, Belgium University Hospital Edegem (Antwerp) University Hospital, Edegem,
+Belgium
+Results: The colour-coded plot ile-mail: geert.meyfroidt@uzleuven.be
+Tel.: ?32 16 344021 lustrates the intuitive concept that
+M. U. Schuhmann episodes of higher intracranial presB. Depreitere Klinik für Neurochirurgie, sure can only be tolerated for shorter
+Department of Neurosurgery, University Universitätsklinikum Tübingen, Tübingen, durations: the curve that delineates
+Hospitals Leuven, Leuven, Belgium Germany the duration and intensity of those
+
+intracranial pressure episodes associ- intracranial pressure-time burden is lower intracranial pressure thresholds
+ated with worse outcome is an independently associated with mor- as compared to adults. Impaired
+approximately exponential decay tality. When cerebrovascular cerebrovascular autoregulation recurve. In children, the curve resem- autoregulation, assessed with the low- duces the ability to tolerate
+bles that of adults, but the delineation frequency autoregulation index, is intracranial pressure insults. Thus,
+between episodes associated with impaired, the ability to tolerate 50 mmHg might be the lower acworse outcome occurs at lower in- elevated intracranial pressures is re- ceptable threshold for cerebral
+tracranial pressure thresholds. duced. When the cerebral perfusion perfusion pressure.
+Intracranial pressures above pressure is below 50 mmHg, all in20 mmHg lasting longer than 37 min tracranial pressure insults, regardless Keywords Traumatic brain injury
+in adults, and longer than 8 min in of duration, are associated with worse Adults Children Intracranial
+children, are associated with worse outcome. Conclusions: The in- pressure Cerebral perfusion
+outcomes. In a multivariate model, tracranial pressure-time burden pressure Cerebrovascular
+together with known baseline risk associated with worse outcome is vi- autoregulation
+factors for outcome in severe trau- sualised in a colour-coded plot. In
+matic brain injury, the cumulative children, secondary injury occurs at
+
+Introduction superiority of a Traumatic brain injury (TBI) management strategy with The BESTIntracranial pressure (ICP)
+monitoring and treatment at 20 mmHg, versus a purely
+Traumatic brain injury (TBI) remains one of the most clinical and radiological management strategy. Notwithimportant health care problems worldwide, even when standing these results, The BESTIntracranial pressure (ICP) monitoring is still considered
+advancements in Traumatic brain injury (TBI) management have led to improve- to provide important information to detect and prevent
+ments in outcome over the past decades. secondary injury after severe Traumatic brain injury (TBI). The BESTIntracranial pressure (ICP) monitoring, first described in TRIP trial has fostered a renewed interest in the definition
+the 1950s, was introduced as a monitoring tool for of secondary insults and therapeutic thresholds for The BESTIntracranial pressure (ICP)
+severe Traumatic brain injury (TBI) in the 1960s. The most recent version of and Cerebral Perfusion Pressure (CPP).
+mends monitoring of The BESTIntracranial pressure (ICP) in every salvageable patient analysis on prospective data from continuously monitored
+with severe Traumatic brain injury (TBI). Although these guidelines ac- adult and paediatric Traumatic brain injury (TBI) patients to assess the impact of
+knowledge a lack of level I evidence, the recommended duration and intensity of The BESTIntracranial pressure (ICP) insults, on 6 months neutreatment threshold for The BESTIntracranial pressure (ICP)-lowering therapies is rological outcome. In addition, we will assess the impact
+20 mmHg, based mainly on observational data. An of cerebrovascular autoregulation and Cerebral Perfusion Pressure (CPP) on the caincreased The BESTIntracranial pressure (ICP) is an independent risk factor for mortality pacity to tolerate these insults. This research has been, and the total burden of The BESTIntracranial pressure (ICP) derangements, cal- presented before, in part, at the 2014 International Symculated as the area under the The BESTIntracranial pressure (ICP) curve (measured over posium on Intensive Care and Emergency Medicine
+time) above 20 mmHg, is an independent predictor of (ISICEM, Brussels), and at the 2014 European Soworse outcome in adults and children. ciety of Intensive Care Medicine Congress (ESICM,
+Paediatric guidelines on The BESTIntracranial pressure (ICP)/cerebral perfusion pressure Barcelona).
+(CPP) management have largely followed those for
+adults. An observational study of 81 children with Traumatic brain injury (TBI)
+demonstrated that the The BESTIntracranial pressure (ICP) threshold associated with
+worse outcomes is lower, and differs in three age bands
+Materials and methods.
+Aggressive The BESTIntracranial pressure (ICP) management is not free of risk. In Patients and data
+the Decompressive Craniectomy in Patients with Severe
+Traumatic brain injury (TBI) (DECRA) trial, early decompressive craniecto- The adult cohort comprised 261 Traumatic brain injury (TBI) patients, aged
+my when The BESTIntracranial pressure (ICP) rose above 20 mmHg resulted in a higher 16 years and older.
+proportion of patients with poor neurological outcome as
+compared to standard care; however, after correction of • From the European Union Brain-IT project,
+baseline group imbalance (pupil reactivity), the outcomes 166 patients admitted to 22 neuro-ICUs in 11 European
+were not different in the two groups. The multicentre countries between March 2003 and July 2005 were
+Evidence from South American Trials: Treatment of In- for Scotland (MREC/02/0/9) granted the use of these
+tracranial Pressure) could not demonstrate the data for scientific purposes on 14 February 2002.
+
+• Data of the remaining 95 adult patients were collected database was recorded and stored every second; the me-
+from the ICUs of four centres: 38 patients from the San dian value of each minute interval was taken to obtain a
+Gerardo Hospital Monza, Italy, between March 2010 minute-by-minute value. In all data sets, minute-by-min-
+and April 2013; 25 patients from the University ute signals were reviewed independently by two clinicians
+Hospitals Leuven, Belgium, between September 2010 in Leuven (GM, BDP), and artefacts that were obvious
+and September 2013; 20 patients from the University through visual inspection of the time series were removed
+Hospital Edegem (Antwerp), Belgium, as part of the and not used for further analysis (ESM Table 10).
+'Individualized targeted monitoring in neurocritical
+care' (NEMO) project, between May 2010 and June
+2013; and 12 patients from University Hospital
+Tübingen, Germany, between February and December
+2009. All data referring to the identity of these patients
+The univariate association between The BESTIntracranial pressure (ICP) insults and The contour for zero correlation was
+Outcome Score (GOS)
+were removed; ethical committee approval was ob-
+at 6 months was done using the visualization method
+tained in all centres to use these data for analysis.
+explained in Fig. 1. First, each time series of minute-by-
+The paediatric cohort consisted of 99 Traumatic brain injury (TBI) patients, minute The BESTIntracranial pressure (ICP) data was segmented into different episodes,
+aged between 2 and 16 years. called 'The BESTIntracranial pressure (ICP) insults'. The BESTIntracranial pressure (ICP) insults were defined according to
+their intensity (I) and duration (D). Intensity thresholds
+• 81 patients were part of a study on Traumatic brain injury (TBI) in children, from 10 to 40 mmHg on the X-axis and duration thresh-
+recruited during 62 non-consecutive months up to July olds from 5 to 360 min on the Y-axis were considered. For
+2003, from two paediatric centres in Edinburgh and every The BESTIntracranial pressure (ICP) insult, the Pearson correlation coefficient be-
+Newcastle, UK. The study had local ethics tween The contour for zero correlation was
+Outcome Score (GOS) and the average number of these types of The BESTIntracranial pressure (ICP)
+committee and management approval in both centres insults per patient in each The contour for zero correlation was
+Outcome Score (GOS) category was computed.
+• The remaining 18 paediatric patients were part of the measures the degree of linear dependency: a negative
+Brain-IT database. value indicates that the particular The BESTIntracranial pressure (ICP) insult occurs more
+frequently with lower The contour for zero correlation was
+Outcome Score (GOS); a positive correlation indi-
+Patients were managed according to Brain Trauma Foundation (BTF) guidelines cates that the particular The BESTIntracranial pressure (ICP) insult is more frequent with. Data collection in both cohorts included baseline higher The contour for zero correlation was
+Outcome Score (GOS). A contour plot showing lines of equal corrisk factors (age, gender, admission Glasgow Coma Scale (GCS), admission pupil relation was derived from the grid and colour coded:
+reactivity), minute-by-minute The BESTIntracranial pressure (ICP) and mean arterial correlations of -1 and ?1 are shown in dark red and dark
+blood pressure (MAP) monitoring data, and Glasgow blue, respectively. The contour for zero correlation was
+Outcome Score (GOS) at 6 months [Electronic Supple- highlighted in black, and defined as the 'transition curve',
+mentary Material (ESM) Table 1]. For the paediatric because it indicates the transition into the region of insult
+patients, a modified The contour for zero correlation was
+Outcome Score (GOS) was used, as described in the types that occur more frequently in patients with lower
+original paper. Monitoring data in the NEMO The contour for zero correlation was
+Outcome Score (GOS).
+
+Fig. 1 Visualization methodology. The average number of insults correlation between The contour for zero correlation was
+Outcome Score (GOS) and the average number of insults per
+of The BESTIntracranial pressure (ICP) above an intensity threshold I (in mmHg), lasting for at least The contour for zero correlation was
+Outcome Score (GOS) category is computed for all I and D combinations (b) and
+a duration threshold D (in minutes) is computed for each The contour for zero correlation was
+Outcome Score (GOS) given a colour according to a predefined colour map ranging from
+
+Data collection in both cohorts included baseline higher The contour for zero correlation was
+Outcome Score (GOS). A contour plot showing lines of equal corrisk factors (age, gender, admission Glasgow Coma Scale (GCS), admission pupil relation was derived from the grid and colour coded:
+reactivity), minute-by-minute The BESTIntracranial pressure (ICP) and mean arterial correlations of -1 and ?1 are shown in dark red and dark
+blood pressure (MAP) monitoring data, and Glasgow blue, respectively. The contour for zero correlation was
+Outcome Score (GOS) at 6 months [Electronic Supple- highlighted in black, and defined as the 'transition curve',
+mentary Material (ESM) Table 1]. For the paediatric because it indicates the transition into the region of insult
+patients, a modified The contour for zero correlation was
+Outcome Score (GOS) was used, as described in the types that occur more frequently in patients with lower
+original paper. Monitoring data in the NEMO The contour for zero correlation was
+Outcome Score (GOS).
+
+Role of cerebrovascular autoregulation using as co-variates the total percentage of total
+monitoring time each patient experienced one or more
+The low-frequency autoregulation index (LAx) is com- The BESTIntracranial pressure (ICP) insults associated with worse The contour for zero correlation was
+Outcome Score (GOS) (indicated on the
+puted as a moving minute-by-minute correlation of graph as the red zone), together with the IMPACT model
+previous values of The BESTIntracranial pressure (ICP) and Mean Arterial Pressure (MAP). The LAx ranges in core variables (age, admission motor Glasgow Coma Scale (GCS),
+value from -1 to ?1 and was calculated for every minute pupils).
+of the patients' Intensive Care Unit (ICU) stay. This allowed one to compute the All analyses were done in Matlab 2014b (The
+average autoregulatory state during each The BESTIntracranial pressure (ICP) insult. An MathWorks, Natick, MA, USA).
+insult was classified as 'active' if its average LAx was
+negative or zero, and 'passive' if the average LAx was
+positive. The visualization method described above was
+repeated considering active and passive episodes Results
+separately.
+The colour-coded plots visualizing the correlations be-
+tween The contour for zero correlation was
+Outcome Score (GOS) at 6 months and the average number of
+Role of Cerebral Perfusion Pressure (CPP) different types of The BESTIntracranial pressure (ICP) insults are shown in Fig. 2. Two
+clear overall regions emerge: a predominantly blue zone,
+The association between The BESTIntracranial pressure (ICP) insults and outcome was indicating types of The BESTIntracranial pressure (ICP) insults that occur more frequently
+visualized for three different thresholds of Cerebral Perfusion Pressure (CPP): 50, 60 in patients with higher The contour for zero correlation was
+Outcome Score (GOS); and a predominantly red
+and 70 mmHg. zone, indicating types of The BESTIntracranial pressure (ICP) insults that occur more
+frequently in patients with lower The contour for zero correlation was
+Outcome Score (GOS). The transition
+curve between the blue and red zone is approximately
+occurs at shorter insult durations and, conversely, for
+In order to assess the independent association of the cu- lower insult intensities the transition occurs at longer inmulative dose of The BESTIntracranial pressure (ICP) insults with outcome, multivariate sult durations. In adults, the duration above which The BESTIntracranial pressure (ICP)
+unfavourable neurological outcome [defined as death, worse outcome is 223, 37, 12 and 8 min, respectively. In
+vegetative or severely disabled (GOS 1-3)] were built, children, at intensity thresholds of 15 and 20 mmHg, the
+
+Fig. 2 Visualization of correlation between The contour for zero correlation was
+Outcome Score (GOS) and average The BESTIntracranial pressure (ICP) intensity and duration thresholds) with outcome is colournumber of The BESTIntracranial pressure (ICP) insults per The contour for zero correlation was
+Outcome Score (GOS) category. Left adult cohort coded according to the scale in Fig. 1c. Dark red episodes mean
+(n = 261). Right paediatric cohort (n = 99). Each colour-coded that such The BESTIntracranial pressure (ICP) insults, on average, are associated with worse
+point in the graph refers to a number of episodes of The BESTIntracranial pressure (ICP), defined by outcome (lower The contour for zero correlation was
+Outcome Score (GOS) categories); dark blue episodes mean that
+a certain The BESTIntracranial pressure (ICP) intensity threshold (X-axis), and a certain duration such The BESTIntracranial pressure (ICP) insults, on average, are associated with better outcome
+threshold (Y-axis). Such an episode is called an The BESTIntracranial pressure (ICP) insult. The (higher The contour for zero correlation was
+Outcome Score (GOS) categories). The contour of zero correlation is
+univariate correlation of each type of The BESTIntracranial pressure (ICP) insult (characterized by highlighted in black, and is called the transition curve
+
+In adults, the duration above which The BESTIntracranial pressure (ICP)
+unfavourable neurological outcome [defined as death, worse outcome is 223, 37, 12 and 8 min, respectively. In
+vegetative or severely disabled (GOS 1-3)] were built, children, at intensity thresholds of 15 and 20 mmHg, the
+
+p \ 0.050] cohorts. The percentage of monitoring time in
+the red zone was also a significant predictor of un-
+favourable outcome in adults [OR 3.97 (95 % CI
+1.30-12.1); p = 0.014] (ESM Tables 2-5). The percent-
+age of monitoring time in the red zone during the first day
+only was a significant independent predictor of mortality
+[OR 2.90 (95 % CI 1.03-8.14); p = 0.039], but not of
+6-month unfavourable outcome [OR 1.80 (95 % CI
+0.78-4.18); p = 0.16] in adults. In paediatric Traumatic brain injury (TBI) pa-
+tients, there was a trend towards significance for the
+percentage of monitoring time in the red zone during the
+first day only, for both mortality [OR 266 9 101 (95 % CI
+0.564-126 9 105); p = 0.062] and unfavourable out-
+come [OR 5.82 (95 % CI 0.861-39.4); p = 0.065] (ESM
+Tables 6-9).
+Figure 4 shows the transition curves resulting from
+visualizations of active and passive autoregulation insults
+(the corresponding colour-coded plots are available in the
+ESM Fig. 1, the percentages of active and passive insults
+in each cohort in the ESM Table 10). In the adult as well
+as in the paediatric population, the transition curve for
+Fig. 3 Comparison of transition curves in adult (black) and passive insults shifts towards the left, and the transition
+paediatric (purple) cohorts. Transition curves are the lines of zero
+correlation between The BESTIntracranial pressure (ICP) insults and outcome. Episodes above and curve for active insults shifts towards the right, with reto the right of this transition curve are associated with worse spect to the 'all insults' curve. In adults, episodes above
+outcomes 20 mmHg when cerebrovascular autoregulation is active
+had a duration of 233 min before they were associated
+respective transitions occur at shorter durations of 48 and with worse outcome, versus 19 min when autoregulation
+8 min. The transition curves of the two cohorts are shown was passive. Duration thresholds derived from the active
+together in Fig. 3. and passive transition curves for commonly used intensity
+monitoring time spent by each patient in the red zone was Finally, the association of The BESTIntracranial pressure (ICP) insults and outcome
+an independent significant predictor of death, both in was plotted for three different levels of Cerebral Perfusion Pressure (CPP). In adults as
+adults [OR 9.91 (95 % CI 2.67-36.8); p \ 0.001] as in well as in children, when Cerebral Perfusion Pressure (CPP) was below 50 mmHg, alchildren [OR 178 9 103 (95 % CI 1.02-309 9 108); most all The BESTIntracranial pressure (ICP) insults were associated with worse outcome,
+
+Fig. 4 Transition curve visualizations according to cerebrovascular Right paediatric cohort (n = 99). Transition curves are the lines of
+autoregulatory status. The transition curves for all insults (irre- zero correlation between The BESTIntracranial pressure (ICP) insults and outcome. Episodes above
+spective of autoregulation) are drawn in blue, while the transition and to the right of this transition curve are associated with worse
+curves for autoregulation active insults are shown in green and for outcomes
+autoregulation passive insults in red. Left adult cohort (n = 261).
+
+Fig. 5 Visualization of correlation between The contour for zero correlation was
+Outcome Score (GOS) and average explanation of this colour-coded plot, refer to the legend of
+number of The BESTIntracranial pressure (ICP) insults per The contour for zero correlation was
+Outcome Score (GOS) category according to a cerebral Fig. 1. Left panel Cerebral Perfusion Pressure (CPP) B50 mmHg. Right panel Cerebral Perfusion Pressure (CPP) [50 mmHg.
+perfusion pressure (CPP) threshold of 50 mmHg. For an Above adult cohort (n = 261). Below paediatric cohort (n = 99)
+
+In adults as
+adults [OR 9.91 (95 % CI 2.67-36.8); p \ 0.001] as in well as in children, when Cerebral Perfusion Pressure (CPP) was below 50 mmHg, alchildren [OR 178 9 103 (95 % CI 1.02-309 9 108); most all The BESTIntracranial pressure (ICP) insults were associated with worse outcome,
+
+regardless of duration and intensity (Fig. 5). When Cerebral Perfusion Pressure (CPP) represent the cumulative time/pressure dose per patient,
+was above 50 mmHg, the transition curve shifted to the but per type of insult, characterized by duration and inright as compared to the 'all insults' curve. At CPPs of 60tensity. The cumulative The BESTIntracranial pressure (ICP) burden per patient (defined as
+and 70 mmHg there was a further small rightward shift of the percentage of time in the red zone) was assessed
+sociated with mortality at 6 months.
+The main finding is the emergence of clearly distinct
+insult intensity and duration thresholds that occur more
+Discussion frequently in patients with lower 6-month The contour for zero correlation was
+Outcome Score (GOS), delin-
+eated by an approximately exponential transition curve.
+In this study, the univariate relationship between 6-month This supports the 'dose of The BESTIntracranial pressure (ICP)' concept, which has been
+neurological outcome and insults of raised The BESTIntracranial pressure (ICP) is sum- proposed earlier as the proportion of hourly measuremarized in colour-coded plots. These plots do not ments above 20 mmHg, or the area under the curve
+
+Fig. 6 Transition curves of The BESTIntracranial pressure (ICP)
+insults according to three
+different thresholds of cerebral
+perfusion pressure (CPP). For
+an explanation of transition
+curves, refer to the legend of
+Fig. 4. All insults irrespective
+of Cerebral Perfusion Pressure (CPP) (black); insults with
+Cerebral Perfusion Pressure (CPP) [50 mmHg (red); with
+Cerebral Perfusion Pressure (CPP) [60 mmHg (green) and
+with Cerebral Perfusion Pressure (CPP) [70 mmHg (blue).
+Left panel adult cohort
+(n = 261). Right panel
+paediatric cohort (n = 99)
+
+These plots do not ments above 20 mmHg, or the area under the curve
+
+of hourly values above 20 mmHg. The present study autoregulation is intact, the transition curve shifts to the
+builds further on this concept. First, the use of minute-by- right. Conversely, with impaired autoregulation, there is a
+minute monitoring data allows for a more precise dramatic shift to the left in the transition curves, sugdefinition of the concept 'dose'. Second, by considering gesting a higher vulnerability to raised The BESTIntracranial pressure (ICP) (Fig. 4; ESM
+all intensity thresholds above 10 mmHg, the 'dose' is not Table 11). This is in line with the findings from a recent
+limited to the 20-mmHg threshold. The time pressure retrospective study, where individualized The BESTIntracranial pressure (ICP) thresholds
+burden was identified for the whole range of ICPs be- based on the autoregulatory status of the patient were
+tween 15 and 25 mmHg, which is the same range of ICPs more predictive for mortality than fixed thresholds of 20
+that was identified in the early association studies. and 25 mmHg.
+It is striking that the exponential decay transition curve in At a Cerebral Perfusion Pressure (CPP) below 50 mmHg, the plots become almost
+adults (Fig. 2, left) approximates the vertical 15-mmHg uniformly red (Fig. 5). In other words, when Cerebral Perfusion Pressure (CPP) is
+line, which indicates that insults between 15 and critically low, The BESTIntracranial pressure (ICP) is no longer a univariate predictor for
+20 mmHg, if sustained for sufficiently long, can already outcome. Caution is warranted when interpreting these
+lead to worse outcomes. Above 20 mmHg, the vast ma- data, because arterial blood pressure (ABP) was not aljority of insults are clearly deleterious with the exception ways measured and zeroed at the same level: in some
+of those lasting less than 37 min in adults. Above patients the right atrium level was used, in some the ex25 mmHg, the association with worse The contour for zero correlation was
+Outcome Score (GOS) occurs within ternal auditory meatus, while in some patients this
+12 min. An alternative explanation for the transition information was not available. Therefore, the statements
+curves occurring at lower intensity values for longer du- on the influence of Cerebral Perfusion Pressure (CPP) on the association between The BESTIntracranial pressure (ICP)
+rations could have been the presence of patients who and outcome are only very general, and cannot be used to
+underwent decompressive craniectomy: these patients recommend specific Cerebral Perfusion Pressure (CPP) thresholds. In adults, a trend can
+were no longer be able to reach high The BESTIntracranial pressure (ICP) values but be observed such that The BESTIntracranial pressure (ICP) insults in the range
+nevertheless had a poor neurological outcome; however, 18-23 mmHg can have a longer duration (in the order of
+we do not believe that this was the case, because when minutes) at higher CPPs. When The BESTIntracranial pressure (ICP) is above 25 mmHg, a
+this clinical group was excluded, visualization results higher Cerebral Perfusion Pressure (CPP) has no effect (Fig. 6, left). In children, the
+remained unchanged (ESM Fig. 3; Tables 9-10). same effect can be observed, albeit at lower The BESTIntracranial pressure (ICP) values:
+The transition curve for the paediatric cohort resem- The BESTIntracranial pressure (ICP) insults in the range 13-20 mmHg, but not above
+bles that of adults, but the entire curve has shifted to the 20 mmHg, can be tolerated for a slightly longer duration
+left (Fig. 3; ESM Table 11): episodes of lower intensity (Fig. 6, right).
+and shorter duration than for adults are associated with This study suffers from several limitations, in addition
+worse outcomes. In children, the exponential decay to the ones already mentioned above. First, the number of
+transition curve approximates the vertical 10-mmHg line patients is relatively small. The creation of large high-
+(Fig. 2, right), and above 20 mmHg, the association with resolution databases of good quality in Traumatic brain injury (TBI) is challengworse The contour for zero correlation was
+Outcome Score (GOS) occurs within 8 min. ing. Current and future initiatives to create joint databases
+Cerebrovascular pressure autoregulation is often im- will facilitate addressing basic research questions
+paired in severe Traumatic brain injury (TBI), and such impairment is such as the relationship between physiological thresholds
+independently associated with worse outcomes [31, 34- and outcome. Second, because of their longer total
+36]. The autoregulatory status has a major effect on the monitoring time, longer-staying patients might have been
+transition curves in both adults and children. When overrepresented, possibly introducing bias. However,
+
+when using daily averages of the number of insults, in- secondary brain injury in a couple of minutes, and may
+stead of the entire monitoring time, all visualization thus be more appropriate clinical triggers to initiate agresults remain unchanged (ESM Fig. 2). Third, the ana- gressive therapy than the more commonly used value of
+lysis has been done in treated cohorts of patients. In 20 mmHg. This might also explain why previous ranretrospect, it is not possible to unravel the individual domized controlled trials in Traumatic brain injury (TBI) patients where a
+contributions to clinical outcome of the intensity of sec- 20-mmHg static threshold was used were desondary brain injury insults versus the possible benefit or tined to fail. In addition, ICPs in the 15- to 20-mmHg
+harm of the medical interventions employed to manage range in adults, or 10-15 mmHg in children, are not to be
+them. Fourth, the patient data collection extended over considered harmless. Additional information through
+10 years, and the critical care management of Traumatic brain injury (TBI) might clinical examination, multimodality monitoring, imaging
+have changed substantially over this period. We believe and assessment of autoregulation might be considered
+the results are robust over potential differences in man- with pressures in that range, in order to estimate the risk
+agement, because when plotting the graphs in different for secondary brain injury and the need for aggressive
+subgroups of patients from different time eras, the ap- The BESTIntracranial pressure (ICP)-lowering treatments.
+proximately exponential transition curve remained (data
+not shown). Fourth, only the obvious artefacts were removed, via visual inspection by two independent experts.
+Data was collected in a prospective way, and at the time Conclusion
+of collection, attention was paid to avoid incorrect data
+entries as much as possible. However, this does not ex- An image can be worth a thousand words: the visualizaclude that some less obvious artefacts might still have tions presented here summarize the complexity and
+been wrongfully identified as an The BESTIntracranial pressure (ICP) insult, and used in dynamic aspect of secondary insults of raised The BESTIntracranial pressure (ICP) in Traumatic brain injury (TBI),
+the analysis. Automatic artefact removal algorithms were showing that not all Traumatic brain injury (TBI) patients are equal in their ability
+not used, because we wanted to retain as much of the to cope with such injury.
+granularity of the minute-by-minute data as possible, and
+because we presumed that the incidence of erroneous Acknowledgments We wish to acknowledge the non-co-author
+Howells, Karl Kiening, Julia Mattern, Arminas Ragauskas and Juan
+insults analysed (8,181,337 insults in adults, and Sahuquillo, for collecting data and granting permission through the
+observed associations, visualized in a single clear image, like to acknowledge the contributors to the original study resulting
+do not imply a causative relationship between the insults in the paediatric database used here: R.J. Forsyth, B. Fulton, P.J.D.
+and the outcome, and other unmeasured confounders Andrews, A.D. Mendelow and R.A. Minns. The present study was
+supported by the Foundation for Scientific Research Flanders
+might have played a role. (FWO) (Research project G. 0904.11). Geert Meyfroidt receives
+The present study is an attempt to add to the current funding from FWO as senior clinical investigator (1846113N).
+knowledge in developing a new concept of 'pressure and Greet Van den Berghe receives long-term structural research fitime burden' for intracranial hypertension. The results nancing via the Methusalem program funded by the Flemish
+Government (METH/08/07). BrainIT was funded by the European
+indicate that the The BESTIntracranial pressure (ICP) threshold in Traumatic brain injury (TBI) patients depends on Framework Programme (FP5-QLRI-2000-00454, QLGT-2002insult duration, age, Cerebral Perfusion Pressure (CPP) and the autoregulatory status. 00160 AND FP7-IST-2007-217049). The NEMO project in the
+These findings need to be confirmed in other data sets. University Hospital Edegem (Antwerp), Belgium was funded by
+These data visualizations are not intended to issue a new the Flemish Government Agency for Innovation by Science and
+Technology (IWT)-Applied Biomedical Research (TBM)
+direct recommendation on specific The BESTIntracranial pressure (ICP) thresholds: they program.
+are meant as exploratory tools. On the basis of our findings, perhaps an argument could be made that ICPs Conflicts of interest We declare that we have no conflicts of
+exceeding 25 mmHg in adults, and 20 mmHg in children, interest.
+are absolute emergencies which could potentially lead to
+
+Cerebral Perfusion Pressure Variability Between Patients
+and Between Centres
+
+Bart Depreitere, Fabian Güiza, Ian Piper, Giuseppe Citerio, Iain Chambers, Patricia A. Jones, Tsz-Yan M. Lo, Per Enblad,
+Pelle Nilsson, Bart Feyen, Philippe Jorens, Andrew Maas, Martin U. Schuhmann, Rob Donald, Laura Moss,
+Greet Van den Berghe, and Geert Meyfroidt
+
+Abstract Introduction: The aim of this analysis was to centres had medians above 70 mmHg and 4 above 80 mmHg.
+investigate to what extent median cerebral perfusion pres- Post-2007, three out of four centres had medians between 60
+sure (CPP) differs between severe traumatic brain injury and 70 mmHg and one above 80 mmHg. One out of two
+(TBI) patients and between centres, and whether the 2007 centres with data pre- and post-2007 shifted from a median
+change in Cerebral Perfusion Pressure (CPP) threshold in the Brain Trauma Foundation Cerebral Perfusion Pressure (CPP) of 76 mmHg to 60 mmHg, while the other remained at
+guidelines is reflected in patient data collected at several cen- 68-67 mmHg.
+tres over different time periods. Conclusions: Cerebral Perfusion Pressure (CPP) data are characterised by a high inter-
+Methods: Data were collected from the Brain-IT data- individual variability, but the data also suggest differences in
+base, a multi-­centre project between 2003 and 2005, and Cerebral Perfusion Pressure (CPP) policies between centres. The 2007 guideline change
+from a recent project in four centres between 2009 and 2013. may have affected policies towards lower Cerebral Perfusion Pressure (CPP) in some cenFor patients nursed with their head up at 30° and with the tres. Deviations from the guidelines occur in the direction of
+blood pressure transducer at atrium level, Cerebral Perfusion Pressure (CPP) was corrected Cerebral Perfusion Pressure (CPP) > 70 mmHg.
+by 10 mmHg. Median Cerebral Perfusion Pressure (CPP), interquartile ranges and total
+Cerebral Perfusion Pressure (CPP) ranges over the monitoring time were calculated per
+patient and per centre. Keywords Severe traumatic brain injury · Cerebral perfu-
+between 50 and 70 mmHg in 6 out of 16 centres, while 10 Pressure variability
+
+B. Depreitere (*) • F. Güiza • G. Van den Berghe • G. Meyfroidt
+University Hospitals Leuven, Leuven, University Hospitals Leuven (Belgium) Introduction
+I. Piper • L. Moss
+Southern General Hospital, Glasgow, UK
+The recommendation for targeting cerebral perfusion pres-
+sure (CPP) in the Brain Trauma Foundation (BTF) guideG. Citerio
+San Gerardo Hospital, Monza, San Gerardo Hospital Monza (Italy)
+lines on the management of severe traumatic brain injury
+(TBI) has changed from keeping Cerebral Perfusion Pressure (CPP) above 70 mmHg in
+I. Chambers
+James Cook University Hospital, Middlesborough, UK
+the 1996 edition to 50-70 mmHg in the 2007 edition. The change to recommending lower Cerebral Perfusion Pressure (CPP) was mainly
+P.A. Jones • T.-Y. M. Lo
+Royal Hospital for Sick Children, Edinburgh, UK
+inspired by the non-beneficial effect of keeping Cerebral Perfusion Pressure (CPP) above
+70 mmHg by administering high doses of vasopressors in
+P. Enblad • P. Nilsson
+Uppsala University Hospital, Uppsala, Sweden
+the randomised controlled trial performed by Robertson
+et al.. This was later confirmed in the post hoc analysis
+B. Feyen • P. Jorens • A. Maas
+University Hospital Antwerp, Antwerp, University Hospitals Leuven (Belgium)
+of the Selfotel data. As it has been demonstrated that
+M.U. Schuhmann
+Universitätsklinikum Tübingen, Tübingen, Germany
+effect on outcomes in severe One out of two (TBI), one would expect
+such change in recommendation to be followed, and hence
+R. Donald
+University of Glasgow, Glasgow, UK
+to lead to alterations in Cerebral Perfusion Pressure (CPP) policy across centres. Our
+
+4 B. Depreitere et al.
+
+study on the visualisation of pressure and time burden of time were calculated per patient and per centre, a similar
+intracranial hypertension in One out of two (TBI) included patients who analysis was done for patients' median CPPs.
+were collected from data-capture initiatives in several centres over different periods of time. The aim of this analysis was to investigate to what extent median Cerebral Perfusion Pressure (CPP) differed
+between patients and between centres and whether the
+change in guideline with respect to Cerebral Perfusion Pressure (CPP) target in 2007 was
+reflected in the clinical data. Over the entire cohort, the median Cerebral Perfusion Pressure (CPP) per patient varied
+between 27 and 96 mmHg, while the global Cerebral Perfusion Pressure (CPP) range
+extended from 0 to >140 mmHg. The per-centre median of
+patients' medians varied between 58 and 87 mmHg. Overall,
+Methods inter-individual variability exceeded inter-centre variability.
+Cerebral Perfusion Pressure (CPP) variability was independent of intracranial pressure,
+The adult group of the study cohort consisted of 261 patients and hence was also reflected in mean arterial pressure
+with severe One out of two (TBI). Of these, 166 patients were included from (MAP) variability. In line, Cerebral Perfusion Pressure (CPP) strongly correlated with
+the Brain-IT database, a European multi-centre data collec- Mean Arterial Pressure (MAP), and this analysis expressed different centre policies.
+tion made between March 2003 and July 2005. The Per-centre medians pre-2007 were situated between 50 and
+purposes on 14 February 2002. The data of the remaining 95 comparison post-2007 demonstrates that three centres had
+adult patients were collected from four centres between their median Cerebral Perfusion Pressure (CPP) between 50 and 70 mmHg, while one was
+2009 and 2013: San Gerardo Hospital Monza (Italy), above 80 mmHg (Fig. 1). The post-2007 patient data
+University Hospitals Leuven (Belgium), University Hospital grouped per centre clearly suggest an effect of centre Cerebral Perfusion Pressure (CPP)
+Antwerp (Belgium) and University Hospital Tübingen policy in addition to inter-individual Cerebral Perfusion Pressure (CPP) variability (Fig. 2).
+anonymised data for this analysis was obtained in all four 2007, the overall mean Cerebral Perfusion Pressure (CPP) dropped from 71.1 (± 10.4) mmHg
+centres. Two centres delivered data to both the early and before 2007 to 61.1 (± 14.5) mmHg after 2007 (p = 0.001).
+later cohort. For patients nursed head up at 30° and with the One of the two centres with data pre- and post-­2007 shifted
+blood pressure transducer at atrium level, Cerebral Perfusion Pressure (CPP) was cor- from a centre median Cerebral Perfusion Pressure (CPP) of 76 to 60 mmHg before and after
+rected by subtracting 10 mmHg. Median Cerebral Perfusion Pressure (CPP), interquartile 2007, while the other remained at 68-67 mmHg.
+range and total Cerebral Perfusion Pressure (CPP) range over the patients' monitoring
+
+a b
+100 100
+95 95
+90 ** 90
+**
+85 85
+80 * 80
+*
+75 75
+70 70
+65 65
+60 60
+55 55
+50 50
+45 45
+40 40
+
+Fig. 1 Per-centre CPPs (median, interquartile range and total range of patients' medians). (a) Study cohort 2003-2005. (b) Study cohort 2009-
+2013. Each colour represents a centre; * and ** indicate centres appearing in both cohorts
+
+Median Cerebral Perfusion Pressure (CPP), interquartile 2007, while the other remained at 68-67 mmHg. range and total Cerebral Perfusion Pressure (CPP) range over the patients' monitoring
+
+a b
+100 100
+95 95
+90 ** 90
+**
+85 85
+80 * 80
+*
+75 75
+70 70
+65 65
+60 60
+55 55
+50 50
+45 45
+40 40
+
+Cerebral Perfusion Pressure Variability Between Patients and Between Centres 5
+
+Fig. 2 Per-patient CPPs (median, interquartile range and total range) for the 2009-2013 study cohort. Each colour represents a centre
+
+range and total Cerebral Perfusion Pressure (CPP) range over the patients' monitoring
+
+a b
+100 100
+95 95
+90 ** 90
+**
+85 85
+80 * 80
+*
+75 75
+70 70
+65 65
+60 60
+55 55
+50 50
+45 45
+40 40
+
+Cerebral Perfusion Pressure Variability Between Patients and Between Centres 5
+
+Discussion values or ranges in the everyday clinical setting, given that it
+is influenced by Intracranial Pressure (ICP) variability, Mean Arterial Pressure (MAP) variability including
+The current analysis demonstrates that in the patient cohorts systemic events and responses to drugs, and by responses to
+studied, the inter-individual Cerebral Perfusion Pressure (CPP) variability exceeds the therapeutic actions intended to decrease raised Intracranial Pressure (ICP). This
+inter-centre variability as expressed in interquartile ranges question is particularly relevant in light of the recommended
+and total ranges. However, it is still possible to discern an Cerebral Perfusion Pressure (CPP) range being narrowed down to 60-70 mmHg in the lateffect of centres' Cerebral Perfusion Pressure (CPP) target policies in the data. The change est version of the Brain Trauma Foundation (BTF) guidelines issued this year, as well
+in Cerebral Perfusion Pressure (CPP) thresholds in the Brain Trauma Foundation (BTF) guidelines in 2007 did affect as in light of the emerging concept of dynamic individual
+one of the two centres where this could be measured, while Cerebral Perfusion Pressure (CPP) targets influenced by autoregulation capacity.
+the rate of 75% post-2007 having median Cerebral Perfusion Pressure (CPP) below The second question is whether deviations to the right (higher
+70 mmHg may also mean that an effort was made to follow CPPs) originate from the fear of too low Cerebral Perfusion Pressure (CPP) and possible
+the Brain Trauma Foundation (BTF) guidelines. When looking at individual data, though, associated ischaemia, while the effects of too high Cerebral Perfusion Pressure (CPP) are
+it can be stated that deviations from the Brain Trauma Foundation (BTF) guidelines less well documented or feared. In fact, the higher incidence
+occurred more frequently to the right, i.e. to higher CPPs, of acute respiratory distress syndrome (ARDS) reportedly
+than to the left, i.e. to lower CPPs. To the best of our knowl- associated with vasopressors in the Cerebral Perfusion Pressure (CPP) > 70 mmHg group
+edge, this is the first study specifically documenting Cerebral Perfusion Pressure (CPP) in the trial by Robertson et al. does not seem to be that
+adherence and variability. much of a concern in clinical practice.
+When studying Cerebral Perfusion Pressure (CPP) variability across centres and The current analysis is a spin-off of another study for which
+patients, two questions emerge. The first question is how the current data were brought together. Hence, it is limited
+accurately Cerebral Perfusion Pressure (CPP) can effectively be steered towards specific by its retrospective nature. Moreover, only four centres
+
+6 B. Depreitere et al.
+
+contributed data in the post-2007 cohort. Different centres the management of severe traumatic brain injury. IX. Cerebral perused different Cerebral Perfusion Pressure (CPP) methodology, i.e. they had the arterial fusion thresholds. J Neurotrauma. 2007;24(Suppl 1):S59-64.
+3. Robertson CS, Valadka AB, Hannay HJ, Contant CF, Gopinath SP,
+blood pressure transducer at tragus or at atrium height and Cormio M, et al. Prevention of secondary ischemic insults after
+nursed patients flat or with their head up at 30°. For patients severe head injury. Crit Care Med. 1999;27:2086-95.
+with the transducer at atrium height and being nursed at 30° 4. Juul N, Morris GF, Marshall SB, Marshall LF. Intracranial hyper-
+tension and cerebral perfusion pressure: influence on neurological
+head up, the Cerebral Perfusion Pressure (CPP) was corrected by subtracting 10 mmHg [esti-
+deterioration and outcome in severe head injury. The Executive
+mation of tragus-atrium distance × sin(30°) × 0.76 mmHg/ Committee of the International Selfotel Trial. J Neurosurg.
+cmH2O]. When we repeated the analysis without this correc- 2000;92:1-6.
+tion, all conclusions stated in the first paragraph of the discus- 5. Cnossen MC, Scholten AC, Lingsma HF, Synnot A, Tavender E,
+Gantner D, et al. Adherence to guidelines in adult patients with
+sion section remained valid. traumatic brain injury: a living systematic review. J Neurotrauma.
+While it may be irrelevant to issue Cerebral Perfusion Pressure (CPP) targets that are 2016. doi:10.1089/neu.2015.4121.
+expected to be universally valid in all patients at all times, it 6. Gupta D, Sharma D, Kannan N, Prapruettham S, Mock C, Wang
+may be useful to produce Cerebral Perfusion Pressure (CPP) safety limits. The current J, et al. Guideline adherence and outcomes in severe adult trau-
+matic brain injury for the CHIRAG (Collaborative Head Injury and
+study demonstrated that centres' Cerebral Perfusion Pressure (CPP) policies do have some Guidelines) study. World Neurosurg. 2016;89:169-79.
+effect, but that it is exceeded by intra- and inter-individual 7. Güiza F, Depreitere B, Piper I, Citerio G, Chambers I, Jones
+Cerebral Perfusion Pressure (CPP) variability. PA, et al. Visualizing the pressure and time burden of intracra-
+nial hypertension in adult and paediatric traumatic brain injury.
+Intensive Care Med. 2015;41:1067-76.
+Conflicts of interest statement We declare that we have no conflict 8. Piper I, Citerio G, Chambers I, Contant C, Enblad P, Fiddes H,
+of interest. et al. The Brain-IT group: concept and core dataset definition. Acta
+Neurochir. 2003;145:615-28.
+9. Carney N, Totten AM, O'Reilly C, Ullman JS, Hawryluk GW, Bell
+MJ, et al. Guidelines for the management of severe traumatic brain
+References injury. 4th ed. Neurosurgery. 2017;80:6-15.
+10. Steiner LA, Czosnyka M, Piechnik K, Smielewski P, Chatfield D,
+Menon DK, et al. Continuous monitoring of cerebrovascular pres-
+1. Brain Trauma Foundation; American Association of Neurological sure reactivity allows determination of optimal cerebral perfusion
+Surgeons; Joint Section on Neurotrauma and Critical Care, pressure in patients with traumatic brain injury. Crit Care Med.
+et al. Guidelines for cerebral perfusion pressure. J Neurotrauma. 2002;30:733-8.
+1996;13:693-697. 11. Aries MJ, Czosnyka M, Budohoski KP, Steiner LA, Lavinio A,
+2. Brain Trauma Foundation, American Association of Neurological Kolias AG, et al. Continuous determination of optimal cere-
+Surgeons, Congress of Neurological Surgeons, Joint Section on bral perfusion pressure in traumatic brain injury. Crit Care Med.
+Neurotrauma and Critical Care, AANS/CNS, et al. Guidelines for 2012;40:2456-63.
+
+ORIGINAL RESEARCH
+
+Forewarning of hypotensive events using a Bayesian artificial neural
+network in neurocritical care
+Rob Donald1 · Tim Howells2 · Ian Piper3 · P. Enblad4 · P. Nilsson4 · I. Chambers5 · B. Gregson6 · G. Citerio7 ·
+
+Traumatically brain injured (TBI) patients are at risk from secondary insults. Arterial hypotension, critically low blood
+pressure, is one of the most dangerous secondary insults and is related to poor outcome in patients. The overall aim of this
+study was to get proof of the concept that advanced statistical techniques (machine learning) are methods that are able to
+provide early warning of impending hypotensive events before they occur during neuro-critical care. A Bayesian artificial
+neural network (BANN) model predicting episodes of hypotension was developed using data from 104 patients selected
+from the BrainIT multi-center database. Arterial hypotension events were recorded and defined using the Edinburgh University Secondary Insult Grades (EUSIG) physiological adverse event scoring system. The Bayesian artificial neural networks (BANN) was trained on a random
+selection of 50% of the available patients (n = 52) and validated on the remaining cohort. A multi-center prospective pilot
+study (Phase 1, n = 30) was then conducted with the system running live in the clinical environment, followed by a second
+validation pilot study (Phase 2, n = 49). From these prospectively collected data, a final evaluation study was done on 69 of
+these patients with 10 patients excluded from the Phase 2 study because of insufficient or invalid data. Each data collection
+phase was a prospective non-interventional observational study conducted in a live clinical setting to test the data collection
+systems and the model performance. No prediction information was available to the clinical teams during a patient's stay in
+the Intensive Care Unit (ICU). The final cohort (n = 69), using a decision threshold of 0.4, and including false positive checks, gave a sensitivity
+of 39.3% (95% CI 32.9-46.1) and a specificity of 91.5% (95% CI 89.0-93.7). Using a decision threshold of 0.3, and false
+positive correction, gave a sensitivity of 46.6% (95% CI 40.1-53.2) and specificity of 85.6% (95% CI 82.3-88.8). With a
+decision threshold of 0.3, > 15 min warning of patient instability can be achieved. We have shown, using advanced machine
+learning techniques running in a live neuro-critical care environment, that it would be possible to give neurointensive teams
+early warning of potential hypotensive events before they emerge, allowing closer monitoring and earlier clinical assessment
+in an attempt to prevent the onset of hypotension. The multi-centre clinical infrastructure developed to support the clinical
+studies provides a solid base for further collaborative research on data quality, false positive correction and the display of
+early warning data in a clinical setting.
+
+Keywords Traumatic brain injury · Neuro-intensive care · Bayesian prediction · Clinical study results
+
+1 Introduction complications during neurocritical care (NCC) known as
+secondary insults. The secondary insults can be both
+One of the primary aims in treating emergency admission intracranial and systemic. The intracranial insults predomipatients with physical trauma is to stabilise vital physiologi- nantly result from high intracranial pressure caused by
+cal systems. It is also recognised that patients who have mass lesions and ischaemic mechanisms resulting in brain
+suffered a traumatic brain injury (TBI) are at risk of having swelling. One of the most critical types of systemic sectheir "primary" brain damage exacerbated from a class of ondary insult is arterial hypotension, defined as abnormally
+low arterial blood pressure. Research has shown that
+increased incidence of hypotensive episodes is related to
+* Ian Piper
+ian.piper@brainit.org poor neurological outcome. The physiological vital func-
+tions are extensively monitored in critical care and alarms
+Extended author information available on the last page of the article
+
+Vol.:(0123456789)
+
+40 Journal of Clinical Monitoring and Computing (2019) 33:39-51
+
+are sent out when a secondary insult, e.g. an hypotensive generation as well as the development and testing of new
+event, occurs so effective treatment can be initiated immedi- data analysis methods. The group defined a core data set
+ately without delay to reduce the development of secondary and then collected a database of over 200 patients containing
+injuries. The ideal situation in the future would be to have a demographic data (e.g. age, gender, time of injury, initial
+monitoring system that sends out alarms before a secondary admission data both at pre-neurosurgical and neurosurgical
+insult will take place so relevant precautions can be insti- admission), episodic data (e.g. treatments given, lab results
+tuted to avoid the secondary event completely. from routine blood samples and nursing procedures) and
+The overall aim of this study was to get proof of the con- minute-by-minute physiological data from bedside monicept that advanced statistical techniques (machine learning) tors. The Bayesian artificial neural networks (BANN) was constructed using data from 104
+are methods that are not only able to provide early warn- patients from the BrainIT database, which was recruited
+ing of impending hypotensive events before they occur, but from 22 European neuro-intensive care centers between
+can do so prospectively in a live neuro-critical care envi- March 2003 and June 2005.
+ronment. This project had two specific aims: to develop a To support a pilot study of the prediction system, 30
+prediction of hypotensive events; and to run a prospective 2009 and October 2010 from six BrainIT centres (Prospecmulti-centre clinical study to test the system in a real clinical tive Phase I Dataset): Uppsala, Sweden; Glasgow, Scotland;
+environment. For the clinical study a secure software and Vilnius, Lithuania; Heidelberg, Germany; Monza, Italy;
+hardware infrastructure was developed and used for collec- and Barcelona, Spain. Then in support of this data, 49 more
+tion of anonymised data from hospital intensive care units patients were prospectively recruited from the same centers
+(ICUs). between December 2010 and July 2011 (Prospective Phase
+II dataset). The Phase II prospective study used a "Hanfelt"
+two stage design consisting of an initial collection of 13
+2 Materials and methods patients (Phase II-Stage 1) followed by a subsequent 36
+patients (Phase II-Stage 2). The Hanfelt design is used to
+2.1 Patient data minimise the recruitment of patients in Phase II trials.
+See Fig. 1 outlining the design and timing of the clinical
+In 1997 an international group of clinicians and clinical sci- studies.
+entists set up the BrainIT consortium with an aim to In the final analysis reported here the initial Phase I and
+collect high resolution physiological and clinical data from repeat Phase II cohorts were combined. Ten patients had
+Traumatically brain injured (TBI) patients in a standardized manner, and to use that data to to be excluded due to excessive missing or invalid data
+undertake further research in this domain through hypothesis (seven patients did not have the required minimum of 24 h
+
+Fig. 1 Graphical representation of the clinical study design
+broken down by testing stage
+
+See Fig. 1 outlining the design and timing of the clinical
+In 1997 an international group of clinicians and clinical sci- studies. entists set up the BrainIT consortium with an aim to In the final analysis reported here the initial Phase I and
+collect high resolution physiological and clinical data from repeat Phase II cohorts were combined. Ten patients had
+Traumatically brain injured (TBI) patients in a standardized manner, and to use that data to to be excluded due to excessive missing or invalid data
+undertake further research in this domain through hypothesis (seven patients did not have the required minimum of 24 h
+
+Journal of Clinical Monitoring and Computing (2019) 33:39-51 41
+
+of continuous monitoring data and three patients from one 2.4 Bayesian artificial neural networks (BANN) construction and testing
+centre had technical data capture issues resulting in unrecoverable corrupted data), leaving a total of 69 patients for The inputs to the model were built from a series of movanalysis. Of these 52 (75%) were male and 17 (25%) female. ing windows (based upon minute by minute data sampling)
+In terms of patient demographics, the median age was 40 configured across the data.
+years, range 16 to 83. There were two main types of injury: Inputs for the neural network were taken from the demofall (30) and road traffic accident (25). The remaining 14 graphic database or formed by extracting features such as
+injuries were in the categories: pedestrian (4); unknown (4); mean, standard deviation, and slope from the physiological
+assault (3); and sports related (3). The Glasgow Coma Scale (GCS) scores, where data over a time window or a series of windows prior to the
+complete, were obtained from two time-points: at admission prediction. The slope feature is the slope of a linear trend
+to the pre-neurosurgery hospital, median Glasgow Coma Scale (GCS) = 8 (range line with a least-squares fit over the data in the given time
+3-15; complete n = 51); at admission to the neurosurgery window. A set of BANNs were constructed using clinical
+Intensive Care Unit (ICU), median Glasgow Coma Scale (GCS) = 8 (range 3-14; complete n = 24). parameters selected through a combination of clinical guid-
+ance and exploratory modelling for the selection of input
+features.
+2.2 Hypotension definition
+A cohort of suitable patients (n = 104) having more than
+24 h of data for heart-rate and mean and systolic blood
+Although other studies have assessed machine learning
+pressure was extracted from the BrainIT database. A
+approaches to hypotension prediction, these use
+total of 33 models were trained on the data from 52 ranhypotension definitions that are markedly more severe
+domly selected patients (the 'training' set) and tested on
+in terms of the depth of hypotension and their combined
+the remainder (the unseen 'test' set) all 33 models and their
+duration (often > 30 min). In the management of patients
+parameters are summarised in Appendix. This was a conwith Abstract
+Traumatically brain injured (TBI) there is compelling evidence that even "minute
+servative approach and possibly sub-optimal given available
+by minute" hypotension events cumulatively can influence
+techniques such as cross validation to make best use of a
+patient outcome. Thus, in order to quantify the occur-
+relatively small data set. However, given the cautious nature
+rence of hypotension the Edinburgh University Secondary
+of the clinical community, one which is more likely to feel
+Insult Grading (EUSIG) system was used, which defines
+comfortable with a prediction model based on incorporathypotension as systolic arterial pressure (BPs) ≤ 90 mmHg
+ing pertinent physiological parameters derived from clinical
+or mean arterial pressure (BPm) ≤ 70 mmHg sustained
+guidance, it was felt that this approach to creating a model
+for at least 5 min. This definition has been shown to be a
+for early warning of hypotensive events would be easier to
+clinically relevant measure when assessing the burden of
+gain acceptance clinically.
+hypotension. The Insult Grading (EUSIG) definition requires that blood
+The model with the best performance on the test set and
+pressure return to above threshold for at least 5 min before
+good coverage with respect to completeness of data within
+the hypotension event is considered to have ended. For the
+the BrainIT database was selected as the predictive model
+purposes of these studies we have increased this "switch off
+to be used in the Phase I and repeat Phase II clinical studies.
+time" to 15 min, because we found that otherwise we created
+The model selected used demographic parameters of age
+clusters of closely related events that were better considered
+and gender with the physiological variables of heart rate,
+as a single episode.
+systolic and mean blood pressure. Models including param-
+eters other than blood pressure and heart rate were tested.
+2.3 Bayesian artificial neural networks (BANN) Additional parameters (e.g. ETCO2, temperature, SAO2,
+admission time to ICU) were tried but they did not produce
+The term artificial neural network incorporates a variety models with better sensitivity. Often, due to missing data,
+of techniques, but most often (and in the present case) these models could only be trained and tested on subsets of
+describes a form of nonlinear regression. Neural networks the complete training and test sets.
+are very general and powerful models, capable of modelling
+any continuous function. They have consistently proved 2.5 Clinical study methodology
+to be among the best techniques for difficult problems in
+statistical pattern recognition. Bayesian analysis can Figure 1 below summarises the clinical study design. A
+be used to estimate error bars for neural network predic- Phase 1 study of 30 patients was conducted to ensure that the
+tions, and to mitigate problems like over-fitting that can arise data acquisition and prediction software could be installed
+due to the power of the models. We have adapted in the clinical environment and produce predictions on live
+a Bayesian system designed and implemented by Radford clinical data being collected from the patient monitors, conNeal that utilizes a hybrid Monte-Carlo technique. sidering all the data quality issues that are present in an
+
+42 Journal of Clinical Monitoring and Computing (2019) 33:39-51
+
+operational setting. Details of the participating hospitals and 2.9 HYPO-NET
+their hardware and software infrastructure can be found in. HYPO-NET-a previously developed data collection frame-
+The Phase I study was successful, with the prediction work was used for testing of the Bayesian artificial neural networks (BANN) models in real-time
+results matching the results from the test on the retrospective in a live clinical environment (Fig. 2). To be clinically
+data in the BrainIT database. Therefore we began a repeat useful, not only do predictive models need to be developed
+study (Phase 2), using the methods detailed in the paper by with appropriate prediction accuracy, but it must also be
+Hanfelt which is a modification of the paper by Simon shown that it is feasible to develop a data collection platform. capable of running these Bayesian artificial neural networks (BANN) models in real time in a live
+clinical setting. It is one thing to show that predictive mod-
+els have good accuracy on cleaned retrospective data and
+2.6 Sample size analysis another to show that the same models perform equally well
+in a live clinical environment particularly one as technically
+Our end-point was defined as the sensitivity of true predic- challenging as an intensive care unit.
+tions of hypotensive events. In order to minimise the recruitment of patients, we opted for an oftenused Phase II trial 2.10 Study ethics
+design based upon the "Hanfelt design" modified from the
+method first described by Simon et al. This required a stage 1 Each local hospital ethics and R&D committee's approved
+sample size of 13 and, assuming a positive outcome in stage the patient recruitment protocol and consent documentation.
+and supporting tables are fully described in the referenced centre. Patient "assent" was required for every patient by
+paper by Hanfelt et al.. interview with patients relatives or next of kin.
+
+2.7 False positive correction 3 Results
+
+To minimise false positives, two checks were per- 3.1 Model selection
+formed on the arterial blood pressure readings: (i) Blood Pressure (BP)
+pulse < 10 mmHg, if the pulse pressure (BPs-BPd) is < The model selected for prospective testing is described in
+10 mmHg, this potentially indicates a fault within the pres- Table 1 below. Two demographic variables; age and sex are
+sure measuring system resulting as often found in an over- included. Additionally seven physiological features based
+damped trace and therefore any warnings that occurred on mean and systolic blood pressure and heart rate were
+under this condition are ignored. (ii) BPm > 90 mmHg, if the extracted from two sub-windows of 15 min of data starting
+mean arterial blood pressure is > 90 mmHg when the warn- at 15 and 30 min before the prediction time. This gives a
+ing was generated a hypotensive event is unlikely to occur in total of 16 inputs to the neural network for each prediction.
+the near future and therefore this warning can be discounted.
+The false positive correction (FPC) was not used during 3.2 Predictive accuracy: bann test set
+during the research phase were assessed on their sensitivity/ In the next sections we present results using a standard
+specificity scores. While true the post-hoc processing influ- visual technique to assess the trade off between true posiences the real-world results, it is valid as exploratory analy- tive identifications of episode starts and false alarms, a plot
+projects. In reality, the The false positive correction (FPC) corrections although improv- The ROC curve plots the specificity (false positive rate)
+ing the prediction performance, did not make a significant on the x-axis and the sensitivity (true positive rate) on the
+improvement at the decision thresholds used. y-axis. The cross markings on the plot indicate probabil-
+ity decision thresholds and move from a decision setting of
+probability zero (we will accept all predictions) at the top
+2.8 ROC confidence intervals right of the plot, to a probability of one at the bottom left of
+the plot (we would reject all predictions).
+Confidence intervals were calculated for sensitivity and The ROC curve for the Bayesian artificial neural networks (BANN) test set results (data from
+specificity estimates using the bootstrap methodology the retrospective BrainIT database) is shown in Fig. 3. A
+
+Journal of Clinical Monitoring and Computing (2019) 33:39-51 43
+
+Fig. 2 HYPO-NET system
+architecture in one of six
+BrainIT centres. Staff Intensive Care Unit (ICU) nurse
+log patient's onto local information systems. Research Nurse
+log patient's onto a patient study
+via the ward web app (WWA).
+This triggers "Clinical Client"
+software to parse clinical, laboratory and monitoring data from
+local hospital based systems and
+push data onto a local HypoNet
+Research data is entered via
+the WWA program. Analysis
+software calculates project specific derived indices from data
+acquired from the local SQL
+database. Once per hour "Data
+Push" software anonymises
+local data and pushes clinical,
+monitoring and status log files
+at the National eScience (NeSC)
+centre in Glasgow University. A
+trial monitor can view and run
+queries on HypoNet data arriving from all six BrainIT centres
+in quasi-real time
+
+Journal of Clinical Monitoring and Computing (2019) 33:39-51 43
+
+3.3 Predictive accuracy: clinical studies
+test set, the project moved to the clinical environment with
+Age Demographic a prospective study collecting data using HYPO-NET on 30
+Sex Demographic patients (Phase 1). The ROC curve for this study is shown
+Mean arterial blood pressure Mean on the left hand side of Fig. 4. The results for the clinically
+Mean arterial blood pressure Slope interesting region of false positive rate 0.3-0.4 are, unuSystolic arterial blood pressure Mean sually, slightly better than predicted on the test set despite
+Systolic arterial blood pressure Slope being conducted in a live clinical setting. Improving upon a
+Heart rate Mean training model performance in a clinical setting is unusual
+Heart rate Slope and so we felt it was important to assess the repeatability
+Heart rate Standard deviation of this result. Thus, the next task was to see if we could
+Input features for the model selected for the clinical studies. The repeat these results on another group of patients (Phase 2).
+mean, slope and standard deviation features were calculated over two Using a study design given in Hanfelt, 49 patients were
+sequential time windows for the seven physiological variables: from recruited. Data from ten patients was excluded due to prob30 to 15 min before the prediction time, and from 15 min before up lems with data collection. The results of the repeat study
+to the prediction time. This produced two demographic and 14 physiological variables as inputs to the neural network (Phase 2) are shown on the right hand side of Fig. 4. Again,
+the results are slightly better than the model test set and
+similar to the Phase 1 study.
+We note that the AUC scores for the two clinical studies
+could achieve a target for sensitivity of 30% with specific- are less than the training set. This is a criticism of using
+ity at around 90%. Using the ROCR (R) package, an area the AUC metric and is noted in the literature that
+under curve value of 0.74 was generated. there are problems in comparing classifier performance
+
+44 Journal of Clinical Monitoring and Computing (2019) 33:39-51
+
+old range of 0.2-0.5 with point estimates and confidence
+1.0 intervals as error bars on the results trace. It can be seen
+from Fig. 6 that using a decision threshold of 0.4, with false
+positive techniques applied, the target sensitivity (> 30%)
+0.8 and specificity (> 90%) was achieved.
+
+3.4 Precision recall plot: clinical data
+0.6
+Sensitivity
+
+An alternative presentation of the predictive performance
+of the model is shown in Fig. 7. This plot shows precision
+aka: positive predictive value (PPV), defined as true posi-
+0.4
+tives/(true positives + false positives) on the y axis versus
+recall aka: sensitivity, defined as true positives/(true posi-
+tives + false negatives) on the x-axis. Although Fig. 7 indi-
+0.2
+cates low values of precision in the likely operating range of
+AUC: 0.74 0.3-0.4 for recall (sensitivity), the plot, similar to the ROC
+presentation also suggests that > 30% of the warnings would
+0.0 be clinically relevant.
+0.0 0.2 0.4 0.6 0.8 1.0
+3.5 Episode warning time: clinical data
+False Positive Rate (1-Specificity)
+
+Finally, Fig. 8 below presents the warning time for patients
+Fig. 3 Predictive accuracy from Bayesian artificial neural networks (BANN) test set. The decision threshold settings are marked with the crossed circles. The decision thresh- where the system was able to provide early warning of the
+olds shown start at 0.1 at the upper most mark and increase to 0.4 in onset of hypotension.
+the lower left part of the trace. Using the ROCR (R) package, an area
+under curve value of 0.74 was generated
+4 Discussion
+particularly when the ROC curves cross. For our purposes
+we are interested in false positive rates of between 0.3 It is known that the cumulative duration of arterial hypotenand 0.4. sive events is a prognostic factor for their clinical outcome
+Combining the prediction data from the prospective following a head injury. The importance of reducing
+pilot (Phase 1) and repeat pilot (Phase 2) studies produces the burden of hypotension is not restricted to the Abstract
+Traumatically brain injured (TBI) poputhe ROC curve plotted in Fig. 5. lation; for with the medical management of sepsis, it has
+been shown that duration of hypotension before initiation
+
+Fig. 4 ROC plots from clinical Phase 1, n=30 Phase 2, n=39
+studies. The solid line with
+filled circles show the results 1.0 1.0
+obtained with no false positive
+correction (FPC) applied. The
+dashed line with filled triangles 0.8 0.8
+show the results when The false positive correction (FPC)
+techniques are used. This results NoFPC NoFPC
+Sensitivity
+
+sive events is a prognostic factor for their clinical outcome
+Combining the prediction data from the prospective following a head injury. The importance of reducing
+pilot (Phase 1) and repeat pilot (Phase 2) studies produces the burden of hypotension is not restricted to the Abstract
+Traumatically brain injured (TBI) poputhe ROC curve plotted in Fig. 5. lation; for with the medical management of sepsis, it has
+been shown that duration of hypotension before initiation
+
+Sensitivity
+
+in a better sensitivity for a given 0.6 0.6
+WithFPC WithFPC
+test set results are shown with 0.4 0.4
+the dashed dot line and crossed
+circles for comparison AUC AUC
+0.2 TestSet: 0.74 0.2 TestSet: 0.74
+NoFPC: 0.67 NoFPC: 0.64
+0.0 WithFPC: 0.68 0.0 WithFPC: 0.67
+
+0.0 0.2 0.4 0.6 0.8 1.0 0.0 0.2 0.4 0.6 0.8 1.0
+False Positive Rate (1-Specificity) False Positive Rate (1-Specificity)
+
+Journal of Clinical Monitoring and Computing (2019) 33:39-51 45
+
+ROC Plot, Combined Phase 1 and 2 Data ROC Plot, Combined Phase 1 and 2 Data
+
+1.0 0.7 The false positive correction (FPC)
+NoFPC
+0.8 0.6 WithFPC
+
+0.6
+0.5 0.2 DT
+Sensitivity
+
+Sensitivity
+The false positive correction (FPC)
+NoFPC 0.4
+0.4
+WithFPC
+
+AUC 0.3
+
+lation; for with the medical management of sepsis, it has
+been shown that duration of hypotension before initiation
+
+Sensitivity
+
+in a better sensitivity for a given 0.6 0.6
+WithFPC WithFPC
+test set results are shown with 0.4 0.4
+the dashed dot line and crossed
+circles for comparison AUC AUC
+0.2 TestSet: 0.74 0.2 TestSet: 0.74
+NoFPC: 0.67 NoFPC: 0.64
+0.0 WithFPC: 0.68 0.0 WithFPC: 0.67
+
+0.0 0.2 0.4 0.6 0.8 1.0 0.0 0.2 0.4 0.6 0.8 1.0
+False Positive Rate (1-Specificity) False Positive Rate (1-Specificity)
+
+Journal of Clinical Monitoring and Computing (2019) 33:39-51 45
+
+ROC Plot, Combined Phase 1 and 2 Data ROC Plot, Combined Phase 1 and 2 Data
+
+1.0 0.7 The false positive correction (FPC)
+NoFPC
+0.8 0.6 WithFPC
+
+0.6
+0.5 0.2 DT
+Sensitivity
+
+Sensitivity
+The false positive correction (FPC)
+NoFPC 0.4
+0.4
+WithFPC
+
+0.2 TestSet: 0.74
+NoFPC: 0.65
+0.2 0.5 DT
+WithFPC: 0.68
+0.0
+
+0.0 0.2 0.4 0.6 0.8 1.0
+0.0 0.1 0.2 0.3 0.4
+False Positive Rate (1-Specificity)
+False Positive Rate (1-Specificity)
+
+Fig. 5 ROC plot from clinical data. The decision threshold markers indicate settings from 0 in the top right to 1 at the bottom left. Fig. 6 ROC plot with error bars. Using combined phase 1 and 2 cliniThe step size is 0.1. Decision threshold markers: crossed circles for cal data, this plot is a zoomed in version of Fig. 4 showing error bars
+Bayesian artificial neural networks (BANN) test set data; solid circle for clinical data with no false positive for the decision threshold (DT) settings of 0.2-0.5
+correction (FPC); solid triangle for clinical data with false positive
+correction
+AvertIT Precision Recall Plot
+
+AUC 0.3
+
+lation; for with the medical management of sepsis, it has
+been shown that duration of hypotension before initiation
+
+Sensitivity
+
+in a better sensitivity for a given 0.6 0.6
+WithFPC WithFPC
+test set results are shown with 0.4 0.4
+the dashed dot line and crossed
+circles for comparison AUC AUC
+0.2 TestSet: 0.74 0.2 TestSet: 0.74
+NoFPC: 0.67 NoFPC: 0.64
+0.0 WithFPC: 0.68 0.0 WithFPC: 0.67
+
+0.0 0.2 0.4 0.6 0.8 1.0 0.0 0.2 0.4 0.6 0.8 1.0
+False Positive Rate (1-Specificity) False Positive Rate (1-Specificity)
+
+Journal of Clinical Monitoring and Computing (2019) 33:39-51 45
+
+ROC Plot, Combined Phase 1 and 2 Data ROC Plot, Combined Phase 1 and 2 Data
+
+1.0 0.7 The false positive correction (FPC)
+NoFPC
+0.8 0.6 WithFPC
+
+0.6
+0.5 0.2 DT
+Sensitivity
+
+Sensitivity
+The false positive correction (FPC)
+NoFPC 0.4
+0.4
+WithFPC
+
+0.2 TestSet: 0.74
+NoFPC: 0.65
+0.2 0.5 DT
+WithFPC: 0.68
+0.0
+
+0.0 0.2 0.4 0.6 0.8 1.0
+0.0 0.1 0.2 0.3 0.4
+False Positive Rate (1-Specificity)
+False Positive Rate (1-Specificity)
+
+False Positive Checks
+of effective antimicrobial therapy is the critical determinant 0.6
+NoFPC
+of survival.
+Precision
+
+0.4 WithFPC
+There is no universally accepted definition of arterial
+hypotension used during the clinical management of Abstract
+Traumatically brain injured (TBI) 0.2
+
+patients. Bijker et al. found almost 50 definitions being
+0.0
+quoted in the surgical literature, many of these use 0.1 0.2 0.3 0.4 0.5 0.6
+hypotension definitions that are markedly more severe in Recall
+terms of the depth of hypotension and their combined duration (often > 30 min) than those considered relevant in the Fig. 7 Precision recall plot. An alternative visualization of prediction
+neuro-critical care of Abstract
+Traumatically brain injured (TBI) patients. We carried out our own performance. This plot indicates low values of precision in the likely
+survey of the current practices within the participating cen- operating range of 0.3-0.4 for recall (sensitivity), the plot, similar
+to the ROC presentation also suggests that > 30% of the warnings
+tres, which indicated that both systolic and mean arterial would be clinically relevant
+pressure should be monitored and considered in the definition of hypotension and therefore it was decided to use the
+published Edinburgh University Secondary Insult Grading trend values of heart rate incorporated in our model is a
+(EUSIG) definition, which requires both measurements. crude measure of heart-rate variability.
+Our results and the predictive variables selected (Table 1) The choice of a neural network model is supported by
+are generally consistent with previous work. A study of the results of a competition sponsored by the PhysioNet
+hypotensive episodes during general anesthesia found that group that tested the ability of various models to prebaseline mean arterial pressure and patient age were sig- dict hypotension in intensive care patients. A neural network
+nificant predictors of outcome. Several studies have entry won this challenge, although optimized rule-based
+found that heart-rate variability can be used as a predictor approaches also worked well. An earlier study also
+of hypotension. The standard deviation of the 1-min demonstrated that a neural network model was an effective
+
+46 Journal of Clinical Monitoring and Computing (2019) 33:39-51
+
+Fig. 8 Box plot of warning time
+for varying decision thresholds. Note that in the clinically
+relevant decision threshold
+region of 0.3-0.4, the average
+hypotension warning time was
+15 min or greater
+
+An earlier study also
+of hypotension. The standard deviation of the 1-min demonstrated that a neural network model was an effective
+
+46 Journal of Clinical Monitoring and Computing (2019) 33:39-51
+
+predictor of hypotension during haemodialysis treatment prevent the event from occurring, or, to treat it sooner and. less aggressively. In the medical management of sepsis, it
+A distinguishing feature of this study is that predictions has been shown that with each hour delay in treatment of
+are produced and evaluated continuously on a minute-by- hypotension leads to an increase in in-hospital mortality of
+minute basis. Previous studies have made a single prediction 7.6%. Another potential clinical outcome of this work
+for each patient based on demographic and physiological is that fostering earlier and less aggressive intervention will
+indicators at a point in time either immediately preceding in turn lead to a quantifiable reduction in the duration of
+a specific procedure, or chosen by the competition average patient stay, with associated reduction in cost of
+organizers. The single prediction was then evalu- intensive care management (in 2005, typically estimated at
+ated based on the occurrence of hypotension during the pro- c. £1200/patient/day). Another point worth discussion
+cedure (in the former case) or during the entire remaining is with regards to the poorer performance of the system at
+monitoring period (in the latter case). This makes a mean- the upper sensitivity ranges The Bayesian artificial neural networks (BANN) ROC is a more simingful comparison with previous results difficult, but it also plistic score of exact prediction of a hypotensive event in
+makes our results of special interest in terms of fielding a 15 min time whereas the scoring of the clinical data uses a
+practical intensive care system. A second distinguishing fea- more complex decision process. Ultimately, our focus upon
+ture of this work is that a real-time system (HYPO-NET) has the decision threshold of 0.3-0.5 is driven by clinical pragbeen implemented and tested running live in intensive care matism of requiring an acceptably low false-positive rate and
+units in a multi-center study. Although developed in patients thus the poorer performance at higher sensitivities although
+with brain injury, there is every possibility that this technol- clearly desirable is not relevant.
+ogy will also find application in general intensive care where There is no doubt that the technology could be
+the optimal management of the patient's blood pressure is improved further by research into reducing the influence
+ubiquitous and paramount. of false-positives (when the device claims a hypotensive
+One could argue that a sensitivity of only 35-40% is event is about to occur but then it does not). In this study
+low. However the ability to pick up even one potentially we have not attempted to distinguish between good and
+emerging hypotensive event in three before it has happened bad false-positives. Many predictions recorded as false
+is clinically important. We know from our research that on positive closely precede, by just a few minutes, a true
+average a patient will have 8-10 hypotensive events dur- positive prediction, for example. Further clinical studing their management in the Intensive Care Unit (ICU). The system will forewarn ies are needed in which the clinical staff can classify an
+accurately 3-4 of these events and give the nursing and alarm as a valid warning or a nuisance. A major obstacle
+medical staff more time to assess the patient and potentially to reducing nuisance alarms is the problem of artifactual
+
+Journal of Clinical Monitoring and Computing (2019) 33:39-51 47
+
+and missing data. Blood pressure measurement systems The technology used in this study has been shown to be
+are sensitive to patient movement such as that produced capable of forewarning arterial hypotension events with >
+by nursing and medical procedures (e.g.: blood sampling, 15 min of warning. By adjusting the decision threshold within
+routine patient hygiene or pressure area care) that either the range 0.3-0.5, which could be carried out on a patientinterrupt recording or cause movement of the recording by-patient basis, an operational system could expect to prosystem. Automatic false positive correction is challeng- vide warning to a clinical team somewhere between 10 and
+ing. Many authors agree on the need for systems that can 15 min in advance of a hypotensive episode. Adjustment of
+automatically detect and remove non-physiological arte- the decision threshold would, of course, have effects on sysfact, yet due to the inherent plethora of causes of artefact tem sensitivity and specificity. As an example, with a decision
+within a clinical environment such as an intensive care threshold of 0.4, a sensitivity of 39.3% (95% CI 32.9-46.1)
+unit, a robust general purpose system does not exist. Some and specificity of 91.5% (95% CI 89.0-93.7) was achieved.
+authors (e.g.: Williams et al.) have successfully designed The average warning at this setting was 14 min. This result
+and tested dynamic linear models trained on specific arte- has been obtained from two independent patient cohorts
+fact types (such as those caused by blood sampling from using real-time data collection in a live clinical environment.
+the arterial pressure line), but many of these approaches Before a randomized controlled trial can be designed to test
+require relevant centre specific training data. this technology to assess if the warnings delivered influence
+The problem of invalid data may have caused the inci- medical management and patient outcome, two areas of furdence of hypotension to be underestimated in this study. ther research are warranted: (a) research towards implementAnalysis of the dataset for the presence of hypotension ing artefact detection and removal from Blood Pressure (BP) data such as that
+events using the Insult Grading (EUSIG) classification has detected 2081 developed by Williams et al. and (b) research on optimishypotension events from 100 patients with full Blood Pressure (BP) systolic, ing the display of hypotensive warnings to medical staff using
+diastolic and mean data parameters. In this dataset, addition- Bayesian artificial neural networks (BANN) prediction data. There is no doubt that a revolution is
+ally there were 600 "Abandoned events" defined as where currently taking place in healthcare; technology is enabling
+an event was in the "Active" state but the next readings did the creation and collection of vast amounts of patient data,
+not contain valid measurements for BPs, BPd or BPm. There as part of a "Big Data" phenomenon. This rapid expanwere also 47 "Invalid Events" defined as where the event sion of data has the potential to transform clinical practice,
+ran to completion but there were missing time blocks of no more so than in the management of patients within critical
+data. Thus taking the worst-case scenario that all aban- care. Critical care is arguably one of the most techdoned and invalid events would have become hypotension nology led medical domains; sophisticated patient monitoring
+events indicates that 31% of potential hypotension events are systems can capture large volumes of streaming physiological
+lost to detection and potentially to medical treatment. This data which continuously report on a patient's status and are
+is compelling evidence for the need for advanced statisti- often combined with patient data captured in electronic health
+cal methods for coping with artifactual and missing data. records. The potential clinical benefit of harnessing this large
+Closely aligned and following on from this study, Williams amount of physiological data available will inevitably require
+et al. developed and tested a descrimitive switching linear the real-time application of machine learning technology able
+dynamical system model to automatically detect both arte- to run unattended within a live clinical environment. The sucrial pressure artefact due to line interruption during blood cess of such an approach will require the collaboration of clinisampling and pressure line damping events. Work such cians, computer scientists and technologists and will depend
+as this renders the ability to run predictive models even on upon their shared understanding of each others understanding
+physiological data channels known to be susceptible to arte- of the areas of unmet need within their own domains. Machine
+fact, more feasible. learning algorithms are crucially dependant on the quality of
+Another area that could benefit from further research is the data available for model training and a solid understanding
+that concerning user interface. How best to present critical of the requirements of the busy clinician. This work has demwarnings/predictions to intensive care medical staff? Intensive Care Unit (ICU) onstrated that machine learning algorithms can be developed
+staff are already bombarded with hundreds of buzzers, bells and used prospectively within a live critical care environment.
+and lights from a plethora of medical devices surrounding The next crucial step is to demonstrate their robustness and
+the patient. The technology used in this study and its ability clinical effectiveness.
+to predict hypotension before it has emerged is only part of
+the challenge. The other part is how to ensure the medical
+staff respond to the increased risk warning and adhere to an
+expected guideline or response which can be quantified as
+part of a future randomised clinical trial on the technology
+used in this study.
+
+48 Journal of Clinical Monitoring and Computing (2019) 33:39-51
+
+5 Conclusions Kiefer, Department of Neurosurgery, Universitatsklinik des Saarlandes,
+Kirrbergerstrasse, Gebaude 90, D-66421 Homburg-Saar, Germany.
+Phone: +49 7841 184469, Fax: +49 6841 164480, Email: kiefer@web.
+Proof was gained of the concept that advanced statistical de; Professor Peter Vajkoczy, Department of Neurosurgery, University
+techniques (machine learning) are methods that are able Hospital Mannheim, Theodor-Kutzer-Ufer 1-3, D68167 Mannheim,
+to provide early warning of impending hypotensive events Germany. Phone: +49 621 3832360, Fax: +49 621 3832004, Email:
+Peter.vajkoczy@nch.ma.uni-heidelberg.de; Dr Dirk de Jong, Departbefore they occur and that they can be used effectively in a ment of Neurosurgery, University Hospital Rotterdam, Box 2040, Dr
+live clinical setting, further prospective multi-centre clinical Molewaterplein 40, 3015GD Rotterdam, The Netherlands. Phone: +31
+work is required to demonstrate the robustness of running 10 4087825, Fax: +31 10 4089452, Email: dejong@neuro.fgg.eur.nl;
+such a model in a live clinical setting. Professor Flemming Gjerris, University Clinic of Neurosurgery, Rig-
+shospitalet, Blegdamsvej 9, DK 2100 Copenhagen, Denmark. Phone:
++45 35 452390, Fax: +45 35 456575, Email: fgjerris@rh.dk; ProfesAcknowledgements Funding: European 2020 IST Programme - IST-
+sor Nino Stocchetti, Servizio di Anestesia e Rianimazione, Terapia
+2007-217049; Investigators and participating centers: Barcelona,
+Intensiva Neuroscienze, Via Francesco Sforza 35, 20122 Milano,
+Spain: Prof. Sahuquillo; Cambridge, UK: Prof. Pickard; Edinburgh,
+Italy. Phone: +39 02 550 35517, Fax: +39 02 599 02239, Email: stocUK: Prof. Whittle; Glasgow, UK: Mr. Dunn; Gothenburg, Sweden:
+chet@polic.cilea.it; Dr Luciana Mascia, Department of Anaesthesia
+Dr. Rydenhag; Heidelberg, Germany: Dr. Kiening; Iasi, Romania: Dr.
+and Intensive Care Medicine, Ospedale Molinette, Corso Bramante
+Iencean; Kaunas, Lithuania: Prof. Pavalkis; Leipzig, Germany: Prof.
+88, 10126 Torino, Italy. Email: Luciana.mascia@unito.it; Professor
+Meixensberger; Leuven, Belgium: Prof. Goffin; Mannheim, Germany:
+Dr Reto Stocker, Division of Surgical Intensive Care, Universitasspital
+Prof. Vajkoczy; Milano, Italy: Prof. Stocchetti; Monza, Italy: Dr. Cit-
+Zurich, B-HOF109, Ramistrasse 100, 8091 Zurich, Switzerland. Phone:
+erio; Newcastle upon Tyne, UK: Dr. Chambers; Novara, Italy: Prof.
++41 1 255 2376, Fax: +41 1 255 3172, Email: Reto.stocker@chi.usz.
+Della Corte; Southampton, UK: Dr. Hell; Uppsala, Sweden: Prof.
+ch; Professor Jan Goffin, Department of Neurosurgery, University
+Enblad; Torino, Italy: Dr. Mascia; Vilnius, Lithuania: Prof. Jarzemas-
+Hospital Gasthuisberg, Herestraat 49, 3000 Leuven, Belgium. Phone:
+kas; Zu ̈rich, Switzerland: Prof. Stocker.
++32 16 344290, Fax: +32 16 344285, Email: Jan.goffin@uz.kuleuven.
+ac.be; Dr Bertil Rydenhag, Institute of Clinical Neuroscience, DepartTyne; G Citerio, Monza; P Enblad, Uppsala; BA Gregson, Newcastle
+ment of Neurosurgery, Sahlgrenska University Hospital, Bla Straket 7,
+upon Tyne; T Howells, Uppsala; K Kiening, Heidelberg; J Mattern,
+van 5, SE 413-45 Gothenburg, Sweden. Phone: +45 31 3421578, Fax:
+Heidelberg; P Nilsson, Uppsala; I Piper, Glasgow; A Ragauskas, Kau-
++45 31 416719, Email: Bertil.rydenhag@neuro.gu.se; Professor John
+nas; J Sahuquillo, Barcelona; YH Yau, Edinburgh.
+Pickard, Academic Neurosurgical Unit, Addenbrookes Hospital, Level
+4, A Block, Box 167, Hills Road, Cambridge CB2 2QQ, UK. Phone:
+ment of Clinical Neurosciences, Section of Neurosurgery, Uppsala
++44 01223 336946, Fax: +44 01223 3216926, Email: jdpsecretary@
+University Hospital, S-75185 Uppsala, Sweden. Phone: +46 18 611
+medschl.cam.ac.uk; Dr Sue Hill, Department of Anaesthetics, South0000 Fax: +46 18 558617 Email: Per.enblad@neurokir.uu.se;Dr
+ampton General Hospital, Tremona Road, Southampton SO16 6YD,
+Karl Kiening, Department of Neurosurgery, Im Neuenheimer Feld
+UK. Phone: +44 02380 796401, Fax: +44 02380 794843, Email: sah672, 69120 Heidelberg, Germany Phone: +49 30 4505 60724, Fax:
+neuro@aol.com; Professor Garth Cruickshank, University Department
++49 30 4505 6072, Email Karl.Kiening@med.uni-heidelberg.de; Dr
+of Neurosurgery, Queen Elizabeth Hospital, Edgbaston, Birmingham
+Giuseppe Citerio, Dipartimento di Anestesia e Rianimazione, Azienda
+B15 2TH, UK. Phone: +44 0121 697 8225, Fax: +44 0121 697 8248,
+Ospedaliera, Ospedale San Gerardo, Via Donizetti 106, 20052 Monza
+Email: g.s.cruickshank@bham.ac.uk; Dr Stefan Iencean, Department
+(Milano), Italy. Phone: +39 029 233 3293, Fax: +39 029 233 3293,
+of Neurosurgery, SF Treime Hospital, 2 Ateneului Street, 6600 Iasi,
+Email: g.citerio@hsgerardo.org; Professor Juan Sahuquillo, Depart-
+Romania. Email: mirceasteffan@yahoo.com; Mr Lawrence Watkins,
+ment of Neurosurgery, Neurotraumatology Research Unit, Institut
+Department of Neurosurgery, National Hospital for Neurology and
+Catala de la Salut, Paseo Vall d'Hebron, 119-129, 08035 Barcelona,
+Neurosurgery, Queen Square, London WC1N 3BG, UK. Phone: +44
+Spain. Phone: +34 93 489 3512, Fax: +34 93 489 3513, Email: sahu-
+0207 837 3611, Email: l.watkins@ion.ucl.ac.uk.
+quillo@wanadoo.es; Professor Arminas Ragauskas, Telematics Science Laboratory, Kaunas University of Technology, Studentu 50-449,
+LT3031 Kaunas, Lithuania. Phone: +370 7 736897, Fax: +370 7 Compliance with ethical standards
+736 6869, Email: telematics@tef.ktu.lt; Dr Iain Chambers, Regional
+Medical Physics Department, Newcastle General Hospital, Westgate Conflict of interest We declare that we have no conflicts of interest.
+Road, Newcastle upon Tyne, NE4 6BE, UK. Phone: +44 191 273
+8811, Fax: +44 191 226 0970, Email: Iain.Chambers@nuth.northy.
+nhs.uk; Professor Ian Whittle, Department of Clinical Neurosciences,
+Western General Infirmary, Crewe Road, Edinburgh, UK. Phone: +44 Appendix
+131 537 2103, Fax: +44 131 537 2561, Email: irw@skul.dcn.ed.ac.
+uk; Professor David Wyper, Department of Clinical Physics, Institute
+of Neurological Sciences, Southern General Hospital, 1345 Govan See Table 2.
+Road, Glasgow G51 4TF, UK. Phone: +44 (0) 141 201 2105, Fax:
++44 (0) 141 201 4127, Email: Gpca12@udcf.gla.ac.uk; Dr Michael
+
+Journal of Clinical Monitoring and Computing (2019) 33:39-51 49
+
+Table 2 Table listing the 33 Date Group Name Duration Sensitivity Specificity PPV
+models and input parameters
+selected for assessment based h:min:s (%) (%) (%)
+upon clinical guidance and
+2008-10-09 30_15 BasicWithETCO2 01:14:11 43.9 85.1 23.1
+literature search
+2008-10-16 30_15 BasicSlopeVar550Nets 15:56:45 43.3 88.3 31.8
+2008-10-09 30_15 BasicWithSlope 05:27:44 42.1 85.0 26.3
+2008-10-07 25_10 Basic 03:01:08 41.4 91.1 38.1
+2008-10-13 30_15 BasicWithSlope16HL 02:43:39 41.3 85.4 26.6
+2008-10-16 25_10 BasicSlopeVar 07:32:14 41.2 92.9 43.3
+2008-10-13 30_15 BasicSlopeVar 07:05:21 39.6 90.2 33.7
+2008-09-19 30_15 Basic 03:05:05 38.4 88.6 28.0
+2008-10-13 25_10 BasicSlopeETCO2 03:07:07 37.0 90.5 29.4
+2008-10-22 40_15 BasicWithSlopeSingleStart 08:51:31 36.0 91.9 35.0
+2008-10-03 30_15 BasicWithVar 04:53:32 34.8 93.4 40.3
+2008-10-10 30_15 BasicWithSlope64HL 10:08:03 32.9 89.0 27.7
+2008-10-15 30_15 BasicSlopeVarT1 09:34:31 32.6 92.9 35.9
+2008-10-16 30_15 BasicSlopeVarSaO2 11:01:24 32.3 92.2 33.3
+2008-10-20 30_15 BasicSlopeVarAPA 10:54:36 31.7 91.3 31.4
+2008-10-08 30_15 BasicNoDemog 02:47:40 31.4 94.4 41.5
+2008-10-13 30_15 BasicSlopeSingleStart 05:38:54 31.1 92.9 36.3
+2008-09-19 30_15 Minimal 02:38:18 30.7 93.8 38.4
+2008-10-16 30_15 BasicSlopeVar15PC 05:56:57 30.3 92.1 38.1
+2008-10-07 35_20 Basic 02:58:20 28.6 93.2 34.0
+2008-10-22 40_15 BasicWithSlope 09:14:31 27.3 93.1 31.6
+2008-10-24 30_15 BWSlope30win 05:26:53 25.6 95.1 38.2
+2008-09-21 30_15 MiniVariance 02:54:09 24.5 93.9 35.2
+2008-09-12 60_15 AllPhys Unknown 22.4 94.2 27.6
+2008-10-06 45_30 BasicWithVar 05:01:13 21.9 91.2 22.5
+2008-10-22 50_15 BasicWithSlope 13:47:41 18.5 98.3 55.2
+2008-10-22 50_15 BasicWithSlopeSingleStart 13:01:40 15.0 96.3 31.6
+2008-09-11 60_15 Lots-01 04:19:32 14.5 98.0 39.3
+2008-09-18 90_30 PlusDemog 11:35:47 7.0 93.1 6.3
+2008-09-15 120_30 Basic 04:52:08 5.8 99.1 38.2
+2008-09-17 90_30 First 05:55:07 4.2 99.2 20.4
+2008-09-10 60_15 Basic 29:20:52 1.7 99.9 28.6
+2008-10-23 30_20 Minimal 02:22:34 0.7 99.8 31.3
+
+nhs.uk; Professor Ian Whittle, Department of Clinical Neurosciences,
+Western General Infirmary, Crewe Road, Edinburgh, UK. Phone: +44 Appendix
+131 537 2103, Fax: +44 131 537 2561, Email: irw@skul.dcn.ed.ac. uk; Professor David Wyper, Department of Clinical Physics, Institute
+of Neurological Sciences, Southern General Hospital, 1345 Govan See Table 2. Road, Glasgow G51 4TF, UK. Phone: +44 (0) 141 201 2105, Fax:
++44 (0) 141 201 4127, Email: Gpca12@udcf.gla.ac.uk; Dr Michael
+
+Journal of Clinical Monitoring and Computing (2019) 33:39-51 49
+
+There are 33 runs in the table, 6 above 40% sensitivity and 13 above 30% sensitivity. The two groups inves-
+tigated the most were 30_15 and 25_10. The first digit indicates the maximum start point for a sub-window
+and the second digit gives the minimum start window and is therefore an indication of the prediction win-
+dow. For example the 30_15 group is using data which starts at 15 min before an event in the training/test
+database but also uses a sub-window that starts at 30 min before an event. In order to determine the actual
+amount of data that is required before a prediction could begin using this model you also have to consider
+the sub-window size which is defined in the input vector definition file. In the case of this model the sub-
+window size is 15 min, therefore 45 min of data are required (15 + 30)
+
+References 3. Marmarou A, Anderson RL, Ward JD, et al. Impact of Intracranial Pressure (ICP) insta-
+bility and hypotension on outcome in patients with severe head
+trauma. J Neurosurg. 1991;75:S59-66.
+1. American College of Surgeons. Advanced trauma life support.
+4. BrainIT Consortium. BrainIT. 2007.
+2011.
+5. BrainIT. Brain-it core dataset, manual of operations, data element
+2. Jones P, Andrews P, Midgley S, Anderson S, Piper I, Tocher J,
+definitions. 2009.
+Housley A, Corrie J, Slattery J, Dearden M, Douglas Miller J.
+6. Piper I, Chambers I, Citerio G, Enblad P, Gregson B, Howells T,
+Measuring the burden of secondary insults in head-injured patients
+Kiening K, Mattern J, Nilsson P, Ragauskas A, Sahuquillo J, Don-
+during intensive care. J Neurosurg Anesthesiol. 1994;6:4-14.
+ald R, Sinnott R, Stell A. The brain monitoring with information
+
+50 Journal of Clinical Monitoring and Computing (2019) 33:39-51
+
+technology (BrainIT) collaborative network: EC feasibility study 22. Chen X, Xu D, Zhang G, Mukkamala R. Forecasting acute hypo-
+results and future direction. Acta Neurochir. 2010;152(11):1859- tensive episodes in intensive care patients based on a peripheral
+71. https://doi.org/10.1007/s00701-010-0719-1. arterial blood pressure waveform. Comput Cardiol. 2009;36:545-8.
+8. Funahashi K. On the approximate realization of continuous map- the prediction of acute hypotensive episodes. Comput Cardiol.
+pings by neural networks. Neural Networks. 1989;2(3):183-192. 2009;36:557-60.
+9. Bishop CM. Neural networks for pattern recognition. Oxford Uni- 24. Gabutti L, Vadilonga D, Mombelli G, Burnier M, Marone C.
+versity Press; 1995. Artificial neural networks improve the prediction of kt/v, follow10. Ripley BR. Pattern recognition and neural networks. Cambridge up dietary protein intake and hypotension risk in haemodialysis
+University Press; 1996. patients. Nephrol Dial Transplant. 2004;19:1204-11.
+11. MacKay DJC. Probable networks and plausible predictions-a 25. Reich DL, Hossain S, Krol M, Baez B, Patel P, Bernstein A,
+review of practical bayesian methods for supervised neural net- Bodian CA. Predictors of hypotension after induction of general
+works. Network. 1995;6:469-505. anesthesia. Anesth Analg. 2005;101(3):622-8.
+12. Neal RM. Bayesian learning for neural networks. Springer, Lec- 26. Lehman L, Saeed M, Moody G, Mark R. Similarity-based search-
+ture Notes in Statistics. 1996. ing in multi-parameter time series databases. Comput Cardiol.
+13. Stell A, Sinnott R, Jiang J, Donald R, Chambers I, Citerio G, 2008;35:653-6.
+Enblad P, Gregson B, Howells T, Kiening K, Nilsson P, Ragauskas 27. Dasta JF, McLaughlin TP, Mody SH, Piech Computed Tomography (CT). Daily cost of an
+A, Sahuquillo J, Piper I. Federating distributed clinical data for intensive care unit day: the contribution of mechanical ventilation.
+the prediction of adverse hypotensive events. Philos Trans R Soc. Crit Care Med. 2005;33(6):1266-71.
+2009;367(1898):2679-90. 28. Donald R, Howells T, Piper I, Chambers I, Citerio G, Enblad P,
+14. Hanfelt JJ, Slack RS, Gehan EA. A modification of simon's opti- Gregson B, Kiening K, Mattern J, Nilsson P, Ragauskas A, Sahu-
+mal design for phase ii trials when the criterion is median sample quillo J, Sinnott R, Stell A. Trigger characteristics of Insult Grading (EUSIG)-
+size. Control Clin Trials. 1999;20:555-66. defined hypotensive events. Acta Neurochir Suppl. 2012;114:45 - 9.
+15. Simon R. Optimal two-stage designs for phase ii clinical trials. 29. Williams CKI, Georgatzis K, Hawthorne C, McMonagle P, Piper
+Control Clin Trials. 10:1-10, 1989. I, Shaw M, Lal P. Detecting artifactual events in vital signs moni16. Crawley M. The R book (Second Edition). New York: Wiley; 2012. toring data. In: Clifton DA, editor. Machine learning for health17. Kumar A, Roberts D, Wood KE, Light B, Parrillo JE, Sharma S, care technologies; 2016. http://homepa ges.inf.ed.ac.uk/ckiw/proje
+Suppes R, Feinstein D, Zanotti S, Taiberg L, Gurka D, Kumar A, cts/adult_icu/CSOreport230915.pdf.
+Cheang M. Duration of hypotension before initiation of effective 30. Ghassemi M, Celi L,A, Stone J. State of the art review: the data
+antimicrobial therapy is the critical determinant of survival in revolution in critical care. Crit Care. 2015;19:118.
+human septic shock. Crit Care Med. 2006;34(6):1589-96. 31. IBM InfoSphere, Big Data Help Toronto Hospital Monitor Pre18. Bijker JB, vanKlei WA, Vergouwe Y, .Eleveld DJ, van Wolfswin- mature Infants. http://www.eweek.com/enterprise-apps/ibm-infos
+kel L, Moons KGM, Kalkman CJ. Intraoperative hypotension phere-big-data-help-toronto-hospital-monitor-premature-infants.
+and 1-year mortality after noncardiac surgery. Anesthesiology. 32. Docherty AB, Lone NI. Exploiting big data for critical care
+2009;111(6):1217-26. research. Curr Opin Crit Care. 2015;21(5):467-72.
+19. Smiley R. Fast fourier transforms as prophecy: predict- 33. Celi LA, Mark RG, Stone DJ, Montgomery RA. "Big Data" in the
+ing hypotension during spinal anes-thesia. Anesthesiology. intensive care unit. Closing the data loop. Am J Respir Crit Care
+2005;102(6):1079-80. Med. 2013;187(11):1157-60.
+20. Moody GB, Lehman LH. Predicting acute hypotensive episodes: 34. Figini S, Maggi M. Performance of credit risk prediction models
+the10th annual physionet/computers in cardiology challenge. via proper loss functions. Technical report, Universita di Pavia,
+Comput Cardiol. 2009;36:541-4. Department of Economics and Management, 2014.
+21. Henriques JH, Rocha TR. Prediction of acute hypotensive epi- 35. Hand D. Assessing the performance of classification meth-
+sodes using neural network multi-models. Comput Cardiol. ods. Int Stat Rev. 2012;80(3):400-14. https://doi.org/10.111
+2009;36:549-52. 1/j.1751-5823.2012.00183.x.
+
+Rob Donald1 · Tim Howells2 · Ian Piper3 · P. Enblad4 · P. Nilsson4 · I. Chambers5 · B. Gregson6 · G. Citerio7 ·
+Rob Donald Department of Medical Physics, James Cook University
+rob@statsresearch.co.uk Hospital, Middlesbrough, UK
+1 Neurosurgical Trials Group, Newcastle University,
+Stats Research Ltd, Dingwall, Scotland, UK
+Newcastle upon Tyne, UK
+Department of Neurosurgery, Uppsala University Hospital, 7
+Hospital San Gerardo, Neurorianimazione, Monza, Italy
+Uppsala, Sweden
+3 Department of Neurosurgery, Ruprecht-Karls-Universitat
+Institute of Neurological Sciences, Queen Elizabeth
+Hospital, Heidelberg, Germany
+University Hospital, Clinical Physics, Glasgow, Scotland, UK
+4 Kaunas University of Technology, Kaunas, Lithuania
+Section of Neurosurgery, Uppsala University, Uppsala,
+Sweden
+
+Journal of Clinical Monitoring and Computing (2019) 33:39-51 51
+
+10 12
+Department of Neurosurgery, Vall d'Hebron University Department of Clinical Physics, University of Glasgow,
+Hospital, Barcelona, Spain Glasgow, Scotland, UK
+Department of Information Systems, University
+of Melbourne, Parkville, Australia
+
+Output JSON format:
+{
+  "classes": [{"label": "...", "definition": "one-sentence scope note describing what this class represents", "evidence": "exact span from corpus"}],
+  "relations": [{"label": "...", "domain": "...", "range": "...", "definition": "one-sentence description of what this relation means", "evidence": "exact span from corpus"}],
+  "hierarchy": [{"subClass": "...", "superClass": "...", "evidence": "span or phrase from corpus that implies the is-a relationship"}]
+}
+
+Every class and relation MUST include a `definition` field: a concise one-sentence scope note clarifying what it represents in the clinical domain.
+
+Include every missing item that has ANY support in the corpus. Your answer:

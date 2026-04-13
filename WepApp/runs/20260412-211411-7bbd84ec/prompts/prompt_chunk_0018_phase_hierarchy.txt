@@ -1,0 +1,359 @@
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+Suggested concepts (pre-identified by biomedical NER in this text): T-BPm-C-BPm-BPs-Enclosed, DSG, hypotensive, Traumatic Brain Injury, TBI, hypotension, head-injured, Anderson R, bility, trauma, Becker D, http://www.avert-it.org/, Miller JD, sec-, JA.
+These are entity mentions detected in this chunk. Use them as additional evidence that a concept is present, but only extract labels from the allowed class list above.
+
+Candidate domain terms (contextual hints only — use only if explicitly supported by the text):
+cpp; icp; intracranial pressure; mean arterial pressure; monitoring; outcome; secondary insult; Cerebral Perfusion Pressure; hypotension; mean; BPm; BPs
+
+
+### CORE CONSTRAINTS (Strict Adherence Required)
+1. **Source Fidelity:** Extract ONLY information explicitly present in the text.
+   - DO NOT infer, guess, or use external medical knowledge.
+   - If a clinical concept is not explicitly named, omit it.
+   - Prefer specific clinical labels over abstract category labels. If an allowed class list is provided, you may use those labels; otherwise only use abstract labels (e.g. 'monitoring data') if the text uses that exact phrase.
+
+2. **Evidence Anchor:** EVERY class and relation extracted MUST include an `evidence` field containing an EXACT VERBATIM sentence or clause COPIED from the text — do NOT paraphrase, summarize, truncate, or rephrase. Copy the text exactly as it appears, preserving original wording, word order, and punctuation. If you cannot find an exact quote, OMIT the item.
+
+3. **Extraction Scope:** Extract clinical and biomedical content: conditions, physiological parameters, monitoring variables, treatments/therapies/interventions, outcomes, assessments, laboratory values, nursing interventions, surgical procedures, and clinical dataset categories when explicitly named.
+   Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+   If a sentence or paragraph is mainly about these excluded topics, skip it entirely.
+
+4. **Confidence Rule:** If a clinical concept is clearly named in the text (even briefly), include it. Omit only genuinely non-clinical items.
+
+5. **Hierarchy Rules:** Only extract is-a relationships if the text uses explicit phrases like "is a", "type of", "kind of", "such as", "include:", or "includes:".
+
+6. **Label Mapping Rule:** If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+   Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+   For other abbreviations, expand to their full clinical name as used in the text.
+
+7. **Structural Completeness Rule:** When the text mentions specific clinical items, also extract their general category if the text supports it.
+   For example, if the text discusses 'ventilation, sedation, fluids' as therapies, also extract the general class 'Therapy' or 'Baseline Therapy' if the text uses that grouping.
+   Use the text's own categories and groupings — do not impose an external hierarchy.
+
+**Default priority: classes first, then relations.** Extract relations when the text clearly states a connection between two concepts — both domain and range must be extracted classes. If a phase instruction below overrides this priority, follow the phase instruction.
+
+**Completeness:** Extract every distinct clinical concept the text names — err on the side of inclusion when evidence exists.
+
+### CURRENT TASK: Phase 3 — HIERARCHY EXTRACTION
+Extract subclass/superclass (is-a) edges supported by the text. A hierarchy edge means one class is a TYPE, SUBTYPE, CATEGORY MEMBER, or SPECIFIC INSTANCE of another. Extract every edge the text explicitly supports with evidence.
+
+### HIERARCHY DETECTION METHOD
+Look for ALL of these patterns in the text:
+  1. Explicit cues: 'such as', 'is a', 'type of', 'kind of', 'form of'
+  2. Enumeration: 'include:', 'includes:', 'consists of', 'comprises'
+  3. Category grouping: 'categorized as', 'classified as', 'grouped into'
+  4. List patterns: items listed under a heading or category name
+  5. Implicit grouping: when several specific items are mentioned alongside a general category (e.g., 'therapy: ventilation, sedation' implies both are subclasses of Therapy; 'core parameters: HR, ICP, MAP' implies all three are subclasses of Core Monitoring Parameter)
+  6. Definitional: 'X is a Y', 'X, a type of Y', 'X (a form of Y)'
+  7. Context-based: if the text organises items into sections or tables, each section heading implies a parent class for the items listed under it
+  8. Medical knowledge: TBI is a type of Brain Injury, Hypotension is a type of Secondary Insult — extract these when the text discusses them together
+
+For enumeration patterns (e.g. 'include: X, Y, Z'), extract EACH listed item as a subclass of the parent category.
+IMPORTANT: If X 'includes' Y, model it as: Y subClassOf X (a hierarchy edge). Do NOT output 'includes' as a relation label — it belongs in the hierarchy.
+
+### CHAIN-OF-THOUGHT
+For each pair of known classes, reason:
+1. Does the text describe one class as a specialization of another?
+2. Does the text list one class under another as a member/subtype?
+3. Even if not explicitly stated, does medical context clearly imply a parent-child relationship?
+4. What text evidence supports this parent-child link?
+
+Be thorough: extract every parent-child relationship the text supports. Aim for at least one hierarchy edge per class if possible.
+If the text lists items under a category heading, EACH item is a subClassOf that category. For example, if 'core monitoring' is followed by 'heart rate, ICP, MAP', then each is a subClassOf Core Monitoring Parameter.
+Use ONLY the known classes below for subClass and superClass labels.
+
+### SELF-CHECK (before finalising output)
+- Are there any circular edges (A subClassOf B AND B subClassOf A)? Remove them.
+- Are subClass and superClass labels from the known-classes list?
+- Does every evidence field contain a verbatim quote from the text?
+
+Output JSON with keys classes, relations, hierarchy. Set classes and relations to empty arrays.
+
+Known classes (use only these for subclass/superclass): Hypotension; Secondary Insult; Outcome
+
+
+### OUTPUT FORMAT (JSON Only)
+Return ONLY valid JSON. Do not include markdown code blocks (e.g., ```json), conversational intros, or commentary.
+Structure:
+{
+  "classes": [{"label": "string", "definition": "one-sentence scope note describing what this class represents in the domain", "evidence": "string (exact fragment)"}],
+  "relations": [{"label": "string", "domain": "string", "range": "string", "definition": "one-sentence description of what this relation means between domain and range", "evidence": "string (exact fragment)"}],
+  "hierarchy": [{"subClass": "string", "superClass": "string", "evidence": "string (exact fragment)"}]
+}
+
+**Definition rule:** Every class and relation MUST include a `definition` field: a concise one-sentence scope note clarifying what the class represents or what the relation means in the clinical domain. Ground definitions in the text where possible, but you may use standard medical knowledge to write a clear scope note.
+
+**Relation labels:** Prefer relation labels from the allowed relation list (if provided above) or from the examples below. Every relation must have domain and range (class labels from the text); omit relations without clear domain/range.
+
+**List rule:** If several concepts appear in a list, do not create relations between them unless the text explicitly states a relation.
+
+**Hierarchy rule:** Do not create hierarchy from narrative phrases such as "good example", "important factor", threshold/value statements, or long sentence fragments. Only keep clean noun-phrase subclass/superclass pairs.
+
+**ANTI-ANCHORING (critical):** The examples below demonstrate OUTPUT FORMAT and evidence style ONLY. They come from DIFFERENT text passages and may cover different concept types than your text. Do NOT limit your extraction to the concept types shown in the examples. Extract EVERY clinical concept the current text supports, even if no example shows that type. If the text mentions 15 distinct concepts, extract all 15. Do not copy vocabulary from the examples unless the current text explicitly supports it.
+
+**REASONING STEP:** Before producing JSON, mentally scan the text for: (1) every named clinical concept, (2) explicit relations between them, (3) hierarchy cues (such as, is a, type of, include:). Then output only items with verbatim evidence.
+
+---
+--- Retrieved examples (3) ---
+
+Text: This is the minimum minute by minute monitoring data required for inclusion in the BrainIT Database and include: Heart Rate, Respiration Rate, Mean Arterial Pressure, mean ICP, SaO2 and Temperature.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Monitoring Data",
+      "evidence": "minute by minute monitoring data",
+      "definition": "Continuously recorded physiological measurements collected from bedside monitors."
+    },
+    {
+      "label": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required",
+      "definition": "A mandatory physiological variable collected at minimum once per minute."
+    },
+    {
+      "label": "Heart Rate",
+      "evidence": "Heart Rate",
+      "definition": "The number of cardiac contractions per minute, a core physiological monitoring parameter in neuro-ICU."
+    },
+    {
+      "label": "Respiration Rate",
+      "evidence": "Respiration Rate",
+      "definition": "The number of breaths per minute, measured via impedance plethysmography or ventilator."
+    },
+    {
+      "label": "Mean Arterial Pressure (MAP)",
+      "evidence": "Mean Arterial Pressure",
+      "definition": "The average arterial blood pressure during a cardiac cycle, a key haemodynamic parameter."
+    },
+    {
+      "label": "Intracranial Pressure (ICP)",
+      "evidence": "mean ICP",
+      "definition": "The pressure inside the cranium, continuously monitored to detect intracranial hypertension in TBI patients."
+    },
+    {
+      "label": "SaO2",
+      "evidence": "SaO2",
+      "definition": "Arterial oxygen saturation measured by pulse oximetry, indicating blood oxygenation levels."
+    },
+    {
+      "label": "Temperature",
+      "evidence": "Temperature",
+      "definition": "Core body temperature measured at rectal, oesophageal, bladder, or skin sites."
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Heart Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "minimum minute by minute monitoring data required...include: Heart Rate"
+    },
+    {
+      "subClass": "Respiration Rate",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Heart Rate, Respiration Rate"
+    },
+    {
+      "subClass": "Mean Arterial Pressure (MAP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Mean Arterial Pressure"
+    },
+    {
+      "subClass": "Intracranial Pressure (ICP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: mean ICP"
+    },
+    {
+      "subClass": "SaO2",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: SaO2"
+    },
+    {
+      "subClass": "Temperature",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "monitoring data required...include: Temperature"
+    }
+  ]
+}
+
+---
+
+Text: Blood pressure monitoring includes both systolic (BPs) and mean (BPm) arterial pressure as core monitoring parameters. Hypotensive events, defined by EUSIG criteria, are a specific type of secondary insult. The EUSIG grading system is a clinical assessment tool for classifying insult severity.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Systolic Blood Pressure (SBP)",
+      "evidence": "systolic (BPs)",
+      "definition": "Peak arterial pressure during cardiac systole."
+    },
+    {
+      "label": "Diastolic Blood Pressure (DBP)",
+      "evidence": "arterial pressure"
+    },
+    {
+      "label": "Hypotensive Event",
+      "evidence": "Hypotensive events",
+      "definition": "An episode of blood pressure falling below a defined threshold for a sustained period."
+    },
+    {
+      "label": "EUSIG Grade",
+      "evidence": "EUSIG grading system",
+      "definition": "Edinburgh University Secondary Insult Grades classification system for adverse events."
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Systolic Blood Pressure (SBP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "systolic (BPs) arterial pressure as core monitoring parameters"
+    },
+    {
+      "subClass": "Diastolic Blood Pressure (DBP)",
+      "superClass": "Core Monitoring Parameter",
+      "evidence": "arterial pressure as core monitoring parameters"
+    },
+    {
+      "subClass": "Hypotensive Event",
+      "superClass": "Secondary Insult",
+      "evidence": "Hypotensive events are a specific type of secondary insult"
+    },
+    {
+      "subClass": "EUSIG Grade",
+      "superClass": "Clinical Assessment",
+      "evidence": "EUSIG grading system is a clinical assessment tool"
+    }
+  ]
+}
+
+---
+
+Text: The pressure-time dose is a derived parameter calculated as the area under the ICP curve above a critical threshold. Cerebrovascular autoregulation is a physiological condition that modulates the relationship between ICP and outcome. Mortality is a key outcome measure alongside the Glasgow Outcome Scale.
+Output (JSON):
+{
+  "classes": [
+    {
+      "label": "Pressure-Time Dose",
+      "evidence": "pressure-time dose is a derived parameter",
+      "definition": "The cumulative burden of intracranial hypertension calculated as area under the ICP curve."
+    },
+    {
+      "label": "Cerebrovascular Autoregulation",
+      "evidence": "Cerebrovascular autoregulation is a physiological condition",
+      "definition": "The brain's ability to maintain constant blood flow despite changes in perfusion pressure."
+    },
+    {
+      "label": "Mortality",
+      "evidence": "Mortality is a key outcome measure",
+      "definition": "Patient death as a clinical outcome measure."
+    }
+  ],
+  "relations": [],
+  "hierarchy": [
+    {
+      "subClass": "Pressure-Time Dose",
+      "superClass": "Derived Parameter",
+      "evidence": "pressure-time dose is a derived parameter"
+    },
+    {
+      "subClass": "Cerebrovascular Autoregulation",
+      "superClass": "Condition",
+      "evidence": "Cerebrovascular autoregulation is a physiological condition"
+    },
+    {
+      "subClass": "Mortality",
+      "superClass": "Outcome",
+      "evidence": "Mortality is a key outcome measure alongside the Glasgow Outcome Scale"
+    }
+  ]
+}
+
+---
+TEXT TO ANALYZE:
+Donald et al.
+
+5 6
+BPm BPm
+70 70
+A B C D A B C D
+T-BPm-C-BPm-BPs-Enclosed T-BPm-C-BPm-BPm-Only
+
+BPs D BPs
+90 90
+C C D
+7 8
+BPm BPm
+70 70
+A B A B C D
+T-BPm-C-BPs T-BPm-C-Both
+
+BPs, 90 or BPm, 70; 5 mins, Events = 2081, Patients = 100 decided to confirm our finding using a different software
+2000 technique based on SQL and PERL scripts as described in
+the section SQL and PERL scripts. The results of this exer-
+cise confirmed the pattern first shown with the Java-based
+1500 DSG software. For BPm triggers there were 147 patients
+with 3,905 events. For BPs triggers there were 41 patients
+with 99 events. The higher numbers of events generated
+Number of events
+
+using this method are due to the simplistic nature of the
+1000 script, which does not use a holddown mechanism. The key
+result is that the pattern of the majority of events being trig-
+gered by BPm is confirmed.
+
+1 2 3 4 5 6 7 8 9 10 11 Our research contributes to the debate regarding which phys-
+Event profile iological measure should be used when guarding against
+hypotensive conditions in Traumatic Brain Injury (TBI) patients. We have shown that
+Fig. 3 Events classified by event profile type (Table 2)
+when using a measure based on mean arterial pressure that
+the prevalence of hypotension may be more widespread than
+threshold values for 14 secondary insult categories. Our previously considered. Future work should be carried out to
+research uses the definition for hypotension, which is BPs £ determine if the hypotensive events identified as being driven
+90 mmHg or BPm £ 70 mmHg for a holddown of 5 min. purely by BPm can be associated with a poorer outcome for
+Using the Edinburgh University Secondary Insult Grades (EUSIG) definition we were able to identify 2,081 this group of patients.
+events from 100 patients.
+During the analysis using the Edinburgh University Secondary Insult Grades (EUSIG) events it was noticed
+that the majority of the events were triggered by a breach of
+the BPm threshold and it was often the case that the BPs Conclusion
+trace was considerably above the 90-mmHg threshold. As
+the DSG program was modified to classify the trigger and 2007, page S-8, "The importance of mean arterial
+clearance characteristics of the events (Fig. 3). pressure, as opposed to systolic pressure, should also be
+The vast majority of events turn out to be Type 6, which stressed, not only because of its role in calculating Cerebral Perfusion Pressure (CPP),
+are purely BPm-driven. This result was so striking that we but because the lack of a consistent relationship between
+
+Trigger Characteristics of Edinburgh University Secondary Insult Grades (EUSIG)-Defined Hypotensive Events 49
+
+systolic and mean pressures makes calculations based on 6. Donald R (2008) Event definition analysis, preliminary results.
+on: 2010.09.01
+tain mean arterial pressures considerably above those rep- 7. Jones P, Andrews P, Midgley S, Piper I, Tocher J, Housley A, Corrie J,
+resented by systolic pressures of 90 mmHg throughout the Slattery J, Dearden M, Miller D (1994) Measuring the burden of
+patient's course, but currently there are no data to support secondary insults in head-injured patients during intensive care.
+this." We believe that our work provides a start to this body J Neurosurg Anesthesiol 6:4-14
+8. Marmarou A, Anderson R, Ward J et al (1991) Impact of Intracranial Pressure (ICP) instaof evidence. bility and hypotension on outcome in patients with severe head
+trauma. J Neurosurg 75:S59-S66, URL: http://jnsonline.org/jns/
+Conflict of interest statement The authors declare that they have no issues/v75n5s/pdf/n0750059.pdf Accessed on: 2007.12.31
+conflict of interest. 9. Miller J, Becker D (1982) Secondary insults to the injured brain.
+J R Coll Surg Edinb 27:292-298
+10. Piper I, Chambers I, Citerio G, Enblad P, Gregson B, Howells T,
+Kiening K, Mattern J, Nilsson P, Ragauskas A, Sahuquillo J, Donald
+References R, Sinnott R, Stell A (2010) The brain monitoring with information
+technology (BrainIT) collaborative network: EC feasibility
+study results and future direction. Acta Neurochir 152(11):1-13.
+http://www.avert-it.org/ Accessed on: 2010.09.01 s00701-010-0719-1 Accessed on: 2010.05.29
+L, Moons KGM, Kalkman CJ (2009) Intraoperative hypotension for statistical computing. R foundation for statistical computing,
+3. The brain monitoring with information
+technology (BrainIT) Team (2007) The brain monitoring with information
+technology (BrainIT). URL: http://www.brainit.org/ 12. Signorini DF, Andrews PJD, Jones PA, Wardlaw JM, Miller JD
+Accessed on: 2007.12.22 (1999) Adding insult to injury: the prognostic value of early sec-
+4. Brain Trauma Foundation (2007) Guidelines for the management ondary insults for survival after traumatic brain injury. J Neurol
+of severe traumatic brain injury, 3rd edn. J Neurotrauma 1:1- Neurosurg Psychiatry 66:26-31, URL: http://jnnp.bmj.com/cgi/
+117, URL: https://www.braintrauma.org/pdf/protected/Guidelines_ reprint/66/1/26 Accessed on: 2008.01.09
+Management_2007w_bookmarks.pdf Accessed on: 2008.09.28 13. Signorini DF, Andrews PJD, Jones PA, Wardlaw JM, Miller JD
+Eisenberg HM, Jane JA, Marmarou A, Foulkes MA (1993) The role study in traumatic brain injury. J Neurol Neurosurg Psychiatry
+of secondary brain injury in determining outcome from severe head 66:20-25, URL: http://jnnp.bmj.com/cgi/reprint/66/1/20 Accessed
+injury. J Trauma 34(2):216-222 on: 2008.01.09
+---

@@ -1,0 +1,155 @@
+
+
+### SYSTEM ROLE
+You are a comprehensive clinical ontology extraction engine for biomedical and clinical literature.
+The text may come from Neuro-ICU, neuroscience, or related clinical domains.
+
+### PRIMARY GOAL
+Extract a COMPREHENSIVE, evidence-grounded ontology from the text.
+Every item must have verbatim evidence from the source text.
+Be thorough — extract every clinical concept the text explicitly names.
+
+### RULES
+
+1. EVIDENCE FIRST
+- EVERY class, relation, and hierarchy edge MUST include an `evidence` field.
+- `evidence` must be an EXACT verbatim fragment COPIED from the text — do NOT paraphrase, summarize, truncate, or rephrase.
+- Copy the sentence or clause exactly as it appears, preserving original wording, word order, and punctuation.
+- If you cannot find an exact quote in the text, OMIT the item entirely.
+
+2. SOURCE FIDELITY
+- Extract concepts and relations stated or clearly implied in the text.
+- You may use standard medical knowledge for hierarchy (e.g. TBI is a type of Brain Injury).
+- Use short noun-phrase labels only.
+- Do NOT output sentence fragments, clauses, or paraphrases as class labels.
+
+3. EXTRACTION SCOPE
+Extract ALL clinical and biomedical content: conditions, diseases, injuries, syndromes, secondary insults, physiological parameters, monitoring variables, treatments/therapies/interventions/drugs, outcomes, assessments, scores, laboratory values, nursing interventions, surgical procedures, medical devices, sensors, clinical guidelines, management protocols, and data categories (Monitoring Data, Demographic Data, Admission Data, Treatment Data, Outcome Data, Core Monitoring Parameter, Optional Monitoring Parameter, Baseline Therapy, etc.).
+Exclude: authors, affiliations, publication metadata (DOI, page numbers, journal names, URLs), organisational/governance content (steering groups, meetings, membership, centres, ethics, funding), database/infrastructure (forms, software, websites, validation workflows), and generic research-process wording (trials, study design, feasibility).
+
+4. CLASS RULES
+- Prefer concrete clinical labels from the text.
+- Prefer specific labels over abstract ones (e.g. prefer 'Heart Rate' over 'Monitoring Data' when both are mentioned). If an allowed class list is provided, you may use those labels; otherwise avoid abstract categories unless the text explicitly names them.
+- Keep labels close to the wording in the text.
+- Do not invent CamelCase labels.
+
+5. LABEL MAPPING
+- If the text uses a clinical abbreviation or synonym, expand it to the full clinical name.
+  Common examples: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+- For other abbreviations, expand to their full clinical name as used in the text.
+
+6. STRUCTURAL COMPLETENESS
+- When the text mentions specific clinical items, also extract their general category if the text supports it.
+- Use the text’s own categories and groupings — do not impose an external hierarchy.
+
+7. RELATION RULES
+- Extract relations when the text clearly states a connection between two extracted class labels.
+- Domain and range must both be extracted class labels from the same text.
+- Prefer concise, domain-appropriate relation labels (e.g. treats, targets condition, has monitoring data).
+- If an allowed relation list was provided, use those labels. Otherwise, prefer labels that reflect the text’s wording.
+- CRITICAL: Do NOT use 'includes', 'consists of', 'comprises', 'contains', 'encompasses', 'is a type of', 'is a kind of', 'categorized as', 'classified as', 'belongs to', or 'part of' as relation labels. If X includes/contains Y, model it as HIERARCHY: Y subClassOf X. If A is a type of B, model it as HIERARCHY: A subClassOf B.
+
+8. HIERARCHY RULES
+- Extract hierarchy edges when the text supports them. Look for:
+  - Explicit cues: "is a", "type of", "kind of", "such as", "include:", "includes:", "consists of", "comprises"
+  - Implicit grouping: items listed under a heading or category
+  - Medical knowledge: when both concepts are in the text and one is clearly a subtype (e.g. TBI is a type of Brain Injury)
+- For enumeration cues, extract EACH listed item as a subclass.
+- NEVER output long clauses, verb phrases, or sentence fragments as subclass or superclass.
+- If either side is not a clean noun phrase, omit the hierarchy edge.
+
+### REASONING STEP
+Before producing JSON, mentally scan the text for:
+(1) every named clinical concept,
+(2) explicit relations between them,
+(3) hierarchy cues (such as, is a, type of, include:).
+Then output only items with verbatim evidence.
+
+### OUTPUT FORMAT (JSON ONLY)
+Return ONLY valid JSON.
+Do not include markdown, explanations, headings, or commentary.
+
+Use exactly this structure:
+{
+  "classes": [
+    {"label": "string", "definition": "one-sentence scope note describing what this class represents in the domain", "evidence": "string"}
+  ],
+  "relations": [
+    {"label": "string", "domain": "string", "range": "string", "definition": "one-sentence description of what this relation means between domain and range", "evidence": "string"}
+  ],
+  "hierarchy": [
+    {"subClass": "string", "superClass": "string", "evidence": "string"}
+  ]
+}
+
+9. DEFINITION RULES
+- Every class and relation MUST include a `definition` field: a concise one-sentence scope note.
+- The definition should clarify what the class represents or what the relation means in the clinical domain.
+- Ground definitions in the text where possible, but you may use standard medical knowledge to write a clear scope note.
+- Example class definition: "A physiological parameter measuring the pressure inside the cranium, used to monitor patients with traumatic brain injury."
+- Example relation definition: "Links a patient to the set of continuously recorded physiological measurements captured during their ICU stay."
+
+### NON-GOAL EXAMPLE
+The following sentence should produce NO extraction:
+Text: "The study was funded by the BrainIT Group and data were collected from 22 centres across 11 countries."
+Expected output: {"classes": [], "relations": [], "hierarchy": []}
+Reason: Funding, governance, study logistics, and multi-centre coordination are out of scope — only extract clinical concepts.
+
+### SELF-CHECK (before finalising output)
+- Is every label a clinical TYPE (not an instance, a person's name, or a study name)?
+- Are there any duplicate or synonym labels? Merge them.
+- Do all relation domain/range labels match extracted class labels?
+- Are there any circular hierarchy edges (A subClassOf B AND B subClassOf A)? Remove them.
+- Does every evidence field contain a verbatim quote from the text?
+- Do not invent concepts not present in the text.
+
+---
+TEXT TO ANALYZE:
+Ideally, all of the datasets we describe below would be
+of the required information is not available; in these cases we have created our
+own datasets, which we intend to contribute to the Linked Open Data cloud.
+
+Data Conversion. In this stage an RDF version of the medical data, expressed
+against the Patient Data and Medical Observations ontologies is created. For
+the two case studies described in this paper, we have developed a program that
+dataset; RDB2RDF was considered but was not appropriate for how a case study
+dataset was represented (as a spreadsheet). The Patient Data (pd) ontology
+
+70 L. Moss et al.
+
+provides classes for representing Patients, Sessions, and Timepoints. Each Timepoint is associated with a set of Readings which refer to the Parameter being
+observed and its value. The Medical Observations ontology defines a series of
+axioms that integrate our patient ontology with the W3C Semantic Sensor Network (ssn) Incubator Group's sensor ontology and allows the pd:Readings to
+be linked to the machines/sensors that produced them. We define pd:Reading
+as a subclass of ssn:ObservationValue (which represents the value produced by
+some sensing process); pd:Parameter (representing things that were recorded) as
+a subclass of ssn:Property; and pd:Patient as a ssn:FeatureOfInterest. To represent a pd:Timepoint as a set of observations, we use the Observation Collection
+pattern, defining pd:Timepoint as a subclass of mo:ObservationCollection,
+which has an associated set of ssn:Observations.
+Provenance Annotation. This optional, semi-automatic stage involves annotating the patient observations with provenance, considered as "a description
+of the entities and processes involved in producing ... that resource". Providing provenance information increases the available types of assessments compared to solely using the observations. In this framework, we capture details
+of the sensors that were responsible for producing the pd:Readings. Our Medical Machine/Sensor ontology (mms), extends the SSN ontology with classes
+and individuals representing the machines used in our medical evaluation. We
+have defined mms:Machine as a subclass of ssn:Platform, and various subclasses of ssn:Sensor for the different types of sensors on the machine. Each
+sensor is then described in terms of the ssn:Sensing process that is implements, the ssn:Property it observes, and its ssn:MeasurementCapability. The
+machine recording settings annotate the observations with knowledge about
+how the sensors were configured to record the data; this knowledge is provided
+by the Configuration ontology (c). For example, the specification of the sampling rate is described using the c:MachineConfiguration class, which references
+a set of c:RecordingConfigurations, which, in turn, describe the mms:Machine
+or ssn:Sensor used to record a parameter between two timepoints in a session.
+Data Checking. This component evaluates the medical data using the available information and assessment rules represented as SPARQL queries (Table
+1). For each patient, a single temporary assessment dataset is created consisting of the patient observations RDF dataset, the medical domain ontology, the
+SSN ontology, and provenance annotations. A program then loads and executes
+each assessment query, storing the results in a separate file which is used later
+to generate a summary of the analysis. If a value is identified as an error it is
+annotated with 'Possible Error' (PoE) or a 'Probable Error' (PrE); where PrE
+is more likely to be an error than PoE. Definitions of acceptable values, sensor accuracies, and medical conditions & treatments are provided by ontologies,
+enabling reuse of existing knowledge and as the rules are expressed at the ontological level, their reuse across multiple domains without modification; whereas
+other approaches e.g. complex event processing and rule engines do not easily
+allow for this. RDF also provides a common representational formalism, allowing
+data to be provided in a proprietary format, e.g. database or spreadsheet.
+
+Trusting Intensive Care Unit (ICU) Medical Data 71
+
+Table 1. Example assessments
+---

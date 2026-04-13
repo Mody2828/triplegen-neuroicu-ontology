@@ -1,0 +1,805 @@
+### TASK
+You are a text-grounded ontology completion engine for biomedical and clinical literature.
+Review the SOURCE TEXT below and find **clinical classes** and **relations** that are explicitly mentioned but MISSING from the current ontology.
+The per-chunk extraction may miss concepts — be thorough. Extract every clinical concept and relation the text explicitly names.
+
+### CURRENT ONTOLOGY
+Classes already extracted:
+  - 6-month Outcome
+  - Active Autoregulation
+  - Active ICP Insult
+  - Active Intervention
+  - Acute Respiratory Distress Syndrome
+  - Adult Cohort
+  - Adult Traumatic Brain Injury
+  - Adverse Event
+  - Ancillary Monitoring
+  - Aneurysmal Subarachnoid Hemorrhage
+  - Annotation
+  - Area Under Curve
+  - Artefact Removal
+  - Artefactual Data
+  - Arterial Hypotension
+  - Arterial Line Damping
+  - Arterial Oxygen Pressure
+  - Audit
+  - Audit and Feedback
+  - Autoregulation Index
+  - Baseline Risk Factor
+  - Beat-to-beat Analysis
+  - Bedside Intervention
+  - Bedside Physio/treatment Data
+  - Best Practice Intracranial Pressure Strategy
+  - Beta-blocker
+  - Blood Flow
+  - Blood Gases
+  - Blood Pressure Mean
+  - Blood Pressure Systolic
+  - Brain Injury
+  - Brain Tissue Oxygen Catheter
+  - Brain Tissue Oxygen Monitoring
+  - Brain Trauma Foundation
+  - Brain-injured Patient
+  - Brain-it Database
+  - Brain-it Dataset
+  - Brainit Database
+  - Business Process Management
+  - Business Process Model Notation
+  - CPP
+  - Catheter Tip Placement
+  - Cerebral Blood Flow
+  - Cerebral Perfusion Thresholds
+  - Cerebrovascular Autoregulation
+  - Classification and Regression Trees
+  - Clear Hold-down
+  - Clinical Compliance
+  - Clinical Event Log
+  - Clinical Guideline
+  - Clinical Management Strategy
+  - Clinical Outcome
+  - Clinical Pathway
+  - Clinical Reminder
+  - Colour-coded Plot
+  - Compound Symmetry Correlation Structure
+  - Computed Tomography
+  - Computer-assisted Dissemination
+  - Condition
+  - Continuous Monitoring
+  - Continuous State Variable
+  - Contraindication
+  - Cubic Regression Spline
+  - Data Quality Assessment
+  - Data Set Generator
+  - Decision Support System
+  - Decompressive Craniectomy
+  - Demographic Data
+  - Derived Parameter
+  - Diastolic Arterial Pressure
+  - Direct Algorithm
+  - Discrete State Variable
+  - Duration
+  - Duration Multiplied by Non-adherence Metric
+  - Duration Threshold
+  - Duration/non-adherence Metric
+  - EUSIG Grade
+  - Educational Strategy
+  - Electrocardiogram (ECG)
+  - Endotracheal Suctioning
+  - Event Clear
+  - Event Detection
+  - Event Holddown
+  - Event Log
+  - Event Profile
+  - Event Profile Type
+  - Event Representation
+  - Event Threshold
+  - Event Trigger
+  - Exhaled Carbon Dioxide Monitoring
+  - Exponential Decay Curve
+  - Extradural Lesion
+  - Factorial Switching Linear Dynamical Systems
+  - False-positive Rate
+  - Fluids
+  - Flush
+  - Fslds Model
+  - GCS Assessment
+  - GOSe Outcome
+  - Glasgow Definition
+  - Glucose
+  - Glucose Measurement
+  - Glucose Regulation
+  - Gos Outcome Score
+  - Graph-edit Distance
+  - Guideline
+  - Guideline Adherence
+  - Guideline Object
+  - Haematocrit
+  - Head Injury
+  - Heart Failure
+  - Heart Rate
+  - Heidelberg Definition
+  - Hold-down
+  - Holddown Mechanism
+  - Hybrid State Space Model
+  - Hypotension
+  - Hypothermia Therapy
+  - ICP
+  - ICP Insult
+  - Icu Admission
+  - Impact Model
+  - Impaired Cerebrovascular Autoregulation
+  - Injury Mechanism
+  - Insult Duration Threshold
+  - Insult Intensity Threshold
+  - Intensity Threshold
+  - Intensive Care
+  - Intensive Care Unit
+  - Intensive Care Unit Stay
+  - Interquartile Range
+  - Intracranial Hypertension
+  - Intracranial Hypertensive Episode
+  - Intracranial Pressure Burden
+  - Intracranial Pressure Insult
+  - Intracranial Pressure Management
+  - Intracranial Pressure Monitoring
+  - Intracranial Pressure Thresholds
+  - Intracranial Pressure-lowering Treatment
+  - Intracranial Pressure-time Burden
+  - Intraparenchymal Lesion
+  - Length of Stay
+  - Linear Interpolation
+  - Log-normal Regression Model
+  - Long-term Outcome
+  - Mass Media Campaign
+  - Mean Arterial Pressure (MAP)
+  - Mean Intracranial Pressure
+  - Measurement Time
+  - Medical Interface Bus
+  - Medical Intervention
+  - Metabolism
+  - Minute-by-minute Data
+  - Mobiguide Project
+  - Model Evaluation
+  - Model Training
+  - Modified Glasgow Outcome Score
+  - Monitoring Data
+  - Mortality
+  - Mortality Rate
+  - Multi-professional Collaboration
+  - Multimodality Monitoring
+  - Multiple Imputation Via Chained Equations
+  - Neuro-icu
+  - Neuro-intensive Care Unit
+  - Neurological Intensive Care Unit
+  - Neurological Outcome
+  - Noradrenaline
+  - Nurse Facilitator
+  - Nursing Intervention
+  - Nutrition
+  - Osmotics
+  - Oxygen Delivery
+  - Oxygenation
+  - Paediatric Cohort
+  - Paediatric Traumatic Brain Injury
+  - Partial Pressure of Arterial Carbon Dioxide
+  - Partial Pressure of Brain Tissue Oxygen
+  - Partial Pressure of Carbon Dioxide
+  - Passive Autoregulation
+  - Passive Dissemination
+  - Passive ICP Insult
+  - Patient Handling
+  - Patient Hygiene
+  - Patient Stay
+  - Patient-mediated Intervention
+  - Pattern Matching
+  - Pearson Correlation Coefficient
+  - Per Pressure Event
+  - Philips Intellivue Bedside Monitor
+  - Physiological Data
+  - Physiological Signal
+  - Predictive Modelling
+  - Pressure Autoregulation
+  - Pressure Event
+  - Pressure-time Dose
+  - Process Mining
+  - Process Model
+  - Pupil Assessment
+  - Ramp
+  - Receiver Operating Characteristic Curve
+  - Red Zone
+  - Regression Model
+  - Rejection Rate
+  - Repeat Pattern
+  - Repeat Pattern Treatment
+  - Respiratory Impedance
+  - Routine Nursing Care
+  - Sao2
+  - Secondary Brain Injury
+  - Secondary Injury
+  - Secondary Insult
+  - Sepsis
+  - Severe Head Trauma
+  - Severe Traumatic Brain Injury
+  - Severity Quadrant
+  - Sign Apps
+  - Similarity Calculation
+  - Slow-waves of Intracranial Pressure
+  - Standardized Interface
+  - Steroids
+  - String-edit Distance
+  - Subdural Lesion
+  - Surviving Sepsis Campaign
+  - Switching Linear Dynamical Systems
+  - Systolic Arterial Blood Pressure
+  - TBI Guidelines
+  - Threshold
+  - Time Series Data
+  - Time-window
+  - Traffic Accident
+  - Transition Curve
+  - Traumatic Brain Injury
+  - Treatment
+  - Treatment Data
+  - Treatment Profile
+  - Treatment Profile Database
+  - Treatment Protocol
+  - Trigger Pattern
+  - True-positive Rate
+  - Type 6 Event
+  - Unfavourable Neurological Outcome
+  - Uppsala Definition
+  - Vasopressors
+  - Vital Signs Measurements
+  - Vital Signs Monitoring
+  - Water Treatment
+  - Waveform Frequency Data
+  - Weighted Algorithm
+  - Weighting
+  - Zero
+
+Relations already extracted:
+  - monitors: Neurological Intensive Care Unit -> ICP
+  - monitors: Neurological Intensive Care Unit -> CPP
+  - monitors: Neurological Intensive Care Unit -> Mean Arterial Pressure (MAP)
+  - manages: Clinical Guideline -> Traumatic Brain Injury
+  - compiles: Brain Trauma Foundation -> Clinical Guideline
+  - includes: Event Log -> Pressure Event
+  - includes: Event Log -> Treatment Data
+  - expresses: Process Model -> Event Log
+  - expresses: Process Model -> Clinical Guideline
+  - compares: Similarity Calculation -> Process Model
+  - measures: Guideline Adherence -> Traumatic Brain Injury
+  - classifies: EUSIG Grade -> Pressure Event
+  - detects: Event Detection -> Pressure Event
+  - treats: Noradrenaline -> Hypotension
+  - associates: Time-window -> Treatment Data
+  - associates: Time-window -> Pressure Event
+  - indicates: Threshold -> Pressure Event
+  - indicates: Clear Hold-down -> Pressure Event
+  - measures: Duration/non-adherence Metric -> Guideline Adherence
+  - requires monitoring of: Traumatic Brain Injury -> ICP
+  - requires monitoring of: Traumatic Brain Injury -> CPP
+  - guides management of: TBI Guidelines -> Traumatic Brain Injury
+  - occurs in: Guideline Adherence -> Intensive Care Unit
+  - represents: Process Model -> Clinical Pathway
+  - analyzes: Process Mining -> Event Log
+  - improves adherence to: Clinical Reminder -> Clinical Guideline
+  - improves adherence to: Nurse Facilitator -> Clinical Guideline
+  - improves adherence to: Mobiguide Project -> Clinical Guideline
+  - improves adherence to: Sign Apps -> Clinical Guideline
+  - implements: Surviving Sepsis Campaign -> Clinical Guideline
+  - requires: Surviving Sepsis Campaign -> Audit
+  - is treated by: Sepsis -> Surviving Sepsis Campaign
+  - uses: Business Process Management -> Process Model
+  - evaluates compliance with: Audit -> Clinical Guideline
+  - contains: Brain-it Dataset -> Physiological Data
+  - contains: Brain-it Dataset -> Treatment Data
+  - uses: Audit -> Pattern Matching
+  - defines: EUSIG Grade -> ICP
+  - defines: EUSIG Grade -> CPP
+  - manages: Ancillary Monitoring -> CPP
+  - indicates: Pressure Event -> CPP
+  - stored in: Treatment -> Treatment Profile Database
+  - stored in: Autoregulation Status -> Clinical Monitoring Parameters
+  - targets: Osmotics -> ICP
+  - monitors: Intensive Care Unit -> ICP
+  - monitors: Intensive Care Unit -> CPP
+  - derived from: Process Model -> Clinical Event Log
+  - expressed in: Process Model -> Business Process Model Notation
+  - represents: Guideline Object -> Pressure Event
+  - contains: Brain-it Database -> Brain-injured Patient
+  - requires management of: ICP -> Pressure Event
+  - affects: Guideline Adherence -> Pressure Event
+  - may contraindicate: Treatment -> Patient Stay
+  - measures outcome of: GOSe Outcome -> Traumatic Brain Injury
+  - occurs in: Traumatic Brain Injury -> Intensive Care Unit
+  - administered in: Steroids -> Patient Stay
+  - mandates against: Guideline -> Steroids
+  - guides management of: Guideline -> Traumatic Brain Injury
+  - occurs during: Secondary Insult -> Patient Stay
+  - is a type of: Head Injury -> Traumatic Brain Injury
+  - requires monitoring of: Severe Traumatic Brain Injury -> ICP
+  - supports management of: Glucose Regulation -> Intensive Care Unit
+  - is component of: Nutrition -> Severe Traumatic Brain Injury
+  - requires guideline-based management of: Sepsis -> Intensive Care Unit
+  - informs: Bedside Physio/treatment Data -> Guideline Adherence
+  - quantifies: Duration -> Guideline Adherence
+  - affects: Guideline Adherence -> Clinical Outcome
+  - occurs during: Treatment -> Patient Stay
+  - measures: Interquartile Range -> Guideline Adherence
+  - affects quality of: Annotation -> Guideline Adherence
+  - identifies: Artefactual Data -> Intensive Care Unit
+  - supports: Decision Support System -> Guideline Adherence
+  - interprets: Process Model -> Bedside Physio/treatment Data
+  - compliments: Partial Pressure of Brain Tissue Oxygen -> ICP
+  - related to: Partial Pressure of Brain Tissue Oxygen -> Metabolic activity
+  - related to: Partial Pressure of Brain Tissue Oxygen -> Disease severity
+  - related to: Partial Pressure of Brain Tissue Oxygen -> Mortality
+  - indicated for: ICP -> Traumatic Brain Injury
+  - directly influenced by: CPP -> ICP
+  - has non-linear effect on: ICP -> Partial Pressure of Brain Tissue Oxygen
+  - adjusted for: Regression Model -> Mean Arterial Pressure (MAP)
+  - adjusted for: Regression Model -> Partial Pressure of Carbon Dioxide
+  - measured in: Vital Signs Monitoring -> Neuro-intensive Care Unit
+  - assesses: GOSe Outcome -> Traumatic Brain Injury
+  - assesses: GCS Assessment -> Traumatic Brain Injury
+  - identified from: Study cohort -> Brainit Database
+  - contains: Brainit Database -> Vital signs monitoring data
+  - uses: Treatment Protocol -> Partial Pressure of Brain Tissue Oxygen
+  - uses: Treatment Protocol -> ICP
+  - primary outcome measured in: Partial Pressure of Brain Tissue Oxygen -> Neuro-intensive Care Unit
+  - predicts: ICP -> Partial Pressure of Brain Tissue Oxygen
+  - indexed by: Partial Pressure of Brain Tissue Oxygen -> Measurement Time
+  - accounts for correlation in: Compound Symmetry Correlation Structure -> Measurement Time
+  - affects: ICP -> Partial Pressure of Brain Tissue Oxygen
+  - modulates: Mean Arterial Pressure (MAP) -> Partial Pressure of Brain Tissue Oxygen
+  - modulates: Partial Pressure of Carbon Dioxide -> Partial Pressure of Brain Tissue Oxygen
+  - measured during: Vital Signs Measurements -> Intensive Care Unit
+  - assesses outcome of: GOSe Outcome -> Intensive Care Unit
+  - monitors: Brain Tissue Oxygen Catheter -> Partial Pressure of Brain Tissue Oxygen
+  - measured in: Partial Pressure of Brain Tissue Oxygen -> Intensive Care Unit
+  - complicates: ICP -> Cerebral Blood Flow
+  - affects: ICP -> Oxygen Delivery
+  - modifies: Mean Arterial Pressure (MAP) -> Partial Pressure of Brain Tissue Oxygen
+  - modifies: Partial Pressure of Arterial Carbon Dioxide -> Partial Pressure of Brain Tissue Oxygen
+  - has non-linear relationship with: ICP -> Partial Pressure of Brain Tissue Oxygen
+  - affects: Cerebrovascular Autoregulation -> Partial Pressure of Brain Tissue Oxygen
+  - influences: Measurement Time -> Partial Pressure of Brain Tissue Oxygen
+  - monitored in: ICP -> Neuro-intensive Care Unit
+  - monitored in: Partial Pressure of Brain Tissue Oxygen -> Neuro-intensive Care Unit
+  - reduces: Hypothermia Therapy -> ICP
+  - reduces: Hypothermia Therapy -> Partial Pressure of Brain Tissue Oxygen
+  - associated with: ICP -> Intracranial Hypertension
+  - related to: ICP -> Partial Pressure of Brain Tissue Oxygen
+  - related to: Mean Arterial Pressure (MAP) -> Partial Pressure of Brain Tissue Oxygen
+  - is a type of: Traumatic Brain Injury -> Brain Injury
+  - is a type of: Arterial Hypotension -> Secondary Insult
+  - is a type of: ICP -> Secondary Insult
+  - is a type of: Routine Nursing Care -> Patient Handling
+  - is a type of: Bedside Intervention -> Nursing Intervention
+  - is a type of: Routine Nursing Care -> Nursing Intervention
+  - is a type of: Switching Linear Dynamical Systems -> Hybrid State Space Model
+  - is a type of: Factorial Switching Linear Dynamical Systems -> Switching Linear Dynamical Systems
+  - detected in: Data Quality Assessment -> Hypotension
+  - caused by: Data Quality Assessment -> Bedside Intervention
+  - caused by: Data Quality Assessment -> Endotracheal Suctioning
+  - caused by: Data Quality Assessment -> Patient Handling
+  - monitors: Electrocardiogram (ECG) -> Physiological Data
+  - monitors: Mean Arterial Pressure (MAP) -> Physiological Data
+  - monitors: ICP -> Physiological Data
+  - monitors: Sao2 -> Physiological Data
+  - monitors: Exhaled Carbon Dioxide Monitoring -> Physiological Data
+  - monitors: Respiratory Impedance -> Physiological Data
+  - detects: Fslds Model -> Data Quality Assessment
+  - treatment target for: Hypotension -> Brain Injury
+  - treatment target for: Intracranial Hypertension -> Brain Injury
+  - contains: Brainit Database -> Physiological Data
+  - computed from: Derived Parameter -> ICP
+  - computed from: Derived Parameter -> Mean Arterial Pressure (MAP)
+  - assessed during: Derived Parameter -> Intensive Care Unit Stay
+  - characterizes: Insult Intensity Threshold -> ICP Insult
+  - characterizes: Insult Duration Threshold -> ICP Insult
+  - associated with: ICP Insult -> GOSe Outcome
+  - assessed at: CPP -> ICP Insult
+  - includes: Baseline Risk Factor -> GCS Assessment
+  - predicts: Impact Model -> Unfavourable Neurological Outcome
+  - predicts outcome: Red Zone -> Unfavourable Neurological Outcome
+  - predicts mortality: Red Zone -> Mortality
+  - associated with outcome: Intracranial Pressure Insult -> Unfavourable Neurological Outcome
+  - modulated by: Intracranial Pressure Insult -> Cerebrovascular Autoregulation
+  - dependent on: Intracranial Pressure Insult -> CPP
+  - measured by: Neurological Outcome -> GOSe Outcome
+  - impaired in: Cerebrovascular Autoregulation -> Traumatic Brain Injury
+  - associated with worse outcome in: Cerebrovascular Autoregulation -> Traumatic Brain Injury
+  - affects transition curves in: Cerebrovascular Autoregulation -> ICP
+  - influences association between: CPP -> ICP
+  - measured alongside: ICP -> Mean Arterial Pressure (MAP)
+  - triggers need for: Intracranial Pressure Insult -> Intracranial Pressure-lowering Treatment
+  - assessed in: Cerebrovascular Autoregulation -> Traumatic Brain Injury
+  - predicts outcome in: ICP -> Traumatic Brain Injury
+  - is secondary insult in: Hypotension -> Traumatic Brain Injury
+  - requires monitoring of: EUSIG Grade -> Mean Arterial Pressure (MAP)
+  - defines threshold for: EUSIG Grade -> Arterial Hypotension
+  - triggered by drop in: Arterial Hypotension -> Mean Arterial Pressure (MAP)
+  - is secondary insult in: Arterial Hypotension -> Traumatic Brain Injury
+  - relates to outcome in: Arterial Hypotension -> Traumatic Brain Injury
+  - assesses severity of: GCS Assessment -> Traumatic Brain Injury
+  - contains data on: Brainit Database -> Physiological Signal
+  - contains data on: Brainit Database -> Demographic Data
+  - contains data on: Brainit Database -> Treatment Data
+  - monitors parameter: Arterial Hypotension -> CPP
+  - defined by: Arterial Hypotension -> EUSIG Grade
+  - defined by: Event Profile -> Event Trigger
+  - uses parameter: Glasgow Definition -> Blood Pressure Mean
+  - uses parameter: Uppsala Definition -> Blood Pressure Systolic
+  - uses parameter: Heidelberg Definition -> CPP
+  - incorporates parameter: CPP -> Blood Pressure Mean
+  - detects events: Data Set Generator -> Arterial Hypotension
+  - scans database: Data Set Generator -> Brainit Database
+  - classifies using: Data Set Generator -> EUSIG Grade
+  - defined by: Event Profile -> Event Clear
+  - defines threshold for: Mean Arterial Pressure (MAP) -> Hypotension
+  - occurs in: Hypotension -> Traumatic Brain Injury
+  - is a: Hypotension -> Secondary Insult
+  - classifies: EUSIG Grade -> Hypotension
+  - uses parameter: CPP -> Mean Arterial Pressure (MAP)
+  - triggered by: Type 6 Event -> Mean Arterial Pressure (MAP)
+  - monitored in: Secondary Insult -> Intensive Care
+
+### DANGLING CLASSES (priority for relation search)
+The following classes have NO relations yet — they are isolated nodes. Search the source text specifically for relationships involving these classes. If the text describes how they relate to other clinical concepts, extract those relations.
+Dangling: 6-month Outcome, Active Autoregulation, Active ICP Insult, Active Intervention, Acute Respiratory Distress Syndrome, Adult Cohort, Adult Traumatic Brain Injury, Adverse Event, Aneurysmal Subarachnoid Hemorrhage, Area Under Curve, Artefact Removal, Arterial Line Damping, Arterial Oxygen Pressure, Audit and Feedback, Autoregulation Index, Beat-to-beat Analysis, Best Practice Intracranial Pressure Strategy, Beta-blocker, Blood Flow, Blood Gases, Brain Tissue Oxygen Monitoring, Catheter Tip Placement, Cerebral Perfusion Thresholds, Classification and Regression Trees, Clinical Compliance, Clinical Management Strategy, Colour-coded Plot, Computed Tomography, Computer-assisted Dissemination, Condition, Continuous Monitoring, Continuous State Variable, Contraindication, Cubic Regression Spline, Decompressive Craniectomy, Diastolic Arterial Pressure, Direct Algorithm, Discrete State Variable, Duration Multiplied by Non-adherence Metric, Duration Threshold, Educational Strategy, Event Holddown, Event Profile Type, Event Representation, Event Threshold, Exponential Decay Curve, Extradural Lesion, False-positive Rate, Fluids, Flush, Glucose, Glucose Measurement, Gos Outcome Score, Graph-edit Distance, Haematocrit, Heart Failure, Heart Rate, Hold-down, Holddown Mechanism, Icu Admission, Impaired Cerebrovascular Autoregulation, Injury Mechanism, Intensity Threshold, Intracranial Hypertensive Episode, Intracranial Pressure Burden, Intracranial Pressure Management, Intracranial Pressure Monitoring, Intracranial Pressure Thresholds, Intracranial Pressure-time Burden, Intraparenchymal Lesion, Length of Stay, Linear Interpolation, Log-normal Regression Model, Long-term Outcome, Mass Media Campaign, Mean Intracranial Pressure, Medical Interface Bus, Medical Intervention, Metabolism, Minute-by-minute Data, Model Evaluation, Model Training, Modified Glasgow Outcome Score, Monitoring Data, Mortality Rate, Multi-professional Collaboration, Multimodality Monitoring, Multiple Imputation Via Chained Equations, Neuro-icu, Oxygenation, Paediatric Cohort, Paediatric Traumatic Brain Injury, Passive Autoregulation, Passive Dissemination, Passive ICP Insult, Patient Hygiene, Patient-mediated Intervention, Pearson Correlation Coefficient, Per Pressure Event, Philips Intellivue Bedside Monitor, Predictive Modelling, Pressure Autoregulation, Pressure-time Dose, Pupil Assessment, Ramp, Receiver Operating Characteristic Curve, Rejection Rate, Repeat Pattern, Repeat Pattern Treatment, Secondary Brain Injury, Secondary Injury, Severe Head Trauma, Severity Quadrant, Slow-waves of Intracranial Pressure, Standardized Interface, String-edit Distance, Subdural Lesion, Systolic Arterial Blood Pressure, Time Series Data, Traffic Accident, Transition Curve, Treatment Profile, Trigger Pattern, True-positive Rate, Vasopressors, Water Treatment, Waveform Frequency Data, Weighted Algorithm, Weighting, Zero
+
+### WHAT TO EXTRACT
+Extract any clinical concept from the text that is NOT yet in the ontology above:
+- Clinical conditions, diseases, injuries, syndromes, secondary insults
+- Physiological parameters and monitoring variables (e.g. ICP, MAP, HR, SpO2, EtCO2)
+- Treatments, therapies, interventions, drugs, medications, surgical procedures
+- Clinical assessments, scores, and outcome scales (e.g. GCS, GOSe, pupil assessment)
+- Outcomes, patient outcomes, outcome measures
+- Laboratory values and test categories (blood gases, biochemistry, haematology)
+- Nursing interventions and bedside care (suctioning, sedation, nutrition)
+- Medical devices and sensors
+- Data categories and abstract groupings (Monitoring Data, Demographic Data, Admission Data, Treatment Data, Outcome Data, Core Monitoring Parameter, Optional Monitoring Parameter, Baseline Therapy, etc.)
+- Clinical guidelines and management protocols
+
+DO NOT extract: authors, institutions, study design, databases, software, governance, ethics, or administrative concepts.
+
+### WHAT IS AN ONTOLOGY RELATION?
+An ontology relation (object property) defines a typed semantic link between two class types. The DOMAIN is the subject class; the RANGE is the object class. Think: 'Every instance of [domain] can be linked via [relation] to an instance of [range].' Model the SCHEMA, not individual facts.
+
+### RELATION EXTRACTION METHOD (Chain-of-Thought)
+For each pair of classes in the ontology, reason step by step:
+1. Do these classes co-occur or interact in the text?
+2. What is the semantic nature of their link?
+3. Which class is domain (subject) and which is range (object)?
+4. Assign a relation label from the patterns below, or create one.
+5. Find an exact text quote as evidence.
+
+### ONTOLOGY DESIGN PATTERNS (use when the text supports them)
+**Pattern 1 — Clinical Monitoring:**
+  Patient --[has monitoring data]--> Monitoring Data
+  Monitoring Data --[includes]--> Parameter
+  Observation --[measures parameter]--> Parameter
+  Observation --[produced by sensor]--> Sensor
+  Session --[has timepoint]--> Timepoint
+  Timepoint --[has observation]--> Observation
+
+**Pattern 2 — Clinical Intervention:**
+  Patient --[receives therapy]--> Therapy
+  Therapy --[targets condition]--> Condition
+  Condition --[triggers intervention]--> Therapy
+  Patient --[has surgical procedure]--> Surgical Procedure
+  Patient --[has nursing intervention]--> Nursing Intervention
+
+**Pattern 3 — Assessment and Outcome:**
+  Patient --[has clinical assessment]--> Clinical Assessment
+  Patient --[has outcome]--> Outcome
+  Patient --[has laboratory value]--> Laboratory Values
+  Monitoring Data --[monitoring indicates condition]--> Condition
+
+**Pattern 4 — Patient Context:**
+  Patient --[has session]--> Session
+  Patient --[has demographic data]--> Demographic Data
+  Patient --[has injury mechanism]--> Injury Mechanism
+
+**Pattern 5 — Data Quality:**
+  Data Quality Assessment --[affected by treatment]--> Therapy
+  Data Quality Assessment --[associated with condition]--> Condition
+  Observation --[has quality assessment]--> Data Quality Assessment
+
+**Pattern 6 — Composition (model as HIERARCHY, not relation):**
+  If X includes/comprises Y → extract as hierarchy: Y subClassOf X
+  Derived Parameter --[derived from]--> Source Parameter
+
+CRITICAL: Do NOT use 'includes', 'consists of', 'comprises', or 'is a type of' as relation labels. These are HIERARCHY (subClassOf) relationships. Model them as hierarchy edges instead.
+
+You SHOULD also extract other relations the text supports beyond these patterns.
+Use the abstract superclass as the range (e.g., 'Monitoring Data' not 'ICP').
+
+### EVIDENCE RULES (CRITICAL)
+- The 'evidence' field MUST be an **exact quote** copied verbatim from the SOURCE TEXT.
+- DO NOT reuse the same evidence quote for multiple items.
+- DO NOT invent or paraphrase — copy the text exactly.
+- If you cannot find a real quote for a concept, do NOT include it.
+
+### LABEL GUIDANCE
+- Use short, clean noun-phrase labels.
+- Expand common abbreviations: HR → Heart Rate, ICP → Intracranial Pressure, CPP → Cerebral Perfusion Pressure, GCS → GCS Assessment, GOSe → GOSe Outcome, PbtO2/PtiO2 → PbrO2, PRx → Pressure Reactivity Index.
+- For other abbreviations, expand to full clinical name.
+
+### HIERARCHY GUIDANCE
+Extract subClassOf (is-a) edges when the text shows that one concept is a type, subtype, category member, or specific instance of another.
+Look for cues such as: 'such as', 'is a', 'type of', 'include:', 'consists of', 'comprises', 'categorized as', 'grouped into', 'subdivided into', enumeration lists.
+For enumeration patterns (e.g. 'parameters include: X, Y, Z'), extract EACH listed item as a subclass of the parent category.
+
+### SELF-CHECK (before finalising output)
+- Is every label a clinical TYPE (not an instance or a study name)?
+- Are there any duplicate or synonym labels? Merge them.
+- Do all relation domain/range labels match extracted class labels?
+- Does every evidence field contain a verbatim quote from the text?
+
+### DEFINITION REQUIREMENT
+Every class and relation MUST include a `definition` field: a concise one-sentence scope note clarifying what it represents in the clinical domain.
+
+### OUTPUT FORMAT (JSON only, no commentary)
+{
+  "classes": [{"label": "ClassName", "definition": "one-sentence scope note", "evidence": "exact quote from text"}],
+  "relations": [{"label": "rel_name", "domain": "DomainClass", "range": "RangeClass", "definition": "one-sentence description of this relation", "evidence": "exact quote from text"}],
+  "hierarchy": [{"subClass": "ChildClass", "superClass": "ParentClass", "evidence": "exact quote from text"}]
+}
+
+### SOURCE TEXT
+Automated Measurement of Adherence to Traumatic Brain Injury
+(TBI) Guidelines using Neurological Intensive Care Unit (ICU) Data
+
+Anthony Stell, Ian Piper and Laura Moss
+Department of Clinical Physics, University of Glasgow, Glasgow, U.K.
+
+Keywords: Guideline Adherence, Process Models, Similarity Calculations.
+
+Abstract: Using a combination of physiological and treatment information from neurological Intensive Care Unit (ICU) data-sets, adherence
+to traumatic brain injury (TBI) guidelines on hypotension, intracranial pressure (ICP) and cerebral perfusion
+pressure (CPP) is calculated automatically. The Intensive Care Unit (ICU) output is evaluated to capture pressure events and
+actions taken by clinical staff for patient management, and are then re-expressed as simplified process
+models. The official Automated Measurement of Adherence to Traumatic Brain Injury (TBI) guidelines from the Brain Trauma Foundation are similarly evaluated, so the two
+structures can be compared and a quantifiable distance between the two calculated (the measure of
+adherence). The methods used include: the compilation of physiological and treatment information into
+event logs and subsequently process models; the expression of the Brain Trauma Foundation (BTF) guidelines in process models within
+the real-time context of the Intensive Care Unit (ICU); a calculation of distance between the two processes using two algorithms
+("Direct" and "Weighted") building on work conducted in the business process domain. Results are
+presented across two categories each with clinical utility (minute-by-minute and single patient stays) using a
+real Intensive Care Unit (ICU) data-set. Results of two sample patients using a weighted algorithm show a non-adherence level of
+6.25% for 42 mins and 56.25% for 708 mins and non-adherence of 18.75% for 17 minutes and 56.25% for
+483 minutes. Expressed as two combinatorial metrics (duration/non-adherence (A) and duration * non-
+adherence (B)), which together indicate the clinical importance of the non-adherence, one has a mean of
+A=4.63 and B=10014.16 and the other a mean of A=0.43 and B=500.0.
+
+1 INTRODUCTION potential advantage of using such data and
+technology would be quantitative evaluations (e.g.
+Across many fields of clinical medicine guidelines an adherence rate of 67%) and rapid feedback of
+are used to inform and develop best practice. In non-compliance to guidelines.
+order to make sure that these guidelines are being This work attempts to leverage those
+followed correctly and effectively, there are a advantages by providing a "near real-time" ability to
+variety of methods to monitor compliance. Common monitor clinical guideline adherence, as well as
+current methods to do this include post-hoc surveys providing measurable quantitative feedback. Using
+that form the core data for research papers, or data and technology currently available, the goal of
+regular meetings after a hospital shift (or similar) to this research is to express the structure of
+discuss different cases where perhaps the guideline physiological and treatment patient data in such a
+was not adhered to, or negative outcomes were way that can be immediately compared against bestpotentially avoidable. practice text guidelines. The results are broadly
+Nearly all current methods have two features: grouped into two categories, each representing a
+qualitative evaluation and a long time-lag where the real-life clinical scenario:
+results of the surveys or discussion can find their ▪ Minute-by-minute data: where immediate
+way back into either local best practice, or can be feedback would be provided indicating the level
+submitted to multi-centre evaluations for the further of adherence in that moment
+development of the guidelines themselves. Whilst ▪ Per pressure event: where retrospective
+useful, it is very often the case that these features do guidance on adherence could provide
+not make full use of the data and technology that is information on the best way to manage
+now available to many fields of clinical medicine. A
+
+individual pressure events given a patient's (e.g. an "adverse event" such as a sudden spike in
+particular clinical context blood pressure would be represented by a particular
+combination of systolic and diastolic blood pressure
+The technical approach adopted to achieve these
+numbers). When this is combined with clinical
+goals is a combination of the following: the
+treatment information (e.g. the time and dose of a
+expression of the two data types (physiological and
+bolus of Noradrenaline) then patterns of clinical
+treatment) into a simplified process model; the
+behaviour and patient response can be built up.
+expression of the relevant text guidelines into a
+If the algorithms used to represent these patterns
+comparable structure; a distance between these two
+of information are valid, then - due to the proximity
+models is then evaluated using similarity
+of this data representation to the source - it is likely
+calculations taken from the domain of business
+that it will be a highly accurate description of what
+process model comparisons .
+happens in an Intensive Care Unit (ICU). And therefore in theory, it would
+be possible for a system to work out - empirically
+from source - whether a specific clinical process in
+2 MOTIVATION the Intensive Care Unit (ICU) has been followed or not.
+Very often, the most important and highlyThere are two main areas that provide the relevant valued process within any clinical field is that of the
+background to this work: the nature of data within official guidelines compiled and peer-reviewed by
+critical care - traumatic brain injury (TBI) in domain experts. Therefore an automated process to
+particular - and the detail of the technology chosen measure adherence to these guidelines would very
+to support the solution of automated guideline likely be welcome due to the information it could
+adherence. provide on procedure, compliance and base-line
+information for studies to either build upon or
+2.1 Critical Care Data challenge those guidelines. For instance, questions
+that could be asked of the system could be:
+In the fields of medicine that involve critical care - 1) "Has a particular protocol or guideline been
+traumatic brain injury (TBI) as an example -
+technology has advanced throughout the late 20th applied correctly?" (to audit local compliance)
+and early 21st centuries to the point where nearly 2) "Does a particular guideline recommendation
+every modern intensive care unit (ICU) in the actually work?" (use outcome versus
+developed world has a multitude of high frequency compliance data to provide information to a
+data streams available, which can closely capture the wider study)
+actual application of clinical interventions and the
+time-varying physiological response of patients. Whilst it is hoped that solutions to this type of
+The technologies that enable this output of raw guideline adherence measurement could be applied
+data are well established, and the economics of data to critical care generally, the area of traumatic brain
+storage make retention of large volumes for injury (TBI) - and within Automated Measurement of Adherence to Traumatic Brain Injury (TBI) specifically the
+extended periods a feasible option. However, the key management of intra-cranial pressure (ICP) and
+to establishing the integrity of that data for a specific cerebral perfusion pressure (CPP) - has many
+purpose - whether it is a study as large as a multi- features that make it a good candidate for study: the
+centre randomised controlled trial (RCT) or condition is complex and therefore suffers from
+something more modest such as an audit of local large uncertainties in official guideline compilation
+clinical practices - is to monitor that raw data and and compliance ; it is also an
+understand the relationships between clinical environment that heavily uses modern technology to
+treatments and physiological output. provide high-resolution neuro-Intensive Care Unit (ICU) physiological
+This involves understanding that relationship at a and clinical treatment data streams (Piper et al.
+level "above" the numbers that are output from 2009); and the seriousness and prevalence of the
+bedside machines (other terminology may similarly condition (www.headway.org.uk) means that any
+describe this idea as observing data at a higher advances in the field have the potential to make a
+"layer of abstraction"). The actual physiological large and positive impact on the population.
+output shows a series of numbers, which without
+proper context can mean very little, but which, with
+appropriate surrounding information, could be
+formed into structures that do have clinical meaning
+
+2.2 Applied Technology
+Based on the considerations above concerning
+critical care data, the general technical data
+requirements to achieve this can be identified as
+follows:
+▪ High resolution physiological patient data
+▪ Accurate and comprehensive treatment data
+▪ The ability to combine these into a formalised
+process expression
+▪ The ability to compare this formalised
+expression with other similar entities (such as
+guidelines, study protocols, institutional
+procedure, etc) Figure 1: High-level schematic of guideline adherence
+system design.
+Whilst the pool of potential technological
+solutions for this type of problem space is large, the The classification of pressure events using
+following criteria - after accuracy and validity - Edinburgh University Secondary Insult Grades (EUSIG) parameters has a well-established precedent,
+were deemed the most important when choosing a particularly in the field of Automated Measurement of Adherence to Traumatic Brain Injury (TBI) .
+solution: The central idea behind this step is that an event can
+▪ Simplicity of implementation be classified as having several Edinburgh University Secondary Insult Grades (EUSIG) "parameters"
+▪ Minimising points of "assumed knowledge" - e.g. event hold-down, threshold, duration - then
+▪ Correspondence of solution output with real this pattern is searched for in the physiological data.
+clinical situations Once an event is found, a time-window is laid over it
+▪ The ability to inhabit a real clinical work-flow and clinical treatment events are searched for (figure
+"invisibly" 2 shows a schematic of a Edinburgh University Secondary Insult Grades (EUSIG) event pattern). The
+full detail of the conversion of the data-sets used in
+After researching different technologies that this work from raw physiological and treatment
+potentially meet these criteria, the following output to their corresponding event logs can be
+combination of processes was put together as a found in .
+framework:
+▪ The classification of events in physiological
+output known as Edinburgh University Secondary Insult Grades (EUSIG) events (Edinburgh
+University Secondary Insult Grade) , and compilation of an event log from this
+▪ The expression of those event logs as process
+models
+▪ The extraction of clinical guideline texts into
+process models
+▪ The comparison of two process models using
+complex similarity/distance algorithms
+Together, these processes form the framework
+through which the possibility of quantitative, real- Figure 2: Event definition for a given time-series
+time guideline adherence monitoring can be physiological output (in this case ICP). A threshold
+explored. Figure 1 shows a high-level schematic of crossed for a specific period (the hold-down) indicates that
+the framework steps to convert Intensive Care Unit (ICU) data and an event has started. Clear hold-down indicates that the
+guideline text into comparable data-sets. event has finished. Also shown are a treatment at a
+Examining these processes in more detail, event specific time-point and a time window overlaid for
+detection and representation are common methods of association of that treatment with the event.
+data analysis in medicine.
+The other components of the framework concern
+the use of process models, which are a construct
+borrowed from the field of business process
+management - most commonly used to describe
+
+corporate efficiency. There have been projects where intervention by trained specialist), general education
+process models have been applied to medical (documents, leaflets, etc) and clinical reminders
+problems, but these appear to mainly concern the (automated interventions). These all had different
+administration and logistics of hospitals and other effects on adherence, with the nurse facilitator being
+large-scale corporate structures (where the fact that the most successful. indicated that
+these structures are medical in nature is largely a study of glucose measurement and regulation
+incidental). improves greatly when dissemination is provided
+Similar in nature to flow-charts, a process model through computer-assisted means rather than
+is a directed or undirected graph with a collection of through paper-based means.
+edges and nodes. They can be expressed using A systematic review of guideline dissemination
+various notations, each with slightly different strategies showed that the (non-)
+characteristics - e.g. UML (www.uml.org) or BPMN effectiveness of passive dissemination is a
+(Chinosi & Trombetta 2012). Depending on the significant result. Similar to the
+notation used, the edges and nodes represent various study, where direct intervention is taken by a person
+actions and states that can be generalised to the or automated method, the adherence rate is markedly
+specific context being described (in this case, the better than if the guideline document and
+medical output observed from a neurological Intensive Care Unit (ICU) information is published passively (e.g. using
+bedside machine). conferences, websites or didactic lectures).
+The translation to a process model in this work Other studies similarly show that
+comes from two sources: evaluation of an event log targeted and behaviourally "disruptive" methods are
+for the physiological/treatment data and the best for disseminating information and influencing
+evaluation of semantic text from the guideline. This clinical practice. Therefore, understanding the
+latter source is a manual step in this work, and is effectiveness of these different methods of
+interpretations of medical text information (Kaiser & tools to improve awareness and therefore adherence.
+Miksch 2009). Comparison of the two resulting When considering Automated Measurement of Adherence to Traumatic Brain Injury (TBI) specifically, the gold
+process models builds on the work conducted in standard in guidelines is the 1994 Brain Trauma
+, with the notions of similarity Foundation (BTF) initiative to formulate treatments
+encapsulated by the similarity of individual nodes for brain injury, which have since become
+and edges combined with relevant weighting to standardised, internationally-recognised guidelines
+represent the significance of certain aspects. . Several studies have been
+To apply these business process analysis tools - conducted that show dropping mortality rates and
+expression of medical output as process models and improved long-term outcomes since the adoption
+the use of comparison and distance calculations in and spread of use of these guidelines (Bratton &
+this context - in this particular way are believed to Chestnut 2006). In the last decade, this improvement
+be a unique feature of this work. in Automated Measurement of Adherence to Traumatic Brain Injury (TBI) management has continued, leading to
+studies indicating that overall improvements in
+3 RELATED LITERATURE have also been apparent and
+in similar studies conducted four years apart and .
+A review of related literature covers several areas:
+issues of adherence to clinical guidelines in general
+and specifically in the Automated Measurement of Adherence to Traumatic Brain Injury (TBI) domain, novel attempts guidelines is not universal - many studies outline
+their potential deficiency in various aspects such as
+to improve adherence, and the relevance and utility
+of the chosen technology. hypothermia and the need for
+Intracranial Pressure (ICP) monitoring .
+3.1 Clinical/Automated Measurement of Adherence to Traumatic Brain Injury (TBI) Guideline Adherence
+3.2 Novel Attempts to Improve
+Issues of communication appear as a common thread Adherence
+when evaluating adherence to clinical guidelines.
+looked at beta-blocker use in Evident from this discussion is the fact that
+heart failure and showed various methods and guideline adherence is subject to great variation.
+channels of disseminating the guideline information. There are many reasons for non-adherence, but these
+
+can be broken down into two broad categories: being Improvements in mobile technology have also
+unwilling to adhere to a guideline and being unable further advanced the ability to implement guideline
+to adhere. Whilst techniques to address the first adherence, as the proximity to the end user (be they
+category include improved dissemination, patient or clinician) allows immediate and real-time
+communication and various long-term social intervention or consultation. Examples of patient
+methods, improvements in the second category, interventions include the development of the
+which is usually functional in nature (e.g. lack of MobiGuide project , and other
+resources/time), can be approached using quality of life applications that allow quick reference
+"behaviourally disruptive" methods. in the form of either notifications (e.g. a message to
+Most attempts to improve adherence to a patient to take their medication) or input (e.g. a
+guidelines in the medical domain involve a direct daily symptom diary that a patient can fill in) which
+change or implementation of a care procedure. In allows the direct consequences of adherence or nonthese cases, the evidence-base for a guideline comes adherence to be measured. An example of adherence
+from a panel of experts in the field that have reached improvement tools directed at clinicians include the
+a point of consensus for various treatments. The development of the SIGN apps
+novel attempts then concern the implementation of (www.sign.ac.uk/sign-apps.html), which provide
+that guideline in patient care in a standardised and immediate triage information across many
+accountable way. emergency fields, allowing doctors to quickly
+A campaign that exemplifies this approach is consult their actions with regard to the official
+"Surviving sepsis", which has looked at targeted guidelines in this field.
+improvement of patient care by specifically
+supporting guideline adherence through the 3.3 Framework Technology
+identification of resuscitation and management
+"bundles". Part of this was an intensive data It can be seen that many novel technologies exist,
+collection arm, which - in real-time - forced but for the purposes of choosing an applicable
+clinicians to systematically add data as part of technology to address the particular challenges in
+clinical routine . The results of this this work, many of the characteristics appear to be
+have shown a marked improvement in adherence to well represented by processes and work-flows, and
+the guidelines, but an emergent complication was hence the slightly wider speciality of process
+the ability to stay current with the latest guidelines models.
+and update procedures to reflect this. Feedback from (Perimal-lewis et al. 2012) claims that the
+the first four years of this project back into the re- fundamental element required for the construction of
+development and improvement of sepsis guidelines a process model is the historical event log of a
+has been cautiously optimistic (Dellinger et al. process, and this lends itself to the description of
+2013). Whilst not specifically providing a new type actions and reactions in a medical context. This
+of analysis it does provide a large canon of data for a research area is referred to "process mining" and is
+specific condition that is potentially useful for future usually applied to the logistical higher-level patient
+studies

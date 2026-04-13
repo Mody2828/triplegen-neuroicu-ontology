@@ -1,0 +1,84 @@
+You are an expert ontology engineer and neurointensive care domain specialist.
+
+You are given a semantic cluster of ontology classes extracted from neurointensive care research papers. Your task is to enrich this cluster with meaningful domain relations — NOT to invent new classes or restructure the hierarchy.
+
+## Cluster: "Non Adherence / Adherence / Time Window"
+
+### Classes in this cluster (13 total):
+1. **Duration of Non-adherence**
+   Definition: The time in minutes during which non-adherence to clinical guidelines occurs.
+   Evidence: duration of these levels of non-adherence (in minutes)
+2. **Duration/non-adherence (A)**
+   Definition: A calculated metric representing the product of total duration and non-adherence level, used to assess the overall impact of guideline deviations.
+   Evidence: duration * non-adherence (B)
+3. **Duration/non-adherence Metric**
+   Definition: A combinatorial metric (B) representing the product of duration and non-adherence, indicating clinical importance.
+   Evidence: duration * non-adherence (B)
+4. **Minute-by-minute Data**
+   Definition: High-resolution data analyzed on a minute-by-minute basis to provide immediate feedback on guideline adherence.
+   Evidence: minute-by-minute data
+5. **Non-adherence Level**
+   Definition: A quantitative measure representing the percentage or degree to which clinical guideline recommendations are not followed during patient care.
+   Evidence: level of non-adherence (expressed as a percentage)
+6. **Refractory Cases**
+   Definition: Instances of a condition that do not respond to standard treatments.
+   Evidence: refractory cases
+7. **Remedial Medical Behavior**
+   Definition: A medical action or intervention taken in response to a clinical event, extracted from clinical event logs.
+   Evidence: common remedial medical behaviours are extracted
+8. **Repeat Pattern Treatment Non-adherence**
+   Definition: A type of non-adherence where treatment should be part of a repeat pattern but is not.
+   Evidence: Treatment should be part of a repeat pattern
+9. **Single Patient Stay**
+   Definition: Data aggregated over an entire patient's intensive care unit stay for retrospective adherence analysis.
+   Evidence: single patient stays
+10. **Time Window**
+   Definition: A period overlaid on an event to search for associated clinical treatments.
+   Evidence: time window overlaid for association of that treatment with the event
+11. **Treatment Not Administered Within Time Window**
+   Definition: A reason for non-adherence where a prescribed treatment is not delivered within the specified clinical time frame.
+   Evidence: Treatment not administered within time window
+12. **Treatment Outside Time Window Non-adherence**
+   Definition: A type of non-adherence where treatment is not administered within the mandated time window.
+   Evidence: Treatment not administered within time window
+13. **Treatment Should Be Part of Repeat Pattern**
+   Definition: A reason for non-adherence where a treatment is expected to follow a recurring schedule but deviates from that pattern.
+   Evidence: Treatment should be part of repeat pattern
+
+### Other clusters in this ontology (for cross-cluster linking):
+Guideline / Approaches / Method Of, Pupil / Body / Intervention Involving, Carbon / Dioxide / Carbon Dioxide, Hypotensive Event / Hypotensive / Event, Changes In / Changes / Elevated, Sensor / Catheter / Of Physiological, Lesion / Traumatic / Traumatic Injury, Intervention Involving / Artefact / Involving, Bedside / Rate / Heart Rate, Head / Injuries / Secondary, Outcome / Variables / Statistical, Distance / Models / Adherence, Guideline / Injured / The Of, Of Intracranial / Icp / Intensity, Glasgow Outcome / The Glasgow / Functional, None / Parameter / And, Hypotensive / Systolic / Hypotensive Event, Conditions / Approaches / Neuro, None / Autoregulation / Impairment, Surgical / Skull / The Skull, Catheter / Arterial / Line, Time Window / Rate / Window, Tissue Oxygen / Tissue / Oxygen
+
+## Your task — produce ONLY relations:
+
+1. **Relations (object properties)**: Define meaningful domain-specific relations between classes in this cluster. You MUST use ONLY labels from the closed vocabulary below — do NOT invent new relation types.
+
+   **Allowed relation labels (closed vocabulary)**: "occurs in", "derives from", "measured via", "measured from", "targets condition", "secondary to", "has monitoring data", "calculated from", "uses", "receives therapy", "collects", "generates", "assesses", "requires", "may indicate", "informs", "has clinical assessment", "has timepoint", "observes parameter", "produced by sensor", "implements sensing process", "has measurement capability", "is a type of", "manages", "includes", "governs", "supports", "classifies", "treats", "documents", "has non-adherence reason", "affects management of", "mandates against", "calculated using", "has non-linear effect on", "monitored in", "associated with condition", "monitoring indicates condition", "interacts with", "measured in", "adjusted for", "guarantees", "delivers", "accounts for", "has relationship with", "influenced by", "achieves", "is source of", "impairs", "is monitored as", "is computed from", "is classified as", "is associated with", "is visualized for", "includes variable", "characterized by", "depends on", "has outcome", "could lead to", "is secondary insult after", "defines", "triggers intervention", "contributes to", "impacts", "uses definition", "calculates using", "used to guard against", "has definition", "identified using", "triggered by", "classified by", "has role in calculating", "includes data from", "identifies", "expressed as", "used in combination with", "lowers", "treated with", "precedes", "reduces", "management of", "lowering therapies for", "predictor of", "visualizing correlation between", "targets", "has demographic parameter", "increases", "occurs during", "impacts outcome", "determines", "occurs after", "has surgical procedure", "has demographic data", "is a", "associated with"
+
+   If none of the allowed labels fit a pair of classes, do not emit a relation for that pair. It is better to emit fewer relations than to invent a new label.
+
+2. **No new classes**: You MUST NOT invent, add, or propose any new classes. Use ONLY the classes listed above as domain/range. Any class you output that is not in the list above will be discarded.
+
+3. **No hierarchy**: Do NOT produce subClassOf / hierarchy edges. The hierarchy is already defined in the source ontology and will be preserved independently. Any hierarchy edges you emit will be discarded.
+
+4. **Cross-cluster relations**: Identify up to 5 important relations that connect classes in THIS cluster to classes that likely belong in OTHER clusters listed above. Cross-cluster relations must also use the closed vocabulary above.
+
+## Output format — strict JSON only:
+```json
+{
+  "classes": [
+    {"label": "...", "definition": "...", "evidence": "from source text", "synonyms": []}
+  ],
+  "relations": [
+    {"label": "...", "domain": "...", "range": "...", "definition": "one-sentence description"}
+  ],
+  "hierarchy": []
+}
+```
+
+## Rules:
+- Include each existing class in your output EXACTLY as given — do not rename or remove.
+- DO NOT add any new classes under any circumstances. Zero. None.
+- DO NOT emit any hierarchy edges. Leave "hierarchy" as an empty list.
+- Every relation must use a label from the closed vocabulary above.
+- Every relation must have both domain and range that reference real classes from this cluster (or another cluster listed above).
+- Output ONLY the JSON object — no markdown fences, no commentary before or after.

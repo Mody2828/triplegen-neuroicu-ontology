@@ -1,0 +1,290 @@
+============================================================
+RUN SUMMARY  —  TripleGen Ontology Engineering Framework
+============================================================
+
+--- Metadata ---
+Run ID:          20260413-072245-fd6fc243
+Timestamp (UTC): 2026-04-13T07:34:29.061872
+Method:          Zero-Shot
+Pipeline mode:   Schema-Completed
+LLM provider:    openai gpt-4o-mini
+Improvements:    Text-grounded completion (built-in), Schema-guided completion, Rule-based Reasoning Layer (optional)
+Eval settings:   Scope filter (clinical-only chunks), Medical NER anchor (experimental)
+
+--- Input paper(s) ---
+  • 3. Stell A, Piper I, Moss L (2018) Automated Measurement of Adherence to Traumati.txt
+  • 4.Shaw M, Moss LBrainIT Group (2024) Exploration of the relationship between part.txt
+  • 5. Georgatzis et al. 2016 — Artefact in Physiological Data Collected from Patients with Brain Injury.txt
+  • 6.-Visualizing-the-pressure-and-time-burden-.txt
+  • 7. Donald et al. 2012 — Trigger characteristics of EUSIG-defined hypotensive events.txt
+
+--- Improvement counts (for ablation / fairness) ---
+  Text-grounded completion (built-in): classes_added=15, relations_added=14, hierarchy_added=31
+  Schema-guided completion: classes_added=41, relations_added=16, hierarchy_added=45
+  Built-in cleanup (always active): includes_to_hierarchy=2, relation_labels_normalized=27, relations_range_normalized=14, classes_removed_dedupe=2, relations_removed_dedupe=2, hierarchy_removed_dedupe=1, out_of_scope_classes_removed=1, abstract_data_classes_removed=0, broad_contextual_classes_removed=0, classes_removed_evidence=11, endpoints_auto_added=29, relations_pruned_scope=0, hierarchy_pruned_scope=0, hierarchy_pruned_dangling=8, relations_pruned=5, relations_removed_evidence=4, hierarchy_fragments_removed=0, hierarchy_edges_corrected=2, hierarchy_scaffolded=7, hierarchy_removed_axiom=0, relations_removed_axiom=0, hierarchy_cycles_removed=0, hierarchy_completeness={'orphan_count': 53, 'total_classes': 121, 'orphan_rate': 0.438, 'orphan_rate_warning': False}, hierarchy_added=0, orphans_removed=0
+  Orphan Rescue (connect isolated classes): orphans_found=19, relations_added=2, hierarchy_added=0
+  Post-orphan scope cleanup: out_of_scope_removed=0
+  LLM CoT Refinement (semantic quality review): classes_removed=11, relations_removed=21, hierarchy_removed=8, hierarchy_corrected=0
+  Rule-based Reasoning Layer (optional): hierarchy_added=10, orphans_removed=13
+
+
+  Text-grounded completion (built-in): +15 classes, +14 relations, +31 hierarchy edges recovered from source text in second-pass extraction.
+
+  Orphan Rescue: 19 orphaned classes found → +2 relations, +0 hierarchy edges inferred from source text.
+
+  LLM CoT Refinement: -11 classes, -21 relations, -8 hierarchy removed; 0 hierarchy edges corrected.
+
+--- Metrics summary (final ontology) ---
+  Coverage:        76.34%
+  Precision:       73.20%
+  Recall:          76.34%
+  Errors:          hallucinations=0, schema_violations=0, omissions=0
+  Structural:      hierarchy_edges=78, hierarchy_coverage=0.87, relation_domain_range_rate=1.00
+  Clinical-only:   coverage=76.34%, precision=73.20%, recall=76.34%
+  Relations:       precision=56.10%, recall=55.56%, n_generated=41, n_gold=18
+  Hierarchy:       precision=66.67%, recall=68.42%, matched=52, n_generated=78, n_gold=76
+
+--- Metrics at extraction only (pre-improvement baseline) ---
+  Coverage:        23.66%
+  Precision:       44.00%
+  Recall:          23.66%
+  Structural:      hierarchy_edges=2, hierarchy_coverage=0.08, relation_domain_range_rate=1.00
+  Relations:       precision=61.70%, recall=38.89%, n_generated=47
+
+--- Per-stage ablation (pipeline progression) ---
+  Stage                   Classes   Rels   Hier   Coverage  Precision     Recall
+  --------------------------------------------------------------------------
+  Extraction                   50     47      2     23.66%     44.00%     23.66%
+  + Text-grounded              65     61     33     30.11%     43.08%     30.11%
+  + Schema-Guided             106     77     78     65.59%     57.55%     65.59%
+  + Cleanup                   121     60     76     83.87%     64.46%     83.87%
+  + Orphan Rescue             121     62     76     83.87%     64.46%     83.87%
+  + LLM Refinement            110     41     68     76.34%     64.55%     76.34%
+  + Rule-based                 97     41     78     76.34%     73.20%     76.34%
+
+--- Concept counts (final ontology) ---
+  Classes:         97
+  Relations:       41
+  Hierarchy edges: 78
+
+--- Classes ---
+  • Traumatic Brain Injury — A leading cause of death and long-term disability worldwide, characterized by an injury to the brain resulting from external mechanical forces.
+  • Hypotension — A condition characterized by abnormally low blood pressure, often recognized as a secondary insult after traumatic brain injury.
+  • Intracranial Pressure — The pressure inside the skull, which is monitored in patients with traumatic brain injury to assess the risk of secondary injury.
+  • Cerebral Perfusion Pressure — The pressure gradient driving blood flow to the brain, important for assessing the risk of secondary injury in traumatic brain injury patients.
+  • Noradrenaline — A medication used to manage blood pressure and improve cerebral perfusion in critically ill patients.
+  • Glucose — A simple sugar that is an important energy source in living organisms, often monitored in critically ill patients.
+  • Heart Failure — A chronic condition in which the heart is unable to pump sufficiently to maintain blood flow to meet the body's needs.
+  • Hypothermia Therapy — A medical treatment involving the lowering of body temperature to reduce intracranial pressure and improve outcomes in traumatic brain injury.
+  • Respiratory Distress Syndrome — A condition characterized by difficulty in breathing and inadequate oxygenation, often seen in critically ill patients.
+  • Mean Arterial Pressure — The pressure exerted by circulating blood upon the walls of blood vessels, an important vital sign in critically ill patients.
+  • Osmotics — A treatment strategy involving the administration of hyperosmolar agents to manage intracranial pressure and cerebral edema.
+  • Cerebrovascular Autoregulation — The mechanism by which blood vessels in the brain adjust their diameter to maintain consistent cerebral blood flow despite changes in systemic blood pressure.
+  • Steroids — A class of drugs used to reduce inflammation and suppress the immune system.
+  • Brain Injury — An injury to the brain that can result from trauma, leading to various neurological deficits.
+  • Partial pressure of brain tissue oxygen — A physiological parameter measuring the amount of oxygen in brain tissue, used to monitor metabolic activity and inform clinical decision-making in patients with traumatic brain injury.
+  • GOSe Outcome — A scale used to assess the outcome of patients after a traumatic brain injury, typically at 6 months post-injury.
+  • Partial Pressure of Carbon Dioxide — A measure of the amount of carbon dioxide dissolved in the blood, important for assessing respiratory function.
+  • Measurement Time — The specific time points at which measurements are taken during a patient's stay in the ICU.
+  • Brain Tissue Oxygen — The partial pressure of oxygen in brain tissue, critical for assessing cerebral oxygenation.
+  • Carbon Dioxide — A gas produced by the body during metabolism, which is monitored in patients to assess respiratory function.
+  • Intracranial Hypertension — A condition characterized by elevated pressure within the skull, which can lead to worse clinical outcomes in patients with traumatic brain injury.
+  • Condition — A type of stroke caused by bleeding into the space surrounding the brain, often leading to increased intracranial pressure.
+  • Secondary Insult — An additional injury or complication that occurs following the initial injury, potentially worsening outcomes.
+  • GCS Assessment — A clinical scale used to assess a patient's level of consciousness and neurological status following a brain injury.
+  • Mortality — The cessation of all biological functions that sustain a living organism.
+  • Pupil Assessment — The response of the pupils to light, which can indicate neurological function.
+  • Outcome Score — A scoring system used to assess the neurological outcome of patients after brain injury.
+  • Secondary Brain Injury — An injury that occurs as a consequence of the primary brain injury, often exacerbating the patient's condition.
+  • Arterial Hypotension — An episode characterized by a significant drop in blood pressure.
+  • Dsg — A Java-based application developed to scan the BrainIT database for hypotensive events.
+  • Secondary Insult Grades — A classification system used to define hypotensive events based on specific criteria.
+  • Hypotensive — Referring to a condition characterized by abnormally low blood pressure.
+  • Guideline Adherence — The degree to which clinical practice follows established guidelines.
+  • EUSIG Grade — A classification system used to categorize secondary insults in patients with traumatic brain injury.
+  • Treatment Data — Information regarding the treatments administered to patients.
+  • Physiological Data — Data that reflects the physiological parameters of a patient.
+  • Clinical Reminders — Automated notifications or prompts to assist clinicians in adhering to guidelines.
+  • Clinical Practice — The application of medical knowledge and skills in patient care.
+  • Adverse Event — An undesirable experience associated with the use of a medical product or intervention.
+  • Patient Interventions — Actions taken to improve patient outcomes, often involving direct patient engagement.
+  • Heart Rate
+  • Therapy
+  • Outcome
+  • Patient — Individual receiving neurointensive care for traumatic brain injury (TBI).
+  • Derived Parameter — Monitoring parameter computed from other measured parameters.
+  • Arterial Oxygen Saturation — Core BrainIT parameter.
+  • Central Venous Pressure — Central Venous Pressure.
+  • Peripheral Temperature — Peripheral (skin/tympanic) temperature.
+  • Cardiac Output — Cardiac output monitoring.
+  • Non-Invasive Blood Pressure — Non-invasive blood pressure.
+  • Pressure Reactivity Index — Derived index reflecting cerebrovascular pressure reactivity.
+  • Baseline Therapy — Routine ICU management delivered to all TBI patients.
+  • Secondary Insult Therapy — Non-surgical medical management specifically given to treat secondary insults.
+  • Fluids — Fluid input and output management.
+  • Secondary Insult Treatment — Coded therapy category for secondary insults.
+  • ICP Sensor Placement — Placement of ICP monitoring sensor.
+  • Decompressive craniectomy — Decompressive craniectomy to relieve intracranial pressure.
+  • Acute Respiratory Distress Syndrome — ARDS.
+  • Hypertension — Elevated blood pressure.
+  • Clinical Assessment — Structured clinical evaluation performed at admission and during the ICU stay.
+  • CT Scan Assessment — CT scan classification using TCDB nomenclature.
+  • Blood Gases — Arterial blood gas analysis.
+  • Nursing Intervention — Routine nursing care, physiotherapy, or bedside clinical activities.
+  • Routine Nursing Care — Eye/mouth care, ET tube suction, bed care.
+  • Intensive Care Management — ICU management data category.
+  • Observation — A single measurement or reading recorded at a Timepoint.
+  • Parameter — A physiological or clinical variable that is measured and recorded.
+  • Sensor — A machine or sensor used to record physiological parameters.
+  • Antibiotics
+  • Systemic Hypotension
+  • White Blood Cell Count
+  • Haemoglobin
+  • Sodium
+  • Anterior Fossa Repair
+  • Vasopressors
+  • Paralysis
+  • Patient Transport
+  • Optional Monitoring Parameter
+  • Sedation
+  • TCD
+  • Physiotherapy
+  • Surgical Procedure
+  • SjO2
+  • Barbiturates
+  • Removal of Foreign Body
+  • Haematology
+  • Laboratory Values
+  • Analgesia
+  • Anti-pyretics
+  • Ventilation
+  • Skull Fracture Elevation
+  • Extra Ventricular Drain Placement
+  • Biochemistry
+  • Haematocrit
+  • EtCO2
+  • Jugular Venous Desaturation
+  • Anti-hypertensives
+
+--- Relations ---
+  • is treated with(Hypotension → Noradrenaline) — Indicates that hypotension can be managed using noradrenaline as a treatment.
+  • targets condition(Cerebral Perfusion Pressure → Respiratory Distress Syndrome) — Indicates that maintaining appropriate cerebral perfusion pressure is critical for managing respiratory distress syndrome.
+  • applies treatment(Traumatic Brain Injury → Osmotics) — Indicates that hyperosmolar therapy is a treatment applied for managing traumatic brain injury.
+  • receives therapy(Cerebrovascular Autoregulation → Cerebral Perfusion Pressure) — Describes how the state of cerebral autoregulation impacts the management of cerebral perfusion pressure.
+  • receives therapy(Intracranial Pressure → Partial pressure of brain tissue oxygen) — Indicates that changes in intracranial pressure have a significant effect on the partial pressure of brain tissue oxygen.
+  • has clinical assessment(Traumatic Brain Injury → GOSe Outcome) — Indicates that the outcomes of traumatic brain injury are evaluated using the Glasgow Outcome Scale Extended.
+  • is measured at(Partial pressure of brain tissue oxygen → Measurement Time) — Links the measurement of brain tissue oxygen levels to specific time points during monitoring.
+  • receives therapy(Intracranial Pressure → Brain Tissue Oxygen) — Indicates that changes in intracranial pressure influence the levels of brain tissue oxygen.
+  • receives therapy(Partial Pressure of Carbon Dioxide → Brain Tissue Oxygen) — Indicates that changes in the partial pressure of carbon dioxide influence the levels of brain tissue oxygen.
+  • has outcome(Intracranial Pressure → Outcome) — Links the measurement of intracranial pressure to the assessment of patient outcomes using the Glasgow Outcome Scale.
+  • targets condition(Therapy → Condition) — Indicates that hypothermia is used as a treatment for traumatic brain injury.
+  • receives therapy(Intracranial Hypertension → Cerebral Perfusion Pressure) — Describes the impact of intracranial hypertension on cerebral perfusion pressure.
+  • is associated with(Hypotension → Traumatic Brain Injury) — Links hypotension as a condition that can occur in patients with traumatic brain injury.
+  • has monitoring data(Intracranial Pressure → Traumatic Brain Injury) — Indicates that intracranial pressure is monitored in patients with traumatic brain injury to prevent secondary injuries.
+  • receives therapy(Intracranial Hypertension → Traumatic Brain Injury) — Describes how elevated intracranial pressure impacts the outcomes of traumatic brain injury.
+  • assesses(Cerebral Perfusion Pressure → Intracranial Hypertension) — Indicates that cerebral perfusion pressure is assessed to understand the implications of intracranial hypertension.
+  • is associated with(Cerebral Perfusion Pressure → Intracranial Pressure) — Links the physiological parameter that influences blood flow to the brain with the pressure inside the skull.
+  • associated with condition(Intracranial Pressure → Mortality) — Links raised intracranial pressure to an increased risk of death.
+  • predicts outcome(Intracranial Pressure → Outcome Score) — Indicates that changes in intracranial pressure can be used to forecast the neurological outcome of patients.
+  • is associated with(Traumatic Brain Injury → Secondary Brain Injury) — Links traumatic brain injury to the occurrence of secondary brain injuries, which can worsen patient outcomes.
+  • triggers intervention(Mean Arterial Pressure → Hypotension) — Indicates that a drop in mean arterial pressure can lead to the occurrence of hypotensive events.
+  • has monitoring data(Brain Injury → Arterial Hypotension) — Links a brain injury to the monitoring of hypotensive events during treatment.
+  • relates to clinical outcome(Hypotension → Brain Injury) — Indicates that episodes of hypotension are associated with outcomes in brain injury patients.
+  • has monitoring data(Dsg → Hypotensive) — Indicates that the DSG application is used to monitor hypotensive events.
+  • defines(Secondary Insult Grades → Hypotensive) — Links the Secondary Insult Grades to the classification of hypotensive events.
+  • calculates(Cerebral Perfusion Pressure → Mean Arterial Pressure) — Indicates that cerebral perfusion pressure is calculated using BPm.
+  • receives therapy(Intracranial Pressure → Outcome) — Indicates that changes in intracranial pressure can impact patient outcomes.
+  • is measured by(Cerebral Perfusion Pressure → Mean Arterial Pressure) — Indicates that cerebral perfusion pressure calculations are based on mean arterial pressure.
+  • informs(Treatment Data → Clinical Practice) — Treatment data informs clinical practice decisions.
+  • enhances(Clinical Reminders → Guideline Adherence) — Clinical reminders enhance adherence to guidelines.
+  • has outcome(Guideline Adherence → Outcome) — Guideline adherence is associated with outcomes such as mortality rates.
+  • is measured by(Guideline Adherence → Clinical Practice) — Guideline adherence is measured through various clinical practices and protocols.
+  • is treated with(Heart Failure → Guideline Adherence) — Heart failure management is guided by adherence to clinical guidelines.
+  • has surgical procedure(Patient → Surgical Procedure) — Indicates that a patient has undergone a surgical procedure.
+  • receives therapy(Patient → Therapy) — Indicates that a patient is receiving a specific therapy.
+  • has clinical assessment(Patient → Clinical Assessment) — Indicates that a patient has undergone a clinical assessment.
+  • has outcome(Patient → Outcome) — Indicates that a patient has a recorded outcome.
+  • has nursing intervention(Patient → Nursing Intervention) — Indicates that a patient has received nursing interventions.
+  • measures parameter(Observation → Parameter) — Indicates that an observation measures a specific parameter.
+  • produced by sensor(Observation → Sensor) — Indicates that an observation is produced by a specific sensor.
+  • is a type of(EUSIG Grade → Secondary Insult Grades) — EUSIG Grade is a specific classification within the broader category of Secondary Insult Grades.
+
+--- Hierarchy (subclass → superclass) ---
+  • Traumatic Brain Injury ⊑ Brain Injury
+  • Condition ⊑ Mortality
+  • Secondary Insult ⊑ Condition
+  • Arterial Hypotension ⊑ Secondary Insult
+  • Intracranial Hypertension ⊑ Secondary Insult
+  • Cerebrovascular Autoregulation ⊑ Condition
+  • Brain Injury ⊑ Condition
+  • Secondary Brain Injury ⊑ Brain Injury
+  • Cerebrovascular Autoregulation ⊑ Secondary Insult
+  • Adverse Event ⊑ Condition
+  • Heart Rate ⊑ Physiological Data
+  • Mean Arterial Pressure (MAP) ⊑ Physiological Data
+  • ICP ⊑ Physiological Data
+  • CPP ⊑ Physiological Data
+  • Carbon Dioxide ⊑ Physiological Data
+  • Glucose ⊑ Biochemistry
+  • PbrO2 ⊑ Physiological Data
+  • Partial pressure of brain tissue oxygen ⊑ Physiological Data
+  • Partial Pressure of Carbon Dioxide ⊑ Physiological Data
+  • Hypothermia Therapy ⊑ Baseline Therapy
+  • Patient Interventions ⊑ Therapy
+  • Guideline Adherence ⊑ Clinical Practice
+  • Clinical Reminders ⊑ Clinical Practice
+  • GOSe Outcome ⊑ Outcome
+  • Outcome Score ⊑ Outcome
+  • Mortality ⊑ Outcome
+  • Haematocrit ⊑ Haematology
+  • TCD ⊑ Optional Monitoring Parameter
+  • Pressure Reactivity Index (PRx) ⊑ Derived Parameter
+  • Physiotherapy ⊑ Nursing Intervention
+  • ICP Sensor Placement ⊑ Surgical Procedure
+  • White Blood Cell Count ⊑ Haematology
+  • Removal of Foreign Body ⊑ Surgical Procedure
+  • Analgesia ⊑ Baseline Therapy
+  • Peripheral Temperature ⊑ Optional Monitoring Parameter
+  • Noradrenaline ⊑ Vasopressors
+  • Barbiturates ⊑ Secondary Insult Therapy
+  • Sodium ⊑ Biochemistry
+  • Fluids ⊑ Baseline Therapy
+  • Anti-pyretics ⊑ Baseline Therapy
+  • Extra Ventricular Drain Placement ⊑ Surgical Procedure
+  • EtCO2 ⊑ Optional Monitoring Parameter
+  • Paralysis ⊑ Baseline Therapy
+  • Anti-hypertensives ⊑ Baseline Therapy
+  • SjO2 ⊑ Optional Monitoring Parameter
+  • Osmotics ⊑ Secondary Insult Therapy
+  • Jugular Venous Desaturation ⊑ Secondary Insult
+  • Blood Gases ⊑ Laboratory Values
+  • Skull Fracture Elevation ⊑ Surgical Procedure
+  • CPP ⊑ Derived Parameter
+  • Haemoglobin ⊑ Haematology
+  • Patient Transport ⊑ Nursing Intervention
+  • Anterior Fossa Repair ⊑ Surgical Procedure
+  • Systemic Hypotension ⊑ Secondary Insult
+  • Acute Respiratory Distress Syndrome ⊑ Secondary Insult
+  • Ventilation ⊑ Baseline Therapy
+  • Secondary Insult Therapy ⊑ Therapy
+  • Routine Nursing Care ⊑ Nursing Intervention
+  • Vasopressors ⊑ Baseline Therapy
+  • Sedation ⊑ Baseline Therapy
+  • Antibiotics ⊑ Baseline Therapy
+  • Hypotension ⊑ Secondary Insult
+  • Cardiac Output ⊑ Optional Monitoring Parameter
+  • Steroids ⊑ Secondary Insult Therapy
+  • Decompressive Craniectomy ⊑ Surgical Procedure
+  • GCS Assessment ⊑ Clinical Assessment
+  • Pupil Assessment ⊑ Clinical Assessment
+  • CT Scan Assessment ⊑ Clinical Assessment
+  • Arterial Hypotension ⊑ Systemic Hypotension
+  • Hypertension ⊑ Condition
+  • Hypotension ⊑ Condition
+  • Haematology ⊑ Laboratory Values
+  • Biochemistry ⊑ Laboratory Values
+  • Secondary Insult Treatment ⊑ Secondary Insult Therapy
+  • Baseline Therapy ⊑ Therapy
+  • Central Venous Pressure ⊑ Optional Monitoring Parameter
+  • Non-Invasive Blood Pressure ⊑ Optional Monitoring Parameter
+  • Brain Tissue Oxygen ⊑ Optional Monitoring Parameter

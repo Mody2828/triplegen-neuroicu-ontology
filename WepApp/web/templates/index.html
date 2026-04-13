@@ -257,7 +257,7 @@
           </div>
           <!-- ── Hidden flag inputs set by pipeline mode JS ── -->
           <input type="hidden" name="scope_filter"            id="hid_scope_filter"            value="on">
-          <input type="hidden" name="prompt_vocab_guardrails" id="hid_prompt_vocab_guardrails" value="on">
+          <input type="hidden" name="prompt_vocab_guardrails" id="hid_prompt_vocab_guardrails" value="">
           <input type="hidden" name="candidate_terms"         id="hid_candidate_terms"         value="">
           <input type="hidden" name="medical_ner_anchor"      id="hid_medical_ner_anchor"      value="">
           <input type="hidden" name="schema_guided_completion" id="hid_schema_guided_completion" value="">
@@ -401,7 +401,7 @@
             <i class="bi bi-clipboard-data me-2 icon-gradient-accent" aria-hidden="true"></i>Evaluation settings
           </div>
           <div class="form-check form-switch mb-1 d-flex align-items-center gap-2">
-            <input class="form-check-input" type="checkbox" id="eval_restrict_to_gold" name="eval_restrict_to_gold" value="on" checked>
+            <input class="form-check-input" type="checkbox" id="eval_restrict_to_gold" name="eval_restrict_to_gold" value="on">
             <label class="form-check-label" for="eval_restrict_to_gold">Gold-vocabulary-only</label>
             <i class="bi bi-info-circle cfg-info-icon" role="button" tabindex="0" data-bs-toggle="popover" data-bs-trigger="focus" data-bs-placement="right" data-bs-title="Gold-vocabulary-only (Evaluation control)" data-bs-content="Evaluation metric only — does not change what is extracted. Before computing precision/recall, the ontology is filtered to the gold vocabulary so non-gold classes don't inflate or deflate scores. Full output always saved to ontology.json." aria-label="More about Gold-vocabulary-only"></i>
           </div>
@@ -708,18 +708,47 @@
         const v = sw.getAttribute('data-value') || "";
         if (sw.checked) setStrategy(v, false);
         else setStrategy(""); // allow clearing selection
+        // Strict mode only available with Zero-Shot
+        updateStrictAvailability();
       });
     });
+
+    // Disable Strict pipeline mode when One-Shot or Few-Shot is selected
+    function updateStrictAvailability() {
+      const selected = strategySelect.value;
+      const strictCard = document.getElementById('pmc-1');
+      const strictRadio = document.getElementById('pm_1');
+      if (!strictCard || !strictRadio) return;
+      const isZeroShot = (selected === 'baseline' || selected === '');
+      if (isZeroShot) {
+        strictCard.classList.remove('disabled');
+        strictCard.style.opacity = '';
+        strictCard.style.pointerEvents = '';
+        strictRadio.disabled = false;
+      } else {
+        strictCard.classList.add('disabled');
+        strictCard.style.opacity = '0.45';
+        strictCard.style.pointerEvents = 'none';
+        strictRadio.disabled = true;
+        // If Strict was selected, bump to Guided
+        if (strictRadio.checked) {
+          var guidedRadio = document.getElementById('pm_2');
+          if (guidedRadio) { guidedRadio.checked = true; if (window._applyMode) window._applyMode('2'); }
+        }
+      }
+    }
+    // Expose so pipeline mode setup can call it on init
+    window._updateStrictAvailability = updateStrictAvailability;
   })();
 
   // ── Pipeline mode → hidden flag inputs ─────────────────────────────────────
   (function setupPipelineMode() {
     // Mode 1 = Strict (raw extraction: no vocab guardrails, no gold filter).
-    // Mode 2 = Guided (vocab + eval_gold + NER + candidates). Mode 3 = Schema-Completed (+ SGC + reasoner).
+    // Mode 2 = Guided (NER + candidates, no gold-vocab). Mode 3 = Schema-Completed (+ SGC + reasoner).
     const MODES = {
       '1': { candidate_terms: false, medical_ner_anchor: false, schema_guided_completion: false, symbolic_reasoner: false, prompt_vocab_guardrails: false, eval_restrict_to_gold: false, embedding_scope_fallback: true  },
-      '2': { candidate_terms: true,  medical_ner_anchor: true,  schema_guided_completion: false, symbolic_reasoner: false, prompt_vocab_guardrails: true,  eval_restrict_to_gold: true,  embedding_scope_fallback: false },
-      '3': { candidate_terms: true,  medical_ner_anchor: true,  schema_guided_completion: true,  symbolic_reasoner: true,  prompt_vocab_guardrails: true,  eval_restrict_to_gold: true,  embedding_scope_fallback: false },
+      '2': { candidate_terms: true,  medical_ner_anchor: true,  schema_guided_completion: false, symbolic_reasoner: false, prompt_vocab_guardrails: false, eval_restrict_to_gold: false, embedding_scope_fallback: false },
+      '3': { candidate_terms: true,  medical_ner_anchor: true,  schema_guided_completion: true,  symbolic_reasoner: true,  prompt_vocab_guardrails: false, eval_restrict_to_gold: false, embedding_scope_fallback: false },
     };
     const FLAG_IDS = {
       candidate_terms:          'hid_candidate_terms',
@@ -749,6 +778,8 @@
       const rlmSection = document.querySelector('#adv-panel .fw-semibold:last-of-type');
       // (hint only — actual Reasoning LLM section is always in Advanced)
     }
+    // Expose so updateStrictAvailability can call it
+    window._applyMode = applyMode;
 
     // Wire radio inputs
     document.querySelectorAll('.pipeline-mode-radio').forEach(radio => {
@@ -768,6 +799,8 @@
     // Initialize from checked radio (default = mode 3)
     const checked = document.querySelector('.pipeline-mode-radio:checked');
     if (checked) applyMode(checked.value);
+    // Apply Strict availability based on initial strategy selection
+    if (window._updateStrictAvailability) window._updateStrictAvailability();
   })();
 
   // ── Advanced panel toggle ────────────────────────────────────────────────

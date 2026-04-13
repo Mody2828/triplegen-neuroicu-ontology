@@ -124,7 +124,7 @@ def write_run_summary(
     llm_model = config.get("llm_model")
     llm_provider = _format_llm_label(llm_provider_key, llm_model)
     improvements_llm = None
-    if config.get("schema_guided_completion"):
+    if config.get("schema_guided_completion") or config.get("llm_refinement"):
         imp_provider = config.get("improvements_llm_provider") or llm_provider_key
         imp_model = config.get("improvements_llm_model")
         if (imp_model and str(imp_model).strip()) or (imp_provider and imp_provider != llm_provider_key):
@@ -138,13 +138,16 @@ def write_run_summary(
 
     pipeline_mode = _pipeline_mode_label(config)
 
-    eval_flags = []
+    preprocess_flags = []
     if config.get("scope_filter"):
-        eval_flags.append("Scope filter (clinical-only chunks)")
+        preprocess_flags.append("Scope filter (clinical-only chunks)")
+    if config.get("medical_ner_anchor"):
+        preprocess_flags.append("Medical NER anchor (experimental)")
+    preprocess_str = ", ".join(preprocess_flags) if preprocess_flags else "None"
+
+    eval_flags = []
     if config.get("eval_restrict_to_gold"):
         eval_flags.append("Gold-vocabulary-only evaluation")
-    if config.get("medical_ner_anchor"):
-        eval_flags.append("Medical NER anchor (experimental)")
     eval_str = ", ".join(eval_flags) if eval_flags else "None"
 
     # Input papers list
@@ -198,6 +201,7 @@ def write_run_summary(
         f"LLM provider:    {llm_provider}",
         *([f"Reasoning LLM:   {improvements_llm}"] if improvements_llm else []),
         f"Improvements:    {improvements_str}",
+        f"Preprocessing:   {preprocess_str}",
         f"Eval settings:   {eval_str}",
         "",
     ]

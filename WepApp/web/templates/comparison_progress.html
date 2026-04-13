@@ -87,9 +87,11 @@
   const modelLabels = { "gpt-4o-mini": "GPT-4o-mini", "gpt-4o": "GPT-4o", "claude-3-haiku": "Claude 3 Haiku", "claude-haiku-4-5": "Claude Haiku 4.5", "gemini-2.0-flash": "Gemini 2.0 Flash", "llama-3.1-8b-instant": "Llama 3.1 8B", "mistralai/Mistral-7B-Instruct-v0.1": "Mistral 7B", "deepseek-chat": "DeepSeek-V3" };
   const providerLabels = { openai: "GPT-4o-mini", "openai-4o": "GPT-4o", anthropic: "Anthropic", google: "Google", groq: "Groq", huggingface: "Hugging Face", deepseek: "DeepSeek", local: "Local" };
   const paperShortNames = { 1: "Piper 2003", 2: "Moss 2013", 3: "Stell 2018", 4: "Shaw 2024", 5: "Georgatzis 2016", 6: "G\u00fciza 2015a", 7: "Donald 2012", 8: "Depreitere 2018", 9: "Donald 2019", 10: "Decraene 2023", 11: "G\u00fciza 2015b" };
+  var paperGroupLabels = { "group_1": "G1 (Papers 1-2)", "group_2": "G2 (Papers 3-7)", "group_3": "G3 (Papers 8-11)" };
   function paperLabel(config) {
     var pid = config.paper_id;
     if (pid == null || pid === "" || pid === 0 || pid === "0") return "";
+    if (paperGroupLabels[String(pid)]) return paperGroupLabels[String(pid)];
     var short = paperShortNames[parseInt(pid, 10)];
     return short ? short + "(" + pid + ")" : "Paper " + pid;
   }
@@ -107,6 +109,8 @@
     var sgc = config.schema_guided_completion,
         sym = config.symbolic_reasoner;
     if (sgc || sym)  return "Schema-Completed";
+    if (config.medical_ner_anchor || config.candidate_terms || config.prompt_vocab_guardrails)
+      return "Guided";
     return "Strict";
   }
   // Eval settings column

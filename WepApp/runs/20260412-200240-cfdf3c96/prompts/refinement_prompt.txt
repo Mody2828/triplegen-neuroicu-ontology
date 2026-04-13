@@ -1,0 +1,336 @@
+You are an ontology quality reviewer for clinical and biomedical domain ontologies.
+
+You have been given a generated ontology extracted from clinical/biomedical literature.
+Your task is to review the ontology and identify ONLY items that are clearly
+NOT clinical. Be VERY CONSERVATIVE — when in doubt, KEEP the item.
+
+### CRITICAL: BE CONSERVATIVE
+- Your primary goal is to PRESERVE the ontology. Only remove items you are
+  HIGHLY CONFIDENT do not belong.
+- If a concept COULD be clinical in ANY reasonable interpretation, KEEP it.
+- Abstract grouping categories are ESSENTIAL in ontologies — they organise
+  specific concepts into meaningful hierarchies. NEVER remove a class just
+  because it is abstract or general.
+- Removing a valid class destroys all its relations and hierarchy edges,
+  causing massive cascading damage to the ontology. Err on the side of keeping.
+
+### WHAT BELONGS (KEEP these — do NOT remove)
+- Clinical conditions, diseases, injuries, syndromes
+- Physiological parameters and measurements (e.g. heart rate, ICP, blood pressure)
+- Treatments, therapies, interventions, drugs, surgical procedures
+- Clinical assessments and scores (e.g. GCS, pupil reactivity, CT scan findings)
+- Laboratory values and tests (e.g. blood gases, biochemistry, haematology)
+- Medical devices and sensors that measure clinical parameters
+- Patient-related concepts (demographics, outcomes, patient)
+- Data categories that organise clinical observations (e.g. 'Monitoring Data',
+  'Laboratory Values', 'Admission Data', 'Treatment Data', 'Outcome Data')
+- Abstract superclasses that group clinical concepts:
+  'Condition', 'Outcome', 'Observation', 'Parameter', 'Therapy',
+  'Assessment', 'Intervention', 'Core Monitoring Parameter',
+  'Optional Monitoring Parameter', 'Baseline Therapy', 'Guidelines',
+  'Guidelines for Management', etc.
+  These are VALID ontological grouping classes — do NOT remove them.
+- Clinical guidelines and management protocols
+
+### WHAT TO REMOVE (only these categories, with high confidence)
+- Research project names and consortium names (e.g. 'BrainIT Project')
+- Governance/administrative concepts (e.g. 'Steering Group', 'Membership')
+- Data infrastructure: databases, software tools, data collection tools
+- Economic or social impact concepts (e.g. 'Economic Consequences',
+  'Social Consequences') — these are about societal impact, not clinical care
+- Institution names (universities, hospitals as organisations)
+- Industry/regulatory bodies (e.g. 'Medical Device Industry', 'Health Authorities')
+- Publishing metadata: journals, authors, DOIs
+
+### HIERARCHY REVIEW (be thorough here — hierarchy errors are important)
+Carefully check EVERY hierarchy edge for semantic correctness:
+- **Nonsensical edges** (ALWAYS remove): the subclass relationship is logically
+  impossible. Examples:
+  • 'Patient ⊑ Secondary Insult' — a patient is NOT a type of insult → REMOVE
+  • 'Monitoring Data ⊑ Patient' — data is NOT a type of patient → REMOVE
+  • 'Therapy ⊑ Laboratory Values' — therapy is NOT a lab value → REMOVE
+  Test: 'Is every X a kind of Y?' If the answer is obviously NO, remove it.
+- **Clear inversions** (CORRECT, do not remove): child and parent are swapped.
+  Examples:
+  • 'Brain Injury ⊑ Traumatic Brain Injury' → CORRECT to 'TBI ⊑ Brain Injury'
+  • 'Condition ⊑ Traumatic Brain Injury' → CORRECT to 'TBI ⊑ Condition'
+  Test: 'Is every X a kind of Y, or is it the other way around?'
+- Do NOT remove hierarchy edges just because the grouping seems unusual —
+  ontologies often have domain-specific groupings.
+
+### RELATION REVIEW
+Only flag relations where BOTH endpoints are clearly non-clinical:
+- If the domain OR range is a valid clinical concept, KEEP the relation.
+- Do NOT remove relations just because the label is imprecise.
+
+### CHAIN-OF-THOUGHT
+For each item you flag, reason step by step:
+1. What does this concept refer to in the source text?
+2. Is it clearly non-clinical (governance/infrastructure/economic/publishing)?
+3. Could it have ANY clinical interpretation? If yes → KEEP.
+4. Decision: REMOVE or CORRECT (only if highly confident)
+
+### OUTPUT FORMAT
+Return ONLY a JSON object (no markdown fences) with these keys:
+```
+{
+  "classes_to_remove": [
+    {"label": "...", "reason": "..."}
+  ],
+  "relations_to_remove": [
+    {"label": "...", "domain": "...", "range": "...", "reason": "..."}
+  ],
+  "hierarchy_to_remove": [
+    {"subClass": "...", "superClass": "...", "reason": "..."}
+  ],
+  "hierarchy_corrections": [
+    {"old_sub": "...", "old_super": "...", "new_sub": "...", "new_super": "...", "reason": "..."}
+  ]
+}
+```
+If everything is correct (or you are not confident enough to remove anything),
+return empty arrays for each key. It is perfectly fine to return all empty arrays.
+Do NOT wrap the JSON in markdown code fences.
+
+### SOURCE TEXT (first 6000 chars for context)
+Clinical Article
+The Brain Monitoring with Information
+Technology (BrainIT) group: concept and core dataset definition
+I. Piper, G. Citerio, I. Chambers, C. Contant, P. Enblad, H. Fiddes, T. Howells, K. Kiening,
+P. Nilsson, and Y. H. Yau for the Brain Monitoring with Information
+Technology (BrainIT) Group
+
+Summary
+
+Yau for the Brain Monitoring with Information
+Technology (BrainIT) Group
+
+Part A: Brain Monitoring with Information
+Technology (BrainIT) group concept
+
+Introduction. An open collaborative international network has been
+established which aims to improve inter-centre standards for collection
+of high-resolution, neurointensive care data on patients with traumatic
+brain injury. The group is also working towards the creation of an open
+meetings funded by the EEC that allowed us to define a ''Core Dataset''
+and we present the results of a feasibility exercise for collection of this
+core dataset.
+Methods. Four group meetings funded by the EEC have enabled
+definition of a ''Core Dataset'' to be collected from all centres regardless
+of specific project aim. A paper based pilot collection of data was
+conducted to determine the feasibility for collection of the core dataset.
+Specially designed forms to collect the core dataset demographic and
+clinical information as well as sample the time-series data elements were
+distributed by both email and standard mail to 22 Brain Monitoring with Information
+Technology (BrainIT) centres. A
+deadline of two months was set to receive completed forms back from
+monitoring data was also performed.
+Findings. A core-dataset was defined and can be downloaded from the
+Brain Monitoring with Information
+Technology (BrainIT) web-site (go to ''Core dataset'' link at: www.brainit.org).
+Eighteen centres (82%) returned completed forms by the set deadline.
+Overall the feasibility for collection of the core data elements was high
+with only 10 of the 64 questions (16%) showing missing data. Of those
+has been designed and is being tested. Software tools for collection of
+study.
+Interpretation. The Brain Monitoring with Information
+Technology (BrainIT) network provides a more standardised and
+higher resolution data collection mechanism for research groups, organisations and the device industry to conduct multi-centre trials of new
+health care technology in patients with traumatic brain injury.
+
+Head injury has devastating economic and social consequences both to the victim and to the society that supports the victim. The incidence of serious head injury
+is estimated at 1500 per 100,000 population per annum.
+On a European dimension this translates into over a
+million hospital admissions with a head injury per year.
+Head injury is a leading cause of death in young males
+and survivors have serious and long term morbidity. The
+loss of employment to the victim and the stress and
+increased burden of care to family members have significant social and economic effects upon Europe.
+When assessing head injured patients' outcome from
+new therapies or the application of new monitoring
+devices, a large number of patients are required.
+Recruiting patients from multiple centres will significantly
+reduce the time to assess new therapy and monitoring.
+However, despite the existence of guidelines for the management of severely head injured patients
+this group of patients is subject to considerable variability
+in care. As a first step towards improving management standards in this population, both the inter and
+intra-centre variability in the management and treatment of
+these patients needs to be assessed on a multi-national
+basis, and to do so requires a more standardised and higher
+resolution methodology for acquiring patient management
+and monitoring information.
+One consequence of the variability in management
+that probably exists both across and within centres that
+manage patients with Traumatic Brain Injury (TBI) (traumatic brain injury), is its
+confounding influence upon trials of therapy. There have
+
+Keywords: Head injury; multi-centre network; health technology
+assessment.
+
+been in the last few years several multi-centre clinical
+trials of potential neuroprotective drugs targeted at
+patients with brain trauma. However, despite promising
+pre-clinical results, all have failed to show efficacy in the
+head-injured population. A number of reasons have been
+proposed for these failures which include: poor study
+design, insufficient dose of drug penetrating the blood
+brain barrier and inter-species differences in brain injury
+mechanisms.
+Another possibility, not as yet systematically examined, is the occurrence of secondary insults which are
+missed through use of inappropriate monitoring methods. Even in large scale randomised trials, an efficient
+stratification design cannot be made without a knowledge of the incidence of relevant confounding factors.
+Improving the standards and resolution for multicentre data collection will also impact upon the assessment of new medical technology of relevance to the
+medical device industry. The majority of companies that
+develop or support devices used to monitor brain injured
+device companies lack the resources to independently
+assess their devices in multi-centre studies. This severely
+limits the provision of quality evidence demonstrating
+the clinical utility of their products.
+What is required is an open, collaborative network of
+centres interested in developing higher resolution and
+more standardised methods for collection of monitoring
+and management data from patients with traumatic brain
+injury. Such an infrastructure will provide a more efficient means for assessing new and developing health
+care technology, whether it is new drugs, management
+approaches or new monitoring devices.
+The idea for the Brain Monitoring with Information
+Technology (BrainIT) group came from discussions arising during the 10th International Symposium on Raised
+Intracranial Pressure and Neuromonitoring in Brain
+Injury held in Williamsburg, USA in May 1997. A few
+part
+
+### CLASSES
+  - Traumatic Brain Injury  [definition: A type of brain injury resulting from external mechanical forces, often leading to various complications and requiring careful monitoring.]  [evidence: In both cases, time series physiological data was collected from patient monitoring equipment, but the machines used, parameters recorded, and frequency of data collection differs.]
+  - Head Injury  [definition: An injury to the head that can result in serious health complications and is a leading cause of death in young males.]  [evidence: The aim was to define a minimum or core dataset to be collected from all head injured patients which would be common to all future research projects.]
+  - Cerebral Perfusion Pressure  [definition: A physiological parameter indicating the pressure gradient driving blood flow to the brain, critical for maintaining adequate cerebral blood flow.]  [evidence: Over the last few years an interest in Cerebral Perfusion Pressure (CPP) targeted therapy for head injured patients has developed.]
+  - Intracranial Pressure  [definition: The pressure within the skull, which can be affected by various factors and is crucial for monitoring in patients with brain injuries.]  [evidence: Time of Blood Pressure (BP), Intracranial Pressure (ICP) and central venous pressure (CVP) monitoring is also indicated.]
+  - Secondary Insult  [definition: An additional injury or complication that occurs after the initial brain injury, which can worsen patient outcomes.]  [evidence: the occurrence of secondary insults which are missed through use of inappropriate monitoring methods.]
+  - Monitoring Data  [definition: Data collected from patients to assess physiological parameters and outcomes during treatment.]  [evidence: standardised and higher resolution data collection mechanism for research groups]
+  - Therapy  [definition: Interventions or treatments aimed at improving health outcomes in patients with brain injuries.]  [evidence: assessing new therapy and monitoring.]
+  - Outcome  [definition: The result or effect of treatment or intervention on a patient's health status.]  [evidence: assessing head injured patients' outcome from new therapies]
+  - Brain Injury  [definition: A condition resulting from damage to the brain, which can affect cognitive, physical, and emotional functions.]  [evidence: The aim was to define a minimum or core dataset to be collected from all head injured patients which would be common to all future research projects.]
+  - Neurological Injury  [definition: Injury affecting the nervous system, which may result from trauma or other medical conditions.]  [evidence: Medical history is focused upon identifying previous neurological injury, substance abuse and associated injuries.]
+  - Substance Abuse  [definition: The harmful or hazardous use of psychoactive substances, including alcohol and illicit drugs.]  [evidence: Medical history is focused upon identifying previous neurological injury, substance abuse and associated injuries.]
+  - Coma  [definition: A state of prolonged unconsciousness in which a person cannot be awakened and fails to respond to stimuli.]  [evidence: Classification is based upon the Traumatic Coma Databank (TCDB) nomenclature.]
+  - Mean Arterial Pressure  [definition: The pressure of circulating blood on the walls of blood vessels, an important physiological parameter.]  [evidence: Time of Blood Pressure (BP), Intracranial Pressure (ICP) and central venous pressure (CVP) monitoring is also indicated.]
+  - Central Venous Pressure  [definition: A physiological measurement of the pressure in the thoracic vena cava, reflecting the volume status and cardiac function.]  [evidence: Time of Blood Pressure (BP), Intracranial Pressure (ICP) and central venous pressure (CVP) monitoring is also indicated.]
+  - GCS Assessment  [definition: A clinical scale used to assess a patient's level of consciousness and neurological function.]  [evidence: Data elements are then collected describing the clinical status of the patient (e.g.: Glasgow Coma Scale (GCS) scores) at both pre-neurosurgical hospital admission and at admission to the hospital wit]
+  - Pupil Assessment  [definition: The diameter of the pupil, which can indicate neurological function and response.]  [evidence: Group discussion lead to a simplification of the scoring system for recording pupil size and responsiveness.]
+  - Heart Rate  [definition: A physiological parameter indicating the number of heartbeats per minute, monitored via Electrocardiogram (ECG) or Pulse Oximetry.]  [evidence: a recorded heart rate of 120 may be identified as an error by a simple threshold based rule]
+  - Respiration Rate  [definition: A physiological parameter measuring the number of breaths taken per minute, monitored using impedance plethmography or ventilator.]  [evidence: Respiration Rate (sources: impedance plethmography or ventilator)]
+  - Arterial Oxygen Saturation  [definition: A non-invasive method to measure the oxygen saturation level in the blood, often referred to as SaO2.]  [evidence: Pulse Oximetry (SaO2)]
+  - Temperature  [definition: A physiological parameter indicating the body temperature, monitored through various methods including rectal, oesophageal, bladder, or skin.]  [evidence: Temperature (sources: rectal=oesophageal= bladder=skin)]
+  - End-Tidal Carbon Dioxide  [definition: A measurement of the concentration of carbon dioxide in exhaled air, used to assess ventilation status.]  [evidence: End-Tidal CO2 (EtCO2)]
+  - Jugular Venous Oxygen Saturation  [definition: A measure of the oxygen saturation of blood in the jugular vein, indicating cerebral oxygenation.]  [evidence: Jugular Venous Oxygen Saturation (SjO2)]
+  - Transcranial Doppler  [definition: A non-invasive ultrasound method used to measure blood flow velocity in the brain's major arteries.]  [evidence: Transcranial Doppler (TCD)]
+  - Brain Tissue Oxygen  [definition: A measurement of the oxygen levels in brain tissue, important for assessing cerebral metabolism.]  [evidence: Brain Tissue Oxygen (PbrO2)]
+  - Hypotension  [definition: A condition characterized by abnormally low blood pressure, which can lead to inadequate blood flow to organs.]  [evidence: A number of readings identified by Acceptable Range Rules 1 & 2 may have been affected by hypertension (91%), hypotension (85.6%)...]
+  - Vasopressors  [definition: Medications used to constrict blood vessels and increase blood pressure, often used in critical care settings.]  [evidence: use of vasopressors]
+  - Biochemistry  [definition: A branch of medicine that deals with the chemical processes and substances in living organisms, often involving laboratory values.]  [evidence: Biochemistry (Na, K þ , Glucose)]
+  - Haematology  [definition: The study of blood, blood-forming organs, and blood diseases, often involving laboratory tests.]  [evidence: Haematology (Haemaglobin, White Cell Count, Haematocrit)]
+  - Brain Monitoring  [definition: A clinical approach that utilizes technology to monitor brain activity and related physiological parameters.]  [evidence: The Brain Monitoring with Information Technology (BrainIT) group: concept and core dataset definition]
+  - Injuries  [definition: Physical damage to the body resulting from external force or trauma.]  [evidence: the question on ''Associated Major Injuries'' with a missing error rate of 33%]
+  - Intracranial Hypertension  [definition: An increase in pressure within the skull that can lead to severe complications, particularly in brain injury patients.]  [evidence: secondary insults such as intracranial hypertension]
+  - Acute Respiratory Distress Syndrome  [definition: A severe lung condition characterized by rapid onset of widespread inflammation in the lungs, often seen in critically ill patients.]  [evidence: increased the incidence of acute respiratory distress syndrome and worsened neurological outcome.]
+  - Jugular Venous Desaturations  [definition: A condition where there is a decrease in oxygen saturation in the jugular venous blood, often indicating compromised cerebral perfusion.]  [evidence: reducing the incidence of jugular venous desaturations < 50%]
+  - Clinical Research Form  [definition: A document used to collect data in clinical trials, ensuring systematic data gathering for analysis.]  [evidence: research forms (CRF) for recording data on adverse events]
+  - Outcome Data  [definition: Data that reflects the results or consequences of medical treatment or intervention.]  [evidence: collection of admission, monitoring, treatment and outcome data]
+  - Management  [definition: The process of planning and executing treatment strategies for patients, particularly in critical care settings.]  [evidence: management of patients with brain injury.]
+  - Monitoring  [definition: The continuous assessment of a patient's physiological parameters to ensure safety and effectiveness of treatment.]  [evidence: monitoring approach could be significantly reduced.]
+  - Sepsis  [definition: A life-threatening condition caused by the body's response to an infection, which can lead to tissue damage and organ failure.]  [evidence: if the patient was suffering from sepsis at the same time, then the value may actually be a symptom of that disorder.]
+  - Uris  [definition: Uniform Resource Identifiers, used to uniquely identify resources in the context of data management and access.]  [evidence: linked through the use of technologies such as URIs]
+  - Patient  [definition: A clinical entity representing an individual receiving medical care.]  [evidence: the pd:Patient as a ssn:FeatureOfInterest.]
+  - Session  [definition: A defined period during which medical observations are recorded for a patient.]  [evidence: provides classes for representing Patients, Sessions, and Timepoints.]
+  - Timepoint  [definition: A specific moment in time associated with medical observations.]  [evidence: pd:Timepoint as a subclass of mo:ObservationCollection.]
+  - Reading  [definition: A recorded value of a specific parameter observed during a medical evaluation.]  [evidence: define pd:Reading as a subclass of ssn:ObservationValue.]
+  - Parameter  [definition: A measurable characteristic or variable that is recorded during medical observations.]  [evidence: pd:Parameter (representing things that were recorded) as a subclass of ssn:Property.]
+  - Observation  [definition: A recorded instance of a parameter value during a medical evaluation.]  [evidence: set of ssn:Observations.]
+  - Machine  [definition: A device used in medical evaluations to collect data from sensors.]  [evidence: defined mms:Machine as a subclass of ssn:Platform.]
+  - Sensor  [definition: A device that detects and measures physical properties in a medical context.]  [evidence: various subclasses of ssn:Sensor for the different types of sensors on the machine.]
+  - Error  [definition: A classification indicating a potential issue with recorded medical data.]  [evidence: annotated with 'Possible Error' (PoE) or a 'Probable Error' (PrE).]
+  - Hypertension  [definition: A condition characterized by abnormally high blood pressure.]  [evidence: A number of readings identified by Acceptable Range Rules 1 & 2 may have been affected by hypertension (91%), hypotension (85.6%)...]
+  - Noradrenaline  [definition: A hormone and neurotransmitter involved in the body's fight or flight response, often used in medical treatments.]  [evidence: For the Treatments rule, queries for effects of noradrenaline and adrenaline.]
+  - Adrenaline  [definition: A hormone produced by the adrenal glands that increases heart rate and blood flow, commonly used in emergency medicine.]  [evidence: For the Treatments rule, queries for effects of noradrenaline and adrenaline.]
+  - Core Monitoring Parameter  [evidence: [inferred] Intermediate category introduced by Chain-of-Layer taxonomy construction.]
+  - Optional Monitoring Parameter  [evidence: [inferred] Intermediate category introduced by Chain-of-Layer taxonomy construction.]
+  - Baseline Therapy  [evidence: [inferred] Intermediate category introduced by Chain-of-Layer taxonomy construction.]
+  - Condition  [evidence: [inferred] Intermediate category introduced by Chain-of-Layer taxonomy construction.]
+  - Arterial Hypotension  [evidence: Implicit: referenced as relation/hierarchy endpoint.]
+  - impedance plethmography  [evidence: Implicit: referenced as relation/hierarchy endpoint.]
+  - Property  [evidence: Implicit: referenced as relation/hierarchy endpoint.]
+  - EtCO2  [evidence: Implicit: referenced as relation/hierarchy endpoint.]
+  - ventilator  [evidence: Implicit: referenced as relation/hierarchy endpoint.]
+  - Electrocardiogram (ECG)  [evidence: Implicit: referenced as relation/hierarchy endpoint.]
+  - Platform  [evidence: Implicit: referenced as relation/hierarchy endpoint.]
+
+### RELATIONS
+  - has monitoring data(Cerebral Perfusion Pressure → Intracranial Pressure)  [definition: Links the measurement of cerebral perfusion pressure to the assessment of intracranial pressure.]  [evidence: Cerebral perfusion pressure (CPP 1/4 Blood Pressure (BP)-ICP) monitoring is a good example.]
+  - has monitoring data(Heart Rate → Monitoring Data)  [definition: Indicates that Heart Rate is monitored using Electrocardiogram.]  [evidence: Heart Rate (specifying source: Electrocardiogram (ECG) or Pulse Oximetry)]
+  - has monitoring data(Respiration Rate → impedance plethmography)  [definition: Indicates that Respiration Rate is monitored using impedance plethmography.]  [evidence: Respiration Rate (sources: impedance plethmography or ventilator)]
+  - has monitoring data(Respiration Rate → ventilator)  [definition: Indicates that Respiration Rate is monitored using a ventilator.]  [evidence: Respiration Rate (sources: impedance plethmography or ventilator)]
+  - has monitoring data(Intracranial Pressure → Patient)  [definition: Indicates that Intracranial Pressure is monitored in patients.]  [evidence: mean Intracranial Pressure (ICP)]
+  - has monitoring data(Arterial Oxygen Saturation → Patient)  [definition: Indicates that Pulse Oximetry is monitored in patients.]  [evidence: Pulse Oximetry (SaO2)]
+  - has monitoring data(Temperature → Patient)  [definition: Indicates that Temperature is monitored in patients.]  [evidence: Temperature (sources: rectal=oesophageal= bladder=skin)]
+  - has monitoring data(Central Venous Pressure → Patient)  [definition: Indicates that Central Venous Pressure is monitored in patients.]  [evidence: Central Venous Pressure (CVP)]
+  - has monitoring data(EtCO2 → Patient)  [definition: Indicates that End-Tidal CO2 is monitored in patients.]  [evidence: End-Tidal CO2 (EtCO2)]
+  - has monitoring data(Jugular Venous Oxygen Saturation → Patient)  [definition: Indicates that Jugular Venous Oxygen Saturation is monitored in patients.]  [evidence: Jugular Venous Oxygen Saturation (SjO2)]
+  - has monitoring data(Transcranial Doppler → Patient)  [definition: Indicates that Transcranial Doppler is monitored in patients.]  [evidence: Transcranial Doppler (TCD)]
+  - has monitoring data(Brain Tissue Oxygen → Patient)  [definition: Indicates that Brain Tissue Oxygen is monitored in patients.]  [evidence: Brain Tissue Oxygen (PbrO2)]
+  - has monitoring data(GCS Assessment → Patient)  [definition: Indicates that Glasgow Coma Scale is monitored in patients.]  [evidence: Glasgow Coma Scale (GCS) scores]
+  - targets condition(Intracranial Pressure → Vasopressors)  [definition: Indicates that Vasopressors are used to treat reduced cerebral perfusion pressure secondary to raised Intracranial Pressure.]  [evidence: to treat reduced cerebral perfusion pressure (CPP) secondary to raised Intracranial Pressure (ICP)]
+  - has monitoring data(Traumatic Brain Injury → Intracranial Pressure)  [definition: Links the condition of traumatic brain injury to the monitoring of intracranial pressure as a critical parameter.]  [evidence: the site of Intracranial Pressure (ICP) monitoring]
+  - receives therapy(Cerebral Perfusion Pressure → Acute Respiratory Distress Syndrome)  [definition: Describes the impact of managing cerebral perfusion pressure on the incidence of acute respiratory distress syndrome.]  [evidence: aggressive management of Cerebral Perfusion Pressure (CPP) > 70 mmHg, although reducing the incidence of jugular venous desaturations < 50%, increased the incidence of acute respiratory distress syndr]
+  - has outcome(Brain Injury → Outcome Data)  [definition: Links a brain injury to the collection of data reflecting treatment results.]  [evidence: collection of admission, monitoring, treatment and outcome data from patients with brain injury.]
+  - involves management(Brain Injury → Management)  [definition: Connects brain injury to the strategies employed for patient care.]  [evidence: aid health authorities to monitor, maintain and raise intra and trans-national standards in the management of patients with brain injury.]
+  - requires monitoring(Brain Injury → Monitoring)  [definition: Indicates that brain injury necessitates continuous observation of physiological parameters.]  [evidence: monitoring approach could be significantly reduced.]
+  - has monitoring data(Patient → Observation)  [definition: Links a patient to the observations recorded during their medical evaluation.]  [evidence: pd:Timepoint as a set of observations.]
+  - produced by sensor(Sensor → Reading)  [definition: Indicates that a sensor generates a reading of a specific parameter.]  [evidence: the machines/sensors that produced them.]
+  - has monitoring data(Machine → Reading)  [definition: Indicates that a machine is responsible for recording a reading.]  [evidence: the machines used in our medical evaluation.]
+  - receives therapy(Traumatic Brain Injury → Therapy)  [definition: Indicates that Traumatic Brain Injury has an impact on the occurrence of Hypotension.]  [evidence: A number of Traumatic Brain Injury (TBI) values may also be affected by hypertension (92.1%) and hypotension (80.5%).]
+  - receives therapy(Traumatic Brain Injury → Hypertension)  [definition: Indicates that Traumatic Brain Injury has an impact on the occurrence of Hypertension.]  [evidence: A number of Traumatic Brain Injury (TBI) values may also be affected by hypertension (92.1%) and hypotension (80.5%).]
+  - used in treatment of(Noradrenaline → Hypotension)  [definition: Indicates that Noradrenaline is utilized as a treatment for Hypotension.]  [evidence: A number of readings identified by Acceptable Range Rules 1 & 2 may have been affected by hypertension (91%), hypotension (85.6%), noradrenaline (24.2%)...]
+  - used in treatment of(Adrenaline → Hypotension)  [definition: Indicates that Adrenaline is utilized as a treatment for Hypotension.]  [evidence: A number of readings identified by Acceptable Range Rules 1 & 2 may have been affected by hypertension (91%), hypotension (85.6%), adrenaline (6.7%)...]
+  - has monitoring data(Monitoring Data → Traumatic Brain Injury)  [definition: Monitoring data is collected from patients with traumatic brain injury to assess their condition.]  [evidence: The group aims to improve inter-centre standards for collection of high-resolution, neurointensive care data on patients with traumatic brain injury.]
+  - has outcome(Head Injury → Outcome)  [definition: Head Injury is assessed for its outcomes in relation to new therapies or monitoring devices.]  [evidence: When assessing head injured patients' outcome from new therapies or the application of new monitoring devices, a large number of patients are required.]
+  - has monitoring data(Coma → Monitoring Data)  [definition: Coma patients require monitoring data for assessment and management.]  [evidence: Collection of minute-by-minute physiological monitoring is now common in many neuro-intensive care units.]
+  - has monitoring data(Mean Arterial Pressure → Monitoring Data)  [definition: Mean Arterial Pressure is a critical parameter that requires monitoring data.]  [evidence: Cerebral perfusion pressure (CPP 1/4 Blood Pressure (BP)-ICP) monitoring is a good example.]
+  - has monitoring data(Neurological Injury → Monitoring Data)  [definition: Neurological Injury requires monitoring data for assessment and management.]  [evidence: Collection of minute-by-minute physiological monitoring is now common in many neuro-intensive care units.]
+  - has monitoring data(Clinical Research Form → Monitoring Data)  [definition: Clinical Research Forms are used to collect monitoring data in clinical trials.]  [evidence: A paper based pilot collection of data was conducted to determine the feasibility for collection of the core dataset.]
+  - has timepoint(Session → Timepoint)  [definition: A Session includes specific timepoints for monitoring and data collection.]  [evidence: The Brain Monitoring with Information Technology (BrainIT) group aims to develop and disseminate improved standards for the collection, analysis and reporting of intensive care monitoring data collect]
+
+### HIERARCHY (subclass ⊑ superclass)
+  - Electrocardiogram (ECG) ⊑ Monitoring Data  [evidence: Minute by minute monitoring data This is the minimum minute by minute monitoring data required for inclusion in the Brain Monitoring with Information Technology (BrainIT) Database and include: Heart R]
+  - Respiration Rate ⊑ Core Monitoring Parameter  [evidence: Minute by minute monitoring data This is the minimum minute by minute monitoring data required for inclusion in the Brain Monitoring with Information Technology (BrainIT) Database and include: Heart R]
+  - Mean Arterial Pressure (MAP) ⊑ Monitoring Data  [evidence: Minute by minute monitoring data This is the minimum minute by minute monitoring data required for inclusion in the Brain Monitoring with Information Technology (BrainIT) Database and include: Heart R]
+  - SaO2 ⊑ Monitoring Data  [evidence: Minute by minute monitoring data This is the minimum minute by minute monitoring data required for inclusion in the Brain Monitoring with Information Technology (BrainIT) Database and include: Heart R]
+  - Temperature ⊑ Core Monitoring Parameter  [evidence: Minute by minute monitoring data This is the minimum minute by minute monitoring data required for inclusion in the Brain Monitoring with Information Technology (BrainIT) Database and include: Heart R]
+  - Intracranial Hypertension ⊑ Secondary Insult  [evidence: As a result, secondary insults such as intracranial hypertension, and arterial hypotension have been found to occur, in head injured patients, more frequently than previously realised with more than 9]
+  - Arterial Hypotension ⊑ Secondary Insult  [evidence: As a result, secondary insults such as intracranial hypertension, and arterial hypotension have been found to occur, in head injured patients, more frequently than previously realised with more than 9]
+  - Patient ⊑ Secondary Insult  [evidence: As a result, secondary insults such as intracranial hypertension, and arterial hypotension have been found to occur, in head injured patients, more frequently than previously realised with more than 9]
+  - Reading ⊑ Observation  [evidence: define pd:Reading as a subclass of ssn:ObservationValue.]
+  - Parameter ⊑ Property  [evidence: pd:Parameter (representing things that were recorded) as a subclass of ssn:Property.]
+  - Machine ⊑ Platform  [evidence: defined mms:Machine as a subclass of ssn:Platform.]
+  - Core Monitoring Parameter ⊑ Monitoring Data  [evidence: [inferred] Chain-of-Layer: Core Monitoring Parameter is organized under Monitoring Data]
+  - Heart Rate ⊑ Core Monitoring Parameter  [evidence: [inferred] Chain-of-Layer: Heart Rate is organized under Core Monitoring Parameter]
+  - Mean Arterial Pressure (MAP) ⊑ Core Monitoring Parameter  [evidence: [inferred] Chain-of-Layer: Mean Arterial Pressure (MAP) is organized under Core Monitoring Parameter]
+  - SaO2 ⊑ Core Monitoring Parameter  [evidence: [inferred] Chain-of-Layer: Sao2 is organized under Core Monitoring Parameter]
+  - EtCO2 ⊑ Optional Monitoring Parameter  [evidence: [inferred] Chain-of-Layer: EtCO2 is organized under Core Monitoring Parameter]
+  - CPP ⊑ Core Monitoring Parameter  [evidence: [inferred] Chain-of-Layer: CPP is organized under Core Monitoring Parameter]
+  - Optional Monitoring Parameter ⊑ Monitoring Data  [evidence: [inferred] Chain-of-Layer: Optional Monitoring Parameter is organized under Monitoring Data]
+  - CVP ⊑ Optional Monitoring Parameter  [evidence: [inferred] Chain-of-Layer: CVP is organized under Optional Monitoring Parameter]
+  - Jugular Venous Oxygen Saturation ⊑ Optional Monitoring Parameter  [evidence: [inferred] Chain-of-Layer: Jugular Venous Oxygen Saturation is organized under Optional Monitoring Parameter]
+  - Jugular Venous Desaturations ⊑ Optional Monitoring Parameter  [evidence: [inferred] Chain-of-Layer: Jugular Venous Desaturations is organized under Optional Monitoring Parameter]
+  - Baseline Therapy ⊑ Therapy  [evidence: [inferred] Chain-of-Layer: Baseline Therapy is organized under Therapy]
+  - Adrenaline ⊑ Baseline Therapy  [evidence: [inferred] Chain-of-Layer: Adrenaline is organized under Baseline Therapy]
+  - Noradrenaline ⊑ Baseline Therapy  [evidence: [inferred] Chain-of-Layer: Noradrenaline is organized under Baseline Therapy]
+  - Vasopressors ⊑ Baseline Therapy  [evidence: [inferred] Chain-of-Layer: Vasopressors is organized under Baseline Therapy]
+  - Traumatic Brain Injury ⊑ Condition  [evidence: [inferred] Chain-of-Layer: Traumatic Brain Injury is organized under Condition]
+  - Acute Respiratory Distress Syndrome ⊑ Secondary Insult  [evidence: [inferred] Chain-of-Layer: Acute Respiratory Distress Syndrome is organized under Traumatic Brain Injury]
+  - Secondary Insult ⊑ Condition  [evidence: [inferred] Chain-of-Layer: Secondary Insult is organized under Condition]
+  - GCS Assessment ⊑ Observation  [evidence: [inferred] Chain-of-Layer: GCS Assessment is organized under Observation]
+  - Pupil Assessment ⊑ Observation  [evidence: [inferred] Chain-of-Layer: Pupil Assessment is organized under Observation]
+  - PbrO2 ⊑ Optional Monitoring Parameter  [evidence: [inferred] PbrO2 is a subclass of Optional Monitoring Parameter (deterministic hierarchy checklist).]
+  - Secondary Insult ⊑ Therapy  [evidence: confounding influence upon trials of therapy.]
+  - Hypotension ⊑ Secondary Insult  [evidence: secondary insults such as intracranial hypertension, and arterial hypotension]
+  - Coma ⊑ Neurological Injury  [evidence: Head injury has devastating economic and social consequences both to the victim and to the society that supports the victim.]
+  - Sepsis ⊑ Condition  [evidence: The Brain Monitoring with Information Technology (BrainIT) network provides a more standardised and higher resolution data collection mechanism for research groups, organisations and the device indust]
