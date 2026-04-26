@@ -1,0 +1,243 @@
+You are an ontology quality reviewer for clinical and biomedical domain ontologies.
+
+You have been given a generated ontology extracted from clinical/biomedical literature.
+Your task is to review the ontology and identify ONLY items that are clearly
+NOT clinical. Be VERY CONSERVATIVE — when in doubt, KEEP the item.
+
+### CRITICAL: BE CONSERVATIVE
+- Your primary goal is to PRESERVE the ontology. Only remove items you are
+  HIGHLY CONFIDENT do not belong.
+- If a concept COULD be clinical in ANY reasonable interpretation, KEEP it.
+- Abstract grouping categories are ESSENTIAL in ontologies — they organise
+  specific concepts into meaningful hierarchies. NEVER remove a class just
+  because it is abstract or general.
+- Removing a valid class destroys all its relations and hierarchy edges,
+  causing massive cascading damage to the ontology. Err on the side of keeping.
+
+### WHAT BELONGS (KEEP these — do NOT remove)
+- Clinical conditions, diseases, injuries, syndromes
+- Physiological parameters and measurements (e.g. heart rate, ICP, blood pressure)
+- Treatments, therapies, interventions, drugs, surgical procedures
+- Clinical assessments and scores (e.g. GCS, pupil reactivity, CT scan findings)
+- Laboratory values and tests (e.g. blood gases, biochemistry, haematology)
+- Medical devices and sensors that measure clinical parameters
+- Patient-related concepts (demographics, outcomes, patient)
+- Data categories that organise clinical observations (e.g. 'Monitoring Data',
+  'Laboratory Values', 'Admission Data', 'Treatment Data', 'Outcome Data')
+- Abstract superclasses that group clinical concepts:
+  'Condition', 'Outcome', 'Observation', 'Parameter', 'Therapy',
+  'Assessment', 'Intervention', 'Core Monitoring Parameter',
+  'Optional Monitoring Parameter', 'Baseline Therapy', 'Guidelines',
+  'Guidelines for Management', etc.
+  These are VALID ontological grouping classes — do NOT remove them.
+- Clinical guidelines and management protocols
+
+### WHAT TO REMOVE (only these categories, with high confidence)
+- Research project names and consortium names (e.g. 'BrainIT Project')
+- Governance/administrative concepts (e.g. 'Steering Group', 'Membership')
+- Data infrastructure: databases, software tools, data collection tools
+- Economic or social impact concepts (e.g. 'Economic Consequences',
+  'Social Consequences') — these are about societal impact, not clinical care
+- Institution names (universities, hospitals as organisations)
+- Industry/regulatory bodies (e.g. 'Medical Device Industry', 'Health Authorities')
+- Publishing metadata: journals, authors, DOIs
+
+### HIERARCHY REVIEW (be thorough here — hierarchy errors are important)
+Carefully check EVERY hierarchy edge for semantic correctness:
+- **Nonsensical edges** (ALWAYS remove): the subclass relationship is logically
+  impossible. Examples:
+  • 'Patient ⊑ Secondary Insult' — a patient is NOT a type of insult → REMOVE
+  • 'Monitoring Data ⊑ Patient' — data is NOT a type of patient → REMOVE
+  • 'Therapy ⊑ Laboratory Values' — therapy is NOT a lab value → REMOVE
+  Test: 'Is every X a kind of Y?' If the answer is obviously NO, remove it.
+- **Clear inversions** (CORRECT, do not remove): child and parent are swapped.
+  Examples:
+  • 'Brain Injury ⊑ Traumatic Brain Injury' → CORRECT to 'TBI ⊑ Brain Injury'
+  • 'Condition ⊑ Traumatic Brain Injury' → CORRECT to 'TBI ⊑ Condition'
+  Test: 'Is every X a kind of Y, or is it the other way around?'
+- Do NOT remove hierarchy edges just because the grouping seems unusual —
+  ontologies often have domain-specific groupings.
+
+### RELATION REVIEW
+Only flag relations where BOTH endpoints are clearly non-clinical:
+- If the domain OR range is a valid clinical concept, KEEP the relation.
+- Do NOT remove relations just because the label is imprecise.
+
+### CHAIN-OF-THOUGHT
+For each item you flag, reason step by step:
+1. What does this concept refer to in the source text?
+2. Is it clearly non-clinical (governance/infrastructure/economic/publishing)?
+3. Could it have ANY clinical interpretation? If yes → KEEP.
+4. Decision: REMOVE or CORRECT (only if highly confident)
+
+### OUTPUT FORMAT
+Return ONLY a JSON object (no markdown fences) with these keys:
+```
+{
+  "classes_to_remove": [
+    {"label": "...", "reason": "..."}
+  ],
+  "relations_to_remove": [
+    {"label": "...", "domain": "...", "range": "...", "reason": "..."}
+  ],
+  "hierarchy_to_remove": [
+    {"subClass": "...", "superClass": "...", "reason": "..."}
+  ],
+  "hierarchy_corrections": [
+    {"old_sub": "...", "old_super": "...", "new_sub": "...", "new_super": "...", "reason": "..."}
+  ]
+}
+```
+If everything is correct (or you are not confident enough to remove anything),
+return empty arrays for each key. It is perfectly fine to return all empty arrays.
+Do NOT wrap the JSON in markdown code fences.
+
+### SOURCE TEXT (first 6000 chars for context)
+Laura Moss1,2,3 , David Corsar1, Ian Piper3 , and John Kinsella2
+Department of Computing Science, University of Aberdeen, Aberdeen, AB24 3FX
+School of Medicine, University of Glasgow, Glasgow, G12 8QQ
+Department of Clinical Physics, University of Glasgow, Glasgow, G12 8QQ
+
+Abstract. The Intensive Care Unit (ICU) domain generates large vol-
+umes of patient data which can be used in medical research. However,
+inaccuracies often exist in this data and due to the data's size and do-
+main complexity, automated approaches are required to associate a level
+of quality and trust with the data. We describe a computational frame-
+along with details of the data's provenance and medical domain knowl-
+edge from appropriate ontologies. We have successfully applied the frame-
+work to two types of ICUs: general medical and traumatic brain injury.
+
+Keywords: Data Quality, Semantic Web, Ontologies, Critical Care.
+
+1 Introduction
+Increasing use of patient monitoring equipment in medicine is generating large
+repositories of patient data, which are recorded manually and/or automatically.
+Trusting this data is important: along with being used for medical decision making, the data is often stored for offline analysis. However, error rates of between
+2.3% and 26.9% are common. Various methods have been proposed to improve the quality of medical data (e.g.), which may help avoid certain errors
+(e.g. physiologically impossible values). However, detailed domain knowledge and
+human judgement is often required to identify other, more subtle errors, e.g. a
+recorded heart rate of 120 may be identified as an error by a simple threshold
+based rule, but if the patient was suffering from sepsis at the same time, then
+the value may actually be a symptom of that disorder.
+to a set of principles, and linked through the use of technologies such as URIs,
+HTTP, and RDF. This enables provision of contextual information about any
+piece of data, along with enabling machines to access, browse, and reason with
+the application of simple rules or policies; e.g. the WIQA framework, which
+http://www.w3.org/DesignIssues/LinkedData.html
+
+N. Peek, R. Marı́n Morales, and M. Peleg (Eds.): AIME 2013, LNAI 7885, pp. 68-72, 2013.
+
+Trusting Intensive Care Unit (ICU) Medical Data 69
+
+adopts the "fitness for use" perspective to data quality, applies a set of policies
+to filter RDF data that does not meet requirements. In contrast, the SWIQA
+framework adopts the "free of defects" perspective, using a series of rules to
+perform common data quality checks on RDF datasets including: completeness
+(e.g. provision of mandatory values), syntactic and semantic accuracy, timeliness,
+and uniqueness. However, we argue these assessments do not consider the
+complexities of real world datasets and need to be extended to include context
+dependent assessments.
+In this paper, Section 2 describes our novel approach and framework that
+considering the data, its provenance, and relevant clinical knowledge; Section
+3 describes the application of our framework to two different medical domains;
+and Section 4 concludes by discussing our findings and future work plans.
+
+2 Approach
+
+Our approach consists of three stages: converting the medical data into RDF;
+optionally annotating the data with provenance information; and finally, assessing the data (Figure 1). Ideally, all of the datasets we describe below would be
+of the required information is not available; in these cases we have created our
+own datasets, which we intend to contribute to the Linked Open Data cloud.
+
+Fig. 1. Overview of the approach to medical data assessment
+
+Ideally, all of the datasets we describe below would be
+of the required information is not available; in these cases we have created our
+own datasets, which we intend to contribute to the Linked Open Data cloud.
+
+Data Conversion. In this stage an RDF version of the medical data, expressed
+against the Patient Data and Medical Observations ontologies is created. For
+the two case studies described in this paper, we have developed a program that
+dataset; RDB2RDF was considered but was not appropriate for how a case study
+dataset was represented (as a spreadsheet). The Patient Data (pd) ontology
+
+70 L. Moss et al.
+
+provides classes for representing Patients, Sessions, and Timepoints. Each Timepoint is associated with a set of Readings which refer to the Parameter being
+observed and its value. The Medical Observations ontology defines a series of
+axioms that integrate our patient ontology with the W3C Semantic Sensor Network (ssn) Incubator Group's sensor ontology and allows the pd:Readings to
+be linked to the machines/sensors that produced them. We define pd:Reading
+as a subclass of ssn:ObservationValue (which represents the value produced by
+some sensing process); pd:Parameter (representing things that were recorded) as
+a subclass of ssn:Property; and pd:Patient as a ssn:FeatureOfInterest. To represent a pd:Timepoint as a set of observations, we use the Observation Collection
+pattern, defining pd:Timepoint as a subclass of mo:ObservationCollection,
+which has an associated set of ssn:Observations.
+Provenance Annotation. This optional, semi-automatic stage involves annotating the patient observations with provenance, considered as "a description
+of the entities and processes involved in producing ... that resource". Providing provenance information increases the available types of assessments compared to solely using the observations. In this framework, we capture details
+of the sensors that were responsible for producing the pd:Readings. Our Medical Machine/Sensor ontology (mms), extends the SSN ontology with classes
+and individuals representing the machines used in our medical evaluation. We
+have defined mms:Machine as a subclass of ssn:Platform, and various subclasses of ssn:Sensor for the different types of sensors on the machine. Each
+sensor is then described in terms of the ssn:Sensing process that is implements, the ssn:Property it observes, and its 
+
+### CLASSES
+  - Intensive Care Unit  [definition: A specialized department in a hospital that provides intensive treatment and monitoring for critically ill patients.]  [evidence: The Intensive Care Unit (ICU) domain generates large volumes of patient data which can be used in medical research.]
+  - Patient Data  [definition: Information collected from patients, which can be recorded manually and/or automatically.]  [evidence: Increasing use of patient monitoring equipment in medicine is generating large repositories of patient data, which are recorded manually and/or automatically.]
+  - Data Quality Assessment  [definition: The degree to which data is accurate, complete, and reliable for medical decision making.]  [evidence: Trusting this data is important: along with being used for medical decision making, the data is often stored for offline analysis.]
+  - Heart Rate  [definition: The number of heartbeats per minute, which can be an important physiological parameter in assessing patient health.]  [evidence: a recorded heart rate of 120 may be identified as an error by a simple threshold based rule, but if the patient was suffering from sepsis at the same time, then the value may actually be a symptom of ]
+  - Sepsis  [definition: A life-threatening condition caused by the body's response to an infection, which can affect heart rate among other physiological parameters.]  [evidence: if the patient was suffering from sepsis at the same time, then the value may actually be a symptom of that disorder.]
+  - Wiqa Framework  [definition: A framework that applies a set of policies to filter RDF data that does not meet quality requirements.]  [evidence: the WIQA framework, which adopts the 'fitness for use' perspective to data quality.]
+  - Patient  [definition: An individual receiving medical care or treatment, represented in the patient data ontology.]  [evidence: the pd:Patient as a ssn:FeatureOfInterest]
+  - Session  [definition: A defined period during which patient observations and data are collected.]  [evidence: provides classes for representing Patients, Sessions, and Timepoints]
+  - Timepoint  [definition: A specific moment in time associated with a set of readings in patient data.]  [evidence: Each Timepoint is associated with a set of Readings]
+  - Reading  [definition: A recorded observation value associated with a parameter being monitored.]  [evidence: define pd:Reading as a subclass of ssn:ObservationValue]
+  - Parameter  [definition: A measurable characteristic or variable being observed in patient data.]  [evidence: pd:Parameter (representing things that were recorded)]
+  - Observation  [definition: A recorded measurement or assessment derived from patient data.]  [evidence: pd:Timepoint as a set of observations]
+  - Machine  [definition: A device used for medical evaluation, represented in the medical machine/sensor ontology.]  [evidence: We have defined mms:Machine as a subclass of ssn:Platform]
+  - Sensor  [definition: A device that detects and measures physical properties, used in medical evaluations.]  [evidence: various subclasses of ssn:Sensor for the different types of sensors on the machine]
+  - Sensing Process  [definition: The process by which a sensor collects data from a parameter.]  [evidence: described in terms of the ssn:Sensing process that is implements]
+  - Measurement Capability  [definition: The ability of a sensor to accurately measure a specific parameter.]  [evidence: its ssn:MeasurementCapability]
+  - Error  [definition: A classification indicating a potential issue with recorded data.]  [evidence: annotated with 'Possible Error' (PoE) or a 'Probable Error' (PrE)]
+  - Traumatic Brain Injury  [definition: A type of brain injury resulting from an external force, leading to a range of physical and cognitive impairments.]  [evidence: for the Traumatic Brain Injury (TBI) domain]
+  - Hypotension  [definition: A medical condition characterized by abnormally low blood pressure.]  [evidence: specific queries for hypotension and hypertension]
+  - Hypertension  [definition: A medical condition characterized by abnormally high blood pressure.]  [evidence: specific queries for hypotension and hypertension]
+  - Noradrenaline  [definition: A hormone and neurotransmitter involved in the body's fight or flight response, often used in medical treatments to increase blood pressure.]  [evidence: queries for effects of noradrenaline and adrenaline]
+  - Adrenaline  [definition: A hormone released in response to stress, used in medical treatments to stimulate heart rate and increase blood pressure.]  [evidence: queries for effects of noradrenaline and adrenaline]
+  - Acceptable Range  [definition: A defined range of values within which physiological parameters are considered normal or acceptable.]  [evidence: Acceptable If the recorded value is less than the min. acceptable value]
+  - Sensor Accuracy  [definition: The degree to which a sensor's measurements reflect the true value of the parameter being measured.]  [evidence: when sensor accuracies were considered]
+  - Medical Disorders  [evidence: [inferred] Intermediate category introduced by Chain-of-Layer taxonomy construction.]
+  - Treatments  [evidence: [inferred] Intermediate category introduced by Chain-of-Layer taxonomy construction.]
+
+### RELATIONS
+  - assesses(Data Quality Assessment → Patient Data)  [definition: Links the quality of data to the patient data being evaluated.]  [evidence: we argue these assessments do not consider the complexities of real world datasets and need to be extended to include context dependent assessments.]
+  - has monitoring data(Timepoint → Observation)  [definition: Links a timepoint to the set of observations recorded at that specific moment.]  [evidence: pd:Timepoint as a set of observations]
+  - produced by sensor(Sensor → Reading)  [definition: Indicates that a sensor generates a specific reading based on its measurements.]  [evidence: the machines/sensors that produced them]
+  - receives therapy(Data Quality Assessment → Hypotension)  [definition: Indicates that the acceptable range may be influenced by the presence of hypotension.]  [evidence: a number of readings identified by Acceptable Range Rules 1 & 2 may have been affected by hypotension (85.6%)]
+  - receives therapy(Data Quality Assessment → Hypertension)  [definition: Indicates that the acceptable range may be influenced by the presence of hypertension.]  [evidence: a number of readings identified by Acceptable Range Rules 1 & 2 may have been affected by hypertension (91%)]
+  - receives therapy(Data Quality Assessment → Noradrenaline)  [definition: Indicates that the acceptable range may be influenced by the administration of noradrenaline.]  [evidence: a number of readings identified by Acceptable Range Rules 1 & 2 may have been affected by noradrenaline (24.2%)]
+  - receives therapy(Data Quality Assessment → Adrenaline)  [definition: Indicates that the acceptable range may be influenced by the administration of adrenaline.]  [evidence: a number of readings identified by Acceptable Range Rules 1 & 2 may have been affected by adrenaline (6.7%)]
+  - has error(Patient Data → Error)  [definition: Indicates that a specific patient data entry contains an error.]  [evidence: error rates of between 2.3% and 26.9% are common]
+  - is affected by(Heart Rate → Sepsis)  [definition: Indicates that the heart rate can be influenced by the presence of sepsis.]  [evidence: a recorded heart rate of 120 may be identified as an error by a simple threshold based rule, but if the patient was suffering from sepsis]
+  - has measurement capability(Sensor → Measurement Capability)  [definition: Indicates that a sensor possesses the ability to measure a specific parameter.]  [evidence: its ssn:MeasurementCapability]
+  - has session(Patient → Session)  [definition: A patient is associated with one or more sessions during which observations are made.]  [evidence: The Patient Data (pd) ontology provides classes for representing Patients, Sessions, and Timepoints.]
+  - has timepoint(Session → Timepoint)  [definition: A session is associated with specific timepoints that indicate when observations were made.]  [evidence: Each Timepoint is associated with a set of Readings which refer to the Parameter being observed and its value.]
+  - has monitoring data(Observation → Parameter)  [definition: An observation is associated with a specific parameter that it measures.]  [evidence: pd:Reading as a subclass of ssn:ObservationValue (which represents the value produced by some sensing process)]
+  - produced by(Machine → Sensor)  [definition: Indicates that a machine is responsible for producing a sensor's readings.]  [evidence: we capture details of the sensors that were responsible for producing the pd:Readings.]
+  - implements(Sensor → Sensing Process)  [definition: Indicates that a sensor is associated with a specific sensing process.]  [evidence: Each sensor is then described in terms of the ssn:Sensing process that is implements.]
+  - adopts(Wiqa Framework → Data Quality Assessment)  [definition: Indicates that the Wiqa framework uses a specific perspective on data quality.]  [evidence: the WIQA framework, which adopts the 'fitness for use' perspective to data quality]
+
+### HIERARCHY (subclass ⊑ superclass)
+  - Reading ⊑ Observation  [evidence: define pd:Reading as a subclass of ssn:ObservationValue]
+  - Parameter ⊑ Reading  [evidence: pd:Parameter (representing things that were recorded) as a subclass of ssn:Property]
+  - Data Quality Assessment ⊑ Intensive Care Unit  [evidence: [inferred] Chain-of-Layer: Data Quality Assessment is organized under Intensive Care Unit]
+  - Acceptable Range ⊑ Data Quality Assessment  [evidence: [inferred] Chain-of-Layer: Acceptable Range is organized under Data Quality Assessment]
+  - Error ⊑ Data Quality Assessment  [evidence: [inferred] Chain-of-Layer: Error is organized under Data Quality Assessment]
+  - Sensor Accuracy ⊑ Data Quality Assessment  [evidence: [inferred] Chain-of-Layer: Sensor Accuracy is organized under Data Quality Assessment]
+  - Medical Disorders ⊑ Intensive Care Unit  [evidence: [inferred] Chain-of-Layer: Medical Disorders is organized under Intensive Care Unit]
+  - Hypertension ⊑ Medical Disorders  [evidence: [inferred] Chain-of-Layer: Hypertension is organized under Medical Disorders]
+  - Hypotension ⊑ Medical Disorders  [evidence: [inferred] Chain-of-Layer: Hypotension is organized under Medical Disorders]
+  - Sepsis ⊑ Medical Disorders  [evidence: [inferred] Chain-of-Layer: Sepsis is organized under Medical Disorders]
+  - Traumatic Brain Injury ⊑ Medical Disorders  [evidence: [inferred] Chain-of-Layer: Traumatic Brain Injury is organized under Medical Disorders]
+  - Treatments ⊑ Intensive Care Unit  [evidence: [inferred] Chain-of-Layer: Treatments is organized under Intensive Care Unit]
+  - Adrenaline ⊑ Treatments  [evidence: [inferred] Chain-of-Layer: Adrenaline is organized under Treatments]
+  - Noradrenaline ⊑ Treatments  [evidence: [inferred] Chain-of-Layer: Noradrenaline is organized under Treatments]
+  - Machine ⊑ Sensor  [evidence: We have defined mms:Machine as a subclass of ssn:Platform.]

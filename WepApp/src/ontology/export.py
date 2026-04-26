@@ -112,29 +112,42 @@ def ontology_to_ttl(data: Dict) -> str:
     if data.get("hierarchy"):
         lines.append("")
 
-    # Object properties (relations)
+    # Object properties — declare each property once, then emit
+    # per-class existential restrictions (owl:someValuesFrom) rather than
+    # flat rdfs:domain/rdfs:range.  This avoids the OWL semantics problem
+    # where multiple rdfs:domain statements on one property are interpreted
+    # as the intersection of all listed classes.
     seen_props: set = set()
     for r in data.get("relations", []):
         rlabel = (r.get("label") or "").strip()
-        domain = (r.get("domain") or "").strip()
-        range_ = (r.get("range") or "").strip()
         if not rlabel:
             continue
         prop_local = _to_uri_local(rlabel)
-        # Declare property once
         if prop_local not in seen_props:
             seen_props.add(prop_local)
             lines.append(f":{prop_local} rdf:type owl:ObjectProperty ;")
             lines.append(f'    rdfs:label "{rlabel}" .')
             lines.append("")
-        # Domain/range restriction as annotation
-        if domain and range_:
-            d_uri = class_uris.get(domain) or _to_uri_local(domain)
-            r_uri = class_uris.get(range_) or _to_uri_local(range_)
-            if d_uri:
-                lines.append(f":{prop_local} rdfs:domain :{d_uri} .")
-            if r_uri:
-                lines.append(f":{prop_local} rdfs:range :{r_uri} .")
+
+    # Existential restrictions: for each (domain, property, range) triple,
+    # emit "DomainClass rdfs:subClassOf [ owl:Restriction on property
+    # someValuesFrom RangeClass ]".  This makes each relation scoped to
+    # its owning class — e.g. SecondaryInsult ⊑ ∃Worsens.HeadTrauma.
+    for r in data.get("relations", []):
+        rlabel = (r.get("label") or "").strip()
+        domain = (r.get("domain") or "").strip()
+        range_ = (r.get("range") or "").strip()
+        if not rlabel or not domain or not range_:
+            continue
+        prop_local = _to_uri_local(rlabel)
+        d_uri = class_uris.get(domain) or _to_uri_local(domain)
+        r_uri = class_uris.get(range_) or _to_uri_local(range_)
+        if d_uri and r_uri:
+            lines.append(f":{d_uri} rdfs:subClassOf [")
+            lines.append(f"    rdf:type owl:Restriction ;")
+            lines.append(f"    owl:onProperty :{prop_local} ;")
+            lines.append(f"    owl:someValuesFrom :{r_uri}")
+            lines.append(f"] .")
 
     lines.append("")
     return "\n".join(lines)

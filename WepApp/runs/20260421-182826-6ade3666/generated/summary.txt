@@ -1,0 +1,121 @@
+============================================================
+RUN SUMMARY  —  TripleGen Ontology Engineering Framework
+============================================================
+
+--- Metadata ---
+Run ID:          20260421-182826-6ade3666
+Timestamp (UTC): 2026-04-21T18:30:34.077090
+Method:          Zero-Shot
+Pipeline mode:   Strict
+LLM provider:    openai GPT-4o-mini
+Improvements:    Text-grounded completion (built-in)
+Preprocessing:   Scope filter (clinical-only chunks)
+Eval settings:   None
+
+--- Input paper(s) ---
+  • 2. Moss 2013  Trusting Intensive Care Unit .txt
+
+--- Improvement counts (for ablation / fairness) ---
+  Text-grounded completion (built-in): classes_added=2, relations_added=9, hierarchy_added=18
+  Built-in cleanup (always active): includes_to_hierarchy=0, relation_labels_normalized=9, relations_range_normalized=4, classes_removed_dedupe=0, relations_removed_dedupe=0, hierarchy_removed_dedupe=0, out_of_scope_classes_removed=7, abstract_data_classes_removed=0, broad_contextual_classes_removed=0, classes_removed_evidence=0, endpoints_auto_added=0, relations_pruned_scope=0, hierarchy_pruned_scope=0, hierarchy_pruned_dangling=0, relations_pruned=1, relations_removed_evidence=1, hierarchy_fragments_removed=0, hierarchy_edges_corrected=0, hierarchy_scaffolded=0, hierarchy_removed_axiom=0, relations_removed_axiom=0, hierarchy_cycles_removed=4, hierarchy_completeness={'orphan_count': 12, 'total_classes': 26, 'orphan_rate': 0.462, 'orphan_rate_warning': False}, hierarchy_added=0, orphans_removed=0
+  Orphan Rescue (connect isolated classes): orphans_found=3, relations_added=3, hierarchy_added=1
+  Post-orphan scope cleanup: out_of_scope_removed=0
+  LLM CoT Refinement (semantic quality review): classes_removed=1, relations_removed=1, hierarchy_removed=1, hierarchy_corrected=0
+
+
+  Text-grounded completion (built-in): +2 classes, +9 relations, +18 hierarchy edges recovered from source text in second-pass extraction.
+
+  Orphan Rescue: 3 orphaned classes found → +3 relations, +1 hierarchy edges inferred from source text.
+
+  LLM CoT Refinement: -1 classes, -1 relations, -1 hierarchy removed; 0 hierarchy edges corrected.
+
+--- Metrics summary (final ontology) ---
+  Coverage:        16.13%
+  Precision:       60.00%
+  Recall:          16.13%
+  Errors:          hallucinations=0, schema_violations=0, omissions=0
+  Structural:      hierarchy_edges=14, hierarchy_coverage=0.72, relation_domain_range_rate=1.00
+  Clinical-only:   coverage=16.13%, precision=60.00%, recall=16.13%
+  Relations:       precision=60.00%, recall=27.78%, n_generated=15, n_gold=18
+  Hierarchy:       precision=0.00%, recall=0.00%, matched=0, n_generated=14, n_gold=76
+
+--- Metrics at extraction only (pre-improvement baseline) ---
+  Coverage:        15.05%
+  Precision:       45.16%
+  Recall:          15.05%
+  Structural:      hierarchy_edges=3, hierarchy_coverage=0.16, relation_domain_range_rate=1.00
+  Relations:       precision=61.54%, recall=22.22%, n_generated=13
+
+--- Per-stage ablation (pipeline progression) ---
+  Stage                   Classes   Rels   Hier   Coverage  Precision     Recall
+  --------------------------------------------------------------------------
+  Extraction                   31     13      3     15.05%     45.16%     15.05%
+  + Text-grounded              33     22     21     16.13%     45.45%     16.13%
+  + Cleanup                    26     13     14     16.13%     57.69%     16.13%
+  + Orphan Rescue              26     16     15     16.13%     57.69%     16.13%
+  + LLM Refinement             25     15     14     16.13%     60.00%     16.13%
+
+--- Concept counts (final ontology) ---
+  Classes:         25
+  Relations:       15
+  Hierarchy edges: 14
+
+--- Classes ---
+  • Intensive Care Unit — A specialized department in a hospital that provides intensive treatment and monitoring for critically ill patients.
+  • Patient Data — Information collected from patients, which can be recorded manually and/or automatically.
+  • Data Quality Assessment — The degree to which data is accurate, complete, and reliable for medical decision making.
+  • Heart Rate — The number of heartbeats per minute, which can be an important physiological parameter in assessing patient health.
+  • Sepsis — A life-threatening condition caused by the body's response to an infection, which can affect heart rate among other physiological parameters.
+  • Patient — An individual receiving medical care or treatment, represented in the patient data ontology.
+  • Session — A defined period during which patient observations and data are collected.
+  • Timepoint — A specific moment in time associated with a set of readings in patient data.
+  • Reading — A recorded observation value associated with a parameter being monitored.
+  • Parameter — A measurable characteristic or variable being observed in patient data.
+  • Observation — A recorded measurement or assessment derived from patient data.
+  • Machine — A device used for medical evaluation, represented in the medical machine/sensor ontology.
+  • Sensor — A device that detects and measures physical properties, used in medical evaluations.
+  • Sensing Process — The process by which a sensor collects data from a parameter.
+  • Measurement Capability — The ability of a sensor to accurately measure a specific parameter.
+  • Error — A classification indicating a potential issue with recorded data.
+  • Traumatic Brain Injury — A type of brain injury resulting from an external force, leading to a range of physical and cognitive impairments.
+  • Hypotension — A medical condition characterized by abnormally low blood pressure.
+  • Hypertension — A medical condition characterized by abnormally high blood pressure.
+  • Noradrenaline — A hormone and neurotransmitter involved in the body's fight or flight response, often used in medical treatments to increase blood pressure.
+  • Adrenaline — A hormone released in response to stress, used in medical treatments to stimulate heart rate and increase blood pressure.
+  • Acceptable Range — A defined range of values within which physiological parameters are considered normal or acceptable.
+  • Sensor Accuracy — The degree to which a sensor's measurements reflect the true value of the parameter being measured.
+  • Medical Disorders
+  • Treatments
+
+--- Relations ---
+  • assesses(Data Quality Assessment → Patient Data) — Links the quality of data to the patient data being evaluated.
+  • has monitoring data(Timepoint → Observation) — Links a timepoint to the set of observations recorded at that specific moment.
+  • produced by sensor(Sensor → Reading) — Indicates that a sensor generates a specific reading based on its measurements.
+  • receives therapy(Data Quality Assessment → Hypotension) — Indicates that the acceptable range may be influenced by the presence of hypotension.
+  • receives therapy(Data Quality Assessment → Hypertension) — Indicates that the acceptable range may be influenced by the presence of hypertension.
+  • receives therapy(Data Quality Assessment → Noradrenaline) — Indicates that the acceptable range may be influenced by the administration of noradrenaline.
+  • receives therapy(Data Quality Assessment → Adrenaline) — Indicates that the acceptable range may be influenced by the administration of adrenaline.
+  • has error(Patient Data → Error) — Indicates that a specific patient data entry contains an error.
+  • is affected by(Heart Rate → Sepsis) — Indicates that the heart rate can be influenced by the presence of sepsis.
+  • has measurement capability(Sensor → Measurement Capability) — Indicates that a sensor possesses the ability to measure a specific parameter.
+  • has session(Patient → Session) — A patient is associated with one or more sessions during which observations are made.
+  • has timepoint(Session → Timepoint) — A session is associated with specific timepoints that indicate when observations were made.
+  • has monitoring data(Observation → Parameter) — An observation is associated with a specific parameter that it measures.
+  • produced by(Machine → Sensor) — Indicates that a machine is responsible for producing a sensor's readings.
+  • implements(Sensor → Sensing Process) — Indicates that a sensor is associated with a specific sensing process.
+
+--- Hierarchy (subclass → superclass) ---
+  • Reading ⊑ Observation
+  • Parameter ⊑ Reading
+  • Acceptable Range ⊑ Data Quality Assessment
+  • Error ⊑ Data Quality Assessment
+  • Sensor Accuracy ⊑ Data Quality Assessment
+  • Medical Disorders ⊑ Intensive Care Unit
+  • Hypertension ⊑ Medical Disorders
+  • Hypotension ⊑ Medical Disorders
+  • Sepsis ⊑ Medical Disorders
+  • Traumatic Brain Injury ⊑ Medical Disorders
+  • Treatments ⊑ Intensive Care Unit
+  • Adrenaline ⊑ Treatments
+  • Noradrenaline ⊑ Treatments
+  • Machine ⊑ Sensor

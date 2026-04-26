@@ -2924,6 +2924,380 @@ def api_oe_ttl(session_id):
     )
 
 
+# ── Qualitative LLM-as-judge evaluation for OE runs ──────────────────
+
+_QEVAL_ID_RE = re.compile(r"^[\w.-]+$")
+
+
+def _resolve_qeval_target(target_id: str):
+    """Resolve a judge-target id to (ontology_path, artifacts_dir, kind).
+
+    Accepts either an OE session id (``oe-...``) or a regular run id. For an
+    OE session we read from ``<oe>/reconstructed_ontology.json`` and write
+    verdicts alongside it. For a regular run we read from
+    ``runs/<run_id>/generated/ontology.json`` and write verdicts under
+    ``runs/<run_id>/qualitative_eval/`` so the run artefact layout stays
+    self-contained.
+
+    Returns ``(ontology_path, artifacts_dir, kind)`` where kind is either
+    ``"oe"`` or ``"run"``. Raises FileNotFoundError / ValueError on bad input.
+    """
+    if not target_id or not _QEVAL_ID_RE.match(target_id):
+        raise ValueError("Invalid id")
+    if target_id.startswith("oe-"):
+        session_dir = _OE_DIR / target_id
+        recon_path = session_dir / "reconstructed_ontology.json"
+        if not recon_path.exists():
+            raise FileNotFoundError("Reconstructed ontology not found — run reconstruction first")
+        return recon_path, session_dir, "oe"
+    run_dir = RUNS_DIR / target_id
+    onto_path = run_dir / "generated" / "ontology.json"
+    if not onto_path.exists():
+        raise FileNotFoundError("Run has no generated/ontology.json")
+    artifacts_dir = run_dir / "qualitative_eval"
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+    return onto_path, artifacts_dir, "run"
+
+
+@app.route("/api/ontology-engineering/judgeable-runs")
+def api_oe_judgeable_runs():
+    """List regular pipeline runs that have an ontology ready to judge."""
+    out = []
+    if RUNS_DIR.exists():
+        for p in sorted(RUNS_DIR.iterdir(), reverse=True):
+            if not p.is_dir():
+                continue
+            onto = p / "generated" / "ontology.json"
+            if not onto.exists():
+                continue
+            meta = {}
+            mp = p / "metadata.json"
+            if mp.exists():
+                try:
+                    meta = _safe_json_loads(mp.read_text(encoding="utf-8")) or {}
+                except Exception:
+                    meta = {}
+            # Skip promoted OE runs — they're already covered by the OE list.
+            if meta.get("oe_session_id"):
+                continue
+            n_classes = 0
+            n_relations = 0
+            n_hierarchy = 0
+            try:
+                onto_data = _safe_json_loads(onto.read_text(encoding="utf-8")) or {}
+                n_classes = len(onto_data.get("classes", []))
+                n_relations = len(onto_data.get("relations", []))
+                n_hierarchy = len(onto_data.get("hierarchy", []))
+            except Exception:
+                pass
+            has_verdicts = (p / "qualitative_eval" / "qualitative_summary.json").exists()
+            paper_name = ""
+            cfg = meta.get("config") or {}
+            paper_name = cfg.get("paper_name") or meta.get("note") or ""
+            out.append({
+                "run_id": p.name,
+                "n_classes": n_classes,
+                "n_triples": n_relations + n_hierarchy,
+                "has_verdicts": has_verdicts,
+                "paper_name": paper_name,
+            })
+    return jsonify(out)
+
+
+@app.route("/api/ontology-engineering/qualitative-eval", methods=["POST"])
+def api_oe_qualitative_eval():
+    """Start an async qualitative judgement pass over an ontology.
+
+    Accepts either an OE session id or a regular run id as ``session_id``.
+    """
+    data = request.get_json(force=True) or {}
+    session_id = (data.get("session_id") or "").strip()
+    provider = (data.get("provider") or "openai").strip()
+    model = (data.get("model") or "").strip() or None
+
+    try:
+        recon_path, session_dir, _kind = _resolve_qeval_target(session_id)
+    except ValueError:
+        return jsonify({"error": "Invalid session/run ID"}), 400
+    except FileNotFoundError as e:
+        return jsonify({"error": str(e)}), 404
+
+    try:
+        ontology = _safe_json_loads(recon_path.read_text(encoding="utf-8"))
+    except Exception as e:
+        return jsonify({"error": f"Could not read ontology: {e}"}), 500
+
+    from src.evaluation.qualitative_judge import collect_triples
+
+    triples = collect_triples(ontology)
+    if not triples:
+        return jsonify({"error": "No relations or hierarchy edges to judge"}), 400
+
+    task_id = f"oe-qeval-{uuid4().hex[:8]}"
+    with run_status_lock:
+        run_statuses[task_id] = {
+            "status": "running",
+            "current": 0,
+            "total": len(triples),
+            "message": f"Starting qualitative eval on {len(triples)} triples...",
+            "task_id": task_id,
+            "session_id": session_id,
+            "provider": provider,
+            "model": model,
+            "error": None,
+        }
+
+    def job():
+        from src.evaluation.qualitative_judge import (
+            run_qualitative_eval,
+            verdicts_to_csv,
+        )
+
+        def progress(current, total, message):
+            with run_status_lock:
+                if task_id in run_statuses:
+                    run_statuses[task_id].update(current=current, total=total, message=message)
+
+        try:
+            verdicts, summary, prompts_log = run_qualitative_eval(
+                ontology=ontology,
+                provider=provider,
+                model=model,
+                progress_callback=progress,
+            )
+            # Save artefacts
+            (session_dir / "qualitative_verdicts.jsonl").write_text(
+                "\n".join(json.dumps(v, ensure_ascii=False) for v in verdicts),
+                encoding="utf-8",
+            )
+            (session_dir / "qualitative_summary.json").write_text(
+                json.dumps(summary, indent=2), encoding="utf-8",
+            )
+            (session_dir / "qualitative_prompts.jsonl").write_text(
+                "\n".join(json.dumps(p, ensure_ascii=False) for p in prompts_log),
+                encoding="utf-8",
+            )
+            (session_dir / "qualitative_verdicts.csv").write_text(
+                verdicts_to_csv(verdicts), encoding="utf-8",
+            )
+            with run_status_lock:
+                if task_id in run_statuses:
+                    run_statuses[task_id].update(
+                        status="completed",
+                        message=f"Qualitative eval complete ({summary['n_triples']} triples).",
+                        current=run_statuses[task_id]["total"],
+                        summary=summary,
+                    )
+        except Exception as e:
+            traceback.print_exc()
+            with run_status_lock:
+                if task_id in run_statuses:
+                    run_statuses[task_id].update(
+                        status="failed", error=str(e), message=f"Failed: {e}",
+                    )
+
+    threading.Thread(target=job, daemon=True).start()
+
+    return jsonify({
+        "task_id": task_id,
+        "session_id": session_id,
+        "n_triples": len(triples),
+        "status_url": f"/api/ontology-engineering/qualitative-eval/{task_id}/status",
+    })
+
+
+@app.route("/api/ontology-engineering/qualitative-eval/<task_id>/status")
+def api_oe_qualitative_eval_status(task_id):
+    """Poll qualitative-eval task status."""
+    with run_status_lock:
+        data = dict(run_statuses.get(task_id, {"status": "unknown"}))
+    return jsonify(data)
+
+
+@app.route("/api/ontology-engineering/<session_id>/qualitative-eval")
+def api_oe_qualitative_eval_results(session_id):
+    """Return saved qualitative eval results for an OE session or regular run."""
+    try:
+        _recon, session_dir, _kind = _resolve_qeval_target(session_id)
+    except ValueError:
+        return jsonify({"error": "Invalid session/run ID"}), 400
+    except FileNotFoundError as e:
+        return jsonify({"error": str(e)}), 404
+
+    summary_path = session_dir / "qualitative_summary.json"
+    verdicts_path = session_dir / "qualitative_verdicts.jsonl"
+    if not summary_path.exists() or not verdicts_path.exists():
+        return jsonify({"error": "No qualitative evaluation on file for this session"}), 404
+
+    try:
+        summary = _safe_json_loads(summary_path.read_text(encoding="utf-8"))
+        verdicts = [
+            _safe_json_loads(line)
+            for line in verdicts_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+    except Exception as e:
+        return jsonify({"error": f"Could not read eval artefacts: {e}"}), 500
+
+    return jsonify({"summary": summary, "verdicts": verdicts})
+
+
+@app.route("/api/ontology-engineering/<session_id>/qualitative-eval.csv")
+def api_oe_qualitative_eval_csv(session_id):
+    """Download qualitative verdicts as CSV (OE session or regular run)."""
+    try:
+        _recon, session_dir, _kind = _resolve_qeval_target(session_id)
+    except ValueError:
+        return "Invalid session/run ID", 400
+    except FileNotFoundError as e:
+        return str(e), 404
+
+    csv_path = session_dir / "qualitative_verdicts.csv"
+    if not csv_path.exists():
+        return "No qualitative evaluation on file for this session", 404
+
+    return app.response_class(
+        csv_path.read_text(encoding="utf-8"),
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={session_id}_qualitative.csv"},
+    )
+
+
+@app.route("/api/ontology-engineering/<session_id>/apply-judge-edits", methods=["POST"])
+def api_oe_apply_judge_edits(session_id):
+    """Apply user-approved judge verdicts to the reconstructed ontology.
+
+    Request body:
+        {"approved_indexes": [int, ...], "allow_new_classes": bool (optional)}
+
+    Writes the cleaned ontology to a NEW OE session folder named
+    '<session_id>-cleaned' (or '<session_id>-cleaned-N' on collision) so
+    the cleaned run appears independently in the OE session list and can
+    be loaded / downloaded / re-evaluated like any other session. Essential
+    files from the source session are copied over, and a
+    'cleaning_metadata.json' file records the source + approval decisions.
+
+    Only verdicts whose triple_index is in approved_indexes are applied;
+    every other triple passes through unchanged (even rejects).
+    """
+    if not session_id or not re.match(r"^oe-[\w-]+$", session_id):
+        return jsonify({"error": "Invalid session ID"}), 400
+
+    session_dir = _OE_DIR / session_id
+    recon_path = session_dir / "reconstructed_ontology.json"
+    verdicts_path = session_dir / "qualitative_verdicts.jsonl"
+    if not recon_path.exists():
+        return jsonify({"error": "No reconstructed ontology for this session"}), 404
+    if not verdicts_path.exists():
+        return jsonify({"error": "No qualitative evaluation on file for this session"}), 404
+
+    body = request.get_json(silent=True) or {}
+    approved = body.get("approved_indexes") or []
+    if not isinstance(approved, list):
+        return jsonify({"error": "approved_indexes must be a list"}), 400
+    try:
+        approved_set = {int(i) for i in approved}
+    except (TypeError, ValueError):
+        return jsonify({"error": "approved_indexes must contain integers"}), 400
+    allow_new_classes = bool(body.get("allow_new_classes", False))
+
+    try:
+        ontology = _safe_json_loads(recon_path.read_text(encoding="utf-8"))
+        verdicts = [
+            _safe_json_loads(line)
+            for line in verdicts_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+    except Exception as e:
+        return jsonify({"error": f"Could not read session artefacts: {e}"}), 500
+
+    if not approved_set:
+        return jsonify({"error": "No triples were approved — check at least one row before applying."}), 400
+
+    # Keep only approved verdicts; unapproved triples fall through unchanged.
+    filtered_verdicts = [v for v in verdicts if int(v.get("triple_index", -1)) in approved_set]
+
+    try:
+        from src.evaluation.apply_judge_edits import apply_edits
+        cleaned, stats = apply_edits(ontology, filtered_verdicts, allow_new_classes=allow_new_classes)
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": f"apply_edits failed: {e}"}), 500
+
+    # ── Create a NEW session folder for the cleaned run ──
+    new_session_id = f"{session_id}-cleaned"
+    new_dir = _OE_DIR / new_session_id
+    if new_dir.exists():
+        n = 2
+        while (_OE_DIR / f"{session_id}-cleaned-{n}").exists():
+            n += 1
+        new_session_id = f"{session_id}-cleaned-{n}"
+        new_dir = _OE_DIR / new_session_id
+
+    try:
+        new_dir.mkdir(parents=True, exist_ok=False)
+        # The cleaned ontology IS the new session's reconstructed ontology.
+        (new_dir / "reconstructed_ontology.json").write_text(
+            json.dumps(cleaned, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        # Copy session-essential files so the new folder behaves like a
+        # fully-featured OE session (graph, cluster view, prior eval).
+        for fname in (
+            "reconstruction_log.json",
+            "merged_ontology.json",
+            "cluster_data.json",
+            "merge_stats.json",
+            "qualitative_verdicts.jsonl",
+            "qualitative_summary.json",
+            "qualitative_prompts.jsonl",
+            "qualitative_verdicts.csv",
+        ):
+            src = session_dir / fname
+            if src.exists():
+                shutil.copy2(src, new_dir / fname)
+        # Cleaning metadata: source session + what the user approved.
+        cleaning_meta = {
+            "source_session_id": session_id,
+            "created_at": datetime.now().isoformat(timespec="seconds"),
+            "approved_count": len(filtered_verdicts),
+            "total_verdicts": len(verdicts),
+            "approved_indexes": sorted(approved_set),
+            "allow_new_classes": allow_new_classes,
+            "stats": stats,
+        }
+        (new_dir / "cleaning_metadata.json").write_text(
+            json.dumps(cleaning_meta, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": f"Could not write cleaned session: {e}"}), 500
+
+    stats["approved_count"] = len(filtered_verdicts)
+    stats["total_verdicts"] = len(verdicts)
+    stats["new_session_id"] = new_session_id
+    stats["download_url"] = f"/api/ontology-engineering/{new_session_id}/reconstructed-ontology"
+    return jsonify(stats)
+
+
+@app.route("/api/ontology-engineering/<session_id>/reconstructed-ontology")
+def api_oe_download_reconstructed(session_id):
+    """Download an OE session's reconstructed ontology as a JSON file."""
+    if not session_id or not re.match(r"^oe-[\w-]+$", session_id):
+        return "Invalid session ID", 400
+
+    path = _OE_DIR / session_id / "reconstructed_ontology.json"
+    if not path.exists():
+        return "No reconstructed ontology on file for this session", 404
+
+    return app.response_class(
+        path.read_text(encoding="utf-8"),
+        mimetype="application/json",
+        headers={"Content-Disposition": f"attachment; filename={session_id}.json"},
+    )
+
+
 # ── Generic run-metrics endpoints (used by Ontology Engineering "Analyze") ──
 
 def _run_label_from_metadata(run_id: str, run_root: Path) -> str:

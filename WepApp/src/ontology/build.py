@@ -17,6 +17,10 @@ _ACRONYM_TOKENS = {
     "SjO2", "TCD", "PbrO2", "PRx", "NIBP", "ARDS", "TBI", "BP", "HR",
     "DBP", "SBP", "TIL", "EUSIG", "EVD", "CSF",
 }
+# Case-insensitive lookup: upper() -> canonical-cased form. Needed because
+# mixed-case acronyms (SaO2, PbrO2, GOSe, EtCO2) can't be matched by a
+# simple `w.upper() in _ACRONYM_TOKENS` check.
+_ACRONYM_LOOKUP = {t.upper(): t for t in _ACRONYM_TOKENS}
 
 
 def _title_case_label(label: str) -> str:
@@ -31,8 +35,8 @@ def _title_case_label(label: str) -> str:
         # Preserve bracketed abbreviations like (MAP), (ICP)
         if w.startswith("(") and w.endswith(")"):
             result.append(w.upper() if w[1:-1].isalpha() and len(w) <= 6 else w)
-        elif w.upper() in _ACRONYM_TOKENS:
-            result.append(w.upper())
+        elif w.upper() in _ACRONYM_LOOKUP:
+            result.append(_ACRONYM_LOOKUP[w.upper()])
         elif i == 0:
             result.append(w.capitalize())
         elif w.lower() in _TITLE_CASE_LOWER:

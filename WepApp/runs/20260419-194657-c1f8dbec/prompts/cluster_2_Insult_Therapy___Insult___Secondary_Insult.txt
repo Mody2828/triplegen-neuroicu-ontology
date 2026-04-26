@@ -1,0 +1,74 @@
+You are an expert ontology engineer and neurointensive care domain specialist.
+
+You are given a semantic cluster of ontology classes extracted from neurointensive care research papers. Your task is to enrich each class with OWL-style existential restrictions (constraints) that describe how it relates to other classes — NOT to invent new classes or restructure the hierarchy.
+
+## Cluster: "Insult Therapy / Insult / Secondary Insult"
+
+### Classes in this cluster (6 total):
+1. **Barbiturates**
+   Definition: Barbiturate therapy (thiopental). Secondary insult therapy. [P1]
+   Evidence: (9.5) (47.0) Barbiturates 11/21 3/16 14/37 19/201 Results (52.4) (18.8) (37.8) (9.4) Barbiturate
+2. **Osmotics**
+   Definition: Osmotic agents (mannitol, hypertonic saline). Secondary insult therapy. [P1]
+   Evidence: Osmotic agents (mannitol, hypertonic saline). Secondary insult therapy. [P1]
+3. **Secondary Insult**
+   Definition: Adverse physiological event occurring in TBI patients during ICU management despite baseline care. Over 90% of TBI patients exhibit one or more insults during their stay. [P1]
+   Evidence: More frequent shorter duration secondary insults are often missed if sampling periods greater than 1 minute is used [6].
+4. **Secondary Insult Therapy**
+   Definition: Non-surgical medical management specifically given to treat secondary insults. Each therapy must be assigned a therapy target from a standardised drop-down list. [P1]
+   Evidence: More frequent shorter duration secondary insults are often missed if sampling periods greater than 1 minute is used [6].
+5. **Secondary Insult Treatment**
+   Definition: Coded therapy category with an assigned therapy target (e.g. arterial pressors targeting systemic hypotension or reduced CPP). [P1]
+   Evidence: To facilitate discussion, the core dataset was sub-divided into four logical groups: a) Demographic and Clinical Information b) Minute by Minute monitoring information c) Intensive care management information d) Secondary insult treatment information.
+6. **Steroids**
+   Definition: Corticosteroid therapy. Secondary insult therapy. [P1]
+   Evidence: This has come about as the patient value is an order of magnitude lower than 15026161 has been administered steroids when the load is therefore the relative non-adherence potentially already high, which is an aspect that this guideline indicates a lower impact.
+
+### Other clusters in this ontology (for cross-cluster linking):
+Craniectomy / Fossa Repair / Skull, Outcome / Cpp / Secondary, Sensor / Minute / Pupil, Cpp / Insult / Secondary Insult, Parameter / Map / Index, Ct / Scan / Ct Scan, Temperature / Optional / Optional Brainit, Icu Stay / The Icu / Stay, Placement / Subdural / Placement Placement, Error / Reading Outside / Reading, Haematology / Daily / Cell, Core / Pulse / Pulse Oximetry, Contextualises Out / Contextualises / Out Of, Icu P1 / Annotated / Annotated In, Therapy / Baseline Therapy / Therapy P1, Neurosurgical / At / Outcome, Biochemistry / Sodium / Potassium, Low / Hypotension / Blood Pressure, Therapy / Baseline Therapy / Therapy P1, Therapy P1 / Baseline Therapy / Therapy
+
+## Your task — produce per-class constraints:
+
+1. **Constraints (existential restrictions)**: For each class, define constraints that describe its relationships to other classes. Each constraint says: this class has *property* **some** *TargetClass*. You MUST use ONLY property labels from the closed vocabulary below — do NOT invent new property types.
+
+   **Allowed property labels (closed vocabulary)**: "has demographic data", "has surgical procedure", "has monitoring data", "receives therapy", "targets condition", "monitoring indicates condition", "has clinical assessment", "has outcome", "has laboratory value", "has nursing intervention", "has session", "has timepoint", "has observation", "measures parameter", "produced by sensor", "has quality assessment", "associated with condition", "affected by treatment"
+
+   For example, if SecondaryInsult worsens HeadTrauma, express this as a constraint on SecondaryInsult:
+   `{"property": "Worsens", "filler": "HeadTrauma"}`
+
+   This means: SecondaryInsult ⊑ ∃Worsens.HeadTrauma (every SecondaryInsult worsens some HeadTrauma).
+
+   If none of the allowed labels fit a class, give it an empty constraints list. It is better to emit fewer constraints than to invent a new property label.
+
+2. **No new classes**: You MUST NOT invent, add, or propose any new classes. Use ONLY the classes listed above in constraints. Any class you reference that is not in the list above (or in another cluster) will be discarded.
+
+3. **No hierarchy**: Do NOT produce subClassOf / hierarchy edges. The hierarchy is already defined in the source ontology and will be preserved independently.
+
+4. **Cross-cluster constraints**: You may add constraints that reference classes from OTHER clusters listed above (up to 5 total). These must also use the closed vocabulary.
+
+## Output format — strict JSON only:
+```json
+{
+  "classes": [
+    {
+      "label": "...",
+      "definition": "...",
+      "evidence": "from source text",
+      "synonyms": [],
+      "constraints": [
+        {"property": "...", "filler": "...", "definition": "one-sentence description of this constraint"}
+      ]
+    }
+  ],
+  "hierarchy": []
+}
+```
+
+## Rules:
+- Include each existing class in your output EXACTLY as given — do not rename or remove.
+- DO NOT add any new classes under any circumstances. Zero. None.
+- DO NOT emit any hierarchy edges. Leave "hierarchy" as an empty list.
+- Every constraint must use a property from the closed vocabulary above.
+- Every constraint filler must reference a real class from this cluster or another cluster listed above.
+- Each constraint is scoped to its owning class — the class the constraint is listed under is the domain, and the filler is the range.
+- Output ONLY the JSON object — no markdown fences, no commentary before or after.

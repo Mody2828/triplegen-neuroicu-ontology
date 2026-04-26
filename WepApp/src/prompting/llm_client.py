@@ -75,13 +75,28 @@ def _local_max_new_tokens() -> int:
 
 
 class LLMClient:
-    def __init__(self, provider: str, model: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        provider: str,
+        model: Optional[str] = None,
+        *,
+        request_delay_override: Optional[float] = None,
+    ) -> None:
         if not provider:
             raise ValueError(
                 "LLM provider must be specified. Supported: 'openai', 'anthropic', 'google', 'groq', 'huggingface', 'deepseek', 'local'"
             )
         self.provider = provider.strip().lower()
         self.model = (model or "").strip() or None
+        # When set, overrides the OpenAI/Gemini global pacing delay for this
+        # client instance only. Use for read-mostly workloads (e.g. the
+        # qualitative judge) that should not be throttled by the heavy
+        # extraction pipeline's pacing settings.
+        self.request_delay_override: Optional[float] = (
+            max(0.0, float(request_delay_override))
+            if request_delay_override is not None
+            else None
+        )
 
     def generate(self, prompt: str, *, max_tokens: int | None = None) -> str:
         return self._provider_response(prompt, max_tokens=max_tokens)
@@ -137,7 +152,11 @@ class LLMClient:
         from openai import RateLimitError
 
         global _OPENAI_LAST_CALL_TIME
-        delay = _openai_request_delay()
+        delay = (
+            self.request_delay_override
+            if self.request_delay_override is not None
+            else _openai_request_delay()
+        )
         if delay > 0:
             with _OPENAI_LOCK:
                 elapsed = time.time() - _OPENAI_LAST_CALL_TIME
@@ -233,7 +252,11 @@ class LLMClient:
                 "Install it with: pip install google-generativeai"
             )
 
-        delay = _gemini_request_delay()
+        delay = (
+            self.request_delay_override
+            if self.request_delay_override is not None
+            else _gemini_request_delay()
+        )
         with _GEMINI_LOCK:
             if delay > 0 and _GEMINI_LAST_CALL_TIME > 0:
                 elapsed = time.monotonic() - _GEMINI_LAST_CALL_TIME

@@ -23,6 +23,88 @@
   // ── Helpers ──
   function $(id) { return document.getElementById(id); }
 
+  // ── Unified "Load previous work" dropdown ──
+  // Three optgroups, in priority order (fullest data first):
+  //   Reconstructions  — cascade Stages 1 → 4
+  //   Clusterings      — cascade Stages 1 → 2
+  //   Pipeline Runs    — cascade Stage 4 only
+  // Called on page load AND after each successful cluster/reconstruct, so a
+  // newly-saved session appears without a full reload.
+  function populateUnifiedLoader() {
+    const sel = $('oe-unified-load');
+    if (!sel) return Promise.resolve();
+    const prev = sel.value;
+    while (sel.options.length > 1) sel.remove(1);
+
+    const fetchJson = (url) => fetch(url)
+      .then(r => r.ok ? r.json() : [])
+      .catch(() => []);
+
+    return Promise.all([
+      fetchJson('/api/ontology-engineering/sessions'),
+      fetchJson('/api/ontology-engineering/cluster-sessions'),
+      fetchJson('/api/ontology-engineering/judgeable-runs'),
+    ]).then(([reconstructions, clusterings, runs]) => {
+      const reconIds = new Set((reconstructions || []).map(s => s.session_id));
+
+      if (reconstructions && reconstructions.length) {
+        const g = document.createElement('optgroup');
+        g.label = 'Reconstructions (Stages 1–4)';
+        reconstructions.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s.session_id;
+          opt.dataset.kind = 'reconstruction';
+          opt.dataset.runId = s.run_id || '';
+          opt.dataset.sourceRuns = JSON.stringify(s.source_runs || []);
+          opt.textContent = s.session_id.replace('oe-', '') + ' — ' + s.n_classes + ' classes';
+          g.appendChild(opt);
+        });
+        sel.appendChild(g);
+      }
+
+      // Clusterings that don't also have a reconstruction — otherwise the
+      // recon version (richer) already covers them.
+      const clusterOnly = (clusterings || []).filter(s => !reconIds.has(s.session_id));
+      if (clusterOnly.length) {
+        const g = document.createElement('optgroup');
+        g.label = 'Clusterings only (Stages 1–2)';
+        clusterOnly.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s.session_id;
+          opt.dataset.kind = 'clustering';
+          opt.dataset.sourceRuns = JSON.stringify(s.source_runs || []);
+          opt.textContent = s.session_id.replace('oe-', '') +
+            ' — ' + s.n_clusters + ' clusters, ' + s.total_classes + ' classes';
+          g.appendChild(opt);
+        });
+        sel.appendChild(g);
+      }
+
+      if (runs && runs.length) {
+        const g = document.createElement('optgroup');
+        g.label = 'Pipeline Runs (Stage 4 only)';
+        runs.forEach(r => {
+          const opt = document.createElement('option');
+          opt.value = r.run_id;
+          opt.dataset.kind = 'run';
+          const marker = r.has_verdicts ? ' ✓' : '';
+          const paper = r.paper_name ? ' — ' + r.paper_name : '';
+          opt.textContent = r.run_id + paper +
+            ' — ' + r.n_triples + ' triples' + marker;
+          g.appendChild(opt);
+        });
+        sel.appendChild(g);
+      }
+
+      if (prev) {
+        for (let i = 0; i < sel.options.length; i++) {
+          if (sel.options[i].value === prev) { sel.selectedIndex = i; break; }
+        }
+      }
+    });
+  }
+
+
   function unlock(stageEl, stepEl) {
     stageEl.classList.remove('locked');
     stepEl.classList.add('active');
@@ -33,9 +115,18 @@
     stepEl.classList.add('done');
   }
 
-  function statCard(value, label) {
-    return `<div class="oe-stat-card">
-      <div class="oe-stat-value">${value}</div>
+  function statCard(value, label, accent) {
+    // `accent` (optional) is a hex colour used to tint the card:
+    //   - 4px coloured left border
+    //   - value text takes the accent colour (overrides default)
+    const cardStyle = accent
+      ? ` style="border-left: 4px solid ${accent};"`
+      : '';
+    const valueStyle = accent
+      ? ` style="color: ${accent};"`
+      : '';
+    return `<div class="oe-stat-card"${cardStyle}>
+      <div class="oe-stat-value"${valueStyle}>${value}</div>
       <div class="oe-stat-label">${label}</div>
     </div>`;
   }
@@ -393,6 +484,10 @@
           // Advance stepper
           markDone($('step-2'));
           unlock($('stage-reconstruct'), $('step-3'));
+
+          // Refresh the unified loader so the newly-saved cluster session
+          // appears immediately without a page reload.
+          populateUnifiedLoader();
         })
         .catch(err => {
           $('cluster-spinner').classList.add('d-none');
@@ -525,6 +620,24 @@
     return { provider: checked.dataset.provider, model: checked.dataset.model || '' };
   }
 
+  // Judge provider switches — independent of reconstruction provider so users
+  // can run the qualitative judge on a pre-existing session with a different
+  // model (e.g. GPT-4o for judging even when reconstruction used GPT-4o-mini).
+  const qevalLlmSwitches = Array.from(document.querySelectorAll('.oe-qeval-llm-switch'));
+  qevalLlmSwitches.forEach(sw => {
+    sw.addEventListener('change', function () {
+      if (this.checked) {
+        qevalLlmSwitches.forEach(other => { if (other !== this) other.checked = false; });
+      }
+    });
+  });
+
+  function getSelectedQevalLlm() {
+    const checked = qevalLlmSwitches.find(s => s.checked);
+    if (!checked) return { provider: 'openai', model: '' };
+    return { provider: checked.dataset.provider, model: checked.dataset.model || '' };
+  }
+
   // ══════════════════════════════════════════════════════════════════
   //  Stage 3: Reconstruct
   // ══════════════════════════════════════════════════════════════════
@@ -593,6 +706,11 @@
                 cmpBtn.classList.remove('d-none');
               }
             }
+            showQualitativeEvalSection(sessId);
+
+            // Refresh the unified loader so the newly-saved reconstruction
+            // appears immediately without a page reload.
+            populateUnifiedLoader();
           } else if (data.status === 'failed') {
             clearInterval(interval);
             $('recon-msg').textContent = 'Failed: ' + (data.error || 'Unknown error');
@@ -822,115 +940,633 @@
   }
 
   // ══════════════════════════════════════════════════════════════════
-  //  Load Previous Cluster
+  //  Unified "Load previous work" — single entry point for everything below
   // ══════════════════════════════════════════════════════════════════
-  const loadPrevCluster = $('oe-load-prev-cluster');
-  if (loadPrevCluster) {
-    fetch('/api/ontology-engineering/cluster-sessions')
-      .then(r => r.json())
-      .then(sessions => {
-        if (!sessions || !sessions.length) return;
-        sessions.forEach(s => {
-          const opt = document.createElement('option');
-          opt.value = s.session_id;
-          opt.dataset.sourceRuns = JSON.stringify(s.source_runs || []);
-          const label = s.session_id.replace('oe-', '') + ' — ' + s.n_clusters + ' clusters, ' + s.total_classes + ' classes';
-          opt.textContent = label;
-          loadPrevCluster.appendChild(opt);
-        });
-      })
-      .catch(() => {});
-
-    loadPrevCluster.addEventListener('change', function () {
-      const sessId = this.value;
-      if (!sessId) return;
-      const opt = this.options[this.selectedIndex];
-      const srcRuns = JSON.parse(opt.dataset.sourceRuns || '[]');
-
-      // Set state
-      sessionId = sessId;
-      sourceRunIds = srcRuns;
-      reconstructedRunId = null;
-
-      // Unlock Stage 2 and mark done, unlock Stage 3
-      const stage2 = $('stage-cluster');
-      if (stage2) { stage2.classList.remove('locked'); }
-      markDone($('step-2'));
-      unlock($('stage-reconstruct'), $('step-3'));
-
-      // Load and render cluster data
-      fetch('/api/ontology-engineering/' + sessId + '/cluster-data')
-        .then(r => r.json())
-        .then(data => {
-          if (data.error) {
-            alert('Error loading cluster: ' + data.error);
-            return;
+  const unifiedLoader = $('oe-unified-load');
+  if (unifiedLoader) {
+    populateUnifiedLoader().then(() => {
+      // Honour ?load=<id> in the URL (used by the "Load cleaned session"
+      // link after applying judge edits, and by legacy deep-links).
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const wantLoad = params.get('load');
+        if (wantLoad) {
+          for (let i = 0; i < unifiedLoader.options.length; i++) {
+            if (unifiedLoader.options[i].value === wantLoad) {
+              unifiedLoader.selectedIndex = i;
+              unifiedLoader.dispatchEvent(new Event('change'));
+              break;
+            }
           }
-          renderClusterResults(data);
-          $('cluster-results').classList.remove('d-none');
-        })
-        .catch(err => alert('Error: ' + err.message));
+        }
+      } catch (_) { /* ignore */ }
+    });
+
+    unifiedLoader.addEventListener('change', function () {
+      const id = this.value;
+      const hint = $('oe-unified-load-hint');
+      if (!id) { if (hint) hint.textContent = ''; return; }
+      const opt = this.options[this.selectedIndex];
+      const kind = opt.dataset.kind || '';
+      if (hint) hint.textContent = '· loaded as ' + kind;
+
+      if (kind === 'reconstruction') {
+        cascadeReconstruction(id, opt.dataset.runId || '', JSON.parse(opt.dataset.sourceRuns || '[]'));
+      } else if (kind === 'clustering') {
+        cascadeClustering(id, JSON.parse(opt.dataset.sourceRuns || '[]'));
+      } else if (kind === 'run') {
+        cascadeRegularRun(id);
+      }
     });
   }
 
-  // ══════════════════════════════════════════════════════════════════
-  //  Load Previous OE Run
-  // ══════════════════════════════════════════════════════════════════
-  const loadPrevSelect = $('oe-load-previous');
-  if (loadPrevSelect) {
-    // Populate dropdown on page load
-    fetch('/api/ontology-engineering/sessions')
-      .then(r => r.json())
-      .then(sessions => {
-        if (!sessions || !sessions.length) return;
-        sessions.forEach(s => {
-          const opt = document.createElement('option');
-          opt.value = s.session_id;
-          opt.dataset.runId = s.run_id || '';
-          opt.dataset.sourceRuns = JSON.stringify(s.source_runs || []);
-          const label = s.session_id.replace('oe-', '') + ' — ' + s.n_classes + ' classes';
-          opt.textContent = label;
-          loadPrevSelect.appendChild(opt);
-        });
+  // ── Cascade helpers ─────────────────────────────────────────────────
+  // Each helper is a pure function of (id, side-data) → DOM effects.
+  // Kept separate so the unified loader stays a thin dispatcher.
+
+  function cascadeReconstruction(sessId, runId, srcRuns) {
+    // Set global OE state as if we had just finished the full pipeline.
+    sessionId = sessId;
+    sourceRunIds = srcRuns || [];
+    reconstructedRunId = runId || null;
+
+    // Stage 2 — unlock + mark done (reconstruction implies clustering was done)
+    const stage2 = $('stage-cluster');
+    if (stage2) stage2.classList.remove('locked');
+    markDone($('step-2'));
+    // Best-effort cluster-data fetch (reconstruction sessions keep it on disk)
+    fetch('/api/ontology-engineering/' + sessId + '/cluster-data')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data && !data.error) {
+          renderClusterResults(data);
+          $('cluster-results').classList.remove('d-none');
+        }
       })
       .catch(() => {});
 
-    loadPrevSelect.addEventListener('change', function () {
-      const sessId = this.value;
-      if (!sessId) return;
-      const opt = this.options[this.selectedIndex];
-      const runId = opt.dataset.runId || '';
-      const srcRuns = JSON.parse(opt.dataset.sourceRuns || '[]');
+    // Stage 3 — unlock + mark done
+    const stage3 = $('stage-reconstruct');
+    if (stage3) stage3.classList.remove('locked');
+    markDone($('step-3'));
+    $('reconstruct-progress').classList.add('d-none');
+    $('reconstruct-results').classList.remove('d-none');
 
-      // Set state as if we had just done the full pipeline
-      sessionId = sessId;
-      sourceRunIds = srcRuns;
-      reconstructedRunId = runId;
+    const viewBtn = $('btn-view-results');
+    if (viewBtn && runId) {
+      viewBtn.setAttribute('data-run-id', runId);
+      viewBtn.classList.remove('d-none');
+    }
+    const cmpBtn = $('btn-compare-metrics');
+    if (cmpBtn && srcRuns && srcRuns.length > 0 && runId) {
+      cmpBtn.classList.remove('d-none');
+    }
 
-      // Unlock Stage 3 visually and mark done
-      const stage3 = $('stage-reconstruct');
-      if (stage3) { stage3.classList.remove('locked'); }
-      markDone($('step-3'));
+    // Load the reconstructed graph + expose Stage 4 (qeval auto-renders if saved)
+    loadReconstructedOntology(sessId);
+    showQualitativeEvalSection(sessId);
+  }
 
-      // Hide progress bar, show results area
-      $('reconstruct-progress').classList.add('d-none');
-      $('reconstruct-results').classList.remove('d-none');
+  function cascadeClustering(sessId, srcRuns) {
+    sessionId = sessId;
+    sourceRunIds = srcRuns || [];
+    reconstructedRunId = null;
 
-      // Show View Results button if we have a promoted run
-      const viewBtn = $('btn-view-results');
-      if (viewBtn && runId) {
-        viewBtn.setAttribute('data-run-id', runId);
-        viewBtn.classList.remove('d-none');
+    const stage2 = $('stage-cluster');
+    if (stage2) stage2.classList.remove('locked');
+    markDone($('step-2'));
+    unlock($('stage-reconstruct'), $('step-3'));
+
+    fetch('/api/ontology-engineering/' + sessId + '/cluster-data')
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) { alert('Error loading cluster: ' + data.error); return; }
+        renderClusterResults(data);
+        $('cluster-results').classList.remove('d-none');
+      })
+      .catch(err => alert('Error: ' + err.message));
+    // Stage 4 stays locked — no ontology to judge until reconstruction runs.
+  }
+
+  function cascadeRegularRun(runId) {
+    // No merge / clustering / reconstruction — Stage 4 direct entry.
+    // Stages 1-3 stay in their current (typically locked) state so the user
+    // sees the card greyed out, which correctly signals "nothing to populate".
+    showQualitativeEvalSection(runId);
+    const step4 = $('step-4');
+    if (step4 && !step4.classList.contains('done')) step4.classList.add('active');
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  //  Qualitative LLM-as-judge evaluation
+  // ══════════════════════════════════════════════════════════════════
+  const QEVAL_VERDICT_COLORS = {
+    accept_direct: '#2ED6A1',
+    accept_indirect: '#6CC2FF',
+    revise: '#F5A65B',
+    reject: '#FF6B81',
+  };
+  const QEVAL_VERDICT_LABELS = {
+    accept_direct: 'Accept — direct',
+    accept_indirect: 'Accept — indirect',
+    revise: 'Revise',
+    reject: 'Reject',
+  };
+  const QEVAL_SUBTYPE_LABELS = {
+    '4.1': 'Target more general',
+    '4.2': 'Target more specific',
+    '4.3': 'Target different class',
+    '4.4': 'Replace with direct relation',
+    '4.5': 'Replace with indirect relation',
+    '4.6': 'Edit class name',
+    '4.7': 'Subclass → relation',
+    '4.8': 'Swap subject/object',
+    '4.9': 'Relation → subclass',
+    '4.10': 'Other revise',
+  };
+
+  // Approximate USD per 1M tokens (April 2026 published rates). Keyed by
+  // provider; models override via optional modelKey match on data-model.
+  // Numbers are intentionally round — the preflight line is an estimate.
+  const QEVAL_PRICING = {
+    openai: {                                // default: gpt-4o-mini
+      input: 0.15, output: 0.60,
+      models: {
+        'gpt-4o': { input: 2.50, output: 10.00 },
+      },
+    },
+    anthropic: { input: 1.00, output: 5.00 },   // Claude Haiku 4.5
+    google:    { input: 0.15, output: 0.60 },   // Gemini 2.5 Flash
+    groq:      { input: 0.00, output: 0.00 },   // free tier
+    huggingface: { input: 0.05, output: 0.10 },
+    deepseek:  { input: 0.14, output: 0.28 },
+  };
+
+  // Rough per-call token accounting derived from the actual prompt templates.
+  // Stage A fires on every triple; Stage B fires on ~30% (revise rate).
+  const QEVAL_TOKENS = {
+    stageA: { input: 550, output: 200 },
+    stageB: { input: 600, output: 250 },
+    reviseRate: 0.30,
+  };
+
+  function estimateJudgeCost(nTriples, provider, model) {
+    const row = QEVAL_PRICING[provider];
+    if (!row) return null;
+    const rate = (model && row.models && row.models[model]) ? row.models[model] : row;
+    const t = QEVAL_TOKENS;
+    const inTok  = nTriples * (t.stageA.input  + t.reviseRate * t.stageB.input);
+    const outTok = nTriples * (t.stageA.output + t.reviseRate * t.stageB.output);
+    const usd = (inTok * rate.input + outTok * rate.output) / 1_000_000;
+    return usd;
+  }
+
+  function formatCost(usd) {
+    if (usd == null) return '?';
+    if (usd === 0) return 'free';
+    if (usd < 0.01) return '<$0.01';
+    if (usd < 1) return '$' + usd.toFixed(2);
+    return '$' + usd.toFixed(2);
+  }
+
+  function updateQevalPreflight() {
+    const countEl = $('qeval-triple-count');
+    const section = $('qualitative-eval-section');
+    if (!countEl || !section) return;
+    const n = parseInt(section.dataset.tripleCount, 10);
+    if (!n) { countEl.textContent = ''; return; }
+    const llm = getSelectedQevalLlm();
+    const providerLabel = llm.model ? (llm.provider + ' / ' + llm.model) : llm.provider;
+    const cost = estimateJudgeCost(n, llm.provider, llm.model);
+    countEl.textContent = '≈ ' + n + ' triples · judge: ' + providerLabel +
+      ' · est. ' + formatCost(cost);
+  }
+
+  // Re-estimate cost whenever the user switches the judge provider.
+  qevalLlmSwitches.forEach(sw => sw.addEventListener('change', updateQevalPreflight));
+
+  function showQualitativeEvalSection(sessId) {
+    const section = $('qualitative-eval-section');
+    if (!section || !sessId) return;
+    section.classList.remove('d-none');
+    // Unlock the Stage-4 card and advance the stepper. The card is visually
+    // greyed out by default until a session is loaded.
+    const stage4 = $('stage-qualitative-eval');
+    if (stage4) stage4.classList.remove('locked');
+    const step4 = $('step-4');
+    if (step4 && !step4.classList.contains('done')) step4.classList.add('active');
+
+    const btn = $('btn-qualitative-eval');
+    const btnText = $('btn-qualitative-eval-text');
+    if (btn) btn.disabled = false;
+    if (btnText) btnText.textContent = 'Run LLM Qualitative Evaluation';
+    $('qeval-progress').classList.add('d-none');
+    $('qeval-results').classList.add('d-none');
+    section.dataset.sessionId = sessId;
+
+    // OE sessions use the OE result endpoint; regular pipeline runs use the
+    // per-run ontology-graph endpoint. Both return a {stats:{relations,hierarchy}}
+    // payload we can count triples from.
+    const isOe = /^oe-/.test(sessId);
+    const statsUrl = isOe
+      ? '/api/ontology-engineering/' + sessId + '/result'
+      : '/api/run/' + sessId + '/ontology-graph';
+
+    // Apply-edits produces a <id>-cleaned OE session — only meaningful for
+    // OE reconstructions. Hide the whole block for regular runs.
+    const applyBlock = $('qeval-apply-block');
+    if (applyBlock) applyBlock.style.display = isOe ? '' : 'none';
+
+    // Preflight: load triple count from the loaded ontology, cache on the
+    // section element, then render the preflight line (count + cost).
+    fetch(statsUrl)
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.stats) {
+          const n = (data.stats.relations || 0) + (data.stats.hierarchy || 0);
+          section.dataset.tripleCount = String(n);
+          updateQevalPreflight();
+        }
+      })
+      .catch(() => {});
+
+    // Load any prior eval results for this session. If present, render them
+    // immediately and flip the button label to "Re-run" so the user knows
+    // clicking will overwrite the saved verdicts.
+    fetch('/api/ontology-engineering/' + sessId + '/qualitative-eval')
+      .then(r => r.ok ? r.json() : null)
+      .then(payload => {
+        if (payload && payload.summary) {
+          renderQualitativeResults(sessId, payload.summary, payload.verdicts || []);
+          if (btnText) btnText.textContent = 'Re-run LLM Qualitative Evaluation';
+          markDone(step4);
+        }
+      })
+      .catch(() => {});
+  }
+
+  function renderQualitativeResults(sessId, summary, verdicts) {
+    const resultsEl = $('qeval-results');
+    if (!resultsEl) return;
+    resultsEl.classList.remove('d-none');
+
+    // Stat cards
+    const statsEl = $('qeval-stats');
+    if (statsEl) {
+      const counts = summary.verdict_counts || {};
+      const pct = summary.verdict_pct || {};
+      const pctStr = (k) => (pct[k] != null ? pct[k].toFixed(1) + '%' : '—');
+      statsEl.innerHTML =
+        statCard(summary.n_triples || 0, 'Triples judged') +
+        statCard((counts.accept_direct || 0) + ' <small class="text-muted">(' + pctStr('accept_direct') + ')</small>', 'Accept — direct', QEVAL_VERDICT_COLORS.accept_direct) +
+        statCard((counts.accept_indirect || 0) + ' <small class="text-muted">(' + pctStr('accept_indirect') + ')</small>', 'Accept — indirect', QEVAL_VERDICT_COLORS.accept_indirect) +
+        statCard((counts.revise || 0) + ' <small class="text-muted">(' + pctStr('revise') + ')</small>', 'Revise', QEVAL_VERDICT_COLORS.revise) +
+        statCard((counts.reject || 0) + ' <small class="text-muted">(' + pctStr('reject') + ')</small>', 'Reject', QEVAL_VERDICT_COLORS.reject) +
+        statCard((summary.action_weighted_quality != null ? (summary.action_weighted_quality * 100).toFixed(1) + '%' : '—'), 'Action-weighted quality') +
+        statCard(summary.engineer_effort_count || 0, 'KE-effort triples') +
+        statCard((summary.mean_confidence != null ? summary.mean_confidence.toFixed(2) : '—'), 'Mean confidence');
+    }
+
+    // Revise breakdown bars
+    const breakdownWrap = $('qeval-breakdown-wrap');
+    const breakdownEl = $('qeval-breakdown');
+    const reviseCounts = summary.revise_breakdown_counts || {};
+    const reviseTotal = Object.values(reviseCounts).reduce((a, b) => a + (b || 0), 0);
+    if (breakdownWrap && breakdownEl) {
+      if (reviseTotal > 0) {
+        let html = '';
+        Object.keys(QEVAL_SUBTYPE_LABELS).forEach(k => {
+          const c = reviseCounts[k] || 0;
+          if (c === 0) return;
+          const w = Math.round((c / reviseTotal) * 100);
+          html += '<div class="mb-1"><div class="d-flex justify-content-between">' +
+            '<span><strong>' + k + '</strong> — ' + QEVAL_SUBTYPE_LABELS[k] + '</span>' +
+            '<span class="text-muted">' + c + '</span></div>' +
+            '<div style="height:6px; background:var(--tg-border); border-radius:3px; overflow:hidden;">' +
+            '<div style="height:100%; width:' + w + '%; background:' + QEVAL_VERDICT_COLORS.revise + ';"></div>' +
+            '</div></div>';
+        });
+        breakdownEl.innerHTML = html;
+        breakdownWrap.style.display = '';
+      } else {
+        breakdownWrap.style.display = 'none';
       }
-      // Show Compare Metrics if we have source runs
-      const cmpBtn = $('btn-compare-metrics');
-      if (cmpBtn && srcRuns.length > 0 && runId) {
-        cmpBtn.classList.remove('d-none');
-      }
+    }
 
-      // Load the graph
-      loadReconstructedOntology(sessId);
+    // Per-triple table (populated but hidden by default)
+    const tbody = $('qeval-tbody');
+    if (tbody) {
+      tbody.innerHTML = verdicts.map((v, i) => {
+        const color = QEVAL_VERDICT_COLORS[v.verdict] || '#999';
+        let verdictCell = '<span style="color:' + color + '; font-weight:600;">' +
+          (QEVAL_VERDICT_LABELS[v.verdict] || v.verdict) + '</span>';
+        if (v.revise_subtype) {
+          verdictCell += ' <small class="text-muted">(' + v.revise_subtype + ')</small>';
+        }
+        const sug = v.suggested_triple;
+        const sugText = (sug && sug.subject)
+          ? (sug.subject + ' — ' + sug.relation + ' — ' + sug.object)
+          : '—';
+        const conf = (v.confidence != null) ? v.confidence.toFixed(2) : '—';
+        // Only reject/revise rows are meaningful edits — accept rows are
+        // informational, so we disable their checkboxes.
+        const editable = (v.verdict === 'reject' || v.verdict === 'revise');
+        const tIdx = (v.triple_index != null) ? v.triple_index : i;
+        const checkbox = editable
+          ? '<input type="checkbox" class="qeval-row-check" data-triple-index="' + tIdx +
+            '" data-verdict="' + escapeHtml(v.verdict) + '">'
+          : '<span class="text-muted" title="Accepted — no edit needed">–</span>';
+        return '<tr data-verdict="' + escapeHtml(v.verdict) + '">' +
+          '<td>' + checkbox + '</td>' +
+          '<td>' + (i + 1) + '</td>' +
+          '<td><strong>' + escapeHtml(v.subject) + '</strong> — <em>' +
+            escapeHtml(v.relation) + '</em> — <strong>' + escapeHtml(v.object) + '</strong>' +
+            '<div class="text-muted" style="font-size:0.7rem;">' + escapeHtml(v.justification || '') + '</div></td>' +
+          '<td>' + verdictCell + '</td>' +
+          '<td>' + escapeHtml(sugText) + '</td>' +
+          '<td>' + conf + '</td>' +
+        '</tr>';
+      }).join('');
+      updateQevalSelectCount();
+    }
+
+    // CSV link
+    const csvBtn = $('btn-qeval-csv');
+    if (csvBtn) csvBtn.href = '/api/ontology-engineering/' + sessId + '/qualitative-eval.csv';
+
+    // Reset apply-edits panel when new verdicts load.
+    const applyResult = $('qeval-apply-result');
+    if (applyResult) { applyResult.classList.add('d-none'); applyResult.innerHTML = ''; }
+    const applyBtn = $('btn-qeval-apply');
+    if (applyBtn) applyBtn.disabled = true;
+  }
+
+  // ── Checkbox / selection helpers ────────────────────────────────────
+
+  function getCheckedTripleIndexes() {
+    return Array.from(document.querySelectorAll('.qeval-row-check:checked'))
+      .map(cb => parseInt(cb.getAttribute('data-triple-index'), 10))
+      .filter(n => !isNaN(n));
+  }
+
+  function updateQevalSelectCount() {
+    const countEl = $('qeval-select-count');
+    const applyBtn = $('btn-qeval-apply');
+    const n = getCheckedTripleIndexes().length;
+    if (countEl) countEl.textContent = n ? (n + ' selected') : '';
+    if (applyBtn) applyBtn.disabled = (n === 0);
+  }
+
+  // Delegate checkbox changes from the table body.
+  document.addEventListener('change', function (e) {
+    if (e.target && e.target.classList && e.target.classList.contains('qeval-row-check')) {
+      updateQevalSelectCount();
+    }
+  });
+
+  // Header "check all visible" toggles every row checkbox.
+  if ($('qeval-check-all')) {
+    $('qeval-check-all').addEventListener('change', function () {
+      const want = this.checked;
+      document.querySelectorAll('.qeval-row-check').forEach(cb => { cb.checked = want; });
+      updateQevalSelectCount();
     });
+  }
+
+  // Quick-select buttons (rejects / revises / all-edits / none).
+  document.querySelectorAll('[data-qeval-select]').forEach(btn => {
+    btn.addEventListener('click', function () {
+      const mode = this.getAttribute('data-qeval-select');
+      document.querySelectorAll('.qeval-row-check').forEach(cb => {
+        const v = cb.getAttribute('data-verdict');
+        let want = false;
+        if (mode === 'rejects')   want = (v === 'reject');
+        else if (mode === 'revises') want = (v === 'revise');
+        else if (mode === 'all-edits') want = (v === 'reject' || v === 'revise');
+        else if (mode === 'none') want = false;
+        cb.checked = want;
+      });
+      const headerCb = $('qeval-check-all');
+      if (headerCb) headerCb.checked = false;
+      updateQevalSelectCount();
+    });
+  });
+
+  // ── Apply judge edits ───────────────────────────────────────────────
+
+  if ($('btn-qeval-apply')) {
+    $('btn-qeval-apply').addEventListener('click', function () {
+      const section = $('qualitative-eval-section');
+      const sessId = section && section.dataset.sessionId;
+      if (!sessId) { alert('No OE session loaded.'); return; }
+      const approved = getCheckedTripleIndexes();
+      if (!approved.length) {
+        alert('Check at least one triple to apply judge edits.');
+        return;
+      }
+
+      const btn = this;
+      const resultEl = $('qeval-apply-result');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Applying...';
+      if (resultEl) { resultEl.classList.add('d-none'); resultEl.innerHTML = ''; }
+
+      fetch('/api/ontology-engineering/' + sessId + '/apply-judge-edits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ approved_indexes: approved }),
+      })
+        .then(r => r.json().then(data => ({ ok: r.ok, data })))
+        .then(({ ok, data }) => {
+          if (!ok || data.error) {
+            if (resultEl) {
+              resultEl.classList.remove('d-none');
+              resultEl.innerHTML = '<div class="text-danger">Error: ' +
+                escapeHtml(data.error || 'Unknown error') + '</div>';
+            }
+            return;
+          }
+          renderApplyResult(sessId, data);
+        })
+        .catch(err => {
+          if (resultEl) {
+            resultEl.classList.remove('d-none');
+            resultEl.innerHTML = '<div class="text-danger">Error: ' + escapeHtml(err.message) + '</div>';
+          }
+        })
+        .finally(() => {
+          btn.innerHTML = '<i class="bi bi-check2-square me-1"></i>Apply Judge Edits to Approved Triples';
+          updateQevalSelectCount();
+        });
+    });
+  }
+
+  function renderApplyResult(sessId, stats) {
+    const el = $('qeval-apply-result');
+    if (!el) return;
+    el.classList.remove('d-none');
+    const inRel = stats.input_relations || 0;
+    const inHier = stats.input_hierarchy || 0;
+    const outRel = stats.output_relations != null ? stats.output_relations : '?';
+    const outHier = stats.output_hierarchy != null ? stats.output_hierarchy : '?';
+    const totIn = inRel + inHier;
+    const totOut = (typeof outRel === 'number' && typeof outHier === 'number') ? (outRel + outHier) : '?';
+    const subApplied = stats.by_subtype_applied || {};
+    const subSkipped = stats.by_subtype_skipped || {};
+    const subLine = (obj) => Object.keys(obj).sort().map(k => k + '×' + obj[k]).join(', ') || '—';
+    const newSessId = stats.new_session_id || '';
+    const downloadUrl = stats.download_url ||
+      ('/api/ontology-engineering/' + (newSessId || sessId) + '/reconstructed-ontology');
+
+    const newSessBlock = newSessId
+      ? '<div class="mb-2 p-2" style="background:rgba(46,214,161,0.08); border:1px solid var(--tg-accent-1); border-radius:var(--tg-radius-sm);">' +
+        '  <div class="small text-muted mb-1">New cleaned session saved as</div>' +
+        '  <div style="font-family:monospace; font-size:0.85rem; color:var(--tg-accent-1); word-break:break-all;">' +
+             escapeHtml(newSessId) + '</div>' +
+        '  <div class="small text-muted mt-1">Appears in the <em>Load previous OE run</em> dropdown at the top of this page.</div>' +
+        '</div>'
+      : '';
+
+    const loadBtn = newSessId
+      ? '    <button type="button" class="btn btn-tg-secondary btn-sm ms-2" id="btn-qeval-load-cleaned" data-sess-id="' +
+          escapeHtml(newSessId) + '">' +
+        '      <i class="bi bi-arrow-repeat me-1"></i>Load cleaned session' +
+        '    </button>'
+      : '';
+
+    el.innerHTML =
+      '<div class="p-2" style="background:var(--tg-surface); border:1px solid var(--tg-border); border-radius:var(--tg-radius-sm);">' +
+      '  <div class="fw-semibold mb-2" style="color:var(--tg-accent-1);">' +
+      '    <i class="bi bi-check-circle me-1"></i>Cleaned ontology written to new session' +
+      '  </div>' +
+      newSessBlock +
+      '  <div class="row" style="font-size:0.78rem;">' +
+      '    <div class="col-md-6">' +
+      '      <div><strong>Approved:</strong> ' + (stats.approved_count || 0) +
+             ' / ' + (stats.total_verdicts || 0) + ' verdicts</div>' +
+      '      <div><strong>Dropped (reject):</strong> ' + (stats.dropped_reject || 0) + '</div>' +
+      '      <div><strong>Revises applied:</strong> ' + (stats.revise_applied || 0) +
+             ' <small class="text-muted">(' + subLine(subApplied) + ')</small></div>' +
+      '      <div><strong>Revises skipped (new class):</strong> ' + (stats.revise_skipped_new_class || 0) +
+             ' <small class="text-muted">(' + subLine(subSkipped) + ')</small></div>' +
+      '    </div>' +
+      '    <div class="col-md-6">' +
+      '      <div><strong>Relations:</strong> ' + inRel + ' → ' + outRel + '</div>' +
+      '      <div><strong>Hierarchy:</strong> ' + inHier + ' → ' + outHier + '</div>' +
+      '      <div><strong>Total triples:</strong> ' + totIn + ' → ' + totOut + '</div>' +
+      '    </div>' +
+      '  </div>' +
+      '  <div class="mt-2">' +
+      '    <a class="btn btn-tg-secondary btn-sm" href="' + escapeHtml(downloadUrl) + '" download>' +
+      '      <i class="bi bi-download me-1"></i>Download cleaned ontology (JSON)' +
+      '    </a>' +
+           loadBtn +
+      '  </div>' +
+      '</div>';
+
+    // Wire the "Load cleaned session" button to reload the page with the new
+    // session pre-loaded via the existing "Load previous OE run" dropdown.
+    const loadBtnEl = $('btn-qeval-load-cleaned');
+    if (loadBtnEl) {
+      loadBtnEl.addEventListener('click', function () {
+        const nsid = this.getAttribute('data-sess-id');
+        if (!nsid) return;
+        // Reload the OE page; user can pick the new session from the dropdown
+        // (it's listed automatically since it has reconstructed_ontology.json).
+        window.location.href = '/ontology-engineering?load=' + encodeURIComponent(nsid);
+      });
+    }
+  }
+
+  function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  if ($('btn-qualitative-eval')) {
+    $('btn-qualitative-eval').addEventListener('click', function () {
+      const section = $('qualitative-eval-section');
+      const sessId = section && section.dataset.sessionId;
+      if (!sessId) { alert('Load a run or OE session first.'); return; }
+
+      const llm = getSelectedQevalLlm();
+      this.disabled = true;
+      $('qeval-progress').classList.remove('d-none');
+      $('qeval-results').classList.add('d-none');
+      $('qeval-bar').style.width = '0%';
+      $('qeval-msg').textContent = 'Starting qualitative eval...';
+
+      fetch('/api/ontology-engineering/qualitative-eval', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessId, provider: llm.provider, model: llm.model }),
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.error) {
+            $('qeval-msg').textContent = 'Error: ' + data.error;
+            $('btn-qualitative-eval').disabled = false;
+            return;
+          }
+          pollQualitativeEval(data.task_id, sessId);
+        })
+        .catch(err => {
+          $('qeval-msg').textContent = 'Error: ' + err.message;
+          $('btn-qualitative-eval').disabled = false;
+        });
+    });
+  }
+
+  if ($('btn-qeval-toggle-table')) {
+    $('btn-qeval-toggle-table').addEventListener('click', function () {
+      const wrap = $('qeval-table-wrap');
+      if (!wrap) return;
+      const hidden = wrap.classList.toggle('d-none');
+      this.innerHTML = hidden
+        ? '<i class="bi bi-table me-1"></i>Show per-triple verdicts'
+        : '<i class="bi bi-chevron-up me-1"></i>Hide per-triple verdicts';
+    });
+  }
+
+  function pollQualitativeEval(taskId, sessId) {
+    const statusUrl = '/api/ontology-engineering/qualitative-eval/' + taskId + '/status';
+    const interval = setInterval(() => {
+      fetch(statusUrl)
+        .then(r => r.json())
+        .then(data => {
+          const current = parseInt(data.current, 10) || 0;
+          const total = parseInt(data.total, 10) || 1;
+          const pct = Math.round((current / total) * 100);
+          $('qeval-bar').style.width = pct + '%';
+          $('qeval-msg').textContent = data.message || 'Judging...';
+
+          if (data.status === 'completed') {
+            clearInterval(interval);
+            $('qeval-bar').style.width = '100%';
+            $('qeval-msg').textContent = data.message || 'Qualitative eval complete.';
+            $('btn-qualitative-eval').disabled = false;
+            const btnText = $('btn-qualitative-eval-text');
+            if (btnText) btnText.textContent = 'Re-run LLM Qualitative Evaluation';
+            markDone($('step-4'));
+            // Fetch final results
+            fetch('/api/ontology-engineering/' + sessId + '/qualitative-eval')
+              .then(r => r.json())
+              .then(payload => {
+                if (payload && payload.summary) {
+                  renderQualitativeResults(sessId, payload.summary, payload.verdicts || []);
+                }
+              })
+              .catch(() => {});
+          } else if (data.status === 'failed') {
+            clearInterval(interval);
+            $('qeval-msg').textContent = 'Failed: ' + (data.error || 'Unknown error');
+            $('btn-qualitative-eval').disabled = false;
+          }
+        })
+        .catch(() => { /* ignore transient */ });
+    }, 800);
   }
 
 })();

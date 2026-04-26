@@ -9,9 +9,106 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 from .merge import merge_ontologies
+
+
+# ── Noise-relation rule filters ───────────────────────────────────────
+#
+# The LLM-as-judge qualitative evaluation on the proxy-gold OE run showed
+# that ~80% of the revise verdicts on OE-added relations fall into two
+# highly patterned buckets:
+#
+#   4.9  (32/82): relation restates existing hierarchy as a flat edge
+#                 (e.g. ``CVP has_monitoring_data Parameter`` where
+#                 ``Parameter`` is already a transitive ancestor of
+#                 ``CVP`` in the source hierarchy).
+#   4.4  (36/82): wrong relation label — judgment call, can't filter.
+#
+# Layer-1 rule filters below catch the 4.9 cases deterministically plus
+# any self-loops the LLM slips through. They run AFTER closed-vocab
+# enforcement and BEFORE the merge.
+
+def _norm_noun(label: str) -> str:
+    """Lowercase, strip non-alnum, collapse common plurals."""
+    s = re.sub(r"[^a-z0-9]+", "", (label or "").lower())
+    if s.endswith("ies") and len(s) > 3:
+        s = s[:-3] + "y"
+    elif s.endswith("s") and not s.endswith("ss") and len(s) > 1:
+        s = s[:-1]
+    return s
+
+
+def _build_hierarchy_maps(
+    hierarchy: List[Dict[str, Any]],
+) -> Tuple[Dict[str, Set[str]], Dict[str, Set[str]]]:
+    """Compute transitive ancestors and descendants for every class.
+
+    Returns ``(ancestors, descendants)`` — both dicts mapping label to set
+    of all transitively-related labels. Used by the hierarchy_restate
+    filter: if the filler is in the ancestor OR descendant set of the
+    domain, the proposed relation duplicates existing subclass structure.
+
+    Descendant coverage is needed to catch reverse-direction re-statements
+    like ``Biochemistry hasLabValue Sodium``, where ``Sodium`` is a
+    subclass of ``Biochemistry`` in the source.
+    """
+    parents: Dict[str, List[str]] = {}
+    children: Dict[str, List[str]] = {}
+    for h in hierarchy or []:
+        sub = (h.get("subClass") or h.get("subclass") or h.get("child") or "").strip()
+        sup = (h.get("superClass") or h.get("superclass") or h.get("parent") or "").strip()
+        if sub and sup:
+            parents.setdefault(sub, []).append(sup)
+            children.setdefault(sup, []).append(sub)
+
+    all_labels = set(parents.keys()) | set(children.keys())
+
+    def _close(adjacency: Dict[str, List[str]]) -> Dict[str, Set[str]]:
+        cache: Dict[str, Set[str]] = {}
+        for lbl in all_labels:
+            seen: Set[str] = set()
+            stack = list(adjacency.get(lbl, []))
+            while stack:
+                n = stack.pop()
+                if n in seen:
+                    continue
+                seen.add(n)
+                stack.extend(adjacency.get(n, []))
+            cache[lbl] = seen
+        return cache
+
+    return _close(parents), _close(children)
+
+
+def _classify_noise_relation(
+    domain: str,
+    rel_label: str,
+    filler: str,
+    ancestor_map: Dict[str, Set[str]],
+    descendant_map: Dict[str, Set[str]],
+) -> Optional[str]:
+    """Return a reason code if the relation is noisy, else None.
+
+    Reason codes:
+        ``self_loop``          — domain and filler normalize to the same class.
+        ``hierarchy_restate``  — filler is a transitive ancestor OR descendant
+                                 of domain in the source hierarchy; the
+                                 proposed relation duplicates subclass
+                                 structure and will be flagged as 4.9.
+    """
+    d_norm = _norm_noun(domain)
+    f_norm = _norm_noun(filler)
+    if d_norm and d_norm == f_norm:
+        return "self_loop"
+
+    if filler in ancestor_map.get(domain, set()):
+        return "hierarchy_restate"
+    if filler in descendant_map.get(domain, set()):
+        return "hierarchy_restate"
+
+    return None
 
 
 # ── Prompt construction ───────────────────────────────────────────────
@@ -66,7 +163,7 @@ def _build_cluster_prompt(cluster: Dict[str, Any],
 
     return f"""You are an expert ontology engineer and neurointensive care domain specialist.
 
-You are given a semantic cluster of ontology classes extracted from neurointensive care research papers. Your task is to enrich this cluster with meaningful domain relations — NOT to invent new classes or restructure the hierarchy.
+You are given a semantic cluster of ontology classes extracted from neurointensive care research papers. Your task is to enrich each class with OWL-style existential restrictions (constraints) that describe how it relates to other classes — NOT to invent new classes or restructure the hierarchy.
 
 ## Cluster: "{cluster_name}"
 
@@ -76,28 +173,38 @@ You are given a semantic cluster of ontology classes extracted from neurointensi
 ### Other clusters in this ontology (for cross-cluster linking):
 {other_text}
 
-## Your task — produce ONLY relations:
+## Your task — produce per-class constraints:
 
-1. **Relations (object properties)**: Define meaningful domain-specific relations between classes in this cluster. You MUST use ONLY labels from the closed vocabulary below — do NOT invent new relation types.
+1. **Constraints (existential restrictions)**: For each class, define constraints that describe its relationships to other classes. Each constraint says: this class has *property* **some** *TargetClass*. You MUST use ONLY property labels from the closed vocabulary below — do NOT invent new property types.
 
-   **Allowed relation labels (closed vocabulary)**: {vocab_line}
+   **Allowed property labels (closed vocabulary)**: {vocab_line}
 
-   If none of the allowed labels fit a pair of classes, do not emit a relation for that pair. It is better to emit fewer relations than to invent a new label.
+   For example, if SecondaryInsult worsens HeadTrauma, express this as a constraint on SecondaryInsult:
+   `{{"property": "Worsens", "filler": "HeadTrauma"}}`
 
-2. **No new classes**: You MUST NOT invent, add, or propose any new classes. Use ONLY the classes listed above as domain/range. Any class you output that is not in the list above will be discarded.
+   This means: SecondaryInsult ⊑ ∃Worsens.HeadTrauma (every SecondaryInsult worsens some HeadTrauma).
 
-3. **No hierarchy**: Do NOT produce subClassOf / hierarchy edges. The hierarchy is already defined in the source ontology and will be preserved independently. Any hierarchy edges you emit will be discarded.
+   If none of the allowed labels fit a class, give it an empty constraints list. It is better to emit fewer constraints than to invent a new property label.
 
-4. **Cross-cluster relations**: Identify up to 5 important relations that connect classes in THIS cluster to classes that likely belong in OTHER clusters listed above. Cross-cluster relations must also use the closed vocabulary above.
+2. **No new classes**: You MUST NOT invent, add, or propose any new classes. Use ONLY the classes listed above in constraints. Any class you reference that is not in the list above (or in another cluster) will be discarded.
+
+3. **No hierarchy**: Do NOT produce subClassOf / hierarchy edges. The hierarchy is already defined in the source ontology and will be preserved independently.
+
+4. **Cross-cluster constraints**: You may add constraints that reference classes from OTHER clusters listed above (up to 5 total). These must also use the closed vocabulary.
 
 ## Output format — strict JSON only:
 ```json
 {{
   "classes": [
-    {{"label": "...", "definition": "...", "evidence": "from source text", "synonyms": []}}
-  ],
-  "relations": [
-    {{"label": "...", "domain": "...", "range": "...", "definition": "one-sentence description"}}
+    {{
+      "label": "...",
+      "definition": "...",
+      "evidence": "from source text",
+      "synonyms": [],
+      "constraints": [
+        {{"property": "...", "filler": "...", "definition": "one-sentence description of this constraint"}}
+      ]
+    }}
   ],
   "hierarchy": []
 }}
@@ -107,9 +214,22 @@ You are given a semantic cluster of ontology classes extracted from neurointensi
 - Include each existing class in your output EXACTLY as given — do not rename or remove.
 - DO NOT add any new classes under any circumstances. Zero. None.
 - DO NOT emit any hierarchy edges. Leave "hierarchy" as an empty list.
-- Every relation must use a label from the closed vocabulary above.
-- Every relation must have both domain and range that reference real classes from this cluster (or another cluster listed above).
-- Output ONLY the JSON object — no markdown fences, no commentary before or after."""
+- Every constraint must use a property from the closed vocabulary above.
+- Every constraint filler must reference a real class from this cluster or another cluster listed above.
+- Each constraint is scoped to its owning class — the class the constraint is listed under is the domain, and the filler is the range.
+
+## Forbidden patterns (the two most common noise cases — do NOT emit these):
+
+1. **No self-loops.** The filler must refer to a DIFFERENT class than the owning class. Never emit a constraint whose filler is the same class it is attached to. (Bad: `MonitoringData — hasMonitoringData some MonitoringData`.)
+
+2. **No redundant hierarchy re-statement — in either direction.** If the filler is already an ancestor OR a descendant of the owning class in the source hierarchy, the constraint duplicates subclass structure and MUST be dropped. (Bad, when `CVP` is a subclass of `MonitoringData`: `CVP — hasMonitoringData some MonitoringData`.) (Bad, when `Sodium` is a subclass of `Biochemistry`: `Biochemistry — hasLaboratoryValue some Sodium`.) Constraints should describe relationships BETWEEN branches of the hierarchy, not redescribe existing subclass chains.
+
+Valid constraints describe a NON-HIERARCHICAL clinical relationship between classes that are NOT in each other's subclass chain. Examples:
+- `SecondaryInsult — worsens some HeadTrauma` (different branches)
+- `Therapy — treats some SecondaryInsult` (cross-branch causal/treatment link)
+- `GuidelineAdherence — forInsultTreatment some TraumaticBrainInjury`
+
+Output ONLY the JSON object — no markdown fences, no commentary before or after."""
 
 
 # ── JSON extraction from LLM response ────────────────────────────────
@@ -198,6 +318,20 @@ def run_cluster_completion(
     # Lookup for case-insensitive match → preserve source casing on emission
     rel_label_canonical = {lbl.lower(): lbl for lbl in source_rel_labels}
 
+    # Precompute transitive ancestor + descendant maps from the source
+    # hierarchy. The hierarchy_restate filter uses both directions to drop
+    # constraints that just re-state an existing subclass chain as a flat
+    # relation (e.g. ``Biochemistry hasLabValue Sodium`` where ``Sodium``
+    # is a subclass of ``Biochemistry``).
+    ancestor_map, descendant_map = _build_hierarchy_maps(
+        merged_ontology.get("hierarchy", [])
+    )
+
+    # Aggregate drop counters across all clusters — surfaced in the log so
+    # the diagnostic pane can show how much noise the rule filters caught.
+    total_noise_self_loop = 0
+    total_noise_hierarchy_restate = 0
+
     # Process each cluster
     cluster_fragments: List[Dict[str, Any]] = []
     log_entries: List[Dict[str, Any]] = []
@@ -261,44 +395,100 @@ def run_cluster_completion(
             log_entries[-1]["dropped_inferred_classes"] = dropped_inferred
             log_entries[-1]["kept_classes"] = len(kept_classes)
 
-            # Tag provenance on all surviving items
+            # Tag provenance on all surviving items and convert per-class
+            # constraints into flat relation dicts for downstream compatibility.
+            valid_labels = set(class_lookup.keys())
+            kept_relations = []
+            dropped_relations_endpoints = 0
+            dropped_relations_vocab = 0
+            dropped_relations_self_loop = 0
+            dropped_relations_hierarchy_restate = 0
+
             for cls in kept_classes:
                 cls.setdefault("provenance", [f"cluster_completion:{cluster_name}"])
                 cls["stratum"] = "core"
                 if not cls.get("evidence") and cls.get("label") in class_lookup:
                     cls["evidence"] = class_lookup[cls["label"]].get("evidence", "")
 
-            # Valid label set for relation/hierarchy endpoints = every class
-            # in the full source ontology. Any edge referencing a label not
-            # in this set was pointing at a class we just dropped (or one the
-            # LLM invented) and must be removed to avoid dangling edges.
-            valid_labels = set(class_lookup.keys())
+                # Convert OWL-style constraints to flat (domain, label, range)
+                # relations. Each constraint on a class becomes a relation
+                # where domain = this class, range = constraint filler.
+                domain_label = (cls.get("label") or "").strip()
+                for constraint in cls.pop("constraints", []) or []:
+                    filler = (constraint.get("filler") or "").strip()
+                    raw_prop = (constraint.get("property") or "").strip()
+                    defn = (constraint.get("definition") or "").strip()
 
-            kept_relations = []
-            dropped_relations_endpoints = 0
-            dropped_relations_vocab = 0
-            for rel in parsed.get("relations", []):
+                    # Validate endpoints
+                    if domain_label not in valid_labels or filler not in valid_labels:
+                        dropped_relations_endpoints += 1
+                        continue
+
+                    # Closed-vocabulary enforcement: case-insensitive match,
+                    # then snap to the source's exact casing so
+                    # merge_ontologies dedupes cleanly against the source.
+                    canon = rel_label_canonical.get(raw_prop.lower())
+                    if not canon:
+                        dropped_relations_vocab += 1
+                        continue
+
+                    # Judge-informed noise filter: catch self-loops and
+                    # redundant hierarchy re-statements (filler is a
+                    # transitive ancestor OR descendant of domain, which
+                    # means the relation duplicates existing subclass
+                    # structure — the 4.9 signature from the qualitative
+                    # judge).
+                    noise = _classify_noise_relation(
+                        domain_label, canon, filler,
+                        ancestor_map, descendant_map,
+                    )
+                    if noise == "self_loop":
+                        dropped_relations_self_loop += 1
+                        continue
+                    if noise == "hierarchy_restate":
+                        dropped_relations_hierarchy_restate += 1
+                        continue
+
+                    kept_relations.append({
+                        "label": canon,
+                        "domain": domain_label,
+                        "range": filler,
+                        "definition": defn,
+                        "provenance": [f"cluster_completion:{cluster_name}"],
+                        "stratum": "inferred",
+                        "evidence": "[inferred] cluster completion",
+                    })
+
+            parsed["relations"] = kept_relations
+
+            # Also handle any legacy flat relations the LLM might still emit
+            # (e.g. if it ignores the constraint format and falls back to the
+            # old domain/range style). This is a safety net, not the main path.
+            for rel in parsed.get("_legacy_relations", parsed.get("relations_flat", [])):
                 dom = (rel.get("domain") or "").strip()
                 rng = (rel.get("range") or "").strip()
                 if dom not in valid_labels or rng not in valid_labels:
                     dropped_relations_endpoints += 1
                     continue
-                # Closed-vocabulary enforcement: the prompt tells the LLM
-                # which labels are allowed, but we enforce it deterministically
-                # here too. Case-insensitive match, then snap to the source's
-                # exact casing so merge_ontologies dedupes cleanly against
-                # the source fragment.
                 raw_label = (rel.get("label") or "").strip()
                 canon = rel_label_canonical.get(raw_label.lower())
                 if not canon:
                     dropped_relations_vocab += 1
+                    continue
+                noise = _classify_noise_relation(
+                    dom, canon, rng, ancestor_map, descendant_map,
+                )
+                if noise == "self_loop":
+                    dropped_relations_self_loop += 1
+                    continue
+                if noise == "hierarchy_restate":
+                    dropped_relations_hierarchy_restate += 1
                     continue
                 rel["label"] = canon
                 rel.setdefault("provenance", [f"cluster_completion:{cluster_name}"])
                 rel.setdefault("stratum", "inferred")
                 rel.setdefault("evidence", "[inferred] cluster completion")
                 kept_relations.append(rel)
-            parsed["relations"] = kept_relations
 
             # Hierarchy is now fully delegated to the source seed. Any edges
             # the LLM emits despite the prompt instruction are discarded
@@ -312,10 +502,20 @@ def run_cluster_completion(
 
             log_entries[-1]["dropped_relations_endpoints"] = dropped_relations_endpoints
             log_entries[-1]["dropped_relations_vocab"] = dropped_relations_vocab
+            log_entries[-1]["dropped_relations_self_loop"] = dropped_relations_self_loop
+            log_entries[-1]["dropped_relations_hierarchy_restate"] = (
+                dropped_relations_hierarchy_restate
+            )
             log_entries[-1]["dropped_relations"] = (
-                dropped_relations_endpoints + dropped_relations_vocab
+                dropped_relations_endpoints
+                + dropped_relations_vocab
+                + dropped_relations_self_loop
+                + dropped_relations_hierarchy_restate
             )
             log_entries[-1]["dropped_hierarchy"] = dropped_hierarchy
+
+            total_noise_self_loop += dropped_relations_self_loop
+            total_noise_hierarchy_restate += dropped_relations_hierarchy_restate
 
             cluster_fragments.append(parsed)
 
@@ -348,6 +548,13 @@ def run_cluster_completion(
             "closed_relation_vocab": True,
             "n_allowed_relations": len(source_rel_labels),
             "hierarchy_from_source_only": True,
+            "noise_filter": {
+                "self_loop": total_noise_self_loop,
+                "hierarchy_restate": total_noise_hierarchy_restate,
+                "total": (
+                    total_noise_self_loop + total_noise_hierarchy_restate
+                ),
+            },
         })
     else:
         result = {"classes": [], "relations": [], "hierarchy": [], "metadata": {}}
